@@ -25,28 +25,31 @@ export default function AreasPage() {
   const categories = Array.from(new Set(mockLocations.map(loc => loc.category)));
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc]">
+    <div className="h-screen overflow-hidden flex flex-col bg-[#fcfcfc]">
       {/* Top Bar */}
       <Navbar />
 
-      {/* Banner Section */}
-      <AreasBanner />
+      {/* Scrollable Content Area */}
+      <main className="flex-1 overflow-y-auto pt-20 custom-scrollbar">
+        {/* Banner Section */}
+        <AreasBanner />
 
-      {/* Main Content Area Layout */}
-      <div className="max-w-[1280px] mx-auto px-6 py-12 space-y-16">
+        {/* Main Content Area Layout */}
+        <div className="max-w-[1280px] mx-auto px-6 py-12 space-y-16">
 
-        {/* Map Section  */}
-        <AreasMapSection locations={mockLocations} categories={categories} />
+          {/* Map Section  */}
+          <AreasMapSection locations={mockLocations} categories={categories} />
 
-        <AreasAbout />
+          <AreasAbout />
 
-        {/* Shop Categories Section */}
-        <AreasList categories={categories} locations={mockLocations} />
+          {/* Shop Categories Section */}
+          <AreasList categories={categories} locations={mockLocations} />
 
-        {/* Footer */}
-        <AreasFooterInfo />
+          {/* Footer */}
+          <AreasFooterInfo />
 
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
