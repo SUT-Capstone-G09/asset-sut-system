@@ -1,22 +1,23 @@
-"use client"; 
+"use client";
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  ClipboardList, 
-  PlusCircle, 
-  LogOut, 
-  Search, 
-  Clock, 
+import {
+  LayoutDashboard,
+  FileText,
+  ClipboardList,
+  PlusCircle,
+  LogOut,
+  Search,
+  Clock,
   HelpCircle,
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
+import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
 
 const AssetSutUI = () => {
-    const router = useRouter();
+  const router = useRouter();
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
@@ -43,15 +44,23 @@ const AssetSutUI = () => {
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
+        <div className='mb-4'>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "ติดต่อเรา" },
+            ]}
+          />
+        </div>
         {/* Header Section */}
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex justify-between items-center mb-8">
           <div>
             <h2 className="text-2xl font-semibold text-gray-800">สวัสดี, User12345</h2>
             <p className="text-gray-500 mt-1">สร้างคำร้องและติดตามสถานะคำร้องของท่านได้ที่นี่</p>
           </div>
-        
+
           <button className="bg-orange-500 text-white px-6 py-3 rounded-xl font-medium flex items-center hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all"
-          onClick={() => router.push('/report/form-addReport')}>
+            onClick={() => router.push('/requests/add-request')}>
             <PlusCircle size={20} className="mr-2" />
             แจ้งเรื่องใหม่
           </button>
@@ -70,7 +79,7 @@ const AssetSutUI = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">Result Found</span>
-              <Link href="/report/my">
+              <Link href="/requests/tracking">
                 <h4 className="text-3xl font-bold text-gray-700 mt-1">REQ-2026-000123</h4>
               </Link>
             </div>
@@ -93,7 +102,7 @@ const AssetSutUI = () => {
             </div>
             <div className="bg-gray-50 p-6 rounded-2xl border-l-4 border-orange-500">
               <p className="text-gray-600 leading-relaxed italic">
-                "เครื่องปรับอากาศในห้องทำงาน B1213 มีเสียงดังผิดปกติและไม่ทำความเย็น 
+                "เครื่องปรับอากาศในห้องทำงาน B1213 มีเสียงดังผิดปกติและไม่ทำความเย็น
                 แจ้งขอตรวจสอบและดำเนินการแก้ไขเร่งด่วน เนื่องจากส่งผลกระทบต่อการทำงาน"
               </p>
             </div>
@@ -137,9 +146,8 @@ const AssetSutUI = () => {
 
 // Components ย่อยเพื่อความสะอาดของโค้ด
 const NavItem = ({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) => (
-  <div className={`flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-    active ? 'bg-orange-100 text-orange-600 font-semibold' : 'text-gray-500 hover:bg-gray-100'
-  }`}>
+  <div className={`flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${active ? 'bg-orange-100 text-orange-600 font-semibold' : 'text-gray-500 hover:bg-gray-100'
+    }`}>
     {icon}
     <span className="text-sm">{label}</span>
   </div>

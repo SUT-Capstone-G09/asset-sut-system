@@ -1,4 +1,7 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   ClipboardList, 
@@ -11,13 +14,66 @@ import {
   MapPin,
   Calendar,
   Upload,
-  Send
+  Send,
+  X,
+  CheckCircle2
 } from 'lucide-react';
+import { Asset } from 'next/font/google';
+import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
 
-const CreateRequestPage = () => {
+// --- Sub-component: Success Modal ---
+const SuccessModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const router = useRouter();
+  if (!isOpen) return null;
+
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB] font-sans">
-      {/* Sidebar - สไตล์เดิมจากหน้าก่อนหน้า */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-10 transform transition-all animate-in fade-in zoom-in duration-300">
+        <button onClick={onClose} className="absolute right-8 top-8 text-slate-400 hover:text-slate-600">
+          <X size={24} />
+        </button>
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 size={48} />
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 mb-8">สร้างคำร้องสำเร็จ</h2>
+          <div className="w-full space-y-4">
+            <button 
+              onClick={() => router.push('/requests/tracking')} 
+              className="w-full bg-[#E9652B] hover:bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
+            >
+              ติดตามคำร้อง
+            </button>
+            <button 
+              onClick={onClose}
+              className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-500 font-bold py-4 rounded-2xl transition-all active:scale-[0.98]"
+            >
+              สร้างคำร้องใหม่
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Main Component: CreateRequestPage ---
+const CreateRequestPage = () => {
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // จำลองการส่งข้อมูลสำเร็จ
+    setShowSuccess(true);
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-50 font-sans">
+      {/* Success Modal Overlay */}
+      <SuccessModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} />
+
+      {/* Sidebar */}
       <aside className="w-64 bg-white border-r flex flex-col sticky top-0 h-screen">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-[#E9652B]">Asset SUT</h1>
@@ -38,11 +94,18 @@ const CreateRequestPage = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-10 max-w-6xl mx-auto">
+      <main className="flex-1 p-8 overflow-y-auto">
+        <div className='mb-4'>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "ติดต่อเรา", href: "/requests" },
+              { label: "สร้างคำร้องใหม่" },
+            ]}
+          />
+        </div>
+        {/* Header Section */}
         <header className="mb-8">
-          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-            Request Form
-          </span>
           <h2 className="text-3xl font-bold text-gray-800 mt-3">สร้างคำร้องใหม่</h2>
           <p className="text-gray-500 mt-2 text-sm leading-relaxed max-w-2xl">
             กรุณากรอกรายละเอียดด้านล่างเพื่อแจ้งความประสงค์ สอบถาม หรือร้องเรียนเกี่ยวกับ
@@ -65,38 +128,33 @@ const CreateRequestPage = () => {
           {/* Left Column: Main Form */}
           <div className="col-span-8 space-y-6">
             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
-              
-              {/* ประเภทคำร้อง */}
               <div className="mb-6">
                 <label className="block text-center text-sm font-bold text-gray-700 mb-3">ประเภทคำร้อง</label>
                 <div className="relative">
-                  <select className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 appearance-none text-gray-600 focus:ring-2 focus:ring-orange-500/20 outline-none cursor-pointer">
+                  <select className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 appearance-none text-gray-600 outline-none cursor-pointer">
                     <option>เลือกประเภทคำร้อง</option>
                     <option>แจ้งซ่อมครุภัณฑ์</option>
                     <option>แจ้งปัญหาการใช้งานพื้นที่</option>
-                    <option>สอบถามข้อมูลสัญญาเช่า</option>
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                 </div>
               </div>
 
-              {/* หัวข้อ */}
               <div className="mb-6">
                 <label className="block text-center text-sm font-bold text-gray-700 mb-3">หัวข้อ</label>
                 <input 
                   type="text" 
                   placeholder="ระบุหัวข้อที่ต้องการแจ้ง"
-                  className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-orange-500/20 outline-none"
+                  className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 outline-none"
                 />
               </div>
 
-              {/* รายละเอียด */}
               <div>
                 <label className="block text-center text-sm font-bold text-gray-700 mb-3">รายละเอียด</label>
                 <textarea 
                   rows={6}
                   placeholder="กรุณาบรรยายรายละเอียดของคำร้องอย่างครบถ้วน..."
-                  className="w-full bg-gray-100 border-none rounded-2xl py-4 px-4 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"
+                  className="w-full bg-gray-100 border-none rounded-2xl py-4 px-4 outline-none resize-none"
                 />
               </div>
             </div>
@@ -104,7 +162,6 @@ const CreateRequestPage = () => {
 
           {/* Right Column: Meta Info */}
           <div className="col-span-4 space-y-6">
-            {/* ข้อมูลติดต่อ */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border-t-4 border-t-[#E9652B] border border-gray-100">
               <div className="flex items-center text-sm font-bold text-gray-700 mb-4">
                 <User size={16} className="mr-2 text-gray-400" /> ข้อมูลติดต่อ
@@ -112,12 +169,10 @@ const CreateRequestPage = () => {
               <input 
                 type="text" 
                 placeholder="อีเมล หรือ เบอร์โทรศัพท์"
-                className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-orange-500/20 outline-none"
+                className="w-full bg-gray-100 border-none rounded-xl py-3 px-4 text-sm outline-none"
               />
-              <p className="text-[10px] text-gray-400 mt-2 px-1">ข้อมูลนี้จะถูกใช้เพื่อการติดต่อสื่อสารในเรื่องนี้เท่านั้น</p>
             </div>
 
-            {/* สถานที่ & วันที่ */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-gray-400 uppercase mb-2 block">สถานที่ (Optional)</label>
@@ -135,13 +190,11 @@ const CreateRequestPage = () => {
               </div>
             </div>
 
-            {/* แนบไฟล์ */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center">
               <label className="text-[11px] font-bold text-gray-400 uppercase mb-3 block">แนบไฟล์ประกอบ</label>
-              <div className="border-2 border-dashed border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="border-2 border-dashed border-gray-100 rounded-2xl p-6 flex flex-col items-center cursor-pointer hover:bg-gray-50">
                 <Upload className="text-orange-300 mb-2" size={24} />
                 <span className="text-xs font-bold text-gray-600">คลิกเพื่ออัปโหลด</span>
-                <span className="text-[9px] text-gray-400 mt-1 uppercase">PNG, JPG หรือ PDF (ไม่เกิน 10MB)</span>
               </div>
             </div>
           </div>
@@ -150,7 +203,10 @@ const CreateRequestPage = () => {
         {/* Action Buttons */}
         <footer className="mt-10 pt-8 border-t border-gray-200 flex justify-end items-center space-x-6">
           <button className="text-gray-500 font-bold hover:text-gray-700 transition-colors">ยกเลิก</button>
-          <button className="bg-[#E9652B] text-white px-10 py-3 rounded-xl font-bold flex items-center hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all">
+          <button 
+            onClick={handleSubmit}
+            className="bg-[#E9652B] text-white px-10 py-3 rounded-xl font-bold flex items-center hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all"
+          >
             ส่งเรื่องคำร้อง <Send size={18} className="ml-2 transform rotate-45" />
           </button>
         </footer>
