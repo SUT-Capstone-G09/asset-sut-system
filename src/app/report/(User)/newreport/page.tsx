@@ -70,7 +70,7 @@ const AssetSutUI = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">Result Found</span>
-              <Link href="/report/id">
+              <Link href="/report/my">
                 <h4 className="text-3xl font-bold text-gray-700 mt-1">REQ-2026-000123</h4>
               </Link>
             </div>
