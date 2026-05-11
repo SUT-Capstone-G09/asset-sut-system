@@ -45,25 +45,25 @@ Focus on:
 
 ```bash
 src/
-├── app/
-├── components/
-│   ├── ui/
-│   └── layout/
+├── app/                  # Routing, layouts, and page entry points
+├── components/           # Truly shared UI components
+│   ├── ui/               # shadcn/ui base components
+│   └── layout/           # Global layout components (Sidebar, Navbar)
 │
-├── features/
-│   ├── auth/
-│   ├── tenants/
-│   ├── contracts/
-│   ├── news/
-│   ├── tickets/
-│   └── documents/
+├── features/             # Business logic and feature-specific UI
+│   └── [feature-name]/
+│       ├── components/   # Components used ONLY in this feature
+│       ├── hooks/        # Hooks used ONLY in this feature
+│       ├── services/     # API logic for this feature
+│       ├── types/        # TypeScript interfaces for this feature
+│       └── data/         # Mock data or constants for this feature
 │
-├── services/
-├── hooks/
-├── lib/
-├── types/
-├── utils/
-└── styles/
+├── services/             # Global API clients or cross-feature services
+├── lib/                  # Shared library configurations (e.g., supabase, prisma)
+├── hooks/                # Shared global hooks (e.g., useMediaQuery)
+├── types/                # Shared global TypeScript types
+├── utils/                # Shared pure helper functions
+└── styles/               # Global CSS or theme configurations
 ```
 
 ---
@@ -78,9 +78,12 @@ Keep business-related code inside:
 src/features/[feature-name]
 ```
 
+Each feature should be self-contained with its own components, hooks, and services.
+
 Examples:
 
 ```bash
+src/features/areas
 src/features/contracts
 src/features/tenants
 ```

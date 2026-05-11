@@ -52,6 +52,23 @@
   --color-brand-accent: #a67436;
 }
 
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+
+.custom-div-icon {
+  background: none !important;
+  border: none !important;
+}
+
 :root {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
