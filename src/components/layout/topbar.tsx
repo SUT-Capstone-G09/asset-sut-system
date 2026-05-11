@@ -32,7 +32,7 @@ export default function Navbar() {
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
     { label: "ประชาสัมพันธ์", href: "/news" },
-    { label: "ติดต่อเรา", href: "/report" },
+    { label: "ติดต่อเรา", href: "/requests" },
   ];
 
   return (

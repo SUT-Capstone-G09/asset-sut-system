@@ -40,7 +40,7 @@ const SuccessModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           <h2 className="text-3xl font-black text-slate-800 mb-8">สร้างคำร้องสำเร็จ</h2>
           <div className="w-full space-y-4">
             <button 
-              onClick={() => router.push('/report/tracking')} 
+              onClick={() => router.push('/requests/tracking')} 
               className="w-full bg-[#E9652B] hover:bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
             >
               ติดตามคำร้อง
