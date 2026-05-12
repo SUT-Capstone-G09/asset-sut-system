@@ -1,7 +1,7 @@
-export default function ListPage() {
+export default function NewsManagementPage() {
     return (
         <div className="flex justify-center min-h-screen">
-            <h1>List Page</h1>
+            <h1>Tenants Lists Page</h1>
         </div>
     );
 }

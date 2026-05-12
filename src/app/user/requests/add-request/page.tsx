@@ -19,7 +19,14 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Asset } from 'next/font/google';
-import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 // --- Sub-component: Success Modal ---
 const SuccessModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -96,13 +103,21 @@ const CreateRequestPage = () => {
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className='mb-4'>
-          <AssetBreadcrumb
-            items={[
-              { label: "หน้าหลัก", href: "/" },
-              { label: "ติดต่อเรา", href: "/requests" },
-              { label: "สร้างคำร้องใหม่" },
-            ]}
-          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/user/requests">ติดต่อเรา</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>สร้างคำร้องใหม่</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
         {/* Header Section */}
         <header className="mb-8">

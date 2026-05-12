@@ -14,43 +14,36 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
-import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const AssetSutUI = () => {
   const router = useRouter();
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-orange-600">Asset SUT</h1>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Modern Concierge</p>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-2">
-          <NavItem icon={<LayoutDashboard size={20} />} label="แดชบอร์ด" />
-          <NavItem icon={<FileText size={20} />} label="ติดตามคำร้อง" active />
-          <NavItem icon={<ClipboardList size={20} />} label="รายการคำร้อง" />
-          <NavItem icon={<PlusCircle size={20} />} label="แจ้งเรื่องใหม่" />
-        </nav>
-
-        <div className="p-4">
-          <button className="flex items-center justify-center w-full py-3 px-4 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors">
-            <LogOut size={18} className="mr-2" />
-            ออกจากระบบ
-          </button>
-        </div>
-      </aside>
 
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className='mb-4'>
-          <AssetBreadcrumb
-            items={[
-              { label: "หน้าหลัก", href: "/" },
-              { label: "ติดต่อเรา" },
-            ]}
-          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">หน้าหลัก</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>ติดต่อเรา</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
         {/* Header Section */}
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex justify-between items-center mb-8">
@@ -79,7 +72,7 @@ const AssetSutUI = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">Result Found</span>
-              <Link href="/requests/tracking">
+              <Link href="/user/requests/tracking">
                 <h4 className="text-3xl font-bold text-gray-700 mt-1">REQ-2026-000123</h4>
               </Link>
             </div>

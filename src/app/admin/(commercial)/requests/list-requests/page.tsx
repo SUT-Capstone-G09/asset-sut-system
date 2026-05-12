@@ -6,7 +6,14 @@ import {
   Search, Bell, Settings, LogOut, Download, 
   ChevronDown, Filter, ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
-import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 const AdminRequestTable = () => {
   const router = useRouter();
@@ -34,13 +41,21 @@ const AdminRequestTable = () => {
 
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="mb-4">
-          <AssetBreadcrumb 
-            items={[
-              { label: "หน้าหลัก", href: "/" },
-              { label: "ระบบจัดการคำร้อง", href: "/requests/dashboard" },
-              { label: "รายการคำร้อง" }
-            ]} 
-          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/requests/dashboard">ระบบจัดการคำร้อง</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>รายการคำร้อง</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
         {/* Header Section */}

@@ -56,7 +56,7 @@ export default function UserSidebar() {
       subItems: [
         {
           label: "แจ้งปัญหา",
-          href: "/user/report",
+          href: "/user/requests",
           icon: <AlertCircle className="w-4 h-4" />,
         },
       ],

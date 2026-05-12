@@ -5,7 +5,14 @@ import {
   Calendar, Paperclip, Send, CheckCircle2, MessageCircle, Clock
 } from 'lucide-react';
 import { Asset } from 'next/font/google';
-import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const RequestDetailPage = () => {
   return (
@@ -31,36 +38,22 @@ const RequestDetailPage = () => {
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col">
-        {/* Top Navigation Bar */}
-        {/* <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-slate-600" />
-            </button>
-            <h2 className="font-bold text-orange-600">ส่วนบริหารสินทรัพย์ SUT</h2>
-          </div>
-          <div className="flex items-center space-x-6">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500" size={16} />
-              <input type="text" placeholder="ค้นหาเลขที่อ้างอิง..." className="bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm w-64 outline-none focus:ring-2 focus:ring-orange-500/20" />
-            </div>
-            <div className="flex items-center space-x-2 border-l pl-6">
-              <button className="p-2 text-slate-400 hover:text-orange-500"><Bell size={20} /></button>
-              <button className="p-2 text-slate-400 hover:text-orange-500"><Settings size={20} /></button>
-              <div className="w-8 h-8 bg-slate-800 rounded-lg ml-2"></div>
-            </div>
-          </div>
-        </header> */}
-
-        {/* <main className="p-8 grid grid-cols-12 gap-8 max-w-[1600px] mx-auto w-full"> */}
         <main className="flex-1 p-8 overflow-y-auto">
-          <AssetBreadcrumb
-            items={[
-              { label: "หน้าหลัก", href: "/" },
-              { label: "ติดตามคำร้อง", href: "/requests/tracking" },
-              { label: "รายละเอียดคำร้อง" },
-            ]}
-          />
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/userrequests/tracking">ติดตามคำร้อง</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>รายละเอียดคำร้อง</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="p-8 grid grid-cols-12 gap-8 max-w-[1600px] mx-auto w-full">
             {/* Left Column: Request Info & Status */}
             <div className="col-span-8 space-y-6">

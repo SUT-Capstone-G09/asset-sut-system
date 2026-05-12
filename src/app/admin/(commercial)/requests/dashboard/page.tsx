@@ -6,7 +6,14 @@ import {
   Wrench, ShoppingCart, Calendar as CalendarIcon, RotateCcw,
   ChevronRight, MoreHorizontal, ArrowLeft
 } from 'lucide-react';
-import { AssetBreadcrumb } from '@/components/layout/AssetBreadcrumb';
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 const AdminDashboard = () => {
   const stats = [
@@ -48,12 +55,17 @@ const AdminDashboard = () => {
       <main className="flex-1 p-8">
         {/* Header */}
         <header className="flex justify-between items-center mb-8">
-          <AssetBreadcrumb
-            items={[
-              { label: "หน้าหลัก", href: "/" },
-              { label: "ระบบจัดการคำร้อง"},
-            ]}
-          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>ระบบจัดการคำร้อง</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="flex items-center space-x-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
