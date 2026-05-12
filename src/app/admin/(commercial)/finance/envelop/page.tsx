@@ -1,7 +1,18 @@
+import EnvelopHeader from "@/features/envelop/components/EnvelopHeader";
+import EnvelopStatsCards from "@/features/envelop/components/EnvelopStatsCards";
+import EnvelopTabs from "@/features/envelop/components/EnvelopTabs";
+
 export default function EnvelopPage() {
-    return (
-        <div className="flex justify-center min-h-screen">
-            <h1>Envelop Page</h1>
-        </div>
-    );
+  return (
+    <div className="px-8 space-y-8">
+      {/* Header with Breadcrumb */}
+      <EnvelopHeader />
+
+      {/* Stats Cards */}
+      <EnvelopStatsCards />
+
+      {/* Tabbed Content: Document List & Payment Verification */}
+      <EnvelopTabs />
+    </div>
+  );
 }
