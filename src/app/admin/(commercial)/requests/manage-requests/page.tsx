@@ -1,19 +1,13 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import {
   ArrowLeft, Bell, Settings, User, MapPin,
   Calendar, FileText, Send, Paperclip, ChevronDown, Download, AlertCircle, X,
   LayoutDashboard, ClipboardList, PlusCircle
 } from 'lucide-react';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+
 
 // --- Sub-component: ConfirmSaveModal ---
 const ConfirmSaveModal = ({
@@ -115,21 +109,13 @@ const AdminRequestDetail = () => {
 
         <main className="flex-1 p-8 overflow-y-auto">
         <div className='mb-4'>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/requests/list-requests">รายการคำร้อง</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>รายละเอียดคำร้อง #REF-2024-089</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "รายการคำร้อง", href: "/requests/list-requests" },
+              { label: "รายละเอียดคำร้อง #REF-2024-089" }
+            ]}
+          />
         </div>
           <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8">
             {/* Left Content */}

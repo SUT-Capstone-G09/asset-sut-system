@@ -5,14 +5,8 @@ import {
   Calendar, Paperclip, Send, CheckCircle2, MessageCircle, Clock
 } from 'lucide-react';
 import { Asset } from 'next/font/google';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+
 
 const RequestDetailPage = () => {
   return (
@@ -39,21 +33,15 @@ const RequestDetailPage = () => {
       {/* Main Container */}
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-8 overflow-y-auto">
-          <Breadcrumb className="mb-6">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/userrequests/tracking">ติดตามคำร้อง</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>รายละเอียดคำร้อง</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <div className="mb-6">
+            <AssetBreadcrumb
+              items={[
+                { label: "หน้าหลัก", href: "/" },
+                { label: "ติดตามคำร้อง", href: "/userrequests/tracking" },
+                { label: "รายละเอียดคำร้อง" }
+              ]}
+            />
+          </div>
           <div className="p-8 grid grid-cols-12 gap-8 max-w-[1600px] mx-auto w-full">
             {/* Left Column: Request Info & Status */}
             <div className="col-span-8 space-y-6">

@@ -14,34 +14,23 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+
 
 const RequestsPage = () => {
   const router = useRouter();
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1440px]">
+    <div className="mx-auto flex min-h-screen max-w-[1440px] mt-20">
 
       {/* Main Content */}
       <main className="flex-1 px-4 py-4 sm:px-6 lg:px-8">
         <div className='mb-4'>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>ติดต่อเรา</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "ติดต่อเรา" }
+            ]}
+          />
         </div>
         {/* Header Section */}
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex justify-between items-center mb-8">

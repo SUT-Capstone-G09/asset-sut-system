@@ -19,14 +19,8 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Asset } from 'next/font/google';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+
 
 // --- Sub-component: Success Modal ---
 const SuccessModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -80,44 +74,16 @@ const CreateRequestPage = () => {
       {/* Success Modal Overlay */}
       <SuccessModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} />
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col sticky top-0 h-screen">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-[#E9652B]">Asset SUT</h1>
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest">Modern Concierge</p>
-        </div>
-        <nav className="flex-1 px-4 space-y-1">
-          <NavItem icon={<LayoutDashboard size={18} />} label="แดชบอร์ด" />
-          <NavItem icon={<ClipboardList size={18} />} label="รายการคำร้อง" />
-          <NavItem icon={<PlusCircle size={18} />} label="แจ้งเรื่องใหม่" active />
-          <NavItem icon={<FileText size={18} />} label="ติดตามคำร้อง" />
-          <NavItem icon={<Settings size={18} />} label="ตั้งค่า" />
-        </nav>
-        <div className="p-4">
-          <button className="flex items-center justify-center w-full py-3 bg-[#E9652B] text-white rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
-            ออกจากระบบ
-          </button>
-        </div>
-      </aside>
-
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className='mb-4'>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/user/requests">ติดต่อเรา</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>สร้างคำร้องใหม่</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "รายการคำร้อง", href: "/user/requests" },
+              { label: "สร้างคำร้องใหม่" }
+            ]}
+          />
         </div>
         {/* Header Section */}
         <header className="mb-8">

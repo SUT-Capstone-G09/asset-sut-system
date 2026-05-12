@@ -3,36 +3,22 @@
 import { ArrowLeft, Share2, Calendar, Eye, Printer, CheckCircle2, Phone, Mail, Download, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+
 
 export default function NewsDetailPage() {
     return (
-        <div className="min-h-screen bg-[#F8F9FB]">
+        <div className="min-h-screen pt-20">
 
             <main className="max-w-7xl mx-auto px-4 py-8">
                  <div className="mb-6">
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/news">ข่าวสาร</BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbPage>การรับสมัครร้านค้าเช่าพื้นที่ศูนย์อาหารใหม่</BreadcrumbPage>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
+                    <AssetBreadcrumb
+                        items={[
+                            { label: "หน้าหลัก", href: "/" },
+                            { label: "ข่าวสาร", href: "/news" },
+                            { label: "การรับสมัครร้านค้าเช่าพื้นที่ศูนย์อาหารใหม่" }
+                        ]}
+                    />
                  </div>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     

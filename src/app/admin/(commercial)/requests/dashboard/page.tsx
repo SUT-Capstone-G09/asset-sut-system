@@ -1,19 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import { 
-  LayoutDashboard, ClipboardList, PlusCircle, FileText, 
+ LayoutDashboard, ClipboardList, PlusCircle, FileText, 
   Search, Bell, Settings, LogOut, Download, 
   Wrench, ShoppingCart, Calendar as CalendarIcon, RotateCcw,
   ChevronRight, MoreHorizontal, ArrowLeft
 } from 'lucide-react';
-import { 
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+
 
 const AdminDashboard = () => {
   const stats = [
@@ -31,41 +25,15 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col sticky top-0 h-screen">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-[#E9652B]">Asset SUT</h1>
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest leading-none">Modern Concierge</p>
-        </div>
-        <nav className="flex-1 px-4 space-y-1">
-          <NavItem icon={<LayoutDashboard size={18} />} label="แดชบอร์ด" active />
-          <NavItem icon={<ClipboardList size={18} />} label="รายการคำร้อง" />
-          <NavItem icon={<PlusCircle size={18} />} label="แจ้งเรื่องใหม่" />
-          <NavItem icon={<FileText size={18} />} label="ติดตามคำร้อง" />
-        </nav>
-        <div className="p-4">
-          <button className="flex items-center justify-center w-full py-3 bg-[#E9652B] text-white rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
-            ออกจากระบบ
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 min-h-screen bg-gray-50 font-sans">
         {/* Header */}
         <header className="flex justify-between items-center mb-8">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>ระบบจัดการคำร้อง</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <AssetBreadcrumb
+            items={[
+              { label: "หน้าหลัก", href: "/" },
+              { label: "Dashboard" }
+            ]}
+          />
           <div className="flex items-center space-x-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -172,7 +140,6 @@ const AdminDashboard = () => {
           </div>
         </div>
       </main>
-    </div>
   );
 };
 

@@ -1,13 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb"
 import {
     ArrowRight,
     CalendarDays,
@@ -60,8 +53,8 @@ const services = [
 
 export default function NewsPage() {
     return (
-        <div className="min-h-screen bg-[#fafafa] text-slate-900">
-            <div className="mx-auto flex min-h-screen max-w-[1440px]">
+        <div className="min-h-screen text-slate-900">
+            <div className="mx-auto flex min-h-screen max-w-[1440px] pt-20">
                 {/* Main Content */}
                 <main className="flex-1 px-4 py-4 sm:px-6 lg:px-8">
                     {/* Top Bar */}
@@ -71,17 +64,12 @@ export default function NewsPage() {
                                 <Menu className="size-5" />
                             </Button>
                             <div>
-                                <Breadcrumb>
-                                    <BreadcrumbList>
-                                        <BreadcrumbItem>
-                                            <BreadcrumbLink href="/">หน้าหลัก</BreadcrumbLink>
-                                        </BreadcrumbItem>
-                                        <BreadcrumbSeparator />
-                                        <BreadcrumbItem>
-                                            <BreadcrumbPage>ข่าวสารและประกาศ</BreadcrumbPage>
-                                        </BreadcrumbItem>
-                                    </BreadcrumbList>
-                                </Breadcrumb>
+                                <AssetBreadcrumb
+                                    items={[
+                                        { label: "หน้าหลัก", href: "/" },
+                                        { label: "ข่าวสารและประกาศ" }
+                                    ]}
+                                />
                             </div>
                         </div>
 
