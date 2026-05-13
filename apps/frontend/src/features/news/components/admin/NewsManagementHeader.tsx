@@ -1,17 +1,44 @@
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb"
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PlusCircle, Search } from "lucide-react";
+import Link from "next/link";
 
-export function NewsManagementHeader() {
-    const breadcrumbItems = [
-        { label: "Asset SUT", href: "/" },
-        { label: "จัดการประชาสัมพันธ์" },
-    ];
-
+export const NewsManagementHeader = () => {
     return (
-        <div className="mb-6 space-y-4">
-            <AssetBreadcrumb items={breadcrumbItems} />
-            <div>
-                <h1 className="text-2xl font-bold text-zinc-900">สร้างประกาศ</h1>
-                <p className="text-sm text-zinc-500 mt-1">ตั้งค่าและจัดการรายละเอียดข้อมูลประกาศข่าวสาร</p>
+        <div>
+
+        <AssetBreadcrumb
+                items={[
+                    { label: "หน้าหลัก", href: "/admin/dashboard" },
+                    { label: "ระบบจัดการข่าวสารและสินทรัพย์" },
+                ]}
+                />
+
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="font-extrabold text-slate-950 md:text-3xl lg:text-[2.75rem] lg:leading-[1.15]">ระบบจัดการข่าวสารและสินทรัพย์</h1>
+                    <p className="text-gray-500 text-sm mt-1">ยินดีต้อนรับกลับ, ผู้ดูแลระบบส่วนกลาง</p>
+                </div>
+
+                <div className="flex w-full sm:w-auto items-center gap-3">
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            placeholder="ค้นหาประกาศหรือสินทรัพย์..."
+                            className="pl-9 bg-white"
+                            />
+                    </div>
+                    <Link href="/admin/news-management/create">
+                        <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white flex items-center gap-2 px-4 shadow-sm">
+                            <PlusCircle className="h-4 w-4" />
+                            <div className="flex flex-col items-start translate-y-[-1px]">
+                                <span className="text-xs leading-tight">สร้างข่าวใหม่</span>
+                            </div>
+                        </Button>
+                    </Link>
+                </div>
             </div>
         </div>
     )
