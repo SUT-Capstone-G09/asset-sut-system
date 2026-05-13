@@ -1,45 +1,41 @@
-"use client"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { NewsManagementHeader } from "@/features/news/components/admin/NewsManagementHeader"
-import { NewsBasicInfo } from "@/features/news/components/admin/NewsBasicInfo"
-import { NewsContractInfo } from "@/features/news/components/admin/NewsContractInfo"
-import { NewsUploads } from "@/features/news/components/admin/NewsUploads"
-import { NewsPreview } from "@/features/news/components/admin/NewsPreview"
+"use client";
 
-export default function NewsManagementPage() {
-  const [formData, setFormData] = useState({
-    title: "",
-    category: "พื้นที่เช่าร้านอาหาร",
-    details: "",
-    qualifications: "",
-    documents: "",
-    contractDuration: "",
-    areaSize: "",
-    entranceFee: "",
-  })
+import React, { useState } from "react";
+import Link from "next/link";
+import { Search, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import PageContainer from "@/components/layout/PageContainer";
+import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+import { NewsTable } from "@/features/news/components/admin/NewsTable";
+import { NewsManagementHeader } from "@/features/news/components/admin/NewsManagementHeader";
+import { NewsFilterTabs, TabItem } from "@/features/news/components/admin/NewsFilterTabs";
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+const NewsManagementPage = () => {
+    const [activeTab, setActiveTab] = useState("ทั้งหมด");
 
-  return (
-    <div className="space-y-10 p-8">
-      <NewsManagementHeader />
-      
-      <div className="space-y-8">
-        <NewsBasicInfo data={formData} onChange={handleChange} />
-        <NewsContractInfo data={formData} onChange={handleChange} />
-        <NewsUploads />
+    const tabs: TabItem[] = [
+        { id: "ทั้งหมด", label: "ทั้งหมด", count: 142 },
+        { id: "ประกาศสินทรัพย์", label: "ประกาศสินทรัพย์", count: 45 },
+        { id: "ข่าวรับสมัครร้านค้า", label: "ข่าวรับสมัครร้านค้า", count: 68 },
+        { id: "กิจกรรมมหาวิทยาลัย", label: "กิจกรรมมหาวิทยาลัย", count: 29 },
+    ];
 
-        {/* Action Buttons */}
-        <div className="border-t-2 border-brand-secondary/20 pt-6 flex justify-end gap-3">
-          <Button variant="outline" className="w-32 border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary/10 font-bold">บันทึกร่าง</Button>
-          <Button className="w-44 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold">ยืนยันสร้างประกาศ</Button>
+    return (
+        <div className="space-y-10 p-8">
+           <NewsManagementHeader />
+
+            {/* Filter Tabs */}
+            <NewsFilterTabs 
+                tabs={tabs} 
+                activeTab={activeTab} 
+                onTabChange={setActiveTab} 
+            />
+
+            {/* News Table Component */}
+            <NewsTable />
         </div>
-      </div>
+    );
+};
 
-      <NewsPreview data={formData} />
-    </div>
-  )
-}
+export default NewsManagementPage;
