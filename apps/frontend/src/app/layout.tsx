@@ -5,6 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/lib/context/auth-context";
 import Navbar from "@/components/layout/topbar";
+import NextTopLoader from "nextjs-toploader";
+
 
 const notoSansThai = Noto_Sans_Thai({
   variable: "--font-noto-sans-thai",
@@ -38,7 +40,19 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
+        <NextTopLoader
+          color="#f26522"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #f26522,0 0 5px #f26522"
+        />
         <AuthProvider>
+
           <Navbar />
           {children}
         </AuthProvider>
