@@ -4,7 +4,7 @@ import EnvelopTabs from "@/features/envelop/components/EnvelopTabs";
 
 export default function EnvelopPage() {
   return (
-    <div className="px-8 space-y-8">
+    <div className="p-8 space-y-8">
       {/* Header with Breadcrumb */}
       <EnvelopHeader />
 

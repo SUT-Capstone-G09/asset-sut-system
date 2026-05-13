@@ -81,7 +81,7 @@ const menuGroups: MenuGroup[] = [
       },
       {
         id: "requests",
-        label: "ติดตามคำร้อง",
+        label: "รายการคำร้อง",
         icon: ClipboardList,
         href: "/admin/requests",
       },

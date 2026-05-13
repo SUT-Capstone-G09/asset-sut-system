@@ -4,6 +4,7 @@ import { useAuthContext } from "@/lib/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, ReactNode } from "react"
 import OperatorSidebar from "@/components/layout/sidebar/operatorSidebar"
+import DashboardTopbar from "@/components/layout/DashboardTopbar"
 
 export default function OperatorLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuthContext()
@@ -22,11 +23,12 @@ export default function OperatorLayout({ children }: { children: ReactNode }) {
   if (!isAuthenticated || user?.role !== "operator") return null
 
   return (
-    <>
+    <div className="min-h-screen bg-slate-50/30">
       <OperatorSidebar />
-      <main className="ml-64 pt-20 min-h-screen">
+      <DashboardTopbar searchPlaceholder="ค้นหาพื้นที่หรือการจองของคุณ..." />
+      <main className="ml-64 pt-25 min-h-screen transition-all duration-300">
         {children}
       </main>
-    </>
+    </div>
   )
 }
