@@ -19,6 +19,7 @@ export interface EnvelopPayment {
   date: string;
   status: PaymentStatus;
   slipUrl?: string;
+  receiptUrl?: string;
   rejectionReason?: string;
   paidAt?: string;
 }

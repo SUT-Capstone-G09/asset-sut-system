@@ -41,7 +41,11 @@ export default function Navbar() {
 
   // เมนูนำทางหลัก
   const navItems = [
-    { label: "เกี่ยวกับเรา", href: "/about" },
+    { label: "เกี่ยวกับเรา", href: "/about" ,
+      subItems: [
+        { label: "เกี่ยวกับเรา", href: "/about" },
+      ],
+    },
     {
       label: "บริการ",
       href: "/services",

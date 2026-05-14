@@ -75,8 +75,8 @@ const menuGroups: MenuGroup[] = [
         label: "การเงิน",
         icon: Wallet,
         subItems: [
-          { label: "อัพโหลดใบแจ้งหนี้ & บิล", href: "/admin/finance/invoices" },
-          { label: "จัดการซอง", href: "/admin/finance/envelop" },
+          { label: "อัพโหลดใบแจ้งหนี้", href: "/admin/finance/invoices" },
+          { label: "จัดการซอง & ใบเสร็จ", href: "/admin/finance/envelop" },
         ],
       },
       {

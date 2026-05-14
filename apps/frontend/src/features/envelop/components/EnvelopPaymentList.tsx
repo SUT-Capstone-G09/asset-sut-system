@@ -24,6 +24,14 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
   );
 }
 
+function RoleBadge({ role, className }: { role: string; className?: string }) {
+  return (
+    <span className={cn("ml-2 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase ring-1 ring-inset", className)}>
+      {role}
+    </span>
+  );
+}
+
 // ─── Checklist ───────────────────────────────────────────────────────────────
 
 const CHECKLIST_ITEMS = [
@@ -31,6 +39,7 @@ const CHECKLIST_ITEMS = [
   "ชื่อผู้โอนตรงกับข้อมูลผู้เช่า",
   "วันที่โอนอยู่ในช่วงเวลาที่กำหนด",
   "สลิปชัดเจน อ่านได้ครบถ้วน",
+  "อัปใบเสร็จแล้ว",
 ];
 
 // ─── Detail Panel ────────────────────────────────────────────────────────────
@@ -73,7 +82,10 @@ function DetailPanel({ payment }: { payment: EnvelopPayment }) {
 
       {/* Slip placeholder */}
       <div>
-        <p className="mb-2 text-xs font-bold text-slate-500 uppercase tracking-widest">สลิปการโอน</p>
+        <div className="flex items-center mb-2">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">สลิปการโอน</p>
+          <RoleBadge role="Tenant" className="bg-blue-50 text-blue-600 ring-blue-500/20" />
+        </div>
         <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 text-xs text-slate-400">
           {payment.slipUrl ? (
             <img src={payment.slipUrl} alt="slip" className="h-full object-contain rounded-lg" />
@@ -83,12 +95,33 @@ function DetailPanel({ payment }: { payment: EnvelopPayment }) {
         </div>
       </div>
 
+      {/* Receipt placeholder */}
+      <div>
+        <div className="flex items-center mb-2">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">ใบเสร็จรับเงิน</p>
+          <RoleBadge role="Admin Finance" className="bg-purple-50 text-purple-600 ring-purple-500/20" />
+        </div>
+        <div className="flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 text-xs text-slate-400 transition-colors hover:border-purple-300 hover:bg-purple-50/30 group cursor-pointer">
+          {payment.receiptUrl ? (
+            <img src={payment.receiptUrl} alt="receipt" className="h-full object-contain rounded-lg" />
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Eye size={16} className="text-slate-300 group-hover:text-purple-400" />
+              <span>คลิกเพื่ออัปโหลดใบเสร็จ</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Checklist — แสดงเฉพาะสถานะ รอตรวจสอบ */}
       {payment.status === "รอตรวจสอบ" && (
         <div>
-          <p className="mb-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-            Checklist ก่อนอนุมัติ
-          </p>
+          <div className="flex items-center mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              Checklist ก่อนอนุมัติ
+            </p>
+            <RoleBadge role="Admin Asset" className="bg-emerald-50 text-emerald-600 ring-emerald-500/20" />
+          </div>
           <div className="space-y-2">
             {CHECKLIST_ITEMS.map((item, i) => (
               <button
@@ -182,10 +215,10 @@ export default function EnvelopPaymentList() {
   const [selected, setSelected] = useState<EnvelopPayment | null>(mockEnvelopPayments[0]);
 
   return (
-    <div className="flex gap-6 rounded-sm border border-slate-100 bg-white shadow-sm overflow-hidden">
+    <div className="flex rounded-sm border border-slate-100 bg-white shadow-sm overflow-hidden">
 
       {/* Left: Table */}
-      <div className="min-w-0 flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-x-auto">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50">
@@ -247,7 +280,7 @@ export default function EnvelopPaymentList() {
       <div className="w-px bg-slate-100 self-stretch shrink-0" />
 
       {/* Right: Detail Panel */}
-      <div className="w-80 shrink-0 overflow-y-auto p-5">
+      <div className="w-[420px] shrink-0 overflow-y-auto p-5">
         {selected ? (
           <DetailPanel key={selected.id} payment={selected} />
         ) : (
