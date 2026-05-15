@@ -1,10 +1,12 @@
 "use client"
 
 import React from "react";
-import AdminAreaHeader from "@/features/areas/components/admin/AdminAreaHeader";
-import AdminAreaFilters from "@/features/areas/components/admin/AdminAreaFilters";
-import AdminAreaGrid from "@/features/areas/components/admin/AdminAreaGrid";
-import { useAreaFilters } from "@/features/areas/hooks/useAreaFilters";
+import { 
+  AdminAreaHeader, 
+  AdminAreaFilters, 
+  AdminAreaGrid, 
+  useAreaFilters 
+} from "@/features/areas";
 
 export default function AdminAreasPage() {
   const {

@@ -18,3 +18,25 @@ export interface Location {
   contractEndDate?: string;
   occupancyRate?: number; // สำหรับกรณีมีแผงย่อย
 }
+
+export interface BaseLocation {
+  id: string;
+  name: string;
+  description: string;
+  coordinates: [number, number];
+  address: string;
+  image: string;
+  category: string;
+  building?: string;
+}
+
+export interface AdminLocation extends BaseLocation {
+  status: "active" | "vacant" | "inactive";
+  subStallCount?: number;
+  price: number;                            
+  size: string;                              
+  roomNumber: string;                        
+  tenantName?: string;
+  contractEndDate?: string;
+  occupancyRate?: number;
+}
