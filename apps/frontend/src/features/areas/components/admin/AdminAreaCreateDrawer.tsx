@@ -39,6 +39,9 @@ export default function AdminAreaCreateDrawer({ open, onClose }: Props) {
       description: "",
       tenantName: "",
       contractEndDate: "",
+      contractName: "",
+      citizenId: "",
+      contractNumber: "",
       image: ""
     }
   });

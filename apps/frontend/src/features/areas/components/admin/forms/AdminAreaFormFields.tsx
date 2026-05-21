@@ -193,14 +193,42 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
         
         <div className="space-y-5">
           <div className="space-y-2.5">
-            <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อผู้เช่าปัจจุบัน</Label>
+            <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อผู้ประกอบการ / บริษัท</Label>
             <Input 
               {...register("tenantName")}
-              placeholder="ระบุชื่อผู้เช่า (ถ้ามี)" 
+              placeholder="ระบุชื่อผู้เช่า หรือชื่อบริษัทผู้ประกอบการ" 
               className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
             />
           </div>
-          <div className="grid grid-cols-1 gap-5">
+
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2.5">
+              <Label className="text-xs font-bold text-slate-500 ml-1">เลขบัตรประจำตัวประชาชน / ทะเบียนนิติบุคคล (ID)</Label>
+              <Input 
+                {...register("citizenId")}
+                placeholder="ระบุเลขประจำตัวประชาชน หรือเลขทะเบียนนิติบุคคล" 
+                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
+              />
+            </div>
+            <div className="space-y-2.5">
+              <Label className="text-xs font-bold text-slate-500 ml-1">เลขที่สัญญา</Label>
+              <Input 
+                {...register("contractNumber")}
+                placeholder="ระบุเลขที่สัญญาเช่า" 
+                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2.5">
+              <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อสัญญา</Label>
+              <Input 
+                {...register("contractName")}
+                placeholder="ระบุชื่อสัญญาเช่าพื้นที่" 
+                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
+              />
+            </div>
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-slate-500 ml-1">วันสิ้นสุดสัญญาเช่า</Label>
               <Input 
