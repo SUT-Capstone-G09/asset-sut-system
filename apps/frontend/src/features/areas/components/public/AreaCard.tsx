@@ -33,6 +33,7 @@ export default function AreaCard({ location }: AreaCardProps) {
           src={location.image}
           alt={location.name}
           loading="lazy"
+          suppressHydrationWarning={true}
           className="
             h-full w-full object-cover
             transition-transform duration-700

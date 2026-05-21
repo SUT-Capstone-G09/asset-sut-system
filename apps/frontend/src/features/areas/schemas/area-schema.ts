@@ -13,6 +13,9 @@ export const areaSchema = z.object({
   description: z.string().optional(),
   tenantName: z.string().optional(),
   contractEndDate: z.string().optional(),
+  contractName: z.string().optional(),
+  citizenId: z.string().optional(),
+  contractNumber: z.string().optional(),
   image: z.string().optional(),
 });
 

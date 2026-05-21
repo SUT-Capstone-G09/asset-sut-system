@@ -16,6 +16,9 @@ export interface Location {
   roomNumber?: string;
   tenantName?: string;
   contractEndDate?: string;
+  contractName?: string;
+  citizenId?: string;
+  contractNumber?: string;
   occupancyRate?: number; // สำหรับกรณีมีแผงย่อย
 }
 
@@ -38,5 +41,8 @@ export interface AdminLocation extends BaseLocation {
   roomNumber: string;                        
   tenantName?: string;
   contractEndDate?: string;
+  contractName?: string;
+  citizenId?: string;
+  contractNumber?: string;
   occupancyRate?: number;
 }

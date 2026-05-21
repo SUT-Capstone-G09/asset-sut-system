@@ -41,6 +41,9 @@ export default function AdminAreaEditDrawer({ location, open, onClose }: Props) 
       description: "",
       tenantName: "",
       contractEndDate: "",
+      contractName: "",
+      citizenId: "",
+      contractNumber: "",
       image: ""
     }
   });
@@ -57,6 +60,9 @@ export default function AdminAreaEditDrawer({ location, open, onClose }: Props) 
         description: location.description || "",
         tenantName: location.tenantName || "",
         contractEndDate: location.contractEndDate || "",
+        contractName: location.contractName || "",
+        citizenId: location.citizenId || "",
+        contractNumber: location.contractNumber || "",
         image: location.image || ""
       });
     }
