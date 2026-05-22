@@ -1,3 +1,5 @@
+import { CommercialCategoryType } from '../data/constants';
+
 export interface Location {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface Location {
   image: string;
   category: string;
   building?: string;
+  locationCategory?: CommercialCategoryType[];
   
   // เพิ่มฟิลด์สำหรับ Admin & Management
   status?: "active" | "vacant" | "inactive";
@@ -31,6 +34,7 @@ export interface BaseLocation {
   image: string;
   category: string;
   building?: string;
+  locationCategory?: CommercialCategoryType[];
 }
 
 export interface AdminLocation extends BaseLocation {

@@ -9,8 +9,26 @@ import { cn } from "@/lib/utils";
 import AdminAreaCreateDrawer from "./AdminAreaCreateDrawer";
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 
-export default function AdminAreaHeader() {
+interface AdminAreaHeaderProps {
+  selectedCategory?: string;
+  onBack?: () => void;
+}
+
+export default function AdminAreaHeader({ selectedCategory, onBack }: AdminAreaHeaderProps = {}) {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = React.useState(false);
+  const isDetailView = selectedCategory && selectedCategory !== "all";
+
+  const breadcrumbItems = [
+    { label: "Admin", href: "/admin" },
+    ...(isDetailView 
+      ? [
+          { label: "จัดการพื้นที่", href: "/admin/areas" },
+          { label: selectedCategory }
+        ]
+      : [
+          { label: "จัดการพื้นที่" }
+        ])
+  ];
 
   return (
     <div className="space-y-6">
@@ -18,18 +36,13 @@ export default function AdminAreaHeader() {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-4">
           <div className="flex items-center justify-between lg:justify-start lg:gap-4">
-            <AssetBreadcrumb 
-              items={[
-                { label: "Admin", href: "/admin" },
-                { label: "จัดการพื้นที่" }
-              ]} 
-            />
+            <AssetBreadcrumb items={breadcrumbItems} />
           </div>
 
           {/* Title Section */}
           <div>
             <h1 className="page-title">
-              จัดการพื้นที่เช่า
+              {isDetailView ? `จัดการพื้นที่: ${selectedCategory}` : "จัดการพื้นที่เช่า"}
             </h1>
           </div>
         </div>
