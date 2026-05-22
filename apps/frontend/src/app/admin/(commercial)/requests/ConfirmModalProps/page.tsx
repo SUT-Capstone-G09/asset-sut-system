@@ -74,3 +74,5 @@ const ConfirmSaveModal = ({
     </div>
   );
 };
+
+export default ConfirmSaveModal;
