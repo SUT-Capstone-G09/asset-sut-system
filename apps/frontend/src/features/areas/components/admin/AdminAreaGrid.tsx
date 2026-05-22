@@ -45,20 +45,24 @@ export default function AdminAreaGrid({
             <div key={category} className="space-y-6">
               {/* Section Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 group">
-                  <div className="w-1.5 h-8 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.4)] transition-all group-hover:h-10" />
-                  <div className="space-y-0.5">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                      {category}
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                        {items.length} Locations Available
-                      </span>
+                {categories.length > 1 ? (
+                  <div className="flex items-center gap-4 group">
+                    <div className="w-1.5 h-8 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.4)] transition-all group-hover:h-10" />
+                    <div className="space-y-0.5">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                        {category}
+                      </h2>
+                      <div className="flex items-center gap-2">
+                        <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                          {items.length} Locations Available
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div />
+                )}
 
                 {/* View Toggle */}
                 <div className="flex items-center bg-slate-100/80 backdrop-blur-sm rounded-lg p-1 gap-1 border border-slate-200/50 shadow-inner">
@@ -83,6 +87,7 @@ export default function AdminAreaGrid({
                       key={location.id}
                       location={location}
                       onClick={() => handleOpenDrawer(location)}
+                      showCategory={categories.length > 1}
                     />
                   ))}
                 </div>
@@ -96,6 +101,7 @@ export default function AdminAreaGrid({
                       key={location.id}
                       location={location}
                       onClick={() => handleOpenDrawer(location)}
+                      showCategory={categories.length > 1}
                     />
                   ))}
                 </div>
@@ -146,7 +152,15 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
   );
 }
 
-function ListRow({ location, onClick }: { location: Location; onClick: () => void }) {
+function ListRow({ 
+  location, 
+  onClick,
+  showCategory = true 
+}: { 
+  location: Location; 
+  onClick: () => void;
+  showCategory?: boolean;
+}) {
   return (
     <div
       onClick={onClick}
@@ -166,22 +180,25 @@ function ListRow({ location, onClick }: { location: Location; onClick: () => voi
       </div>
 
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#f26522] flex items-center gap-1.5">
-          <MapPin size={12} strokeWidth={3} /> {location.category}
-        </p>
+        {showCategory && (
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#f26522] flex items-center gap-1.5">
+            <MapPin size={12} strokeWidth={3} /> {location.category}
+          </p>
+        )}
         <h3 className="text-xl font-bold text-slate-900 truncate group-hover:text-[#f26522] transition-colors leading-tight">
           {location.name}
         </h3>
       </div>
 
-      <div className="hidden lg:flex items-center gap-12 shrink-0 px-8 border-x border-slate-100">
-        <ListInfoItem label="รหัสพื้นที่" value={location.roomNumber || "-"} />
-        <ListInfoItem label="ราคาเช่า/เดือน" value={`${location.price?.toLocaleString() || "-"} ฿`} />
-        {location.category !== "โรงอาหาร" && (
-          <ListInfoItem label="สถานะ" value={location.status === 'active' ? 'มีผู้เช่า' : 'ว่าง'} highlight={location.status === 'active'} />
-        )}
-      </div>
-
+      {location.category !== "โรงอาหาร" && (
+        <div className="hidden lg:flex items-center gap-12 shrink-0 px-8 border-x border-slate-100">
+          <ListInfoItem 
+            label="สถานะ" 
+            value={location.status === 'active' ? 'มีผู้เช่า' : 'ว่าง'} 
+            highlight={location.status === 'active'} 
+          />
+        </div>
+      )}
 
       <button className={cn(
         "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400",

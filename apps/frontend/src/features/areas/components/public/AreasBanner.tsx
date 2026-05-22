@@ -73,8 +73,7 @@ export default function AreasBanner() {
               text-white/60
             "
           >
-            ค้นพบพื้นที่ศักยภาพเพื่อการเติบโตที่ไม่สิ้นสุด 
-            ในระบบนิเวศนวัตกรรมที่ทันสมัยที่สุดของมหาวิทยาลัย
+            พื้นที่สร้างสรรค์เพื่อโอกาสใหม่ทางธุรกิจและการเติบโตร่วมกับมหาวิทยาลัย
           </p>
 
           <div className="pt-4">
@@ -82,11 +81,11 @@ export default function AreasBanner() {
               className="
                 h-14 px-10 
                 bg-[#f26522] hover:bg-[#dd5b1c] text-white 
-                rounded-none font-bold uppercase text-[11px] tracking-[0.2em] 
+                rounded-[7px] font-bold text-sm tracking-wide 
                 transition-all
               "
             >
-              Explore Projects
+              ค้นหาพื้นที่ธุรกิจ
             </Button>
           </div>
         </div>

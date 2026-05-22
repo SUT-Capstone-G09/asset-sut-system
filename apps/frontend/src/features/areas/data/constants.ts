@@ -1,12 +1,139 @@
 export const AREA_CATEGORIES = [
   { value: "โรงอาหาร", label: "โรงอาหาร" },
-  { value: "ร้านกาแฟ", label: "ร้านกาแฟ" },
-  { value: "ร้านสะดวกซื้อ", label: "ร้านสะดวกซื้อ" },
+  { value: "หอพักนักศึกษา", label: "หอพักนักศึกษา" },
+  { value: "อาคารเรียนรวม", label: "อาคารเรียนรวม" },
+  { value: "อาคารเครื่องมือ", label: "อาคารเครื่องมือ" },
+  { value: "อาคารัฐสีมาคุณากร", label: "อาคารัฐสีมาคุณากร" },
+  { value: "อาคารบริการหอพัก", label: "อาคารบริการหอพัก" },
+  { value: "อาคารบรรณสาร", label: "อาคารบรรณสาร" },
+  { value: "อาคารกีฬา", label: "อาคารกีฬา" },
+  { value: "กลุ่มอาคารกิจการนักศึกษา", label: "กลุ่มอาคารกิจการนักศึกษา" },
+  { value: "อาคารบริหาร", label: "อาคารบริหาร" },
+  { value: "อาคารรักษาความปลอดภัย", label: "อาคารรักษาความปลอดภัย" },
+  { value: "สุรสัมนาคาร", label: "สุรสัมนาคาร" },
+  { value: "สุรพัฒน์ 2", label: "สุรพัฒน์ 2" },
+  { value: "สุรพัฒน์ 3", label: "สุรพัฒน์ 3" },
+  { value: "บ้านพักบุคลากร", label: "บ้านพักบุคลากร" },
+  { value: "อาคารสำนักฟาร์ม", label: "อาคารสำนักฟาร์ม" },
+  { value: "โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี", label: "โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี" },
+  { value: "อ่างเก็บน้ำสระสามแสน", label: "อ่างเก็บน้ำสระสามแสน" },
   { value: "อื่นๆ", label: "อื่นๆ" },
 ] as const;
 
 export const BUILDINGS = [
-  { value: "prow", label: "โรงอาหารพราวแสดทอง" },
-  { value: "kasalong", label: "โรงอาหารกาสะลองคำ" },
-  { value: "dorm14", label: "หอพักสุรนิเวศ 14" },
+  { value: "โรงอาหารพราวแสดทอง", label: "โรงอาหารพราวแสดทอง" },
+  { value: "โรงอาหารกาสะลองคำ", label: "โรงอาหารกาสะลองคำ" },
+  { value: "โรงอาหารคอนตะวัน", label: "โรงอาหารคอนตะวัน" },
+  { value: "โรงอาหารครัวท่านท้าว", label: "โรงอาหารครัวท่านท้าว" },
+  { value: "โรงอาหารเด่นทองกวาว", label: "โรงอาหารเด่นทองกวาว" },
+  { value: "โรงอาหารเรียนรวม2", label: "โรงอาหารเรียนรวม2" },
+  { value: "ศูนย์อาหารสุรนิเวศ", label: "ศูนย์อาหารสุรนิเวศ" },
+  { value: "หอพักสุรนิเวศ 1", label: "หอพักสุรนิเวศ 1" },
+  { value: "หอพักสุรนิเวศ 2", label: "หอพักสุรนิเวศ 2" },
+  { value: "หอพักสุรนิเวศ 3", label: "หอพักสุรนิเวศ 3" },
+  { value: "หอพักสุรนิเวศ 4", label: "หอพักสุรนิเวศ 4" },
+  { value: "อาคารเรียนรวม 1", label: "อาคารเรียนรวม 1" },
+  { value: "อาคารเรียนรวม 2", label: "อาคารเรียนรวม 2" },
+  { value: "อาคารเครื่องมือ 1", label: "อาคารเครื่องมือ 1" },
+  { value: "อาคารเครื่องมือ 2", label: "อาคารเครื่องมือ 2" },
+  { value: "อาคารเครื่องมือ 3", label: "อาคารเครื่องมือ 3" },
+  { value: "โถงบริการ", label: "โถงบริการ" },
+  { value: "ชั้น 1", label: "ชั้น 1" },
+  { value: "ศูนย์บริการหอพัก", label: "ศูนย์บริการหอพัก" },
+  { value: "พื้นที่รับรอง", label: "พื้นที่รับรอง" },
+  { value: "จุดบริการกลาง", label: "จุดบริการกลาง" },
+  { value: "โซนอ่านหนังสือ", label: "โซนอ่านหนังสือ" },
+  { value: "โถงทางเข้า", label: "โถงทางเข้า" },
+  { value: "สนามกีฬาในร่ม", label: "สนามกีฬาในร่ม" },
+  { value: "ศูนย์ฟิตเนส", label: "ศูนย์ฟิตเนส" },
+  { value: "พื้นที่กิจกรรม", label: "พื้นที่กิจกรรม" },
+  { value: "อาคารกิจการนักศึกษา", label: "อาคารกิจการนักศึกษา" },
+  { value: "ลานกิจกรรม", label: "ลานกิจกรรม" },
+  { value: "ศูนย์บริการนักศึกษา", label: "ศูนย์บริการนักศึกษา" },
+  { value: "โถงชั้น 1", label: "โถงชั้น 1" },
+  { value: "พื้นที่บริการกลาง", label: "พื้นที่บริการกลาง" },
+  { value: "จุดรับรอง", label: "จุดรับรอง" },
+  { value: "ศูนย์รักษาความปลอดภัย", label: "ศูนย์รักษาความปลอดภัย" },
+  { value: "จุดบริการหน้าอาคาร", label: "จุดบริการหน้าอาคาร" },
+  { value: "ห้องประชุม", label: "ห้องประชุม" },
+  { value: "โถงรับรอง", label: "โถงรับรอง" },
+  { value: "พื้นที่จัดเลี้ยง", label: "พื้นที่จัดเลี้ยง" },
+  { value: "พื้นที่สำนักงาน", label: "พื้นที่สำนักงาน" },
+  { value: "พื้นที่บริการ", label: "พื้นที่บริการ" },
+  { value: "โถงกลาง", label: "โถงกลาง" },
+  { value: "โซนบ้านพัก", label: "โซนบ้านพัก" },
+  { value: "พื้นที่ชุมชน", label: "พื้นที่ชุมชน" },
+  { value: "อาคารสำนักงาน", label: "อาคารสำนักงาน" },
+  { value: "พื้นที่จำหน่ายสินค้า", label: "พื้นที่จำหน่ายสินค้า" },
+  { value: "จุดบริการ", label: "จุดบริการ" },
+  { value: "โถงผู้ป่วยนอก", label: "โถงผู้ป่วยนอก" },
+  { value: "ศูนย์อาหาร", label: "ศูนย์อาหาร" },
+  { value: "พื้นที่บริการญาติ", label: "พื้นที่บริการญาติ" },
+  { value: "พื้นที่ริมอ่าง", label: "พื้นที่ริมอ่าง" },
+  { value: "จุดพักผ่อน", label: "จุดพักผ่อน" },
+  { value: "พื้นที่ชั่วคราว", label: "พื้นที่ชั่วคราว" },
+  { value: "จุดบริการพิเศษ", label: "จุดบริการพิเศษ" },
+  { value: "พื้นที่ตามกิจกรรม", label: "พื้นที่ตามกิจกรรม" },
 ] as const;
+
+export type CommercialCategoryType = 
+  | 'food_beverage' 
+  | 'retail_services' 
+  | 'automated_services' 
+  | 'digital_infrastructure' 
+  | 'wireless_connectivity' 
+  | 'commercial_assets';
+
+export interface CommercialCategory {
+  readonly value: CommercialCategoryType;
+  readonly title: string;
+  readonly desc: string;
+  readonly count: number;
+  readonly iconName: string;
+}
+
+export const COMMERCIAL_CATEGORIES: readonly CommercialCategory[] = [
+  {
+    value: 'food_beverage',
+    title: 'Food & Beverage',
+    desc: 'ร้านอาหาร เครื่องดื่ม และพื้นที่นั่งพัก',
+    count: 48,
+    iconName: 'Utensils',
+  },
+  {
+    value: 'retail_services',
+    title: 'Retail & Services',
+    desc: 'ร้านค้าปลีกและบริการทั่วไป',
+    count: 32,
+    iconName: 'ShoppingBag',
+  },
+  {
+    value: 'automated_services',
+    title: 'Automated Services',
+    desc: 'ตู้บริการอัตโนมัติและเครื่องหยอดเหรียญ',
+    count: 24,
+    iconName: 'CreditCard',
+  },
+  {
+    value: 'digital_infrastructure',
+    title: 'Digital Infrastructure',
+    desc: 'ระบบเครือข่ายและโครงสร้างพื้นฐาน',
+    count: 156,
+    iconName: 'Wifi',
+  },
+  {
+    value: 'wireless_connectivity',
+    title: 'Wireless Connectivity',
+    desc: 'Access Point และจุดสื่อสารไร้สาย',
+    count: 82,
+    iconName: 'Smartphone',
+  },
+  {
+    value: 'commercial_assets',
+    title: 'Commercial Assets',
+    desc: 'พื้นที่เชิงพาณิชย์และสินทรัพย์',
+    count: 43,
+    iconName: 'Building2',
+  },
+] as const;
+
