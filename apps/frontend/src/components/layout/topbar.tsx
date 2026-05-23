@@ -56,6 +56,7 @@ export default function Navbar() {
       ],
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
+    { label: "การจอง", href: "/bookings" },
     { label: "ประชาสัมพันธ์", href: "/news" },
     { label: "ติดต่อเรา", href: "/requests" },
   ];
