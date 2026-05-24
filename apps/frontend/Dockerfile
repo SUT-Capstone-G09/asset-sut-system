@@ -1,5 +1,5 @@
 # ใช้ Stage เดียวโดดๆ ไม่แยก Builder เพราะเราจะรัน Dev Mode
-FROM node:20.9.0-alpine
+FROM node:22.15.0-alpine
 WORKDIR /app
 
 # ติดตั้ง Dependencies ทั้งหมด
