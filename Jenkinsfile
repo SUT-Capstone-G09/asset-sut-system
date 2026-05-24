@@ -4,37 +4,45 @@ pipeline {
     environment {
         // Define any environment variables here
         // Githib
+        GITHUB_ORG = 'SUT-Capstone-G09'
         GITHUB_REPO = 'asset-sut-system'
+        BRANCH_NAME = "${env.BRANCH_NAME}"
 
         // Docker
+        DOCKER_USERNAME = 'worawut2547'
         DOCKER_REPO = 'asset-sut-system'
-        FE_IMAGE = 'frontend'
-        BE_IMAGE = 'backend'
+        FE_IMAGE = 'g02-frontend'
+        BE_IMAGE = 'g02-backend'
         IMAGE_TAG = "v${env.BUILD_NUMBER}" // Tag images with the build number
 
-        FE_CONTAINER = 'fe-container'
-        BE_CONTAINER = 'be-container'
+        FE_CONTAINER = 'g02-frontend-container'
+        BE_CONTAINER = 'g02-backend-container'
 
         // Path
-        FRONTENDPATH = 'apps/frontend' // Path to your frontend code
-        BACKENDPATH = 'apps/backend' // Path to your backend code
+        FRONTEND_PATH = 'apps/frontend' // Path to your frontend code
+        BACKEND_PATH = 'apps/backend' // Path to your backend code
     }
 
     stages {
+        // ==================== Stage: Info ====================
+        stage('Info') {
+            steps {
+                echo "Current Branch: $BRANCH_NAME"
+            }
+        }
         // ==================== Stage: Checkout ====================
         stage('Checkout') {
             steps {
                 // Checkout code from version control
                 cleanWs()
-                withCredentials([usernamePassword(credentialsId: 'github-token',
-                    usernameVariable: 'GITHUB_USERNAME', 
-                    passwordVariable: 'GITHUB_PASSWORD'
-                )]) {
-                    echo 'Checking out code from GitHub...'
+                echo 'Checking out code from GitHub...'
 
-                    // ดึงโค้ดจาก GitHub
-                    sh 'git clone https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/$GITHUB_USERNAME/$GITHUB_REPO.git'
-                }
+                // ดึงโค้ดจาก GitHub
+                git(
+                    url: "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}.git",
+                    branch: "$BRANCH_NAME",
+                    credentialsId: "github-org-token"
+                )
             }
         }
 
@@ -43,7 +51,6 @@ pipeline {
             parallel {
                 stage('Build Frontend') {
                     steps {
-                        checkout scm
                         echo 'Building Frontend...'
                         dir("${env.FRONTEND_PATH}") {
                             sh 'docker build -t $FE_IMAGE:$IMAGE_TAG .'
@@ -52,7 +59,6 @@ pipeline {
                 }
                 stage('Build Backend') {
                     steps {
-                        checkout scm
                         echo 'Building Backend...'
                         /*dir("${env.BACKEND_PATH}") {
                             sh 'docker build -t $BE_IMAGE:$IMAGE_TAG .'
@@ -76,9 +82,9 @@ pipeline {
                     // Change Tag
                     echo 'Changing image tags...'
                     // Frontend
-                    sh 'docker tag $FE_IMAGE:$IMAGE_TAG $DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
+                    sh 'docker tag $FE_IMAGE:$IMAGE_TAG $DOCKER_USERNAME/$DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
                     // Backend
-                    //sh 'docker tag $BE_IMAGE:$IMAGE_TAG $DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
+                    //sh 'docker tag $BE_IMAGE:$IMAGE_TAG $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
 
                     echo 'Pushing images to Docker Hub...'
                     sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
