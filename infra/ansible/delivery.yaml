@@ -1,0 +1,55 @@
+---
+- name: Deploy Application with Docker Compose on VM
+  hosts: all
+
+  vars:
+    app_dir: "/home/{{ ansible_user }}/app"
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Copy docker-compose file to remote
+      copy:
+        src: "../../docker-compose.yml"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Update Backend Image Tags
+      replace:
+        path: "{{ app_dir }}/docker-compose.yml"
+        regexp: 'image: worawut2547/asset-sut-system:g02-backend-.*'
+        replace: 'image: worawut2547/asset-sut-system:g02-backend-{{ image_tag }}'
+
+    - name: Update Frontend Image Tags
+      replace:
+        path: "{{ app_dir }}/docker-compose.yml"
+        regexp: 'image: worawut2547/asset-sut-system:g02-frontend-.*'
+        replace: 'image: worawut2547/asset-sut-system:g02-frontend-{{ image_tag }}'
+
+    - name: Pull latest images from Docker Hub
+      command: docker compose -f {{ app_dir }}/docker-compose.yml pull
+      args:
+        chdir: "{{ app_dir }}"
+    
+    - name: Start application with Docker Compose
+      command: docker compose -f {{ app_dir }}/docker-compose.yml up -d --pull always
+      args:
+        chdir: "{{ app_dir }}"
+    
+    - name: Show running containers
+      command:
+        cmd: docker ps
+      register: docker_ps_output
+    
+    - name: Print running containers
+      debug:
+        var: docker_ps_output.stdout_lines
+    
+    - name: Remove unused docker images
+      command: docker image prune -af

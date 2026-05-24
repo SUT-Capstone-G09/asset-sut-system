@@ -23,6 +23,12 @@ pipeline {
         // Path
         FRONTEND_PATH = 'apps/frontend' // Path to your frontend code
         BACKEND_PATH = 'apps/backend' // Path to your backend code
+        ANSIBLE_PATH = 'infra/ansible' // Path to your Ansible playbooks
+
+        // Ansible
+        DO_SERVER_HOST = '157.230.35.178' // Replace with your DigitalOcean server IP
+        SSH_USER = 'admin' // Replace with your SSH username
+        SSH_PVT_KEY_PATH = credentials('do-ssh-pvt-key-asset-sut-system-path') // Replace with the path to your SSH private key
     }
 
     stages {
@@ -47,6 +53,46 @@ pipeline {
                     branch: "${BRANCH_NAME}",
                     credentialsId: "github-org-token"
                 )
+            }
+        }
+
+        // ==================== Stage: Ansible Health Check ====================
+        stage('Infra: Ansible Health Check') {
+            steps {
+                dir("${env.ANSIBLE_PATH}") {
+                    echo 'Running Ansible health check...'
+                    sh """
+                        ansible all -i hosts.ini \
+                        -m ping \
+                        -e "do_server_host=${DO_SERVER_HOST}" \
+                        -e "ansible_ssh_private_key_file=${SSH_PVT_KEY_PATH}" \
+                        -e "ansible_user=${SSH_USER}"
+                    """
+                }
+            }
+        }
+
+        // ==================== Stage: Ansible Setup ====================
+        stage('Infra: Ansible Setup') {
+            steps {
+                dir("${env.ANSIBLE_PATH}") {
+                    script {
+                        // Check Docker
+                        def dockerExists = sh(
+                            script: 'docker version | grep "Version"',
+                            returnStatus: true
+                        ) == 0
+
+                        if (!dockerExists) {
+                            echo "Docker not found. Running Ansible Setup for Docker..."
+                            sh 'ansible-playbook -i hosts.ini setup/docker.yaml'
+
+                            sleep 5
+                        } else {
+                            echo "Docker is already set up. Skipping Docker setup."
+                        }
+                    }
+                }
             }
         }
 
@@ -93,6 +139,20 @@ pipeline {
                     echo 'Pushing images to Docker Hub...'
                     sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
                     //sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
+                }
+            }
+        }
+
+        // ==================== Stage: Deploy with Ansible ====================
+        stage('Infra: Delivery with Ansible') {
+            steps {
+                dir("${env.ANSIBLE_PATH}") {
+                    echo 'Delivering application with Ansible...'
+                    sh """
+                        ansible-playbook -i hosts.ini \
+                        delivery.yaml \
+                        -e "image_tag=$IMAGE_TAG"
+                    """
                 }
             }
         }

@@ -1,0 +1,58 @@
+---
+- name: Install Docker Engine on VM
+  hosts: vm_app_node
+  become: yes
+  tasks:
+    - name: 1. Update apt cache and install prerequisites
+      apt:
+        update_cache: yes
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: 2. Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: 3. Add Docker repository to apt sources
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: 4. Install Docker Engine, CLI, and containerd
+      apt:
+        update_cache: yes
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: 5. Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: 6. Add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+    
+    - name: 6.1 Reset SSH connection to apply docker group
+      meta: reset_connection
+
+    - name: 7. Verify Docker Compose installation
+      command: docker compose version
+      register: compose_version
+      changed_when: false
+
+    - name: 8. Show Docker Compose version
+      debug:
+        msg: "Docker Compose version: {{ compose_version.stdout }}"
