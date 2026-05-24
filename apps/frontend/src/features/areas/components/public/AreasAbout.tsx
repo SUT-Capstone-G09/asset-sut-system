@@ -5,7 +5,18 @@ import {
   Utensils,
   Smartphone,
   CreditCard,
+  LucideIcon,
 } from 'lucide-react';
+import { COMMERCIAL_CATEGORIES } from '../../data/constants';
+
+const iconMap: Record<string, LucideIcon> = {
+  Utensils,
+  ShoppingBag,
+  CreditCard,
+  Wifi,
+  Smartphone,
+  Building2,
+};
 
 export default function AreasAbout() {
   const insights = [
@@ -26,44 +37,8 @@ export default function AreasAbout() {
     },
   ];
 
-  const categories = [
-    {
-      title: 'Food & Beverage',
-      desc: 'ร้านอาหาร เครื่องดื่ม และพื้นที่นั่งพัก',
-      count: 48,
-      icon: <Utensils size={16} />,
-    },
-    {
-      title: 'Retail & Services',
-      desc: 'ร้านค้าปลีกและบริการทั่วไป',
-      count: 32,
-      icon: <ShoppingBag size={16} />,
-    },
-    {
-      title: 'Automated Services',
-      desc: 'ตู้บริการอัตโนมัติและเครื่องหยอดเหรียญ',
-      count: 24,
-      icon: <CreditCard size={16} />,
-    },
-    {
-      title: 'Digital Infrastructure',
-      desc: 'ระบบเครือข่ายและโครงสร้างพื้นฐาน',
-      count: 156,
-      icon: <Wifi size={16} />,
-    },
-    {
-      title: 'Wireless Connectivity',
-      desc: 'Access Point และจุดสื่อสารไร้สาย',
-      count: 82,
-      icon: <Smartphone size={16} />,
-    },
-    {
-      title: 'Commercial Assets',
-      desc: 'พื้นที่เชิงพาณิชย์และสินทรัพย์',
-      count: 43,
-      icon: <Building2 size={16} />,
-    },
-  ];
+  const categories = COMMERCIAL_CATEGORIES;
+
 
   return (
     <section className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
@@ -236,7 +211,10 @@ export default function AreasAbout() {
                 "
               >
                 <div className="pt-0.5 text-gray-300">
-                  {cat.icon}
+                  {(() => {
+                    const IconComponent = iconMap[cat.iconName] || Building2;
+                    return <IconComponent size={16} />;
+                  })()}
                 </div>
 
                 <div className="space-y-1">

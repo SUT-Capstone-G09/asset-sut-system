@@ -1,4 +1,3 @@
-import Navbar from "@/components/layout/topbar";
 import Footer from "@/components/layout/footer";
 import PageContainer from "@/components/layout/PageContainer";
 import HomeBanner from "@/features/home/components/HomeBanner";
@@ -8,8 +7,7 @@ import HomeMap from "@/features/home/components/HomeMap";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <PageContainer withPadding={false}>
+      <PageContainer withPadding={false} withScrollbar={false}>
         <main className="flex-1 space-y-16">
           {/* Banner Section */}
           <HomeBanner />

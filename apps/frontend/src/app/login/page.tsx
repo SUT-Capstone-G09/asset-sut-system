@@ -103,3 +103,7 @@ export function LoginModal({ isOpen, onOpenChange }: LoginModalProps) {
         </Dialog>
     );
 }
+
+export default function LoginPage() {
+    return <LoginModal isOpen={true} onOpenChange={() => {}} />;
+}

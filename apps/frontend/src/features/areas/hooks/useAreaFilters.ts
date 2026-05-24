@@ -3,14 +3,31 @@
 import { useState, useMemo } from "react";
 import { Location } from "../types/location";
 import { mockLocations } from "../data/locations";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 export function useAreaFilters() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const selectedCategory = searchParams.get("category") || "all";
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const setSelectedCategory = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (category && category !== "all") {
+      params.set("category", category);
+    } else {
+      params.delete("category");
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const handleResetFilters = () => {
     setSearchQuery("");
-    setSelectedCategory("all");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("category");
+    router.push(pathname);
   };
 
   const filteredLocations = useMemo(() => {
@@ -43,3 +60,4 @@ export function useAreaFilters() {
     totalResults
   };
 }
+

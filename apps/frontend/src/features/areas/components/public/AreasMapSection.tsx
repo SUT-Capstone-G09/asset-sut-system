@@ -134,7 +134,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
                   {/* Category Header */}
                   <div 
                     className="
-                      sticky top-0 z-10 px-6 py-5 flex items-center justify-between 
+                      px-6 py-5 flex items-center justify-between 
                       bg-gray-50/50 backdrop-blur-sm border-b border-gray-100
                     "
                   >
