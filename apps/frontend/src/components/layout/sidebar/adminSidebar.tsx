@@ -100,6 +100,12 @@ const menuGroups: MenuGroup[] = [
         ],
       },
       {
+        id: "manage-rooms",
+        label: "จัดการห้อง",
+        icon: Building,
+        href: "/admin/manage-rooms",
+      },
+      {
         id: "maintenance",
         label: "การซ่อมบำรุง",
         icon: Wrench,
