@@ -52,11 +52,10 @@ export default function Navbar() {
       subItems: [
         { label: "สำหรับผู้ประกอบการ", href: "/services/entrepreneur" },
         { label: "สำหรับผู้สนใจเช่า", href: "/services/tenant" },
-        { label: "ผู้ใช้บริการ", href: "/services/user" },
+        { label: "ผู้ใช้บริการ", href: "/bookings" },
       ],
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
-    { label: "การจอง", href: "/bookings" },
     { label: "ประชาสัมพันธ์", href: "/news" },
     { label: "ติดต่อเรา", href: "/requests" },
   ];
