@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'wsl-node'
+    }
     
     environment {
         // Define any environment variables here
@@ -27,7 +29,9 @@ pipeline {
         // ==================== Stage: Info ====================
         stage('Info') {
             steps {
+                sh 'pwd'
                 echo "Current Branch: ${BRANCH_NAME}"
+                echo "Current Build Number => Image Tag: $IMAGE_TAG"
             }
         }
         // ==================== Stage: Checkout ====================
