@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { EQUIPMENT_LIST } from "@/features/bookings/data/mock-equipment";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const EQUIPMENT_ICONS: Record<string, React.ElementType> = {
   video: Video,
@@ -236,12 +237,14 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
           {/* Actions */}
           <div className="flex flex-col gap-2">
-            <Button
-              disabled={!hasDocument}
-              className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 rounded-xl text-base disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ยืนยันการจอง
-            </Button>
+              <Link href="/payment" className="w-full">
+                <Button
+                  disabled={!hasDocument}
+                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 rounded-xl text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ยืนยันการจอง
+                </Button>
+              </Link>
             {!hasDocument && (
               <p className="text-xs text-red-400 text-center">
                 กรุณาอัปโหลดเอกสารหรือสร้างเอกสารก่อนยืนยัน
