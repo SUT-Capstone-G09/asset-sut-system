@@ -6,7 +6,7 @@ pipeline {
         // Githib
         GITHUB_ORG = 'SUT-Capstone-G09'
         GITHUB_REPO = 'asset-sut-system'
-        // BRANCH_NAME = "${env.BRANCH_NAME}"
+        BRANCH_NAME = 'ci-cd'
 
         // Docker
         DOCKER_USERNAME = 'worawut2547'
@@ -27,7 +27,7 @@ pipeline {
         // ==================== Stage: Info ====================
         stage('Info') {
             steps {
-                echo "Current Branch: ${env.BRANCH_NAME}"
+                echo "Current Branch: ${BRANCH_NAME}"
             }
         }
         // ==================== Stage: Checkout ====================
@@ -40,7 +40,7 @@ pipeline {
                 // ดึงโค้ดจาก GitHub
                 git(
                     url: "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}.git",
-                    branch: "$BRANCH_NAME",
+                    branch: "${BRANCH_NAME}",
                     credentialsId: "github-org-token"
                 )
             }
