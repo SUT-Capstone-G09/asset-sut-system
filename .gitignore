@@ -58,3 +58,6 @@ infra/**/*.tfstate.*
 infra/.terraform/
 infra/**/*.auto.tfvars
 infra/**/secrets.*
+
+# ── Docker ──────────────────────────────
+apps/frontend/Dockerfile.prod
