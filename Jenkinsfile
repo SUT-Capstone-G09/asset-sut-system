@@ -6,7 +6,7 @@ pipeline {
         // Githib
         GITHUB_ORG = 'SUT-Capstone-G09'
         GITHUB_REPO = 'asset-sut-system'
-        BRANCH_NAME = "${env.BRANCH_NAME}"
+        // BRANCH_NAME = "${env.BRANCH_NAME}"
 
         // Docker
         DOCKER_USERNAME = 'worawut2547'
@@ -27,7 +27,7 @@ pipeline {
         // ==================== Stage: Info ====================
         stage('Info') {
             steps {
-                echo "Current Branch: $BRANCH_NAME"
+                echo "Current Branch: ${env.BRANCH_NAME}"
             }
         }
         // ==================== Stage: Checkout ====================
