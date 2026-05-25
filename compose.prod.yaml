@@ -1,0 +1,11 @@
+services:
+  g02-frontend:
+    image: ${DOCKER_USERNAME}/${DOCKER_REPO}:g02-frontend-${IMAGE_TAG}
+    environment:
+      - NODE_ENV=production
+      - DOCKER_USERNAME=${DOCKER_USERNAME}
+      - DOCKER_REPO=${DOCKER_REPO}
+      - IMAGE_TAG=${IMAGE_TAG}
+    restart: always
+    ports:
+      - "30001:3001"

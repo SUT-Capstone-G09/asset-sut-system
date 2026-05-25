@@ -16,7 +16,7 @@
 
     - name: Copy docker-compose file to remote
       copy:
-        src: "../../docker-compose.yml"
+        src: "../../compose.prod.yaml"
         dest: "{{ app_dir }}/docker-compose.yml"
         mode: "0644"
 

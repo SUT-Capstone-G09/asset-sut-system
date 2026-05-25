@@ -76,7 +76,15 @@ pipeline {
         stage('Infra: Ansible Setup') {
             steps {
                 dir("${env.ANSIBLE_PATH}") {
-                    script {
+                    echo 'Running Ansible setup for Docker...'
+                    sh '''
+                        ansible-playbook -i hosts.ini \
+                        setup/docker.yaml \
+                        -e "do_server_host=${DO_SERVER_HOST}" \
+                        -e "ansible_ssh_private_key_file=${SSH_PVT_KEY_PATH}" \
+                        -e "ansible_user=${SSH_USER}"
+                    '''
+                    /*script {
                         // Check Docker
                         def dockerExists = sh(
                             script: 'docker version | grep "Version"',
@@ -91,7 +99,7 @@ pipeline {
                         } else {
                             echo "Docker is already set up. Skipping Docker setup."
                         }
-                    }
+                    }*/
                 }
             }
         }
