@@ -159,7 +159,10 @@ pipeline {
                     sh """
                         ansible-playbook -i hosts.ini \
                         delivery.yaml \
-                        -e "image_tag=$IMAGE_TAG"
+                        -e "image_tag=$IMAGE_TAG" \
+                        -e "do_server_host=${DO_SERVER_HOST}" \
+                        -e "ansible_ssh_private_key_file=${SSH_PVT_KEY_PATH}" \
+                        -e "ansible_user=${SSH_USER}"
                     """
                 }
             }
