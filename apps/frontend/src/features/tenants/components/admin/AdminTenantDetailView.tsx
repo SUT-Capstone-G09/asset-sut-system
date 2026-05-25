@@ -322,8 +322,8 @@ export default function AdminTenantDetailView({
             </span>
             <h2 className="text-3xl font-black text-slate-800 tracking-tight">
               {areaId === "student-dormitories" || areaId === "staff-housing"
-                ? "สัญญาเช่าที่พักอาศัยมาตรฐาน"
-                : "สัญญาเช่าพื้นที่ประกอบการค้ามาตรฐาน"}
+                ? "สัญญาเช่า"
+                : "สัญญาเช่าพื้นที่ประกอบการ"}
             </h2>
           </div>
 
