@@ -47,20 +47,11 @@ function formatFileSize(bytes: number): string {
 
 export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const router = useRouter();
-  const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(new Set());
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [generateDoc, setGenerateDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasDocument = uploadedFiles.length > 0 || generateDoc;
-
-  const toggleEquipment = (id: string) =>
-    setSelectedEquipment((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -114,17 +105,10 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {EQUIPMENT_LIST.map((eq) => {
                 const Icon = EQUIPMENT_ICONS[eq.icon];
-                const selected = selectedEquipment.has(eq.id);
                 return (
-                  <button
+                  <div
                     key={eq.id}
-                    onClick={() => toggleEquipment(eq.id)}
-                    className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border text-left transition-colors",
-                      selected
-                        ? "border-brand-primary/30 bg-orange-50"
-                        : "border-gray-100 bg-gray-50 hover:border-gray-200"
-                    )}
+                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50"
                   >
                     <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-100 shrink-0">
                       {Icon && <Icon size={16} className="text-brand-primary" />}
@@ -133,13 +117,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                       <p className="text-sm font-medium text-gray-800">{eq.name}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{eq.description}</p>
                     </div>
-                    <div className={cn(
-                      "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors",
-                      selected ? "border-brand-primary bg-brand-primary" : "border-gray-300"
-                    )}>
-                      {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
