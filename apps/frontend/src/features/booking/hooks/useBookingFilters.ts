@@ -50,7 +50,15 @@ export function useBookingFilters(initialBookings: Booking[]) {
     setBookings((prev) => [newBooking, ...prev]);
   };
 
-  const handleUpdateBookingStatus = (id: string, status: "pending" | "approved" | "rejected") => {
+  const handleUpdateBookingStatus = (
+    id: string,
+    status:
+      | "pending"
+      | "pending_payment"
+      | "verifying_payment"
+      | "approved"
+      | "rejected",
+  ) => {
     setBookings((prev) => 
       prev.map((b) => b.id === id ? { ...b, status } : b)
     );

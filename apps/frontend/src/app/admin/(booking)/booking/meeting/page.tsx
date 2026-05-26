@@ -5,11 +5,15 @@ import BookingHeader from "@/features/booking/components/admin/BookingHeader";
 import BookingFilters from "@/features/booking/components/admin/BookingFilters";
 import BookingGrid from "@/features/booking/components/admin/BookingGrid";
 import BookingCreateDrawer from "@/features/booking/components/admin/BookingCreateDrawer";
+import PaymentVerificationModal from "@/features/booking/components/admin/PaymentVerificationModal";
 import { useBookingFilters } from "@/features/booking/hooks/useBookingFilters";
 import { mockMeetingBookings } from "@/features/booking/data/meeting-bookings";
+import { Button } from "@/components/ui/button";
+import { Banknote } from "lucide-react";
 
 export default function MeetingBookingPage() {
   const {
+    bookings,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -29,6 +33,7 @@ export default function MeetingBookingPage() {
   } = useBookingFilters(mockMeetingBookings);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPaymentVerifyOpen, setIsPaymentVerifyOpen] = useState(false);
 
   return (
     <div className="p-8 space-y-8">
@@ -42,6 +47,16 @@ export default function MeetingBookingPage() {
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="ยื่นขอจองห้องประชุม"
+        extraAction={
+          <Button
+            onClick={() => setIsPaymentVerifyOpen(true)}
+            variant="outline"
+            className="h-11 px-5 rounded-[7px] font-bold text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 cursor-pointer bg-white"
+          >
+            <Banknote size={16} className="text-[#f26522]" />
+            <span>ตรวจสอบการชำระเงิน</span>
+          </Button>
+        }
       />
 
       {/* Filters Section */}
@@ -75,6 +90,14 @@ export default function MeetingBookingPage() {
         onClose={() => setIsCreateOpen(false)}
         onAdd={handleAddBooking}
         type="meeting"
+      />
+
+      {/* Payment Verification Modal */}
+      <PaymentVerificationModal
+        open={isPaymentVerifyOpen}
+        onClose={() => setIsPaymentVerifyOpen(false)}
+        bookings={bookings}
+        onUpdateBooking={handleEditBooking}
       />
     </div>
   );

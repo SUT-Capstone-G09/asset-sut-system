@@ -1,7 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react";
-import { useFormContext, Controller, useFieldArray, useWatch } from "react-hook-form";
+import { useState, useRef, useEffect } from "react";
+import {
+  useFormContext,
+  Controller,
+  useFieldArray,
+  useWatch,
+} from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +15,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -23,7 +28,7 @@ import {
   Banknote,
   Search,
   X,
-  FileText
+  FileText,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,7 +40,24 @@ import { BookingFormValues } from "../../../schemas/booking-schema";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 import { mockExpenses } from "../../../data/expenses";
+import { mockRooms } from "../../../data/rooms";
 
+const getHoursFromTimeSlot = (timeSlot: string): number => {
+  try {
+    const match = timeSlot.match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
+    if (match) {
+      const startHour = parseInt(match[1], 10);
+      const startMin = parseInt(match[2], 10);
+      const endHour = parseInt(match[3], 10);
+      const endMin = parseInt(match[4], 10);
+      const diffMin = endHour * 60 + endMin - (startHour * 60 + startMin);
+      return Math.max(1, diffMin / 60);
+    }
+  } catch (e) {
+    console.error("Error parsing time slot:", e);
+  }
+  return 3; // Default fallback
+};
 
 interface BookingFormFieldsProps {
   isEdit?: boolean;
@@ -43,7 +65,11 @@ interface BookingFormFieldsProps {
 }
 
 const CLASSROOM_CATEGORIES = ["ห้องบรรยาย", "ห้องปฏิบัติการ", "ห้องสัมมนา"];
-const MEETING_CATEGORIES = ["ห้องประชุมขนาดเล็ก", "ห้องประชุมขนาดกลาง", "ห้องประชุมขนาดใหญ่"];
+const MEETING_CATEGORIES = [
+  "ห้องประชุมขนาดเล็ก",
+  "ห้องประชุมขนาดกลาง",
+  "ห้องประชุมขนาดใหญ่",
+];
 
 const BUILDINGS = [
   "อาคารเรียนรวม 1",
@@ -51,18 +77,19 @@ const BUILDINGS = [
   "อาคารบริหาร ชั้น 3",
   "อาคารสโมสรพนักงาน",
   "ห้องสมุดกลาง (SUT Library) ชั้น 2",
-  "อาคารศูนย์บริการคอมพิวเตอร์"
+  "อาคารศูนย์บริการคอมพิวเตอร์",
 ];
 
-const TIME_SLOTS = [
-  "08:00 - 10:00 น.",
-  "09:00 - 12:00 น.",
-  "10:00 - 12:00 น.",
-  "13:00 - 15:30 น.",
-  "13:00 - 16:00 น.",
-  "13:00 - 17:00 น.",
-  "14:00 - 16:30 น.",
-  "17:00 - 19:00 น."
+const START_HOURS = [
+  "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
+  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00",
+  "19:00", "20:00", "21:00"
+];
+
+const END_HOURS = [
+  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00",
+  "14:00", "15:00", "16:00", "17:00", "18:00", "19:00",
+  "20:00", "21:00", "22:00"
 ];
 
 const CLASSROOM_EQUIPMENT = [
@@ -71,7 +98,7 @@ const CLASSROOM_EQUIPMENT = [
   "กระดานไวท์บอร์ด",
   "ระบบคอมพิวเตอร์ลูกข่าย",
   "ระบบไฮบริด (Zoom/Teams)",
-  "ระบบควบคุมจอภาพนักเรียน"
+  "ระบบควบคุมจอภาพนักเรียน",
 ];
 
 const MEETING_EQUIPMENT = [
@@ -81,44 +108,183 @@ const MEETING_EQUIPMENT = [
   "ไมโครโฟนประชุมรายบุคคล",
   "เครื่องฉายโปรเจคเตอร์คู่",
   "ระบบบันทึกเสียงและวิดีโอ",
-  "กระดานกระจกเขียนความคิดสร้างสรรค์"
+  "กระดานกระจกเขียนความคิดสร้างสรรค์",
 ];
 
-export default function BookingFormFields({ isEdit = false, type }: BookingFormFieldsProps) {
-  const { 
-    register, 
-    control, 
-    formState: { errors }
+export default function BookingFormFields({
+  isEdit = false,
+  type,
+}: BookingFormFieldsProps) {
+  const {
+    register,
+    control,
+    setValue,
+    getValues,
+    formState: { errors },
   } = useFormContext<BookingFormValues>();
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, prepend, remove, update } = useFieldArray({
     control,
-    name: "expenses"
+    name: "expenses",
   });
+
+  // Get initial values from getValues
+  const initialTimeSlot = getValues("timeSlot") || "";
+  const initialMatch = initialTimeSlot ? initialTimeSlot.match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/) : null;
+
+  const [startHour, setStartHour] = useState(initialMatch ? initialMatch[1] : "");
+  const [endHour, setEndHour] = useState(initialMatch ? initialMatch[2] : "");
+
+  const watchedRoomNumber = useWatch({ control, name: "roomNumber" });
+  const watchedRoomName = useWatch({ control, name: "roomName" });
+  const watchedRequesterType = useWatch({ control, name: "requesterType" });
+  const watchedTimeSlot = useWatch({ control, name: "timeSlot" });
+  const watchedHousekeeperPrice = useWatch({ control, name: "housekeeperPrice" });
+  const watchedHousekeeperCount = useWatch({ control, name: "housekeeperCount" });
+
+  // Automatically map roomName to building/category if a matching room is typed
+  useEffect(() => {
+    if (!watchedRoomName) return;
+    const foundRoom = mockRooms.find(
+      (r) =>
+        r.roomName.toLowerCase() === watchedRoomName.toLowerCase() ||
+        r.roomNumber.toLowerCase() === watchedRoomName.toLowerCase()
+    );
+    if (foundRoom) {
+      setValue("building", foundRoom.building);
+      setValue("category", foundRoom.category);
+      setValue("roomNumber", foundRoom.roomNumber);
+    }
+  }, [watchedRoomName]);
+
+  // Sync external timeSlot to local startHour/endHour states
+  useEffect(() => {
+    if (watchedTimeSlot) {
+      const match = watchedTimeSlot.match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+      if (match) {
+        setStartHour(match[1]);
+        setEndHour(match[2]);
+      }
+    } else {
+      setStartHour("");
+      setEndHour("");
+    }
+  }, [watchedTimeSlot]);
+
+  const handleTimeChange = (start: string, end: string) => {
+    if (start && end) {
+      const startVal = parseInt(start.split(":")[0], 10);
+      const endVal = parseInt(end.split(":")[0], 10);
+      if (endVal <= startVal) {
+        const newEnd = `${String(startVal + 1).padStart(2, "0")}:00`;
+        setEndHour(newEnd);
+        setValue("timeSlot", `${start} - ${newEnd} น.`);
+      } else {
+        setValue("timeSlot", `${start} - ${end} น.`);
+      }
+    } else if (start) {
+      setValue("timeSlot", `${start} - --:-- น.`);
+    } else if (end) {
+      setValue("timeSlot", `--:-- - ${end} น.`);
+    }
+  };
+
+  // 1. Automatically calculate and update the Room Fee expense
+  useEffect(() => {
+    if (!watchedRoomNumber && !watchedRoomName) return;
+
+    const room = mockRooms.find(
+      (r) =>
+        r.roomNumber === watchedRoomNumber ||
+        r.roomName === watchedRoomName,
+    );
+
+    const isInternal =
+      watchedRequesterType === "student" ||
+      watchedRequesterType === "staff";
+
+    const hours = getHoursFromTimeSlot(watchedTimeSlot || "");
+    const useDaily = hours > 4;
+
+    const hourlyRate = isInternal
+      ? (room?.rates?.hourlyInternal ?? 150)
+      : (room?.rates?.hourlyExternal ?? 400);
+    const dailyRate = isInternal
+      ? (room?.rates?.dailyInternal ?? 1000)
+      : (room?.rates?.dailyExternal ?? 2500);
+
+    const rateName = useDaily ? "ค่าห้องรายวัน" : `ค่าห้องรายชั่วโมง (${hourlyRate} บาท/ชม. x ${hours} ชม.)`;
+
+    const amount = useDaily ? dailyRate : hourlyRate * hours;
+
+    // Find if there is an existing room fee in fields
+    const roomExpenseIndex = fields.findIndex((f) => f.name.startsWith("ค่าห้อง"));
+
+    if (roomExpenseIndex !== -1) {
+      if (fields[roomExpenseIndex].name !== rateName || fields[roomExpenseIndex].amount !== amount) {
+        update(roomExpenseIndex, { name: rateName, amount });
+      }
+    } else {
+      prepend({ name: rateName, amount });
+    }
+  }, [watchedRoomNumber, watchedRoomName, watchedRequesterType, watchedTimeSlot]);
+
+  // 2. Automatically calculate and update the Housekeeper Fee expense
+  useEffect(() => {
+    const price = Number(watchedHousekeeperPrice) || 0;
+    const count = Number(watchedHousekeeperCount) || 0;
+    const amount = price * count;
+
+    const housekeeperExpenseIndex = fields.findIndex((f) => f.name.startsWith("ค่าแม่บ้าน"));
+
+    if (amount > 0) {
+      const name = `ค่าแม่บ้าน (${price} บาท/คน x ${count} คน)`;
+      if (housekeeperExpenseIndex !== -1) {
+        if (fields[housekeeperExpenseIndex].name !== name || fields[housekeeperExpenseIndex].amount !== amount) {
+          update(housekeeperExpenseIndex, { name, amount });
+        }
+      } else {
+        prepend({ name, amount });
+      }
+    } else {
+      if (housekeeperExpenseIndex !== -1) {
+        remove(housekeeperExpenseIndex);
+      }
+    }
+  }, [watchedHousekeeperPrice, watchedHousekeeperCount]);
 
   const watchedExpenses = useWatch({
     control,
     name: "expenses",
-    defaultValue: []
+    defaultValue: [],
   });
 
-  const totalExpenses = (watchedExpenses || []).reduce((sum: number, item: any) => sum + (Number(item?.amount) || 0), 0);
+  const totalExpenses = (watchedExpenses || []).reduce(
+    (sum: number, item: any) => sum + (Number(item?.amount) || 0),
+    0,
+  );
 
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
 
   const filteredMockExpenses = mockExpenses.filter((exp) => {
-    const displayName = exp.itemName.startsWith("ค่า") ? exp.itemName : `ค่า${exp.itemName}`;
-    return displayName.toLowerCase().includes(expenseSearchQuery.toLowerCase()) ||
-           exp.category.toLowerCase().includes(expenseSearchQuery.toLowerCase());
+    const displayName = exp.itemName.startsWith("ค่า")
+      ? exp.itemName
+      : `ค่า${exp.itemName}`;
+    return (
+      displayName.toLowerCase().includes(expenseSearchQuery.toLowerCase()) ||
+      exp.category.toLowerCase().includes(expenseSearchQuery.toLowerCase())
+    );
   });
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
   const themeRing = "focus-visible:ring-[#f26522]/30";
 
-  const categoriesList = type === "classroom" ? CLASSROOM_CATEGORIES : MEETING_CATEGORIES;
-  const equipmentList = type === "classroom" ? CLASSROOM_EQUIPMENT : MEETING_EQUIPMENT;
+  const categoriesList =
+    type === "classroom" ? CLASSROOM_CATEGORIES : MEETING_CATEGORIES;
+  const equipmentList =
+    type === "classroom" ? CLASSROOM_EQUIPMENT : MEETING_EQUIPMENT;
 
   return (
     <div className="space-y-10">
@@ -127,15 +293,15 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] pl-1">
           รูปภาพประกอบ (ห้องหรือสถานที่จอง)
         </Label>
-        
+
         <Controller
           name="image"
           control={control}
           render={({ field }) => (
-            <ImageUpload 
-              value={field.value} 
-              onChange={field.onChange} 
-              error={errors.image?.message} 
+            <ImageUpload
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.image?.message}
             />
           )}
         />
@@ -144,28 +310,42 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
       {/* Section: Status (Only for Edit Mode) */}
       {isEdit && (
         <div className="space-y-4 text-left">
-          <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-            <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+          <div
+            className="flex items-center gap-2.5 mb-2"
+            style={{ color: themeColor }}
+          >
+            <div
+              className={cn(
+                "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+                themeBg,
+              )}
+            >
               <Clock size={18} strokeWidth={2.5} />
             </div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">สถานะการจอง</h3>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+              สถานะการจอง
+            </h3>
           </div>
-          
+
           <div className="w-full sm:w-1/2 space-y-2.5">
             <Controller
               name="status"
               control={control}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className={cn(
-                    "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", 
-                    themeRing,
-                    errors.status && "border-red-500"
-                  )}>
+                  <SelectTrigger
+                    className={cn(
+                      "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
+                      themeRing,
+                      errors.status && "border-red-500",
+                    )}
+                  >
                     <SelectValue placeholder="เลือกสถานะการจอง" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">รออนุมัติ (Pending)</SelectItem>
+                    <SelectItem value="pending_payment">รอชำระเงิน (Pending Payment)</SelectItem>
+                    <SelectItem value="verifying_payment">รอตรวจสอบการชำระเงิน (Verifying Payment)</SelectItem>
                     <SelectItem value="approved">อนุมัติแล้ว (Approved)</SelectItem>
                     <SelectItem value="rejected">ปฏิเสธ (Rejected)</SelectItem>
                   </SelectContent>
@@ -179,93 +359,116 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
 
       {/* Section: Area Info */}
       <div className="space-y-6 text-left">
-        <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-          <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+        <div
+          className="flex items-center gap-2.5 mb-2"
+          style={{ color: themeColor }}
+        >
+          <div
+            className={cn(
+              "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+              themeBg,
+            )}
+          >
             <Building2 size={18} strokeWidth={2.5} />
           </div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">ข้อมูลสถานที่ / รหัสห้อง</h3>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+            ข้อมูลสถานที่
+          </h3>
         </div>
-        
+
         <div className="grid grid-cols-1 gap-5">
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อห้อง</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                ชื่อพื้นที่
+              </Label>
+              <Input
                 {...register("roomName")}
-                placeholder="เช่น ห้องบรรยาย B1101" 
+                placeholder="เช่น ห้องบรรยาย B1101"
                 className={cn(
-                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", 
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
                   themeRing,
-                  errors.roomName && "border-red-500 focus-visible:ring-red-500/30"
-                )} 
+                  errors.roomName &&
+                    "border-red-500 focus-visible:ring-red-500/30",
+                )}
               />
-              {errors.roomName && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.roomName.message}</p>}
-            </div>
-
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">รหัสห้อง</Label>
-              <Input 
-                {...register("roomNumber")}
-                placeholder="เช่น B1101" 
-                className={cn(
-                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", 
-                  themeRing,
-                  errors.roomNumber && "border-red-500 focus-visible:ring-red-500/30"
-                )} 
-              />
-              {errors.roomNumber && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.roomNumber.message}</p>}
+              {errors.roomName && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.roomName.message}
+                </p>
+              )}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">อาคาร / สถานที่</Label>
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                อาคาร / สถานที่
+              </Label>
               <Controller
                 name="building"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={cn(
-                      "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", 
-                      themeRing,
-                      errors.building && "border-red-500"
-                    )}>
+                    <SelectTrigger
+                      className={cn(
+                        "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
+                        themeRing,
+                        errors.building && "border-red-500",
+                      )}
+                    >
                       <SelectValue placeholder="เลือกอาคาร" />
                     </SelectTrigger>
                     <SelectContent>
                       {BUILDINGS.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.building && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.building.message}</p>}
+              {errors.building && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.building.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ประเภทพื้นที่</Label>
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                ประเภทพื้นที่
+              </Label>
               <Controller
                 name="category"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={cn(
-                      "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", 
-                      themeRing,
-                      errors.category && "border-red-500"
-                    )}>
+                    <SelectTrigger
+                      className={cn(
+                        "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
+                        themeRing,
+                        errors.category && "border-red-500",
+                      )}
+                    >
                       <SelectValue placeholder="เลือกประเภท" />
                     </SelectTrigger>
                     <SelectContent>
                       {categoriesList.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.category && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.category.message}</p>}
+              {errors.category && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.category.message}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -275,88 +478,157 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
 
       {/* Section: Requester Info */}
       <div className="space-y-6 text-left">
-        <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-          <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+        <div
+          className="flex items-center gap-2.5 mb-2"
+          style={{ color: themeColor }}
+        >
+          <div
+            className={cn(
+              "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+              themeBg,
+            )}
+          >
             <User size={18} strokeWidth={2.5} />
           </div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">ข้อมูลผู้ยื่นขอจอง</h3>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+            ข้อมูลผู้ยื่นขอจอง
+          </h3>
         </div>
-        
+
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อผู้ขอใช้งาน</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                ชื่อผู้ขอใช้งาน
+              </Label>
+              <Input
                 {...register("requesterName")}
-                placeholder="ระบุชื่อจริง-นามสกุล" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing, errors.requesterName && "border-red-500")} 
+                placeholder="ระบุชื่อจริง-นามสกุล"
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                  errors.requesterName && "border-red-500",
+                )}
               />
-              {errors.requesterName && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.requesterName.message}</p>}
+              {errors.requesterName && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.requesterName.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ประเภทผู้ใช้งาน</Label>
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                ประเภทผู้ใช้งาน
+              </Label>
               <Controller
                 name="requesterType"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", themeRing, errors.requesterType && "border-red-500")}>
+                    <SelectTrigger
+                      className={cn(
+                        "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
+                        themeRing,
+                        errors.requesterType && "border-red-500",
+                      )}
+                    >
                       <SelectValue placeholder="เลือกประเภท" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="student">นักศึกษา</SelectItem>
-                      <SelectItem value="staff">เจ้าหน้าที่ / อาจารย์</SelectItem>
+                      <SelectItem value="staff">
+                        เจ้าหน้าที่ / อาจารย์
+                      </SelectItem>
                       <SelectItem value="external">บุคคลภายนอก</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.requesterType && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.requesterType.message}</p>}
+              {errors.requesterType && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.requesterType.message}
+                </p>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">รหัสประจำตัวผู้ขอ</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                รหัสประจำตัวผู้ขอ
+              </Label>
+              <Input
                 {...register("requesterId")}
-                placeholder="รหัสนักศึกษา หรือรหัสพนักงาน" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing, errors.requesterId && "border-red-500")} 
+                placeholder="รหัสนักศึกษา หรือรหัสพนักงาน"
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                  errors.requesterId && "border-red-500",
+                )}
               />
-              {errors.requesterId && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.requesterId.message}</p>}
+              {errors.requesterId && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.requesterId.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">เบอร์โทรศัพท์ติดต่อ</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                เบอร์โทรศัพท์ติดต่อ
+              </Label>
+              <Input
                 {...register("contactPhone")}
-                placeholder="เช่น 081-xxxxxxx" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
+                placeholder="เช่น 081-xxxxxxx"
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                )}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">อีเมลผู้ขอใช้</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                อีเมลผู้ขอใช้
+              </Label>
+              <Input
                 {...register("contactEmail")}
-                placeholder="email@g.sut.ac.th" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing, errors.contactEmail && "border-red-500")} 
+                placeholder="email@g.sut.ac.th"
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                  errors.contactEmail && "border-red-500",
+                )}
               />
-              {errors.contactEmail && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.contactEmail.message}</p>}
+              {errors.contactEmail && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.contactEmail.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">จำนวนผู้เข้าร่วม (คน)</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                จำนวนผู้เข้าร่วม (คน)
+              </Label>
+              <Input
                 type="number"
                 {...register("attendees")}
-                placeholder="ระบุจำนวนคน" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing, errors.attendees && "border-red-500")} 
+                placeholder="ระบุจำนวนคน"
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                  errors.attendees && "border-red-500",
+                )}
               />
-              {errors.attendees && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.attendees.message}</p>}
+              {errors.attendees && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.attendees.message}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -366,119 +638,143 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
 
       {/* Section: Booking Time Slot & Purpose */}
       <div className="space-y-6 text-left">
-        <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-          <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+        <div
+          className="flex items-center gap-2.5 mb-2"
+          style={{ color: themeColor }}
+        >
+          <div
+            className={cn(
+              "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+              themeBg,
+            )}
+          >
             <Clock size={18} strokeWidth={2.5} />
           </div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">ข้อมูลช่วงเวลา & จุดประสงค์</h3>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+            ข้อมูลช่วงเวลา & จุดประสงค์
+          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-5">
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">วันที่ต้องการจอง</Label>
-              <Input 
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                วันที่ต้องการจอง
+              </Label>
+              <Input
                 type="date"
                 {...register("date")}
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing, errors.date && "border-red-500")} 
+                className={cn(
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  themeRing,
+                  errors.date && "border-red-500",
+                )}
               />
-              {errors.date && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.date.message}</p>}
+              {errors.date && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.date.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ช่วงเวลาที่จอง</Label>
-              <Controller
-                name="timeSlot"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", themeRing, errors.timeSlot && "border-red-500")}>
-                      <SelectValue placeholder="เลือกช่วงเวลา" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_SLOTS.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.timeSlot && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.timeSlot.message}</p>}
+              <Label className="text-xs font-bold text-slate-500 ml-1">
+                ช่วงเวลาที่จอง
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  value={startHour}
+                  onValueChange={(val) => {
+                    setStartHour(val);
+                    let newEndHour = endHour;
+                    if (endHour) {
+                      const startVal = parseInt(val.split(":")[0], 10);
+                      const endVal = parseInt(endHour.split(":")[0], 10);
+                      if (endVal <= startVal) {
+                        newEndHour = "";
+                        setEndHour("");
+                      }
+                    }
+                    handleTimeChange(val, newEndHour);
+                  }}
+                >
+                  <SelectTrigger className="h-12 bg-slate-50 border-transparent rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 text-xs font-bold text-slate-700">
+                    <SelectValue placeholder="เวลาเริ่ม" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {START_HOURS.map((hr) => (
+                      <SelectItem key={hr} value={hr} className="text-xs font-bold">
+                        {hr} น.
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={endHour}
+                  onValueChange={(val) => {
+                    setEndHour(val);
+                    handleTimeChange(startHour, val);
+                  }}
+                >
+                  <SelectTrigger className="h-12 bg-slate-50 border-transparent rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 text-xs font-bold text-slate-700">
+                    <SelectValue placeholder="เวลาสิ้นสุด" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {END_HOURS.filter((hr) => {
+                      if (!startHour) return true;
+                      const startVal = parseInt(startHour.split(":")[0], 10);
+                      const hrVal = parseInt(hr.split(":")[0], 10);
+                      return hrVal > startVal;
+                    }).map((hr) => (
+                      <SelectItem key={hr} value={hr} className="text-xs font-bold">
+                        {hr} น.
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {errors.timeSlot && (
+                <p className="text-[10px] font-bold text-red-500 ml-1">
+                  {errors.timeSlot.message}
+                </p>
+              )}
             </div>
           </div>
 
           <div className="space-y-2.5">
-            <Label className="text-xs font-bold text-slate-500 ml-1">วัตถุประสงค์ในการขอใช้พื้นที่</Label>
-            <Textarea 
+            <Label className="text-xs font-bold text-slate-500 ml-1">
+              วัตถุประสงค์ในการขอใช้พื้นที่
+            </Label>
+            <Textarea
               {...register("purpose")}
-              placeholder="กรอกวัตถุประสงค์ในการขอใช้พื้นที่ เช่น ทำกิจกรรม, ประชุม, นำเสนอโครงงาน..." 
+              placeholder="กรอกวัตถุประสงค์ในการขอใช้พื้นที่ เช่น ทำกิจกรรม, ประชุม, นำเสนอโครงงาน..."
               className={cn(
-                "rounded-[7px] min-h-[90px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all p-4 resize-none", 
+                "rounded-[7px] min-h-[90px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all p-4 resize-none",
                 themeRing,
-                errors.purpose && "border-red-500 focus-visible:ring-red-500/30"
-              )} 
+                errors.purpose &&
+                  "border-red-500 focus-visible:ring-red-500/30",
+              )}
             />
-            {errors.purpose && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.purpose.message}</p>}
+            {errors.purpose && (
+              <p className="text-[10px] font-bold text-red-500 ml-1">
+                {errors.purpose.message}
+              </p>
+            )}
           </div>
 
-          {/* Equipment Selection checkboxes */}
-          <div className="space-y-3">
-            <Label className="text-xs font-bold text-slate-500 ml-1">อุปกรณ์และสิ่งอำนวยความสะดวกที่ขอเพิ่ม</Label>
-            <Controller
-              name="equipment"
-              control={control}
-              render={({ field }) => {
-                const currentVals = field.value || [];
-                return (
-                <div className="flex flex-col gap-2.5 bg-slate-50/50 p-4 rounded-[7px] border border-slate-100 max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {equipmentList.map((eq) => {
-                    const isChecked = currentVals.includes(eq);
-                    return (
-                      <label key={eq} className="flex items-center gap-2.5 text-xs font-bold text-slate-600 cursor-pointer p-1 select-none hover:text-slate-800 transition-colors">
-                        <div className="relative flex items-center justify-center size-4 shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                field.onChange([...currentVals, eq]);
-                              } else {
-                                field.onChange(currentVals.filter((v: string) => v !== eq));
-                              }
-                            }}
-                            className="sr-only peer"
-                          />
-                          <div className={cn(
-                            "size-4 rounded border transition-all flex items-center justify-center shrink-0",
-                            isChecked 
-                              ? "bg-[#f26522] border-[#f26522] text-white" 
-                              : "border-slate-300 bg-white hover:border-[#f26522] peer-focus-visible:border-[#f26522] peer-focus-visible:ring-2 peer-focus-visible:ring-[#f26522]/30"
-                          )}>
-                            {isChecked && (
-                              <svg className="w-2.5 h-2.5 stroke-current stroke-[3px]" fill="none" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <span>{eq}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                );
-              }}
-            />
-          </div>
+
           <div className="space-y-2.5">
-            <Label className="text-xs font-bold text-slate-500 ml-1">หมายเหตุเพิ่มเติม</Label>
-            <Textarea 
+            <Label className="text-xs font-bold text-slate-500 ml-1">
+              หมายเหตุเพิ่มเติม
+            </Label>
+            <Textarea
               {...register("notes")}
-              placeholder="ระบุข้อความถึงผู้อนุมัติ (ถ้ามี)..." 
+              placeholder="ระบุข้อความถึงผู้อนุมัติ (ถ้ามี)..."
               className={cn(
-                "rounded-[7px] min-h-[90px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all p-4 resize-none", 
-                themeRing
-              )} 
+                "rounded-[7px] min-h-[90px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all p-4 resize-none",
+                themeRing,
+              )}
             />
           </div>
 
@@ -486,11 +782,21 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
 
           {/* Attached Documents Section (Visible in both Create and Edit modes) */}
           <div className="space-y-4 text-left">
-            <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-              <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+            <div
+              className="flex items-center gap-2.5 mb-2"
+              style={{ color: themeColor }}
+            >
+              <div
+                className={cn(
+                  "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+                  themeBg,
+                )}
+              >
                 <FileText size={18} strokeWidth={2.5} />
               </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">เอกสารแนบจากผู้ขอใช้พื้นที่</h3>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+                เอกสารแนบจากผู้ขอใช้พื้นที่
+              </h3>
             </div>
 
             <Controller
@@ -500,17 +806,21 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                 const docs = field.value || [];
                 const fileInputRef = useRef<HTMLInputElement>(null);
 
-                const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const handleFileChange = (
+                  e: React.ChangeEvent<HTMLInputElement>,
+                ) => {
                   const files = e.target.files;
                   if (files && files.length > 0) {
-                    const newDocNames = Array.from(files).map(f => f.name);
+                    const newDocNames = Array.from(files).map((f) => f.name);
                     field.onChange([...docs, ...newDocNames]);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }
                 };
 
                 const handleRemoveDoc = (indexToRemove: number) => {
-                  field.onChange(docs.filter((_, idx) => idx !== indexToRemove));
+                  field.onChange(
+                    docs.filter((_, idx) => idx !== indexToRemove),
+                  );
                 };
 
                 return (
@@ -544,10 +854,18 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                     {docs.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                         {docs.map((doc: string, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-3 rounded-[7px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#f26522]/20 hover:shadow-sm transition-all group">
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-3 rounded-[7px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#f26522]/20 hover:shadow-sm transition-all group"
+                          >
                             <div className="flex items-center gap-2 min-w-0">
-                              <FileText size={14} className="text-[#6d6e70] group-hover:text-[#f26522] transition-colors shrink-0" />
-                              <span className="text-xs font-bold text-slate-600 truncate">{doc}</span>
+                              <FileText
+                                size={14}
+                                className="text-[#6d6e70] group-hover:text-[#f26522] transition-colors shrink-0"
+                              />
+                              <span className="text-xs font-bold text-slate-600 truncate">
+                                {doc}
+                              </span>
                             </div>
                             <button
                               type="button"
@@ -569,14 +887,23 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
 
           {isEdit && (
             <>
-              
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5" style={{ color: themeColor }}>
-                    <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
+                  <div
+                    className="flex items-center gap-2.5"
+                    style={{ color: themeColor }}
+                  >
+                    <div
+                      className={cn(
+                        "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
+                        themeBg,
+                      )}
+                    >
                       <Banknote size={18} strokeWidth={2.5} />
                     </div>
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">ค่าใช้จ่าย (Expenses)</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
+                      ค่าใช้จ่าย (Expenses)
+                    </h3>
                   </div>
 
                   <button
@@ -589,45 +916,102 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                   </button>
                 </div>
 
+                 {/* Housekeeper Pricing & Headcount Inputs */}
+                 <div className="bg-slate-50/50 p-4 border border-slate-100/80 rounded-xl space-y-3 mb-4 text-left">
+                   <div className="flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-[#f26522]" />
+                     <span className="text-xs font-extrabold text-slate-700">ตั้งค่าค่าบริการแม่บ้าน (Housekeeper Settings)</span>
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1.5 text-left">
+                       <Label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">ราคาค่าแม่บ้านต่อคน (฿)</Label>
+                       <Input
+                         type="number"
+                         min="0"
+                         placeholder="เช่น 450"
+                         {...register("housekeeperPrice")}
+                         className={cn(
+                           "rounded-[7px] h-10 bg-white border-slate-200 focus-visible:ring-1 transition-all text-xs font-bold text-slate-700",
+                           themeRing
+                         )}
+                       />
+                     </div>
+                     <div className="space-y-1.5 text-left">
+                       <Label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">จำนวนแม่บ้าน (คน)</Label>
+                       <Input
+                         type="number"
+                         min="0"
+                         placeholder="เช่น 2"
+                         {...register("housekeeperCount")}
+                         className={cn(
+                           "rounded-[7px] h-10 bg-white border-slate-200 focus-visible:ring-1 transition-all text-xs font-bold text-slate-700",
+                           themeRing
+                         )}
+                       />
+                     </div>
+                   </div>
+                 </div>
+
                 <div className="space-y-3.5 bg-slate-50/30 border border-slate-100/80 rounded-[7px] p-4 text-left">
                   {fields.length > 0 ? (
                     <div className="space-y-4">
-                      {fields.map((field, index) => (
-                        <div key={field.id} className="flex items-center justify-between gap-4 group">
-                          {/* Expense Name label */}
-                          <span className="text-xs font-bold text-slate-500 truncate flex-1 select-none">
-                            {field.name}
-                          </span>
-                          
-                          {/* Expense Input */}
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center rounded-lg border border-slate-200 bg-white focus-within:ring-1 focus-within:ring-[#f26522]/30 focus-within:border-[#f26522] transition-all overflow-hidden w-[160px] h-10 shadow-sm">
-                              <input
-                                type="number"
-                                {...register(`expenses.${index}.amount` as const)}
-                                className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-700 bg-transparent text-xs"
-                                placeholder="0"
-                              />
-                              <div className="h-full px-3 bg-slate-50 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
-                                บาท
+                      {fields.map((field, index) => {
+                        const isReadOnlyExpense = field.name.startsWith("ค่าห้อง") || field.name.startsWith("ค่าแม่บ้าน");
+                        return (
+                          <div
+                            key={field.id}
+                            className="flex items-center justify-between gap-4 group"
+                          >
+                            {/* Expense Name label */}
+                            <span className="text-xs font-bold text-slate-500 truncate flex-1 select-none">
+                              {field.name}
+                            </span>
+
+                            {/* Expense Input */}
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "flex items-center rounded-lg border border-slate-200 bg-white focus-within:ring-1 focus-within:ring-[#f26522]/30 focus-within:border-[#f26522] transition-all overflow-hidden w-[160px] h-10 shadow-sm",
+                                isReadOnlyExpense && "bg-slate-50/80 border-slate-200/60"
+                              )}>
+                                <input
+                                  type="number"
+                                  readOnly={isReadOnlyExpense}
+                                  {...register(
+                                    `expenses.${index}.amount` as const,
+                                  )}
+                                  className={cn(
+                                    "w-full h-full px-3 outline-none border-none text-left font-bold text-slate-700 bg-transparent text-xs",
+                                    isReadOnlyExpense && "text-slate-400 cursor-not-allowed"
+                                  )}
+                                  placeholder="0"
+                                />
+                                <div className="h-full px-3 bg-slate-50 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
+                                  บาท
+                                </div>
                               </div>
+
+                              {/* Delete/Remove button */}
+                              {!isReadOnlyExpense ? (
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  className="size-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:bg-red-50 focus:text-red-500"
+                                  title="ลบรายการ"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              ) : (
+                                <div className="size-8 shrink-0" />
+                              )}
                             </div>
-                            
-                            {/* Delete/Remove button */}
-                            <button
-                              type="button"
-                              onClick={() => remove(index)}
-                              className="size-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:bg-red-50 focus:text-red-500"
-                              title="ลบรายการ"
-                            >
-                              <Trash2 size={13} />
-                            </button>
                           </div>
-                        </div>
-                      ))}
-                      
+                        );
+                      })}
+
                       <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-200">
-                        <span className="text-xs font-black text-slate-700 select-none">ยอดรวมสุทธิ (Total)</span>
+                        <span className="text-xs font-black text-slate-700 select-none">
+                          ยอดรวมสุทธิ (Total)
+                        </span>
                         <span className="text-sm font-black text-slate-800">
                           {totalExpenses.toLocaleString()} บาท
                         </span>
@@ -641,18 +1025,28 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                 </div>
 
                 {/* Modal Popup Dialog for Selecting Expenses */}
-                <Dialog open={isAddExpenseModalOpen} onOpenChange={setIsAddExpenseModalOpen}>
+                <Dialog
+                  open={isAddExpenseModalOpen}
+                  onOpenChange={setIsAddExpenseModalOpen}
+                >
                   <DialogContent className="w-[95vw] max-w-[420px] p-6 bg-white rounded-[24px] border-none shadow-2xl flex flex-col gap-4 overflow-hidden transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
                     <DialogHeader className="text-left pb-2 border-b border-slate-100 relative pr-6">
                       <DialogTitle className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                        <Banknote className="text-[#f26522]" size={18} strokeWidth={2.5} />
+                        <Banknote
+                          className="text-[#f26522]"
+                          size={18}
+                          strokeWidth={2.5}
+                        />
                         เลือกรายการค่าใช้จ่ายเพิ่มเติม
                       </DialogTitle>
                     </DialogHeader>
 
                     {/* Search Field */}
                     <div className="relative">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                      <Search
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                        size={14}
+                      />
                       <input
                         type="text"
                         placeholder="ค้นหารายการ หรือหมวดหมู่..."
@@ -666,13 +1060,18 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                     <div className="max-h-[260px] overflow-y-auto custom-scrollbar space-y-2 pr-1 text-left">
                       {filteredMockExpenses.length > 0 ? (
                         filteredMockExpenses.map((exp) => {
-                          const displayName = exp.itemName.startsWith("ค่า") ? exp.itemName : `ค่า${exp.itemName}`;
+                          const displayName = exp.itemName.startsWith("ค่า")
+                            ? exp.itemName
+                            : `ค่า${exp.itemName}`;
                           return (
                             <button
                               key={exp.id}
                               type="button"
                               onClick={() => {
-                                append({ name: displayName, amount: exp.pricePerUnit });
+                                append({
+                                  name: displayName,
+                                  amount: exp.pricePerUnit,
+                                });
                                 setIsAddExpenseModalOpen(false);
                                 setExpenseSearchQuery("");
                               }}
@@ -702,30 +1101,6 @@ export default function BookingFormFields({ isEdit = false, type }: BookingFormF
                     </div>
                   </DialogContent>
                 </Dialog>
-              </div>
-
-              <Separator className="bg-slate-100 my-6" />
-              
-              {/* Receipt Upload Section */}
-              <div className="space-y-4 text-left">
-                <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-                  <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
-                    <Briefcase size={18} strokeWidth={2.5} />
-                  </div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">หลักฐานการชำระเงิน / ใบเสร็จ</h3>
-                </div>
-                
-                <Controller
-                  name="receiptImage"
-                  control={control}
-                  render={({ field }) => (
-                    <ImageUpload 
-                      value={field.value} 
-                      onChange={field.onChange} 
-                      error={errors.receiptImage?.message} 
-                    />
-                  )}
-                />
               </div>
             </>
           )}

@@ -51,7 +51,9 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
       image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
       equipment: [],
       attachedDocuments: [],
-      expenses: []
+      expenses: [],
+      housekeeperPrice: 0,
+      housekeeperCount: 0
     }
   });
 
@@ -86,7 +88,9 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
       notes: data.notes,
       equipment: data.equipment,
       attachedDocuments: data.attachedDocuments || [],
-      expenses: []
+      expenses: data.expenses || [],
+      housekeeperPrice: data.housekeeperPrice || 0,
+      housekeeperCount: data.housekeeperCount || 0
     };
 
     onAdd(newBooking);

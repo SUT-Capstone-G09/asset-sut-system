@@ -23,7 +23,7 @@ interface Props {
   booking: Booking | null;
   open: boolean;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: "pending" | "approved" | "rejected") => void;
+  onUpdateStatus: (id: string, status: "pending" | "pending_payment" | "verifying_payment" | "approved" | "rejected") => void;
   onEdit: (updated: Booking) => void;
   onDelete: (id: string) => void;
 }
@@ -46,6 +46,18 @@ export default function BookingDrawer({
       bg: "bg-amber-50 border-amber-100",
       text: "text-amber-700",
       dot: "bg-amber-500",
+    },
+    pending_payment: {
+      label: "รอชำระเงิน",
+      bg: "bg-sky-50 border-sky-100",
+      text: "text-sky-700",
+      dot: "bg-sky-500",
+    },
+    verifying_payment: {
+      label: "รอตรวจสอบการชำระเงิน",
+      bg: "bg-indigo-50 border-indigo-100",
+      text: "text-indigo-700",
+      dot: "bg-indigo-500",
     },
     approved: {
       label: "อนุมัติแล้ว",
@@ -299,19 +311,7 @@ export default function BookingDrawer({
                 <p className="text-[13px] text-slate-700 font-medium leading-relaxed">{booking.purpose}</p>
               </div>
 
-              {/* Requested Equipment */}
-              {booking.equipment && booking.equipment.length > 0 && (
-                <div className="space-y-2 text-left">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block pl-1">อุปกรณ์และสิ่งอำนวยความสะดวกที่ขอเพิ่ม</span>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.equipment.map((eq) => (
-                      <span key={eq} className="px-2.5 py-1 bg-slate-50 border border-slate-100 rounded-[5px] text-xs font-bold text-slate-600">
-                        ✓ {eq}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* Notes */}
               {booking.notes && (
@@ -380,10 +380,21 @@ export default function BookingDrawer({
               <>
                 <hr className="border-slate-100" />
                 <div className="space-y-4 text-left">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
-                    <Briefcase size={14} className="text-[#f26522]" />
-                    หลักฐานใบเสร็จรับเงิน (Receipt)
-                  </h3>
+                  <div className="flex justify-between items-center pr-1">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
+                      <Briefcase size={14} className="text-[#f26522]" />
+                      หลักฐานใบเสร็จรับเงิน (Receipt)
+                    </h3>
+                    <a
+                      href={booking.receiptImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <ExternalLink size={10} />
+                      เปิดดูไฟล์หลักฐาน
+                    </a>
+                  </div>
                   
                   <div className="relative rounded-[7px] overflow-hidden border border-slate-200 aspect-video w-full bg-slate-50 group max-w-sm">
                     <img
@@ -437,6 +448,35 @@ export default function BookingDrawer({
                     >
                       <XCircle size={18} />
                       ปฏิเสธการจอง
+                    </button>
+                  </div>
+                )}
+
+                {booking.status === "pending_payment" && (
+                  <div className="bg-sky-50 border border-sky-100 rounded-[7px] p-4 text-center text-xs font-bold text-sky-700 select-none">
+                    รอผู้ขอใช้พื้นที่ดำเนินการชำระเงินและแนบหลักฐานใบเสร็จ
+                  </div>
+                )}
+
+                {booking.status === "verifying_payment" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={handleApprove}
+                      className="h-12 rounded-[7px] bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 shadow-md shadow-emerald-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <CheckCircle2 size={18} />
+                      อนุมัติการจ่ายเงิน
+                    </button>
+                    <button
+                      onClick={() => {
+                        onUpdateStatus(booking.id, "pending_payment");
+                        alert("ปฏิเสธหลักฐานชำระเงินแล้ว!");
+                        onClose();
+                      }}
+                      className="h-12 rounded-[7px] bg-red-600 text-white font-bold text-sm hover:bg-red-700 shadow-md shadow-red-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <XCircle size={18} />
+                      ปฏิเสธสลิปชำระเงิน
                     </button>
                   </div>
                 )}

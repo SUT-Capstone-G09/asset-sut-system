@@ -95,6 +95,8 @@ export default function BookingFilters({
           <SelectContent>
             <SelectItem value="all">ทุกสถานะการจอง</SelectItem>
             <SelectItem value="pending">รออนุมัติ</SelectItem>
+            <SelectItem value="pending_payment">รอชำระเงิน</SelectItem>
+            <SelectItem value="verifying_payment">รอตรวจสอบการชำระเงิน</SelectItem>
             <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
             <SelectItem value="rejected">ปฏิเสธ</SelectItem>
           </SelectContent>

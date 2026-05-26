@@ -30,6 +30,16 @@ const statusConfig: Record<
     color: "bg-amber-50/90 text-amber-700 border-amber-100",
     dot: "bg-amber-400",
   },
+  pending_payment: {
+    label: "รอชำระเงิน",
+    color: "bg-sky-50/90 text-sky-700 border-sky-100",
+    dot: "bg-sky-500",
+  },
+  verifying_payment: {
+    label: "รอตรวจสอบการชำระเงิน",
+    color: "bg-indigo-50/90 text-indigo-700 border-indigo-100",
+    dot: "bg-indigo-500",
+  },
   approved: {
     label: "อนุมัติแล้ว",
     color: "bg-emerald-50/90 text-emerald-700 border-emerald-100",

@@ -15,7 +15,7 @@ export interface Booking {
   purpose: string;
   date: string;
   timeSlot: string; // e.g., "09:00 - 12:00 น."
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "pending_payment" | "verifying_payment" | "approved" | "rejected";
   attendees: number;
   image: string;
   createdAt: string;
@@ -26,5 +26,7 @@ export interface Booking {
   expenses?: BookingExpense[];
   attachedDocuments?: string[];
   receiptImage?: string;
+  housekeeperPrice?: number;
+  housekeeperCount?: number;
 }
 

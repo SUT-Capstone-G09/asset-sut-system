@@ -13,7 +13,7 @@ interface BookingGridProps {
   filteredBookings: Booking[];
   buildings: string[];
   onResetFilters: () => void;
-  onUpdateStatus: (id: string, status: "pending" | "approved" | "rejected") => void;
+  onUpdateStatus: (id: string, status: "pending" | "pending_payment" | "verifying_payment" | "approved" | "rejected") => void;
   onEdit: (updatedBooking: Booking) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
@@ -179,6 +179,16 @@ const statusConfig: Record<string, { label: string; text: string; bg: string }> 
     label: "รออนุมัติ",
     text: "text-amber-600",
     bg: "bg-amber-50 border-amber-100",
+  },
+  pending_payment: {
+    label: "รอชำระเงิน",
+    text: "text-sky-600",
+    bg: "bg-sky-50 border-sky-100",
+  },
+  verifying_payment: {
+    label: "รอตรวจสอบการชำระเงิน",
+    text: "text-indigo-600",
+    bg: "bg-indigo-50 border-indigo-100",
   },
   approved: {
     label: "อนุมัติแล้ว",

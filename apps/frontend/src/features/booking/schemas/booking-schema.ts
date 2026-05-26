@@ -16,7 +16,7 @@ export const bookingSchema = z.object({
   contactEmail: z.string().email("รูปแบบอีเมลไม่ถูกต้อง").optional().or(z.literal("")),
   notes: z.string().optional(),
   image: z.string().optional(),
-  status: z.enum(["pending", "approved", "rejected"]).optional(),
+  status: z.enum(["pending", "pending_payment", "verifying_payment", "approved", "rejected"]).optional(),
   equipment: z.array(z.string()).optional(),
   expenses: z.array(
     z.object({
@@ -25,7 +25,9 @@ export const bookingSchema = z.object({
     })
   ).optional(),
   attachedDocuments: z.array(z.string()).optional(),
-  receiptImage: z.string().optional()
+  receiptImage: z.string().optional(),
+  housekeeperPrice: z.coerce.number().min(0, "ราคาค่าแม่บ้านต้องไม่ต่ำกว่า 0").optional(),
+  housekeeperCount: z.coerce.number().min(0, "จำนวนคนต้องไม่ต่ำกว่า 0").optional()
 });
 
 export type BookingFormValues = z.infer<typeof bookingSchema>;
