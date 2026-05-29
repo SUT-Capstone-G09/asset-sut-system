@@ -20,7 +20,7 @@ function PaymentContent() {
         description={mockPaymentData.description}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 mt-8 items-start">
         {/* ==================== ฝั่งซ้าย ==================== */}
         <div className="flex flex-col gap-6">
           <QRCodeCard
@@ -32,7 +32,7 @@ function PaymentContent() {
         </div>
 
         {/* ==================== ฝั่งขวา ==================== */}
-        <div className="flex flex-col gap-4">
+        <div className="lg:sticky lg:top-24 flex flex-col gap-4">
           <PaymentSummaryCard
             roomName={mockPaymentData.roomName}
             location={mockPaymentData.location}

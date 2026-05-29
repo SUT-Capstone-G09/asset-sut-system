@@ -1,66 +1,51 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function BookingDetailsCardSkeleton() {
   return (
-    <Card className="shadow-sm border-slate-100 overflow-hidden pt-0">
-      <CardHeader className="border-b border-orange-600 pb-6 pt-6 bg-orange-500">
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-6 h-6 rounded-full" />
-          <Skeleton className="h-6 w-48" />
-        </div>
-      </CardHeader>
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
+      {/* Section header */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="w-7 h-7 rounded-lg" />
+        <Skeleton className="h-5 w-40" />
+      </div>
 
-      <CardContent className="pt-0 space-y-4">
-        {/* Room Name */}
-        <div className="pb-4 border-b border-slate-100">
-          <Skeleton className="h-3 w-24 mb-2" />
-          <Skeleton className="h-6 w-40" />
-        </div>
+      {/* Room name */}
+      <div>
+        <Skeleton className="h-6 w-44 mb-2" />
+        <Skeleton className="h-4 w-56" />
+      </div>
 
-        {/* Location */}
-        <div className="flex gap-3">
-          <Skeleton className="w-5 h-5 rounded" />
-          <div className="w-full">
-            <Skeleton className="h-3 w-20 mb-2" />
-            <Skeleton className="h-5 w-48" />
+      {/* Date & Time */}
+      <div className="grid grid-cols-2 gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3">
+        {[0, 1].map((i) => (
+          <div key={i} className="flex items-start gap-3">
+            <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+            <div className="flex flex-col gap-1.5 w-full">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-4 w-24" />
+            </div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Date */}
-        <div className="flex gap-3">
-          <Skeleton className="w-5 h-5 rounded" />
-          <div className="w-full">
-            <Skeleton className="h-3 w-20 mb-2" />
-            <Skeleton className="h-5 w-40" />
-          </div>
+      {/* Pricing */}
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-20" />
         </div>
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+      </div>
 
-        {/* Time */}
-        <div className="flex gap-3">
-          <Skeleton className="w-5 h-5 rounded" />
-          <div className="w-full">
-            <Skeleton className="h-3 w-20 mb-2" />
-            <Skeleton className="h-5 w-44" />
-          </div>
-        </div>
+      <hr className="border-gray-100" />
 
-        {/* Pricing Details */}
-        <div className="pt-4 border-t border-slate-100 space-y-2">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-          <div className="flex justify-between items-center pt-2 pb-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-28" />
-          </div>
-          <div className="flex justify-between items-center pt-8 border-t border-slate-100">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-6 w-40" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-7 w-32" />
+      </div>
+    </section>
   );
 }

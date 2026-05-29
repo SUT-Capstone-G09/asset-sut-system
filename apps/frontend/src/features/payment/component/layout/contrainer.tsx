@@ -12,7 +12,7 @@ export function PaymentPageContrainer({
   return (
     <div
       className={cn(
-        "container mx-auto w-full max-w-7xl px-2 md:px-4 lg:px-6 mt-20 pt-6 mb-8",
+        "mx-auto w-full max-w-[1280px] px-6 py-10 mt-16",
         className,
       )}
     >
