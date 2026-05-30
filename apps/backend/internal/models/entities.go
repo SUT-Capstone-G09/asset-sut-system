@@ -1,13 +1,11 @@
 package models
 
-var AllEntities = []any {
+var AllEntities = []any{
 	&Users{},
-
 	&Admins{},
 	&Staffs{},
 	&RequesterTypes{},
 	&Requesters{},
-
 	&Roles{},
 	&Permissions{},
 }
