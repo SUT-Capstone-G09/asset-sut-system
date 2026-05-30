@@ -45,6 +45,19 @@ func seedRoles(db *gorm.DB, cfg *config.Config) error {
 			return err
 		}
 	}
+
+	var adminRole models.Roles
+	if err := db.Where("name = ?", "admin").First(&adminRole).Error; err != nil {
+		return err
+	}
+	var allPerms []models.Permissions
+	if err := db.Find(&allPerms).Error; err != nil {
+		return err
+	}
+	if err := db.Model(&adminRole).Association("Permissions").Replace(allPerms); err != nil {
+		return err
+	}
+
 	log.Println("Roles seeded successfully.")
 	return nil
 }

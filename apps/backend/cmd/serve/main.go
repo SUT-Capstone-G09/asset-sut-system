@@ -46,7 +46,7 @@ func main() {
 	// ----------------------------------------
 	// Controllers
 	// ----------------------------------------
-	authCtrl := controllers.NewAuthController(authService)
+	authCtrl := controllers.NewAuthController(authService, cfg.Cookie.Secure)
 	adminCtrl := controllers.NewAdminController(adminService)
 	staffCtrl := controllers.NewStaffController(staffService)
 	requesterCtrl := controllers.NewRequesterController(requesterService)
@@ -64,6 +64,7 @@ func main() {
 		StaffController:     staffCtrl,
 		RequesterController: requesterCtrl,
 		RoleController:      roleCtrl,
+		PermissionChecker:   permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

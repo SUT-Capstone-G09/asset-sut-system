@@ -139,6 +139,9 @@ func (s *AuthService) Refresh(rawRefreshToken string) (*dto.TokenResponse, strin
 	if err != nil {
 		return nil, "", errors.New("invalid refresh token")
 	}
+	if claims.Type != jwtpkg.TokenTypeRefresh {
+		return nil, "", errors.New("invalid refresh token")
+	}
 
 	tokenHash := hashToken(rawRefreshToken)
 	stored, err := s.refreshTokenRepo.FindByHash(tokenHash)

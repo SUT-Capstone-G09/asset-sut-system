@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,7 @@ type Dependencies struct {
 	StaffController     *controllers.StaffController
 	RequesterController *controllers.RequesterController
 	RoleController      *controllers.RoleController
+	PermissionChecker   middleware.PermissionChecker
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -37,5 +39,6 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupAuthRoutes(v1, deps)
 		SetupProtectedRoutes(v1, deps)
 		SetupAdminRoutes(v1, deps)
+		SetupDemoRoutes(v1, deps)
 	}
 }

@@ -7,10 +7,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
 type Claims struct {
 	UserID uint   `json:"user_id"`
 	Email  string `json:"email"`
 	Role   string `json:"role"`
+	Type   string `json:"type"`
 	jwt.RegisteredClaims
 }
 
@@ -24,6 +30,7 @@ func GenerateTokenPair(userID uint, email, role, secret string) (*TokenPair, err
 		UserID: userID,
 		Email:  email,
 		Role:   role,
+		Type:   TokenTypeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -38,6 +45,7 @@ func GenerateTokenPair(userID uint, email, role, secret string) (*TokenPair, err
 		UserID: userID,
 		Email:  email,
 		Role:   role,
+		Type:   TokenTypeRefresh,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

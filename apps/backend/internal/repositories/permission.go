@@ -30,3 +30,24 @@ func (r *PermissionRepository) FindByID(id uint) (*models.Permissions, error) {
 	err := r.db.First(&permission, id).Error
 	return &permission, err
 }
+
+func (r *PermissionRepository) UserHasPermission(userID uint, module, action string) (bool, error) {
+	var user models.Users
+	err := r.db.
+		Preload("Permissions", "module = ? AND action = ?", module, action).
+		Preload("Roles.Permissions", "module = ? AND action = ?", module, action).
+		First(&user, userID).Error
+	if err != nil {
+		return false, err
+	}
+
+	if len(user.Permissions) > 0 {
+		return true, nil
+	}
+	for _, role := range user.Roles {
+		if len(role.Permissions) > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}

@@ -1,11 +1,11 @@
 package config
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"path/filepath"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -15,6 +15,7 @@ type Config struct {
 	Server  ServerConfig
 	CORS	CORSConfig
 	JWT     JWTConfig
+	Cookie  CookieConfig
 }
 
 type DatabaseConfig struct {
@@ -41,6 +42,10 @@ type CORSConfig struct {
 
 type JWTConfig struct {
 	Secret string
+}
+
+type CookieConfig struct {
+	Secure bool
 }
 
 func LoadConfig() (*Config, error) {
@@ -70,6 +75,9 @@ func LoadConfig() (*Config, error) {
 		},
 		JWT: JWTConfig{
 			Secret: mustGetEnv("JWT_SECRET"),
+		},
+		Cookie: CookieConfig{
+			Secure: getEnv("COOKIE_SECURE", "false") == "true",
 		},
 	}, nil
 }

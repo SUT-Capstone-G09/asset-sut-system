@@ -25,6 +25,12 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
+		if claims.Type != jwtpkg.TokenTypeAccess {
+			response.Unauthorized(ctx, "invalid or expired token")
+			ctx.Abort()
+			return
+		}
+
 		ctx.Set("user_id", claims.UserID)
 		ctx.Set("email", claims.Email)
 		ctx.Set("role", claims.Role)
