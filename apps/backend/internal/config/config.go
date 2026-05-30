@@ -4,12 +4,17 @@ import (
 	"os"
 	"fmt"
 	"path/filepath"
+	"time"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Database DatabaseConfig
+	Server  ServerConfig
+	CORS	CORSConfig
+	JWT     JWTConfig
 }
 
 type DatabaseConfig struct {
@@ -20,6 +25,22 @@ type DatabaseConfig struct {
 	DBName string
 	SSLMode string
 	LogMode string
+}
+
+type ServerConfig struct {
+	Port string
+}
+
+type CORSConfig struct {
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
+	AllowCredentials bool
+	MaxAge           time.Duration
+}
+
+type JWTConfig struct {
+	Secret string
 }
 
 func LoadConfig() (*Config, error) {
@@ -36,6 +57,19 @@ func LoadConfig() (*Config, error) {
 			DBName:   mustGetEnv("POSTGRES_DB"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 			LogMode:  getEnv("POSTGRES_LOGMODE", "false"),
+		},
+		Server: ServerConfig{
+			Port: getEnv("SERVER_PORT", "8080"),
+		},
+		CORS: CORSConfig{
+			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "*")),
+			AllowMethods:     parseStringSlice(getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS")),
+			AllowHeaders:     parseStringSlice(getEnv("CORS_ALLOW_HEADERS", "Origin,Content-Length,Content-Type,Authorization")),
+			AllowCredentials: getEnv("CORS_ALLOW_CREDENTIALS", "true") == "true",
+			MaxAge:           parseDuration(getEnv("CORS_MAX_AGE", "12h")),
+		},
+		JWT: JWTConfig{
+			Secret: mustGetEnv("JWT_SECRET"),
 		},
 	}, nil
 }
@@ -83,35 +117,6 @@ func findEnvFile() (string, error) {
     return "", fmt.Errorf("no .env file found")
 }
 
-/*func loadEnvFile() error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	possiblePaths := []string{
-		filepath.Join(cwd, ".env"),
-		filepath.Join(cwd, "..", ".env"),
-		filepath.Join(cwd, "..", "..", ".env"),
-		filepath.Join(cwd, "..", "..", "..", ".env"),
-		filepath.Join(cwd, "..", "..", "..", "..", ".env"),
-	}
-
-	var loaded bool
-	for _, path := range possiblePaths {
-		if err := godotenv.Load(path); err == nil {
-			loaded = true
-			break
-		}
-	}
-
-	if !loaded {
-		return fmt.Errorf("no .env file found in expected locations")
-	}
-
-	return nil
-}*/
-
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -125,4 +130,26 @@ func mustGetEnv(key string) string {
 		panic("Environment variable " + key + " is required but not set")
 	}
 	return value
+}
+
+func parseStringSlice(s string) []string {
+	if s == "*" {
+		return []string{"*"}
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 12 * time.Hour
+	}
+	return d
 }

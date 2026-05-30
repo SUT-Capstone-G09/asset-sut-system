@@ -1,6 +1,6 @@
 package models
 
-var AllEntities = []any {
+var AllEntities = []any{
 	&Users{},
 
 	&Admins{},
@@ -10,4 +10,6 @@ var AllEntities = []any {
 
 	&Roles{},
 	&Permissions{},
+
+	&RefreshTokens{},
 }

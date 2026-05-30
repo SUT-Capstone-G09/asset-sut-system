@@ -4,7 +4,8 @@ import (
 	"log"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
-	"github.com/SUT-Capstone-G09/asset-sut-system/internal/database"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/database"
+	"github.com/SUT-Capstone-G09/asset-sut-system/cmd/init-db/seed_data"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 )
 
@@ -23,4 +24,11 @@ func main() {
 	if err := db.AutoMigrate(models.AllEntities...); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
+
+	// Seed Data
+	log.Println("Seeding initial data...")
+	if err := seeder.RunSeeders(db, cfg); err != nil {
+		log.Fatalf("failed to seed database: %v", err)
+	}
+	log.Println("Database initialization completed successfully.")
 }
