@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import BookingHeader from "@/features/booking/components/admin/BookingHeader";
+import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";
@@ -28,7 +28,7 @@ export default function ManageRoomsPage() {
     handleAddRoom,
     handleUpdateRoomStatus,
     handleEditRoom,
-    handleDeleteRoom
+    handleDeleteRoom,
   } = useRoomFilters(mockRooms);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -42,7 +42,7 @@ export default function ManageRoomsPage() {
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
           { label: "การจัดการห้อง" },
-          { label: "รายชื่อห้องทั้งหมด" }
+          { label: "รายชื่อห้องทั้งหมด" },
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="เพิ่มข้อมูลห้อง"
@@ -59,7 +59,7 @@ export default function ManageRoomsPage() {
       />
 
       {/* Filters Section */}
-      <RoomFilters 
+      <RoomFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         selectedCategory={selectedCategory}
@@ -74,7 +74,7 @@ export default function ManageRoomsPage() {
       />
 
       {/* Content Section */}
-      <RoomGrid 
+      <RoomGrid
         filteredRooms={filteredRooms}
         buildings={buildings}
         onResetFilters={handleResetFilters}
