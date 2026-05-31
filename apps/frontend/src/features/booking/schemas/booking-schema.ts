@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-export const bookingSchema = z.object({
+const bookingBaseSchema = z.object({
   roomName: z.string().min(1, "กรุณาระบุชื่อห้อง"),
   roomNumber: z.string().min(1, "กรุณาระบุรหัสห้อง"),
   building: z.string().min(1, "กรุณาระบุอาคาร"),
@@ -27,7 +27,39 @@ export const bookingSchema = z.object({
   attachedDocuments: z.array(z.string()).optional(),
   receiptImage: z.string().optional(),
   housekeeperPrice: z.coerce.number().min(0, "ราคาค่าแม่บ้านต้องไม่ต่ำกว่า 0").optional(),
-  housekeeperCount: z.coerce.number().min(0, "จำนวนคนต้องไม่ต่ำกว่า 0").optional()
+  housekeeperCount: z.coerce.number().min(0, "จำนวนคนต้องไม่ต่ำกว่า 0").optional(),
+  repeat: z.boolean().optional(),
+  repeatFrequency: z.enum(["daily", "weekly", "monthly", "custom"]).optional(),
+  repeatCustomInterval: z.coerce.number().min(1, "ต้องมากกว่า 0").optional(),
+  repeatCustomUnit: z.enum(["day", "week", "month"]).optional(),
+  repeatDaysOfWeek: z.array(z.coerce.number()).optional(),
+  repeatEndDateType: z.enum(["none", "date", "count"]).optional(),
+  repeatEndDate: z.string().optional(),
+  repeatEndCount: z.coerce.number().min(1, "ต้องมากกว่า 0").optional()
 });
+
+export const bookingSchema = bookingBaseSchema.refine(
+  (data) => {
+    if (data.repeat && data.repeatEndDateType === "date") {
+      return !!data.repeatEndDate;
+    }
+    return true;
+  },
+  {
+    message: "กรุณาระบุวันที่สิ้นสุดการทำซ้ำ",
+    path: ["repeatEndDate"],
+  }
+).refine(
+  (data) => {
+    if (data.repeat && data.repeatEndDateType === "count") {
+      return !!data.repeatEndCount && data.repeatEndCount > 0;
+    }
+    return true;
+  },
+  {
+    message: "กรุณาระบุจำนวนครั้งที่ต้องการทำซ้ำ",
+    path: ["repeatEndCount"],
+  }
+);
 
 export type BookingFormValues = z.infer<typeof bookingSchema>;

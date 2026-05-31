@@ -46,8 +46,11 @@ export function useBookingFilters(initialBookings: Booking[]) {
 
   const totalResults = filteredBookings.length;
 
-  const handleAddBooking = (newBooking: Booking) => {
-    setBookings((prev) => [newBooking, ...prev]);
+  const handleAddBooking = (newBookingOrBookings: Booking | Booking[]) => {
+    setBookings((prev) => {
+      const newItems = Array.isArray(newBookingOrBookings) ? newBookingOrBookings : [newBookingOrBookings];
+      return [...newItems, ...prev];
+    });
   };
 
   const handleUpdateBookingStatus = (
@@ -64,14 +67,53 @@ export function useBookingFilters(initialBookings: Booking[]) {
     );
   };
 
-  const handleEditBooking = (updatedBooking: Booking) => {
-    setBookings((prev) =>
-      prev.map((b) => b.id === updatedBooking.id ? updatedBooking : b)
-    );
+  const handleEditBooking = (updatedBooking: Booking, mode: "this" | "following" | "all" = "this") => {
+    setBookings((prev) => {
+      if (!updatedBooking.recurringGroupId || mode === "this") {
+        const target = updatedBooking.recurringGroupId && mode === "this"
+          ? { ...updatedBooking, recurringGroupId: undefined }
+          : updatedBooking;
+        return prev.map((b) => b.id === target.id ? target : b);
+      }
+
+      const originalBooking = prev.find((b) => b.id === updatedBooking.id);
+      const originalDate = originalBooking ? originalBooking.date : updatedBooking.date;
+
+      return prev.map((b) => {
+        if (b.recurringGroupId === updatedBooking.recurringGroupId) {
+          const shouldUpdate =
+            mode === "all" ||
+            (mode === "following" && b.date >= originalDate);
+
+          if (shouldUpdate) {
+            return {
+              ...updatedBooking,
+              id: b.id,      // Keep original ID
+              date: b.date,  // Keep original Date
+            };
+          }
+        }
+        return b;
+      });
+    });
   };
 
-  const handleDeleteBooking = (id: string) => {
-    setBookings((prev) => prev.filter((b) => b.id !== id));
+  const handleDeleteBooking = (
+    idOrFilter: string | { id: string; recurringGroupId: string; mode: "this" | "following" | "all"; date: string }
+  ) => {
+    setBookings((prev) => {
+      if (typeof idOrFilter === "string") {
+        return prev.filter((b) => b.id !== idOrFilter);
+      }
+      const { id, recurringGroupId, mode, date } = idOrFilter;
+      if (mode === "this") {
+        return prev.filter((b) => b.id !== id);
+      } else if (mode === "following") {
+        return prev.filter((b) => !(b.recurringGroupId === recurringGroupId && b.date >= date));
+      } else { // all
+        return prev.filter((b) => b.recurringGroupId !== recurringGroupId);
+      }
+    });
   };
 
   return {

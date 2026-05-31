@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -61,6 +62,7 @@ const getHoursFromTimeSlot = (timeSlot: string): number => {
 
 interface BookingFormFieldsProps {
   isEdit?: boolean;
+  recurrenceMode?: "this" | "following" | "all";
   type: "classroom" | "meeting";
 }
 
@@ -113,6 +115,7 @@ const MEETING_EQUIPMENT = [
 
 export default function BookingFormFields({
   isEdit = false,
+  recurrenceMode,
   type,
 }: BookingFormFieldsProps) {
   const {
@@ -141,6 +144,9 @@ export default function BookingFormFields({
   const watchedTimeSlot = useWatch({ control, name: "timeSlot" });
   const watchedHousekeeperPrice = useWatch({ control, name: "housekeeperPrice" });
   const watchedHousekeeperCount = useWatch({ control, name: "housekeeperCount" });
+  const watchedRepeat = useWatch({ control, name: "repeat" });
+  const watchedFrequency = useWatch({ control, name: "repeatFrequency" });
+  const watchedCustomUnit = useWatch({ control, name: "repeatCustomUnit" });
 
   // Automatically map roomName to building/category if a matching room is typed
   useEffect(() => {
@@ -663,13 +669,19 @@ export default function BookingFormFields({
               </Label>
               <Input
                 type="date"
+                disabled={isEdit && recurrenceMode !== "this"}
                 {...register("date")}
                 className={cn(
-                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
+                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed",
                   themeRing,
                   errors.date && "border-red-500",
                 )}
               />
+              {isEdit && recurrenceMode !== "this" && (
+                <span className="text-[10px] text-amber-600 font-bold block pl-1">
+                  * ไม่สามารถเปลี่ยนวันที่ได้เมื่อแก้ไขตารางเรียนทำซ้ำแบบกลุ่ม (หากต้องการเปลี่ยนวันที่ของรอบนี้ กรุณาเลือกแก้ไขเฉพาะรอบนี้เท่านั้น)
+                </span>
+              )}
               {errors.date && (
                 <p className="text-[10px] font-bold text-red-500 ml-1">
                   {errors.date.message}
@@ -741,6 +753,234 @@ export default function BookingFormFields({
               )}
             </div>
           </div>
+
+          {/* Repeat / Recurrence Options */}
+          {!isEdit && (
+            <div className="p-5 rounded-xl border border-slate-100 bg-slate-50/50 space-y-5 text-left">
+              <div className="flex items-center gap-3">
+                <Controller
+                  name="repeat"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="repeat"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="border-slate-300 data-[state=checked]:bg-[#f26522] data-[state=checked]:border-[#f26522] data-[state=checked]:text-white size-5 rounded-[5px] cursor-pointer"
+                    />
+                  )}
+                />
+                <Label htmlFor="repeat" className="text-xs font-black text-slate-700 cursor-pointer select-none">
+                  ตั้งค่าการทำซ้ำ (Repeat / Recurrence)
+                </Label>
+              </div>
+
+              {watchedRepeat && (
+                <div className="space-y-4 pt-4 border-t border-slate-200/60 transition-all duration-200">
+                  {/* Frequency Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 pl-1">ความถี่</Label>
+                    <Controller
+                      name="repeatFrequency"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="h-11 bg-white border-slate-200 rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 text-xs font-bold text-slate-700">
+                            <SelectValue placeholder="เลือกความถี่" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white">
+                            <SelectItem value="daily" className="text-xs font-bold text-slate-700">ทุกวัน</SelectItem>
+                            <SelectItem value="weekly" className="text-xs font-bold text-slate-700">ทุกสัปดาห์</SelectItem>
+                            <SelectItem value="monthly" className="text-xs font-bold text-slate-700">ทุกเดือน</SelectItem>
+                            <SelectItem value="custom" className="text-xs font-bold text-slate-700">กำหนดเอง (Custom)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+
+                  {/* Custom Recurrence Options */}
+                  {watchedFrequency === "custom" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-500 pl-1">ทำซ้ำทุกๆ</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          {...register("repeatCustomInterval")}
+                          className="rounded-[7px] h-11 bg-white border-slate-200 focus-visible:ring-1 text-xs font-bold text-slate-700 focus-visible:ring-[#f26522]/30"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-slate-500 pl-1">หน่วย</Label>
+                        <Controller
+                          name="repeatCustomUnit"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className="h-11 bg-white border-slate-200 rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 text-xs font-bold text-slate-700">
+                                <SelectValue placeholder="เลือกหน่วย" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white">
+                                <SelectItem value="day" className="text-xs font-bold text-slate-700">วัน</SelectItem>
+                                <SelectItem value="week" className="text-xs font-bold text-slate-700">สัปดาห์</SelectItem>
+                                <SelectItem value="month" className="text-xs font-bold text-slate-700">เดือน</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Days of Week (Weekly or Custom Week) */}
+                  {(watchedFrequency === "weekly" || (watchedFrequency === "custom" && watchedCustomUnit === "week")) && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-500 pl-1">วันในสัปดาห์</Label>
+                      <Controller
+                        name="repeatDaysOfWeek"
+                        control={control}
+                        render={({ field }) => {
+                          const selectedDays: number[] = field.value || [];
+                          const days = [
+                            { key: 1, label: "จ", title: "วันจันทร์" },
+                            { key: 2, label: "อ", title: "วันอังคาร" },
+                            { key: 3, label: "พ", title: "วันพุธ" },
+                            { key: 4, label: "พฤ", title: "วันพฤหัสบดี" },
+                            { key: 5, label: "ศ", title: "วันศุกร์" },
+                            { key: 6, label: "ส", title: "วันเสาร์" },
+                            { key: 0, label: "อา", title: "วันอาทิตย์" },
+                          ];
+                          const toggleDay = (dayKey: number) => {
+                            if (selectedDays.includes(dayKey)) {
+                              field.onChange(selectedDays.filter(d => d !== dayKey));
+                            } else {
+                              field.onChange([...selectedDays, dayKey]);
+                            }
+                          };
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                {days.map((day) => {
+                                  const isSelected = selectedDays.includes(day.key);
+                                  return (
+                                    <button
+                                      key={day.key}
+                                      type="button"
+                                      title={day.title}
+                                      onClick={() => toggleDay(day.key)}
+                                      className={cn(
+                                        "size-9 rounded-full border text-xs font-extrabold flex items-center justify-center transition-all cursor-pointer select-none",
+                                        isSelected
+                                          ? "bg-[#f26522] border-[#f26522] text-white shadow-sm shadow-[#f26522]/20"
+                                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      {day.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-bold block pl-1">
+                                * คลิกเลือกได้มากกว่า 1 วัน (เช่น ทุกวันจันทร์และพุธ)
+                              </span>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* End Recurrence Settings */}
+                  <div className="space-y-3 pt-3 border-t border-slate-100">
+                    <Label className="text-xs font-bold text-slate-600 pl-1">วันสิ้นสุด (End Date)</Label>
+                    <Controller
+                      name="repeatEndDateType"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="space-y-3.5 pl-1">
+                          {/* Option 1: None */}
+                          <label className="flex items-center gap-2.5 text-xs text-slate-600 cursor-pointer font-bold select-none">
+                            <input
+                              type="radio"
+                              name="repeatEndDateType"
+                              value="none"
+                              checked={field.value === "none"}
+                              onChange={() => field.onChange("none")}
+                              className="accent-[#f26522] size-4 cursor-pointer"
+                            />
+                            <span>ไม่มีวันสิ้นสุด</span>
+                          </label>
+
+                          {/* Option 2: Date */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                            <label className="flex items-center gap-2.5 text-xs text-slate-600 cursor-pointer font-bold select-none shrink-0">
+                              <input
+                                type="radio"
+                                name="repeatEndDateType"
+                                value="date"
+                                checked={field.value === "date"}
+                                onChange={() => field.onChange("date")}
+                                className="accent-[#f26522] size-4 cursor-pointer"
+                              />
+                              <span>สิ้นสุด ณ วันที่</span>
+                            </label>
+                            {field.value === "date" && (
+                              <div className="space-y-1.5 w-full sm:w-auto">
+                                <Input
+                                  type="date"
+                                  {...register("repeatEndDate")}
+                                  className="rounded-[7px] h-10 bg-white border-slate-200 text-xs font-bold text-slate-700 w-full sm:w-48 focus-visible:ring-1 focus-visible:ring-[#f26522]/30"
+                                />
+                                {errors.repeatEndDate && (
+                                  <p className="text-[10px] font-bold text-red-500 ml-1">
+                                    {errors.repeatEndDate.message}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Option 3: Count */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                            <label className="flex items-center gap-2.5 text-xs text-slate-600 cursor-pointer font-bold select-none shrink-0">
+                              <input
+                                type="radio"
+                                name="repeatEndDateType"
+                                value="count"
+                                checked={field.value === "count"}
+                                onChange={() => field.onChange("count")}
+                                className="accent-[#f26522] size-4 cursor-pointer"
+                              />
+                              <span>สิ้นสุดหลังจากทำซ้ำครบ</span>
+                            </label>
+                            {field.value === "count" && (
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...register("repeatEndCount")}
+                                    className="rounded-[7px] h-10 bg-white border-slate-200 text-xs font-bold text-slate-700 w-24 focus-visible:ring-1 focus-visible:ring-[#f26522]/30"
+                                  />
+                                  <span className="text-xs text-slate-500 font-bold">ครั้ง</span>
+                                </div>
+                                {errors.repeatEndCount && (
+                                  <p className="text-[10px] font-bold text-red-500 ml-1">
+                                    {errors.repeatEndCount.message}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2.5">
             <Label className="text-xs font-bold text-slate-500 ml-1">

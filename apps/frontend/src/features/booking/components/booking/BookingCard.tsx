@@ -1,7 +1,7 @@
 "use client"
 
 import { MapPin, ArrowRight, User, Calendar, Clock } from "lucide-react";
-import { Booking } from "../../types/booking";
+import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -17,46 +17,11 @@ interface BookingCardProps {
   onClick?: () => void;
 }
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    dot: string;
-  }
-> = {
-  pending: {
-    label: "รออนุมัติ",
-    color: "bg-amber-50/90 text-amber-700 border-amber-100",
-    dot: "bg-amber-400",
-  },
-  pending_payment: {
-    label: "รอชำระเงิน",
-    color: "bg-sky-50/90 text-sky-700 border-sky-100",
-    dot: "bg-sky-500",
-  },
-  verifying_payment: {
-    label: "รอตรวจสอบการชำระเงิน",
-    color: "bg-indigo-50/90 text-indigo-700 border-indigo-100",
-    dot: "bg-indigo-500",
-  },
-  approved: {
-    label: "อนุมัติแล้ว",
-    color: "bg-emerald-50/90 text-emerald-700 border-emerald-100",
-    dot: "bg-emerald-500",
-  },
-  rejected: {
-    label: "ปฏิเสธ",
-    color: "bg-red-50/90 text-red-500 border-red-100",
-    dot: "bg-red-400",
-  },
-};
-
 export default function BookingCard({
   booking,
   onClick,
 }: BookingCardProps) {
-  const status = statusConfig[booking.status ?? "pending"];
+  const status = BOOKING_STATUS_CONFIG[booking.status ?? "pending"];
 
   return (
     <Card
@@ -101,7 +66,7 @@ export default function BookingCard({
           </div>
 
           {/* Booking ID */}
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/40 backdrop-blur-md border border-white/20 rounded-md">
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/40 backdrop-blur-md border border-white/20 rounded-[5px]">
             <span className="text-[8px] font-bold text-white uppercase tracking-wider">
               {booking.id}
             </span>
@@ -110,7 +75,7 @@ export default function BookingCard({
 
         {/* Bottom Category */}
         <div className="absolute bottom-3 left-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-[5px] border border-white/20">
             <MapPin size={10} className="text-[#f26522]" strokeWidth={2.5} />
             <span className="text-[9px] font-bold text-white uppercase tracking-wider">
               {booking.category}

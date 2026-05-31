@@ -5,7 +5,7 @@ import { LayoutGrid, List, MapPin, ArrowRight, Search, Clock, Calendar, User } f
 import BookingCard from "./BookingCard";
 import BookingDrawer from "./BookingDrawer";
 import { BookingGridSkeleton } from "./BookingSkeleton";
-import { Booking } from "@/features/booking/types/booking";
+import { Booking, BOOKING_STATUS_CONFIG } from "@/features/booking/types/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -14,8 +14,8 @@ interface BookingGridProps {
   buildings: string[];
   onResetFilters: () => void;
   onUpdateStatus: (id: string, status: "pending" | "pending_payment" | "verifying_payment" | "approved" | "rejected") => void;
-  onEdit: (updatedBooking: Booking) => void;
-  onDelete: (id: string) => void;
+  onEdit: (updatedBooking: Booking, mode: "this" | "following" | "all") => void;
+  onDelete: (idOrFilter: string | { id: string; recurringGroupId: string; mode: "this" | "following" | "all"; date: string }) => void;
   isLoading?: boolean;
 }
 
@@ -174,36 +174,8 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
   );
 }
 
-const statusConfig: Record<string, { label: string; text: string; bg: string }> = {
-  pending: {
-    label: "รออนุมัติ",
-    text: "text-amber-600",
-    bg: "bg-amber-50 border-amber-100",
-  },
-  pending_payment: {
-    label: "รอชำระเงิน",
-    text: "text-sky-600",
-    bg: "bg-sky-50 border-sky-100",
-  },
-  verifying_payment: {
-    label: "รอตรวจสอบการชำระเงิน",
-    text: "text-indigo-600",
-    bg: "bg-indigo-50 border-indigo-100",
-  },
-  approved: {
-    label: "อนุมัติแล้ว",
-    text: "text-emerald-600",
-    bg: "bg-emerald-50 border-emerald-100",
-  },
-  rejected: {
-    label: "ปฏิเสธ",
-    text: "text-red-600",
-    bg: "bg-red-50 border-red-100",
-  },
-};
-
 function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }) {
-  const status = statusConfig[booking.status] || statusConfig.pending;
+  const status = BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
 
   return (
     <div
@@ -211,7 +183,7 @@ function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }
       className={cn(
         "bg-white rounded-lg border border-slate-100 p-5",
         "flex items-center gap-6 cursor-pointer group transition-all duration-300",
-        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1"
+        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:translate-x-1"
       )}
     >
       <div className="relative size-20 rounded-md overflow-hidden shrink-0 shadow-sm">
@@ -240,7 +212,7 @@ function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }
         <ListInfoItem icon={Clock} label="เวลา" value={booking.timeSlot} />
         <div className="text-center space-y-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">สถานะ</p>
-          <span className={cn("px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0", status.bg, status.text)}>
+          <span className={cn("px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0", status.gridBg, status.gridText)}>
             {status.label}
           </span>
         </div>

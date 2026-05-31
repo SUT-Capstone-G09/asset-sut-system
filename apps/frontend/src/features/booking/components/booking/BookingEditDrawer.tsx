@@ -20,6 +20,7 @@ import { mockRooms } from "../../data/rooms";
 interface Props {
   booking: Booking | null;
   open: boolean;
+  recurrenceMode?: "this" | "following" | "all";
   onClose: () => void;
   onSave: (updatedBooking: Booking) => void;
 }
@@ -44,6 +45,7 @@ const getHoursFromTimeSlot = (timeSlot: string): number => {
 export default function BookingEditDrawer({
   booking,
   open,
+  recurrenceMode,
   onClose,
   onSave,
 }: Props) {
@@ -245,6 +247,7 @@ export default function BookingEditDrawer({
               <BookingFormFields
                 key={booking.id}
                 isEdit
+                recurrenceMode={recurrenceMode}
                 type={isClassroom ? "classroom" : "meeting"}
               />
             </div>

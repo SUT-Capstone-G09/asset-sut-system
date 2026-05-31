@@ -411,6 +411,8 @@ export default function PaymentVerificationModal({
       {previewImage && (
         <Dialog open={!!previewImage} onOpenChange={(isOpen) => !isOpen && setPreviewImage(null)}>
           <DialogContent className="w-auto max-w-[90vw] max-h-[90vh] p-1 border-none bg-black rounded-lg overflow-hidden transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 flex items-center justify-center shadow-2xl">
+            <DialogTitle className="sr-only">แสดงรูปภาพหลักฐานการชำระเงิน</DialogTitle>
+            <DialogDescription className="sr-only">รายละเอียดรูปภาพสลิปที่อัปโหลดโดยผู้ขอจอง</DialogDescription>
             <button
               onClick={() => setPreviewImage(null)}
               className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white p-2 rounded-full cursor-pointer transition-colors shadow-md z-50 border border-white/10"
