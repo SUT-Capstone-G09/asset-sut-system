@@ -32,18 +32,15 @@ export default function Navbar() {
   }, []);
 
   // ไม่แสดง Navbar ในหน้าที่มี Sidebar
-  const isDashboardPage = pathname?.startsWith("/admin") || 
-                          pathname?.startsWith("/operator") || 
+  const isDashboardPage = pathname?.startsWith("/admin") ||
+                          pathname?.startsWith("/operator") ||
                           pathname?.startsWith("/user");
 
   if (!mounted || isDashboardPage) return null;
 
   // เมนูนำทางหลัก
   const navItems = [
-    ...(isAuthenticated && user?.role === "requester"
-      ? [{ label: "แดชบอร์ด", href: "/dashboard" }]
-      : []),
-    { label: "เกี่ยวกับเรา", href: "/about" ,
+    { label: "เกี่ยวกับเรา", href: "/about",
       subItems: [
         { label: "เกี่ยวกับเรา", href: "/about" },
       ],
