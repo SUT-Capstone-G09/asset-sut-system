@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -53,7 +54,7 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	return &Config{
+	cfg := &Config{
 		Database: DatabaseConfig{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
 			Port:     getEnv("POSTGRES_PORT", "5432"),
@@ -67,7 +68,7 @@ func LoadConfig() (*Config, error) {
 			Port: getEnv("SERVER_PORT", "8080"),
 		},
 		CORS: CORSConfig{
-			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "*")),
+			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000")),
 			AllowMethods:     parseStringSlice(getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS")),
 			AllowHeaders:     parseStringSlice(getEnv("CORS_ALLOW_HEADERS", "Origin,Content-Length,Content-Type,Authorization")),
 			AllowCredentials: getEnv("CORS_ALLOW_CREDENTIALS", "true") == "true",
@@ -79,7 +80,15 @@ func LoadConfig() (*Config, error) {
 		Cookie: CookieConfig{
 			Secure: getEnv("COOKIE_SECURE", "false") == "true",
 		},
-	}, nil
+	}
+
+	// Wildcard origins with credentials lets any site read authenticated
+	// responses; the CORS library does not reject this combination, so guard here.
+	if cfg.CORS.AllowCredentials && slices.Contains(cfg.CORS.AllowOrigins, "*") {
+		return nil, fmt.Errorf("invalid CORS config: CORS_ALLOW_ORIGINS cannot be '*' when CORS_ALLOW_CREDENTIALS is true; list explicit origins")
+	}
+
+	return cfg, nil
 }
 
 func loadEnvFile() error {

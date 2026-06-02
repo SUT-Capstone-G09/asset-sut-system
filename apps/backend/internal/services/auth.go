@@ -149,22 +149,36 @@ func (s *AuthService) Refresh(rawRefreshToken string) (*dto.TokenResponse, strin
 		return nil, "", errors.New("refresh token not found or expired")
 	}
 
+	user, err := s.userRepo.FindByID(stored.UserID)
+	if err != nil {
+		return nil, "", err
+	}
+	if !user.IsActive {
+		_ = s.refreshTokenRepo.DeleteAllByUserID(stored.UserID)
+		return nil, "", errors.New("account is deactivated")
+	}
+
+	roleName := ""
+	if len(user.Roles) > 0 {
+		roleName = user.Roles[0].Name
+	}
+
 	if err := s.refreshTokenRepo.DeleteByHash(tokenHash); err != nil {
 		return nil, "", err
 	}
 
-	tokens, err := jwtpkg.GenerateTokenPair(stored.UserID, claims.Email, claims.Role, s.jwtSecret)
+	tokens, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, roleName, s.jwtSecret)
 	if err != nil {
 		return nil, "", err
 	}
 
 	newHash := hashToken(tokens.RefreshToken)
-	if err := s.refreshTokenRepo.Create(stored.UserID, newHash, jwtpkg.RefreshTokenExpiry()); err != nil {
+	if err := s.refreshTokenRepo.Create(user.ID, newHash, jwtpkg.RefreshTokenExpiry()); err != nil {
 		return nil, "", err
 	}
 
-	summary := dto.UserSummary{ID: stored.UserID, Email: claims.Email, Role: claims.Role}
-	s.populateName(stored.UserID, claims.Role, &summary)
+	summary := dto.UserSummary{ID: user.ID, Email: user.Email, Role: roleName}
+	s.populateName(user.ID, roleName, &summary)
 
 	return &dto.TokenResponse{
 		AccessToken: tokens.AccessToken,

@@ -53,5 +53,10 @@ func (r *UserRepository) GetUserRole(userID uint) (string, error) {
 }
 
 func (r *UserRepository) Deactivate(userID uint) error {
-	return r.db.Model(&models.Users{}).Where("id = ?", userID).Update("is_active", false).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Users{}).Where("id = ?", userID).Update("is_active", false).Error; err != nil {
+			return err
+		}
+		return tx.Where("user_id = ?", userID).Delete(&models.RefreshTokens{}).Error
+	})
 }
