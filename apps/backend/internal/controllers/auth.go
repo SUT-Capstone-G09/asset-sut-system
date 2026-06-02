@@ -10,7 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const refreshCookiePath = "/api/v1/auth"
+const (
+	userCookieName  = "refresh_token"
+	adminCookieName = "admin_refresh_token"
+	cookiePath      = "/api/v1/auth"
+)
 
 type AuthController struct {
 	authService  *services.AuthService
@@ -19,6 +23,13 @@ type AuthController struct {
 
 func NewAuthController(authService *services.AuthService, cookieSecure bool) *AuthController {
 	return &AuthController{authService: authService, cookieSecure: cookieSecure}
+}
+
+func (c *AuthController) cookieName(ctx *gin.Context) string {
+	if ctx.Query("app") == "admin" {
+		return adminCookieName
+	}
+	return userCookieName
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
@@ -50,27 +61,29 @@ func (c *AuthController) Register(ctx *gin.Context) {
 }
 
 func (c *AuthController) Refresh(ctx *gin.Context) {
-	rawToken, err := ctx.Cookie("refresh_token")
+	name := c.cookieName(ctx)
+	rawToken, err := ctx.Cookie(name)
 	if err != nil {
 		response.Unauthorized(ctx, "refresh token not found")
 		return
 	}
 	tokenResp, newRefreshToken, err := c.authService.Refresh(rawToken)
 	if err != nil {
-		c.clearRefreshCookie(ctx)
+		c.clearRefreshCookieByName(ctx, name)
 		response.Unauthorized(ctx, err.Error())
 		return
 	}
-	c.setRefreshCookie(ctx, newRefreshToken)
+	c.setRefreshCookieByName(ctx, name, newRefreshToken)
 	response.OK(ctx, tokenResp)
 }
 
 func (c *AuthController) Logout(ctx *gin.Context) {
-	rawToken, err := ctx.Cookie("refresh_token")
+	name := c.cookieName(ctx)
+	rawToken, err := ctx.Cookie(name)
 	if err == nil {
 		_ = c.authService.Logout(rawToken)
 	}
-	c.clearRefreshCookie(ctx)
+	c.clearRefreshCookieByName(ctx, name)
 	response.OK(ctx, gin.H{"message": "logged out"})
 }
 
@@ -89,11 +102,15 @@ func (c *AuthController) ChangePassword(ctx *gin.Context) {
 }
 
 func (c *AuthController) setRefreshCookie(ctx *gin.Context, token string) {
-	ctx.SetCookie("refresh_token", token, int((7*24*time.Hour).Seconds()), refreshCookiePath, "", c.cookieSecure, true)
+	c.setRefreshCookieByName(ctx, c.cookieName(ctx), token)
 }
 
-func (c *AuthController) clearRefreshCookie(ctx *gin.Context) {
-	ctx.SetCookie("refresh_token", "", -1, refreshCookiePath, "", c.cookieSecure, true)
+func (c *AuthController) setRefreshCookieByName(ctx *gin.Context, name, token string) {
+	ctx.SetCookie(name, token, int((7*24*time.Hour).Seconds()), cookiePath, "", c.cookieSecure, true)
+}
+
+func (c *AuthController) clearRefreshCookieByName(ctx *gin.Context, name string) {
+	ctx.SetCookie(name, "", -1, cookiePath, "", c.cookieSecure, true)
 }
 
 func (c *AuthController) GetMe(ctx *gin.Context) {

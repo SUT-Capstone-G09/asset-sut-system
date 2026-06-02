@@ -40,6 +40,9 @@ export default function Navbar() {
 
   // เมนูนำทางหลัก
   const navItems = [
+    ...(isAuthenticated && user?.role === "requester"
+      ? [{ label: "แดชบอร์ด", href: "/dashboard" }]
+      : []),
     { label: "เกี่ยวกับเรา", href: "/about" ,
       subItems: [
         { label: "เกี่ยวกับเรา", href: "/about" },

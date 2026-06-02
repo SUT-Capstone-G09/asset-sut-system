@@ -18,6 +18,10 @@ type Dependencies struct {
 	StaffController     *controllers.StaffController
 	RequesterController *controllers.RequesterController
 	RoleController      *controllers.RoleController
+	LocationController  *controllers.LocationController
+	BookingController   *controllers.BookingController
+	PaymentController   *controllers.PaymentController
+	DocumentController  *controllers.DocumentController
 	PermissionChecker   middleware.PermissionChecker
 }
 
@@ -40,5 +44,8 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupProtectedRoutes(v1, deps)
 		SetupAdminRoutes(v1, deps)
 		SetupDemoRoutes(v1, deps)
+		SetupLocationRoutes(v1, deps)
+		SetupBookingRoutes(v1, deps)
+		SetupPaymentRoutes(v1, deps)
 	}
 }

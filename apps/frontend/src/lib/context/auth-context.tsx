@@ -19,25 +19,30 @@ interface AuthContextType {
   logout: () => void;
 }
 
+function getAuthKey(): string {
+  if (typeof window === "undefined") return "auth";
+  return window.location.port === "3001" ? "auth_admin" : "auth";
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<{ token: string | null; user: AuthUser | null }>(() => {
     if (typeof window === "undefined") return { token: null, user: null };
-    const stored = localStorage.getItem("auth");
+    const stored = localStorage.getItem(getAuthKey());
     return stored ? JSON.parse(stored) : { token: null, user: null };
   });
 
   const login = useCallback((token: string, user: AuthUser) => {
     const state = { token, user };
     setAuthState(state);
-    localStorage.setItem("auth", JSON.stringify(state));
+    localStorage.setItem(getAuthKey(), JSON.stringify(state));
   }, []);
 
   const logout = useCallback(() => {
     logoutApi();
     setAuthState({ token: null, user: null });
-    localStorage.removeItem("auth");
+    localStorage.removeItem(getAuthKey());
   }, []);
 
   return (

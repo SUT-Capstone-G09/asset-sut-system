@@ -34,6 +34,13 @@ func main() {
 	permissionRepo := repositories.NewPermissionRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 
+	locationRepo := repositories.NewLocationRepository(db)
+	bookingRepo := repositories.NewBookingRepository(db)
+	timeslotRepo := repositories.NewTimeslotRepository(db)
+	invoiceRepo := repositories.NewInvoiceRepository(db)
+	paymentRepo := repositories.NewPaymentRepository(db)
+	documentRepo := repositories.NewDocumentRepository(db)
+
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
@@ -43,6 +50,12 @@ func main() {
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 
+	locationService := services.NewLocationService(locationRepo)
+	invoiceService := services.NewInvoiceService(invoiceRepo)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo)
+	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo)
+	documentService := services.NewDocumentService(documentRepo)
+
 	// ----------------------------------------
 	// Controllers
 	// ----------------------------------------
@@ -51,6 +64,11 @@ func main() {
 	staffCtrl := controllers.NewStaffController(staffService)
 	requesterCtrl := controllers.NewRequesterController(requesterService)
 	roleCtrl := controllers.NewRoleController(roleService)
+
+	locationCtrl := controllers.NewLocationController(locationService)
+	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
+	paymentCtrl := controllers.NewPaymentController(paymentService)
+	documentCtrl := controllers.NewDocumentController(documentService)
 
 	// ----------------------------------------
 	// Router
@@ -64,6 +82,10 @@ func main() {
 		StaffController:     staffCtrl,
 		RequesterController: requesterCtrl,
 		RoleController:      roleCtrl,
+		LocationController:  locationCtrl,
+		BookingController:   bookingCtrl,
+		PaymentController:   paymentCtrl,
+		DocumentController:  documentCtrl,
 		PermissionChecker:   permissionRepo,
 	})
 

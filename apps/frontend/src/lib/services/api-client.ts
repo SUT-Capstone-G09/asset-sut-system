@@ -1,9 +1,17 @@
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
+function isAdminApp(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.port === "3001";
+}
+
+const AUTH_KEY = () => (isAdminApp() ? "auth_admin" : "auth");
+const AUTH_SUFFIX = () => (isAdminApp() ? "?app=admin" : "");
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  const auth = localStorage.getItem("auth");
+  const auth = localStorage.getItem(AUTH_KEY());
   if (!auth) return null;
   try {
     return JSON.parse(auth).token ?? null;
@@ -14,12 +22,12 @@ function getToken(): string | null {
 
 function persistRefreshedAuth(accessToken: string, user: unknown) {
   if (typeof window === "undefined") return;
-  localStorage.setItem("auth", JSON.stringify({ token: accessToken, user }));
+  localStorage.setItem(AUTH_KEY(), JSON.stringify({ token: accessToken, user }));
 }
 
 function clearAuthAndRedirect() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("auth");
+  localStorage.removeItem(AUTH_KEY());
   window.location.href = "/login";
 }
 
@@ -27,7 +35,7 @@ let refreshPromise: Promise<string> | null = null;
 
 function refreshAccessToken(): Promise<string> {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh${AUTH_SUFFIX()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -91,3 +99,5 @@ export const apiClient = {
     request<T>(path, { method: "PUT", body: JSON.stringify(data) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
+
+export { AUTH_SUFFIX };

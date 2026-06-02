@@ -1,12 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import RoomCard from "@/features/bookings/components/RoomCard";
-import { mockRooms } from "@/features/bookings/data/mock-rooms";
-
-const FEATURED_ROOMS = mockRooms.filter((r) => r.badge);
+import { getLocations, locationToRoom } from "@/features/bookings/services/location.service";
+import { Room } from "@/features/bookings/types";
 
 export default function RoomRecommendations() {
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  useEffect(() => {
+    getLocations()
+      .then((locations) => setRooms(locations.map(locationToRoom).slice(0, 6)))
+      .catch(() => setRooms([]));
+  }, []);
+
+  if (rooms.length === 0) return null;
+
   return (
     <div className="mt-10">
       <div className="flex items-center gap-2 mb-5">
@@ -16,7 +26,7 @@ export default function RoomRecommendations() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {FEATURED_ROOMS.map((room) => (
+        {rooms.map((room) => (
           <RoomCard key={room.id} room={room} dayCount={1} />
         ))}
       </div>

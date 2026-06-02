@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { mockMyBookings, MyBooking, BookingStatus } from "@/features/bookings/data/mock-my-bookings";
+import { MyBooking, BookingStatus } from "@/features/bookings/data/mock-my-bookings";
+import { useMyBookings } from "@/features/bookings/hooks/useMyBookings";
 
 type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก";
 
@@ -40,22 +41,23 @@ function countByTab(bookings: MyBooking[], tab: TabKey): number {
 }
 
 export default function MyBookingsView() {
+  const { bookings, loading } = useMyBookings();
   const [activeTab, setActiveTab] = useState<TabKey>("ทั้งหมด");
   const [page, setPage] = useState(1);
 
-  const upcoming = mockMyBookings.filter((b) => b.upcomingLabel);
-  const needsAction = mockMyBookings.filter((b) => b.needsPayment).length;
+  const upcoming = bookings.filter((b) => b.upcomingLabel);
+  const needsAction = bookings.filter((b) => b.needsPayment).length;
 
   const stats = {
-    total: mockMyBookings.length,
-    pending: mockMyBookings.filter((b) => b.status === "รออนุมัติ").length,
-    approved: mockMyBookings.filter((b) => b.status === "อนุมัติแล้ว").length,
-    cancelled: mockMyBookings.filter((b) => b.status === "ยกเลิก" || b.status === "ปฏิเสธ").length,
+    total: bookings.length,
+    pending: bookings.filter((b) => b.status === "รออนุมัติ").length,
+    approved: bookings.filter((b) => b.status === "อนุมัติแล้ว").length,
+    cancelled: bookings.filter((b) => b.status === "ยกเลิก" || b.status === "ปฏิเสธ").length,
   };
 
   const tabs: TabKey[] = ["ทั้งหมด", "รออนุมัติ", "อนุมัติแล้ว", "ที่ผ่านมา", "ยกเลิก"];
 
-  const filtered = filterByTab(mockMyBookings, activeTab);
+  const filtered = filterByTab(bookings, activeTab);
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
@@ -63,6 +65,14 @@ export default function MyBookingsView() {
     setActiveTab(tab);
     setPage(1);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] text-gray-400 text-sm">
+        กำลังโหลด...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1280px] mx-auto px-6 py-10">
@@ -134,7 +144,7 @@ export default function MyBookingsView() {
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-4 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
-            const count = countByTab(mockMyBookings, tab);
+            const count = countByTab(bookings, tab);
             return (
               <button
                 key={tab}
@@ -339,11 +349,23 @@ function BookingRow({ booking }: { booking: MyBooking }) {
 
       {/* Action */}
       <td className="px-6 py-4 align-middle text-center">
-        {(booking.needsPayment || booking.status === "อนุมัติแล้ว") && (
-          <button className="text-gray-300 hover:text-gray-600 transition-colors">
-            <MoreVertical size={16} />
-          </button>
-        )}
+        <div className="flex items-center justify-center gap-1.5">
+          <Link
+            href={`/my-bookings/${booking.bookingId}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-lg px-2.5 py-1.5 transition-colors whitespace-nowrap"
+          >
+            ดูรายละเอียด
+          </Link>
+          {booking.status === "อนุมัติแล้ว" && (
+            <Link
+              href={`/payment/${booking.bookingId}`}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-orange-500 hover:text-orange-700 border border-orange-200 hover:border-orange-400 rounded-lg px-2.5 py-1.5 transition-colors whitespace-nowrap"
+            >
+              <CreditCard size={12} />
+              ชำระเงิน
+            </Link>
+          )}
+        </div>
       </td>
     </tr>
   );
