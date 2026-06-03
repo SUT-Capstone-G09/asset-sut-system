@@ -1,15 +1,22 @@
 package config
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"path/filepath"
+	"slices"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Database DatabaseConfig
+	Server  ServerConfig
+	CORS	CORSConfig
+	JWT     JWTConfig
+	Cookie  CookieConfig
 }
 
 type DatabaseConfig struct {
@@ -22,12 +29,32 @@ type DatabaseConfig struct {
 	LogMode string
 }
 
+type ServerConfig struct {
+	Port string
+}
+
+type CORSConfig struct {
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
+	AllowCredentials bool
+	MaxAge           time.Duration
+}
+
+type JWTConfig struct {
+	Secret string
+}
+
+type CookieConfig struct {
+	Secure bool
+}
+
 func LoadConfig() (*Config, error) {
 	if err := loadEnvFile(); err != nil {
 		return nil, err
 	}
 
-	return &Config{
+	cfg := &Config{
 		Database: DatabaseConfig{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
 			Port:     getEnv("POSTGRES_PORT", "5432"),
@@ -37,7 +64,31 @@ func LoadConfig() (*Config, error) {
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 			LogMode:  getEnv("POSTGRES_LOGMODE", "false"),
 		},
-	}, nil
+		Server: ServerConfig{
+			Port: getEnv("SERVER_PORT", "8080"),
+		},
+		CORS: CORSConfig{
+			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000")),
+			AllowMethods:     parseStringSlice(getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS")),
+			AllowHeaders:     parseStringSlice(getEnv("CORS_ALLOW_HEADERS", "Origin,Content-Length,Content-Type,Authorization")),
+			AllowCredentials: getEnv("CORS_ALLOW_CREDENTIALS", "true") == "true",
+			MaxAge:           parseDuration(getEnv("CORS_MAX_AGE", "12h")),
+		},
+		JWT: JWTConfig{
+			Secret: mustGetEnv("JWT_SECRET"),
+		},
+		Cookie: CookieConfig{
+			Secure: getEnv("COOKIE_SECURE", "false") == "true",
+		},
+	}
+
+	// Wildcard origins with credentials lets any site read authenticated
+	// responses; the CORS library does not reject this combination, so guard here.
+	if cfg.CORS.AllowCredentials && slices.Contains(cfg.CORS.AllowOrigins, "*") {
+		return nil, fmt.Errorf("invalid CORS config: CORS_ALLOW_ORIGINS cannot be '*' when CORS_ALLOW_CREDENTIALS is true; list explicit origins")
+	}
+
+	return cfg, nil
 }
 
 func loadEnvFile() error {
@@ -83,35 +134,6 @@ func findEnvFile() (string, error) {
     return "", fmt.Errorf("no .env file found")
 }
 
-/*func loadEnvFile() error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	possiblePaths := []string{
-		filepath.Join(cwd, ".env"),
-		filepath.Join(cwd, "..", ".env"),
-		filepath.Join(cwd, "..", "..", ".env"),
-		filepath.Join(cwd, "..", "..", "..", ".env"),
-		filepath.Join(cwd, "..", "..", "..", "..", ".env"),
-	}
-
-	var loaded bool
-	for _, path := range possiblePaths {
-		if err := godotenv.Load(path); err == nil {
-			loaded = true
-			break
-		}
-	}
-
-	if !loaded {
-		return fmt.Errorf("no .env file found in expected locations")
-	}
-
-	return nil
-}*/
-
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -125,4 +147,26 @@ func mustGetEnv(key string) string {
 		panic("Environment variable " + key + " is required but not set")
 	}
 	return value
+}
+
+func parseStringSlice(s string) []string {
+	if s == "*" {
+		return []string{"*"}
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 12 * time.Hour
+	}
+	return d
 }

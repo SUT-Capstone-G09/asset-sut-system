@@ -8,4 +8,6 @@ var AllEntities = []any{
 	&Requesters{},
 	&Roles{},
 	&Permissions{},
+
+	&RefreshTokens{},
 }

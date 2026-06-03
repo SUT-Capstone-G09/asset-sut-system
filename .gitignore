@@ -61,3 +61,26 @@ infra/**/secrets.*
 
 # ── Docker ──────────────────────────────
 apps/frontend/Dockerfile.prod
+
+# ── Go (apps/backend) ────────────────────────────────────────
+# Compiled binaries & executables
+apps/backend/bin/
+apps/backend/*.exe
+apps/backend/*.exe~
+apps/backend/*.dll
+apps/backend/*.so
+apps/backend/*.dylib
+
+# Test binary & coverage
+apps/backend/*.test
+apps/backend/*.out
+apps/backend/coverage.out
+apps/backend/coverage.html
+
+# Go build cache (go build / go run artifacts)
+apps/backend/tmp/
+
+# Air (live-reload tool) build output
+apps/backend/tmp/
+tmp/
+apps/backend/*.http
