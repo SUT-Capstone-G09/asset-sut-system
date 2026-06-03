@@ -6,6 +6,7 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/database"
+	minioinit "github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/minio"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/routes"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -23,6 +24,11 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
+	minioClient, err := minioinit.Connect(cfg.Minio)
+	if err != nil {
+		log.Fatalf("failed to connect to minio: %v", err)
+	}
+
 	// ----------------------------------------
 	// Repositories
 	// ----------------------------------------
@@ -33,6 +39,8 @@ func main() {
 	roleRepo := repositories.NewRoleRepository(db)
 	permissionRepo := repositories.NewPermissionRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	invoiceRepo := repositories.NewInvoiceRepository(db)
+	paymentRepo := repositories.NewPaymentRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -42,6 +50,8 @@ func main() {
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
+	storageService := services.NewStorageService(minioClient, cfg.Minio)
+	paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
 
 	// ----------------------------------------
 	// Controllers
@@ -51,6 +61,8 @@ func main() {
 	staffCtrl := controllers.NewStaffController(staffService)
 	requesterCtrl := controllers.NewRequesterController(requesterService)
 	roleCtrl := controllers.NewRoleController(roleService)
+	paymentCtrl := controllers.NewPaymentController(paymentQRService)
+	uploadCtrl := controllers.NewUploadController(storageService)
 
 	// ----------------------------------------
 	// Router
@@ -64,6 +76,8 @@ func main() {
 		StaffController:     staffCtrl,
 		RequesterController: requesterCtrl,
 		RoleController:      roleCtrl,
+		PaymentController:   paymentCtrl,
+		UploadController:    uploadCtrl,
 		PermissionChecker:   permissionRepo,
 	})
 

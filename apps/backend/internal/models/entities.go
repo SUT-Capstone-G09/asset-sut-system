@@ -10,4 +10,10 @@ var AllEntities = []any{
 	&Permissions{},
 
 	&RefreshTokens{},
+
+	// Payment QR feature. Invoice before Payment so the invoices table exists
+	// first. Only these two payment-domain models have GORM-valid FK columns;
+	// the rest (booking, document, ...) are not migrated yet.
+	&Invoice{},
+	&Payment{},
 }
