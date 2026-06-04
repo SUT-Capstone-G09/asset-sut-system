@@ -42,3 +42,19 @@ type PaymentTransactionResponse struct {
 	PaidAt         *time.Time `json:"paid_at"`
 	CreatedAt      time.Time  `json:"created_at"`
 }
+
+// ── QR Payment ───────────────────────────────────────────────────────────────
+
+type GenerateQRRequest struct {
+	InvoiceID uint   `json:"invoice_id" binding:"required"`
+	Mode      string `json:"mode"`
+}
+
+type GenerateQRResponse struct {
+	PaymentID uint    `json:"payment_id"`
+	InvoiceID uint    `json:"invoice_id"`
+	Amount    float64 `json:"amount"`
+	Payload   string  `json:"payload"`
+	QRCodeURL string  `json:"qr_code_url"`
+	ExpiresIn int     `json:"expires_in"`
+}

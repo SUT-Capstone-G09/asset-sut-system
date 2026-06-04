@@ -7,16 +7,14 @@ export function PaymentSuccessPageSkeleton() {
   return (
     <PaymentPageContrainer>
       {/* Header Section */}
-      <div className="mb-8 flex justify-center items-center flex-col text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Skeleton className="w-8 h-8 rounded-full" />
-          <Skeleton className="h-10 w-64" />
-        </div>
-        <Skeleton className="h-6 w-96 mb-2" />
+      <div className="mb-8 flex flex-col items-center text-center">
+        <Skeleton className="w-14 h-14 rounded-full mb-4" />
+        <Skeleton className="h-8 w-56 mb-2" />
+        <Skeleton className="h-4 w-96" />
       </div>
 
       {/* Two Column Cards Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Left Column - Booking Details */}
         <BookingDetailsCardSkeleton />
 
@@ -25,9 +23,8 @@ export function PaymentSuccessPageSkeleton() {
       </div>
 
       {/* Bottom Actions */}
-      <div className="flex gap-4 mt-6 justify-center items-center">
-        <Skeleton className="h-10 w-40 rounded-lg" />
-        {/* <Skeleton className="h-10 w-40 rounded-lg" /> */}
+      <div className="flex justify-center mt-8">
+        <Skeleton className="h-12 w-48 rounded-xl" />
       </div>
     </PaymentPageContrainer>
   );

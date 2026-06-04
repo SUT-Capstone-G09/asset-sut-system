@@ -5,39 +5,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetupPaymentRoutes registers payment endpoints for authenticated users.
 func SetupPaymentRoutes(rg *gin.RouterGroup, deps *Dependencies) {
-	auth := middleware.AuthMiddleware(deps.Config.JWT.Secret)
-	pc := deps.PaymentController
-	dc := deps.DocumentController
-
 	payments := rg.Group("/payments")
-	payments.Use(auth)
+	payments.Use(middleware.AuthMiddleware(deps.Config.JWT.Secret))
 	{
-		payments.GET("", middleware.RequireRole("staff", "admin"), pc.GetAll)
-		payments.POST("", middleware.RequireRole("requester"), pc.Create)
-		payments.GET("/:id", pc.GetByID)
-		payments.POST("/:id/verify", middleware.RequireRole("staff", "admin"), pc.Verify)
-		payments.PUT("/:id/slip/:did", pc.AttachSlip)
-	}
-
-	invoices := rg.Group("/invoices")
-	invoices.Use(auth)
-	{
-		invoices.GET("/:id/transactions", pc.GetByInvoiceID)
-	}
-
-	documents := rg.Group("/documents")
-	documents.Use(auth)
-	{
-		documents.POST("", dc.Create)
-		documents.GET("/:id", dc.GetByID)
-		documents.DELETE("/:id", dc.Delete)
-	}
-
-	// Documents nested under bookings
-	bookingDocs := rg.Group("/bookings")
-	bookingDocs.Use(auth)
-	{
-		bookingDocs.GET("/:id/documents", dc.GetByBookingID)
+		payments.POST("/qr", deps.PaymentController.GenerateQR)
 	}
 }

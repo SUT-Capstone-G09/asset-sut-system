@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,6 +17,8 @@ type Config struct {
 	CORS	CORSConfig
 	JWT     JWTConfig
 	Cookie  CookieConfig
+	Minio   MinioConfig
+	Payment PaymentConfig
 }
 
 type DatabaseConfig struct {
@@ -48,12 +51,33 @@ type CookieConfig struct {
 	Secure bool
 }
 
+type MinioConfig struct {
+	Endpoint      string
+	AccessKey     string
+	SecretKey     string
+	Bucket        string
+	UseSSL        bool
+	URLExpiry     time.Duration
+}
+
+// PaymentConfig holds the payee (university) details used to build EMVCo QR
+// payloads. These are fixed per deployment, so they live in .env rather than
+// being supplied per request.
+type PaymentConfig struct {
+	PromptPayID  string // phone (10 digits) or national/tax id (13 digits)
+	BillerID     string // 15 digits, for the "biller" bill-payment mode
+	BillerRef1   string // optional default reference for biller mode
+	BillerRef2   string // optional secondary reference for biller mode
+	MerchantName string
+	MerchantCity string
+}
+
 func LoadConfig() (*Config, error) {
 	if err := loadEnvFile(); err != nil {
 		return nil, err
 	}
 
-	return &Config{
+	cfg := &Config{
 		Database: DatabaseConfig{
 			Host:     getEnv("POSTGRES_HOST", "localhost"),
 			Port:     getEnv("POSTGRES_PORT", "5432"),
@@ -67,7 +91,7 @@ func LoadConfig() (*Config, error) {
 			Port: getEnv("SERVER_PORT", "8080"),
 		},
 		CORS: CORSConfig{
-			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "*")),
+			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000")),
 			AllowMethods:     parseStringSlice(getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS")),
 			AllowHeaders:     parseStringSlice(getEnv("CORS_ALLOW_HEADERS", "Origin,Content-Length,Content-Type,Authorization")),
 			AllowCredentials: getEnv("CORS_ALLOW_CREDENTIALS", "true") == "true",
@@ -79,7 +103,31 @@ func LoadConfig() (*Config, error) {
 		Cookie: CookieConfig{
 			Secure: getEnv("COOKIE_SECURE", "false") == "true",
 		},
-	}, nil
+		Minio: MinioConfig{
+			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+			SecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
+			Bucket:    getEnv("MINIO_BUCKET", "payment-qr"),
+			UseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
+			URLExpiry: parseDuration(getEnv("MINIO_URL_EXPIRY", "15m")),
+		},
+		Payment: PaymentConfig{
+			PromptPayID:  getEnv("PROMPTPAY_ID", ""),
+			BillerID:     getEnv("BILLER_ID", ""),
+			BillerRef1:   getEnv("BILLER_REF1", ""),
+			BillerRef2:   getEnv("BILLER_REF2", ""),
+			MerchantName: getEnv("PAYMENT_MERCHANT_NAME", "SUT"),
+			MerchantCity: getEnv("PAYMENT_MERCHANT_CITY", "Nakhon Ratchasima"),
+		},
+	}
+
+	// Wildcard origins with credentials lets any site read authenticated
+	// responses; the CORS library does not reject this combination, so guard here.
+	if cfg.CORS.AllowCredentials && slices.Contains(cfg.CORS.AllowOrigins, "*") {
+		return nil, fmt.Errorf("invalid CORS config: CORS_ALLOW_ORIGINS cannot be '*' when CORS_ALLOW_CREDENTIALS is true; list explicit origins")
+	}
+
+	return cfg, nil
 }
 
 func loadEnvFile() error {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, House } from "lucide-react";
+import { CheckCircle, House } from "lucide-react";
 import { PaymentPageContrainer } from "@/features/payment/component/layout/contrainer";
 import { BookingDetailsCard } from "@/features/payment/component/payment_success/BookingDetailsCard";
 import { PaymentProofCard } from "@/features/payment/component/payment_success/PaymentProofCard";
@@ -19,19 +19,19 @@ function PaymentSuccessContent() {
   return (
     <PaymentPageContrainer>
       {/* Header Section */}
-      <div className="mb-8 flex justify-center items-center flex-col text-center">
-        <div className="flex items-center gap-3 mb-4">
-          <CheckCircle className="w-8 h-8 text-orange-500" />
-          <h1 className="text-4xl font-bold text-slate-900">ชำระเงินสำเร็จ</h1>
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-orange-100 mb-4">
+          <CheckCircle className="w-7 h-7 text-brand-primary" />
         </div>
-        <p className="text-lg text-slate-600">
+        <h1 className="text-2xl font-bold text-gray-900">ชำระเงินสำเร็จ</h1>
+        <p className="text-gray-500 text-sm mt-1 max-w-2xl leading-relaxed">
           ขอบคุณที่ชำระเงิน
           ด้านล่างเป็นรายละเอียดการจองและหลักฐานการชำระเงินของคุณ
         </p>
       </div>
 
       {/* Two Column Cards Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Left Column - Booking Details */}
         <BookingDetailsCard
           roomName={mockPaymentData.roomName}
@@ -46,16 +46,15 @@ function PaymentSuccessContent() {
         {/* Right Column - Payment Proof */}
         <PaymentProofCard
           proofImageUrl={proofImageUrl}
-          accountName={mockPaymentData.accountName}
           paymentRef={mockPaymentData.PAY_REF}
         />
       </div>
 
       {/* Bottom Actions */}
-      <div className="flex gap-4 mt-4 justify-center items-center">
+      <div className="flex justify-center mt-8">
         <Link href="/">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white text-base p-5">
-            <House className="w-4 h-4 mr-2" />
+          <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 px-8 rounded-xl text-base flex items-center gap-2">
+            <House className="w-5 h-5" />
             กลับสู่หน้าหลัก
           </Button>
         </Link>
