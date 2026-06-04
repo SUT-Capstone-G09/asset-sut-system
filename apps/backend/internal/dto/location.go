@@ -5,23 +5,27 @@ import "time"
 // ── Location ────────────────────────────────────────────────────────────────
 
 type CreateLocationRequest struct {
-	ParentID    *uint  `json:"parent_id"`
-	TypeID      uint   `json:"type_id" binding:"required"`
-	Name        string `json:"name" binding:"required"`
-	RoomNumber  *int   `json:"room_number"`
-	FloorNumber *int   `json:"floor_number"`
-	Capacity    int    `json:"capacity" binding:"required,min=0"`
-	StatusID    uint   `json:"status_id" binding:"required"`
+	ParentID    *uint   `json:"parent_id"`
+	TypeID      uint    `json:"type_id" binding:"required"`
+	Name        string  `json:"name" binding:"required"`
+	Building    *string `json:"building"`
+	ImageURL    *string `json:"image_url"`
+	RoomNumber  *int    `json:"room_number"`
+	FloorNumber *int    `json:"floor_number"`
+	Capacity    int     `json:"capacity" binding:"required,min=0"`
+	StatusID    uint    `json:"status_id" binding:"required"`
 }
 
 type UpdateLocationRequest struct {
-	ParentID    *uint  `json:"parent_id"`
-	TypeID      *uint  `json:"type_id"`
-	Name        string `json:"name"`
-	RoomNumber  *int   `json:"room_number"`
-	FloorNumber *int   `json:"floor_number"`
-	Capacity    *int   `json:"capacity"`
-	StatusID    *uint  `json:"status_id"`
+	ParentID    *uint   `json:"parent_id"`
+	TypeID      *uint   `json:"type_id"`
+	Name        string  `json:"name"`
+	Building    *string `json:"building"`
+	ImageURL    *string `json:"image_url"`
+	RoomNumber  *int    `json:"room_number"`
+	FloorNumber *int    `json:"floor_number"`
+	Capacity    *int    `json:"capacity"`
+	StatusID    *uint   `json:"status_id"`
 }
 
 type LocationResponse struct {
@@ -30,12 +34,15 @@ type LocationResponse struct {
 	TypeID       uint                  `json:"type_id"`
 	Type         string                `json:"type"`
 	Name         string                `json:"name"`
+	Building     *string               `json:"building"`
+	ImageURL     *string               `json:"image_url"`
 	RoomNumber   *int                  `json:"room_number"`
 	FloorNumber  *int                  `json:"floor_number"`
 	Capacity     int                   `json:"capacity"`
 	StatusID     uint                  `json:"status_id"`
 	Status       string                `json:"status"`
 	PricingTiers []PricingTierResponse `json:"pricing_tiers,omitempty"`
+	Equipments   []EquipmentResponse   `json:"equipments,omitempty"`
 }
 
 // ── Unavailability ──────────────────────────────────────────────────────────
@@ -123,3 +130,18 @@ type AvailableSlot struct {
 	Price     int    `json:"price"`
 	Available bool   `json:"available"`
 }
+
+type MonthlyAvailabilityQuery struct {
+	Year  int `form:"year"  binding:"required"`
+	Month int `form:"month" binding:"required,min=1,max=12"`
+}
+
+// DayStatus: "available" | "partial" | "full"
+type DayAvailability struct {
+	Status       string       `json:"status"`
+	BookedHours  float64      `json:"booked_hours,omitempty"`
+	BookedRanges [][2]string  `json:"booked_ranges,omitempty"` // [["09:00","11:00"], ...]
+}
+
+// map[dateStr]DayAvailability  e.g. {"2026-07-01": {"status":"partial","booked_hours":2,"booked_ranges":[["09:00","11:00"]]}}
+type MonthlyAvailabilityResponse = map[string]DayAvailability

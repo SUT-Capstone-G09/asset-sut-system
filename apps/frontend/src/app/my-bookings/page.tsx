@@ -16,13 +16,16 @@ export default function MyBookingsPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user && user.role !== "requester") {
+    if (!mounted) return;
+    if (!user) {
+      router.replace("/login");
+    } else if (user.role !== "requester") {
       router.replace("/admin/dashboard");
     }
   }, [mounted, user, router]);
 
   if (!mounted) return null;
-  if (user && user.role !== "requester") return null;
+  if (!user || user.role !== "requester") return null;
 
   return (
     <PageContainer>

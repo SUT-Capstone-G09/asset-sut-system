@@ -34,6 +34,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
           onSelectWeekend={cal.selectWeekend}
           onSelectNextWeekdays={cal.selectNextWeekdays}
           onSelectThisWeek={cal.selectThisWeek}
+          getDayInfo={cal.getDayInfo}
         />
 
         <div className="lg:sticky lg:top-24">
@@ -48,6 +49,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
             globalTime={cal.globalTime}
             updateGlobalTime={cal.updateGlobalTime}
             totalStats={cal.totalStats}
+            getTimeConflict={cal.getTimeConflict}
             onConfirm={() => {
               const timeslots = cal.selectedDates.map((dateStr) => {
                 const t = cal.getEffectiveTime(dateStr);

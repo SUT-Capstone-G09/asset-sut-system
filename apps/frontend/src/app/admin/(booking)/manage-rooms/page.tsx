@@ -1,18 +1,18 @@
 "use client"
 
-import React, { useState } from "react";
+import { useState } from "react";
 import BookingHeader from "@/features/booking/components/admin/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";
 import { useRoomFilters } from "@/features/booking/hooks/useRoomFilters";
-import { mockRooms } from "@/features/booking/data/rooms";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
 import ManageExpensesModal from "@/features/booking/components/rooms/ManageExpensesModal";
 
 export default function ManageRoomsPage() {
   const {
+    loading,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -28,15 +28,14 @@ export default function ManageRoomsPage() {
     handleAddRoom,
     handleUpdateRoomStatus,
     handleEditRoom,
-    handleDeleteRoom
-  } = useRoomFilters(mockRooms);
+    handleDeleteRoom,
+  } = useRoomFilters();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isExpensesOpen, setIsExpensesOpen] = useState(false);
 
   return (
     <div className="p-8 space-y-8">
-      {/* Header Section */}
       <BookingHeader
         title="จัดการข้อมูลห้องเรียนและห้องประชุม"
         breadcrumbs={[
@@ -58,8 +57,7 @@ export default function ManageRoomsPage() {
         }
       />
 
-      {/* Filters Section */}
-      <RoomFilters 
+      <RoomFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         selectedCategory={selectedCategory}
@@ -73,24 +71,22 @@ export default function ManageRoomsPage() {
         onReset={handleResetFilters}
       />
 
-      {/* Content Section */}
-      <RoomGrid 
+      <RoomGrid
         filteredRooms={filteredRooms}
         buildings={buildings}
+        isLoading={loading}
         onResetFilters={handleResetFilters}
         onUpdateStatus={handleUpdateRoomStatus}
         onEdit={handleEditRoom}
         onDelete={handleDeleteRoom}
       />
 
-      {/* Create Drawer */}
       <RoomCreateDrawer
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSave={handleAddRoom}
       />
 
-      {/* Expenses Management Modal */}
       <ManageExpensesModal
         open={isExpensesOpen}
         onClose={() => setIsExpensesOpen(false)}

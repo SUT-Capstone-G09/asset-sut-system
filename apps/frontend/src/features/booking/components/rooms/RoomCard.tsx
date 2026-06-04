@@ -1,6 +1,6 @@
 "use client"
 
-import { MapPin, ArrowRight, Users } from "lucide-react";
+import { MapPin, ArrowRight, Users, Banknote } from "lucide-react";
 import { Room } from "../../types/room";
 import { cn } from "@/lib/utils";
 import {
@@ -129,6 +129,21 @@ export default function RoomCard({
             <p className="text-[14px] font-black text-slate-700 mt-1">
               {room.capacity} <span className="text-[12px] font-normal text-slate-500">ที่นั่ง</span>
             </p>
+          </div>
+        </div>
+
+        {/* Rate Info */}
+        <div className="rounded-[7px] bg-slate-50 px-4 py-3 flex items-start gap-2.5">
+          <Banknote size={14} className="text-slate-400 mt-0.5 shrink-0" />
+          <div className="min-w-0 text-left">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">อัตราค่าใช้จ่าย (ภายใน)</p>
+            {room.rates.hourlyInternal > 0 ? (
+              <p className="text-[14px] font-black text-slate-700 mt-1">
+                ฿{room.rates.hourlyInternal.toLocaleString()}<span className="text-[11px] font-normal text-slate-500">/ชม.</span>
+              </p>
+            ) : (
+              <p className="text-[11px] font-bold text-amber-500 mt-1">ยังไม่ได้กำหนดราคา</p>
+            )}
           </div>
         </div>
 

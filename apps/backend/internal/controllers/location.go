@@ -15,6 +15,15 @@ func NewLocationController(locationService *services.LocationService) *LocationC
 	return &LocationController{locationService: locationService}
 }
 
+func (c *LocationController) GetTypes(ctx *gin.Context) {
+	types, err := c.locationService.GetTypes()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, types)
+}
+
 func (c *LocationController) GetAll(ctx *gin.Context) {
 	locations, err := c.locationService.GetAll()
 	if err != nil {
@@ -130,6 +139,27 @@ func (c *LocationController) DeleteUnavailability(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, gin.H{"message": "deleted"})
+}
+
+// ── Monthly Availability ──────────────────────────────────────────────────────
+
+func (c *LocationController) GetMonthlyAvailability(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var q dto.MonthlyAvailabilityQuery
+	if err := ctx.ShouldBindQuery(&q); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	result, err := c.locationService.GetMonthlyAvailability(id, q.Year, q.Month)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, result)
 }
 
 // ── Equipments ────────────────────────────────────────────────────────────────

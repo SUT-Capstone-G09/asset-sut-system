@@ -9,6 +9,7 @@ export interface AuthUser {
   role: string; // "admin" | "staff" | "requester"
   first_name: string;
   last_name: string;
+  requester_type_id?: number; // 1 = ภายใน, 2 = ภายนอก
 }
 
 interface AuthContextType {

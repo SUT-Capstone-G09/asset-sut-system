@@ -202,6 +202,7 @@ func (s *AuthService) populateName(userID uint, role string, out *dto.UserSummar
 		if p, err := s.requesterRepo.FindByUserID(userID); err == nil {
 			out.FirstName = p.FirstName
 			out.LastName = p.LastName
+			out.RequesterTypeID = p.RequesterTypeID
 		}
 	}
 }

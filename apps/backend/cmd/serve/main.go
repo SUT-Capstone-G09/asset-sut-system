@@ -55,9 +55,9 @@ func main() {
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	locationService := services.NewLocationService(locationRepo)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
-	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	documentService := services.NewDocumentService(documentRepo)
 

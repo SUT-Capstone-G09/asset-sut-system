@@ -7,11 +7,16 @@ import (
 )
 
 type LocationService struct {
-	locationRepo *repositories.LocationRepository
+	locationRepo  *repositories.LocationRepository
+	timeslotRepo  *repositories.TimeslotRepository
 }
 
-func NewLocationService(locationRepo *repositories.LocationRepository) *LocationService {
-	return &LocationService{locationRepo: locationRepo}
+func NewLocationService(locationRepo *repositories.LocationRepository, timeslotRepo *repositories.TimeslotRepository) *LocationService {
+	return &LocationService{locationRepo: locationRepo, timeslotRepo: timeslotRepo}
+}
+
+func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
+	return s.locationRepo.FindAllTypes()
 }
 
 func (s *LocationService) GetAll() ([]dto.LocationResponse, error) {
@@ -40,6 +45,8 @@ func (s *LocationService) Create(req dto.CreateLocationRequest) (*dto.LocationRe
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
 		Name:        req.Name,
+		Building:    req.Building,
+		ImageURL:    req.ImageURL,
 		RoomNumber:  req.RoomNumber,
 		FloorNumber: req.FloorNumber,
 		Capacity:    req.Capacity,
@@ -64,6 +71,12 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest) (*dto.L
 	}
 	if req.Name != "" {
 		location.Name = req.Name
+	}
+	if req.Building != nil {
+		location.Building = req.Building
+	}
+	if req.ImageURL != nil {
+		location.ImageURL = req.ImageURL
 	}
 	if req.RoomNumber != nil {
 		location.RoomNumber = req.RoomNumber
@@ -132,6 +145,51 @@ func (s *LocationService) CreateUnavailability(locationID uint, req dto.CreateUn
 
 func (s *LocationService) DeleteUnavailability(id uint) error {
 	return s.locationRepo.DeleteUnavailability(id)
+}
+
+// ── Monthly Availability ─────────────────────────────────────────────────────
+
+// GetMonthlyAvailability returns a map of date → DayAvailability for the given month.
+// Days with no bookings are omitted (caller treats them as "available").
+func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month int) (dto.MonthlyAvailabilityResponse, error) {
+	slots, err := s.timeslotRepo.FindBookedSlotsByMonth(locationID, year, month)
+	if err != nil {
+		return nil, err
+	}
+
+	type dayData struct {
+		hours  float64
+		ranges [][2]string
+	}
+	days := make(map[string]*dayData)
+
+	for _, slot := range slots {
+		dateStr := slot.Date.Format("2006-01-02")
+		if days[dateStr] == nil {
+			days[dateStr] = &dayData{}
+		}
+		hours := slot.EndTime.Sub(slot.StartTime).Hours()
+		days[dateStr].hours += hours
+		days[dateStr].ranges = append(days[dateStr].ranges, [2]string{
+			slot.StartTime.Format("15:04"),
+			slot.EndTime.Format("15:04"),
+		})
+	}
+
+	const fullThreshold = 8.0
+	result := make(dto.MonthlyAvailabilityResponse)
+	for dateStr, d := range days {
+		status := "partial"
+		if d.hours >= fullThreshold {
+			status = "full"
+		}
+		result[dateStr] = dto.DayAvailability{
+			Status:       status,
+			BookedHours:  d.hours,
+			BookedRanges: d.ranges,
+		}
+	}
+	return result, nil
 }
 
 // ── Equipments ───────────────────────────────────────────────────────────────
@@ -239,6 +297,8 @@ func toLocationResponse(l models.Locations) dto.LocationResponse {
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
+		Building:    l.Building,
+		ImageURL:    l.ImageURL,
 		RoomNumber:  l.RoomNumber,
 		FloorNumber: l.FloorNumber,
 		Capacity:    l.Capacity,
@@ -265,6 +325,17 @@ func toLocationResponse(l models.Locations) dto.LocationResponse {
 			tier.RateType = t.RateType.Type
 		}
 		res.PricingTiers = append(res.PricingTiers, tier)
+	}
+	for _, e := range l.Equipments {
+		eq := dto.EquipmentResponse{
+			ID:          e.ID,
+			EquipmentID: e.EquipmentID,
+			Quantity:    e.Quantity,
+		}
+		if e.Equipment != nil {
+			eq.Name = e.Equipment.Name
+		}
+		res.Equipments = append(res.Equipments, eq)
 	}
 	return res
 }

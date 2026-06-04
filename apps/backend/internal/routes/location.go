@@ -9,10 +9,13 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	auth := middleware.AuthMiddleware(deps.Config.JWT.Secret)
 	lc := deps.LocationController
 
+	rg.GET("/location-types", lc.GetTypes)
+
 	locations := rg.Group("/locations")
 	{
 		locations.GET("", lc.GetAll)
 		locations.GET("/:id", lc.GetByID)
+		locations.GET("/:id/monthly-availability", lc.GetMonthlyAvailability)
 
 		// Staff/Admin only mutations
 		mgmt := locations.Group("")

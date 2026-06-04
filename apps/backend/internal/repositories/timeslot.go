@@ -30,12 +30,13 @@ func (r *TimeslotRepository) FindByLocationAndDate(locationID uint, date time.Ti
 	return slots, err
 }
 
-// IsSlotTaken returns true if the (location, date, start_time) already has a booking.
-func (r *TimeslotRepository) IsSlotTaken(locationID uint, date, startTime time.Time) (bool, error) {
+// IsSlotTaken returns true if any existing booking overlaps [startTime, endTime).
+// Uses start_time/end_time (timestamptz) directly — avoids the unreliable date column.
+func (r *TimeslotRepository) IsSlotTaken(locationID uint, startTime, endTime time.Time) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.Timeslots{}).
-		Where("location_id = ? AND date = ? AND start_time = ? AND booking_id IS NOT NULL",
-			locationID, date.Format("2006-01-02"), startTime).
+		Where(`location_id = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ?`,
+			locationID, endTime, startTime).
 		Count(&count).Error
 	return count > 0, err
 }
@@ -56,4 +57,18 @@ func (r *TimeslotRepository) FindStatusByName(name string) (*models.TimeslotStat
 	var status models.TimeslotStatuses
 	err := r.db.Where("status = ?", name).First(&status).Error
 	return &status, err
+}
+
+// FindBookedSlotsByMonth returns all booked timeslots for a location within a given month.
+// Uses start_time range in Bangkok timezone to match what users actually see on the calendar.
+func (r *TimeslotRepository) FindBookedSlotsByMonth(locationID uint, year, month int) ([]models.Timeslots, error) {
+	bkk, _ := time.LoadLocation("Asia/Bangkok")
+	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, bkk)
+	end := start.AddDate(0, 1, 0)
+	var slots []models.Timeslots
+	err := r.db.
+		Where("location_id = ? AND start_time >= ? AND start_time < ? AND booking_id IS NOT NULL",
+			locationID, start, end).
+		Find(&slots).Error
+	return slots, err
 }

@@ -5,15 +5,18 @@ import { Sparkles } from "lucide-react";
 import RoomCard from "@/features/bookings/components/RoomCard";
 import { getLocations, locationToRoom } from "@/features/bookings/services/location.service";
 import { Room } from "@/features/bookings/types";
+import { useAuthContext } from "@/lib/context/auth-context";
 
 export default function RoomRecommendations() {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const { user } = useAuthContext();
+  const requesterTypeId = user?.requester_type_id;
 
   useEffect(() => {
     getLocations()
-      .then((locations) => setRooms(locations.map(locationToRoom).slice(0, 6)))
+      .then((locations) => setRooms(locations.map((loc) => locationToRoom(loc, requesterTypeId)).slice(0, 6)))
       .catch(() => setRooms([]));
-  }, []);
+  }, [requesterTypeId]);
 
   if (rooms.length === 0) return null;
 

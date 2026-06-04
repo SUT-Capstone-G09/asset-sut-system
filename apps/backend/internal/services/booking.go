@@ -10,10 +10,11 @@ import (
 )
 
 type BookingService struct {
-	bookingRepo  *repositories.BookingRepository
-	timeslotRepo *repositories.TimeslotRepository
-	locationRepo *repositories.LocationRepository
-	invoiceRepo  *repositories.InvoiceRepository
+	bookingRepo    *repositories.BookingRepository
+	timeslotRepo   *repositories.TimeslotRepository
+	locationRepo   *repositories.LocationRepository
+	invoiceRepo    *repositories.InvoiceRepository
+	requesterRepo  *repositories.RequesterRepository
 }
 
 func NewBookingService(
@@ -21,12 +22,14 @@ func NewBookingService(
 	timeslotRepo *repositories.TimeslotRepository,
 	locationRepo *repositories.LocationRepository,
 	invoiceRepo *repositories.InvoiceRepository,
+	requesterRepo *repositories.RequesterRepository,
 ) *BookingService {
 	return &BookingService{
-		bookingRepo:  bookingRepo,
-		timeslotRepo: timeslotRepo,
-		locationRepo: locationRepo,
-		invoiceRepo:  invoiceRepo,
+		bookingRepo:   bookingRepo,
+		timeslotRepo:  timeslotRepo,
+		locationRepo:  locationRepo,
+		invoiceRepo:   invoiceRepo,
+		requesterRepo: requesterRepo,
 	}
 }
 
@@ -75,7 +78,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 
 	// Check all slots are free before creating anything
 	for _, ts := range req.Timeslots {
-		taken, err := s.timeslotRepo.IsSlotTaken(ts.LocationID, ts.Date, ts.StartTime)
+		taken, err := s.timeslotRepo.IsSlotTaken(ts.LocationID, ts.StartTime, ts.EndTime)
 		if err != nil {
 			return nil, err
 		}
@@ -101,6 +104,12 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		ChangedAt:  time.Now(),
 	})
 
+	// Determine requester type for pricing
+	var requesterTypeID uint
+	if requester, err := s.requesterRepo.FindByUserID(userID); err == nil {
+		requesterTypeID = requester.RequesterTypeID
+	}
+
 	var basePrice, addonPrice int
 
 	for _, tsInput := range req.Timeslots {
@@ -109,7 +118,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			return nil, err
 		}
 
-		priceSnapshot := calculatePrice(location, tsInput)
+		priceSnapshot := calculatePrice(location, tsInput, requesterTypeID)
 
 		ts := &models.Timeslots{
 			LocationID:    tsInput.LocationID,
@@ -185,12 +194,26 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-func calculatePrice(location *models.Locations, ts dto.TimeslotInput) int {
+func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterTypeID uint) int {
 	if len(location.PricingTiers) == 0 {
 		return 0
 	}
-	// Use first pricing tier as default snapshot
-	return location.PricingTiers[0].Price
+
+	hours := ts.EndTime.Sub(ts.StartTime).Hours()
+	if hours <= 0 {
+		hours = 1
+	}
+
+	// Find hourly tier matching user's requester type
+	for _, tier := range location.PricingTiers {
+		if tier.RequesterTypeID == requesterTypeID &&
+			tier.RateType != nil && tier.RateType.Type == "hourly" {
+			return int(hours) * tier.Price
+		}
+	}
+
+	// Fallback to first tier
+	return int(hours) * location.PricingTiers[0].Price
 }
 
 func toBookingResponse(b models.Bookings) dto.BookingResponse {

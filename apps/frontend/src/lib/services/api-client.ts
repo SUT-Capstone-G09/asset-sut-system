@@ -20,6 +20,15 @@ function getToken(): string | null {
   }
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const exp = JSON.parse(atob(token.split(".")[1])).exp as number;
+    return Date.now() / 1000 > exp - 30; // refresh 30s before actual expiry
+  } catch {
+    return true;
+  }
+}
+
 function persistRefreshedAuth(accessToken: string, user: unknown) {
   if (typeof window === "undefined") return;
   localStorage.setItem(AUTH_KEY(), JSON.stringify({ token: accessToken, user }));
@@ -59,7 +68,18 @@ async function request<T>(
   options: RequestInit = {},
   retry = true,
 ): Promise<T> {
-  const token = getToken();
+  let token = getToken();
+
+  // Proactively refresh if token is expired or about to expire
+  if (token && retry && path !== "/auth/refresh" && isTokenExpired(token)) {
+    try {
+      token = await refreshAccessToken();
+    } catch {
+      clearAuthAndRedirect();
+      throw new Error("session expired");
+    }
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -91,6 +111,33 @@ async function request<T>(
   return body.data as T;
 }
 
+async function uploadRequest<T>(path: string, formData: FormData, retry = true): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  if (res.status === 401 && retry && token && path !== "/auth/refresh") {
+    try {
+      await refreshAccessToken();
+    } catch {
+      clearAuthAndRedirect();
+      throw new Error("session expired");
+    }
+    return uploadRequest<T>(path, formData, false);
+  }
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `Request failed: ${res.status}`);
+  return body.data as T;
+}
+
 export const apiClient = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown) =>
@@ -98,6 +145,7 @@ export const apiClient = {
   put: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(data) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  upload: <T>(path: string, formData: FormData) => uploadRequest<T>(path, formData),
 };
 
 export { AUTH_SUFFIX };

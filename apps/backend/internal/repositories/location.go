@@ -15,6 +15,12 @@ func NewLocationRepository(db *gorm.DB) *LocationRepository {
 	return &LocationRepository{db: db}
 }
 
+func (r *LocationRepository) FindAllTypes() ([]models.LocationTypes, error) {
+	var types []models.LocationTypes
+	err := r.db.Find(&types).Error
+	return types, err
+}
+
 func (r *LocationRepository) FindAll() ([]models.Locations, error) {
 	var locations []models.Locations
 	err := r.db.
