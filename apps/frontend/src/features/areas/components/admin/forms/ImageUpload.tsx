@@ -33,10 +33,10 @@ export default function ImageUpload({ value, onChange, error }: ImageUploadProps
     setUploadError(null);
 
     try {
-      const url = await uploadFile(file);
+      const result = await uploadFile(file, "images");
       URL.revokeObjectURL(localUrl);
-      setPreview(url);
-      onChange(url);
+      setPreview(result.url);
+      onChange(result.url);
     } catch (err) {
       URL.revokeObjectURL(localUrl);
       setPreview(null);

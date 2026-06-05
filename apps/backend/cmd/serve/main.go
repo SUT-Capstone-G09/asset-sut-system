@@ -43,7 +43,7 @@ func main() {
 	bookingRepo := repositories.NewBookingRepository(db)
 	timeslotRepo := repositories.NewTimeslotRepository(db)
 	invoiceRepo := repositories.NewInvoiceRepository(db)
-
+	paymentRepo := repositories.NewPaymentRepository(db)
 	documentRepo := repositories.NewDocumentRepository(db)
 
 	// ----------------------------------------
@@ -59,6 +59,7 @@ func main() {
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
+	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo)
 	documentService := services.NewDocumentService(documentRepo)
 
 	// ----------------------------------------
@@ -71,7 +72,7 @@ func main() {
 	roleCtrl := controllers.NewRoleController(roleService)
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
-	paymentCtrl := controllers.NewPaymentController(paymentQRService)
+	paymentCtrl := controllers.NewPaymentController(paymentQRService, paymentService)
 	documentCtrl := controllers.NewDocumentController(documentService)
 	uploadCtrl := controllers.NewUploadController(storageService)
 

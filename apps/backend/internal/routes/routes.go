@@ -49,5 +49,6 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupDemoRoutes(v1, deps)
 		SetupLocationRoutes(v1, deps)
 		SetupBookingRoutes(v1, deps)
+		SetupDocumentRoutes(v1, deps)
 	}
 }

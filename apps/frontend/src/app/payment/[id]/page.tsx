@@ -12,12 +12,15 @@ import { PaymentPageSkeleton } from "@/features/payment/component/loading/Paymen
 import {
   getInvoiceByBookingId,
   createPayment,
+  attachSlip,
   InvoiceDTO,
 } from "@/features/payment/services/payment.service";
 import {
   getBookingById,
   BookingResponseDTO,
 } from "@/features/bookings/services/booking.service";
+import { uploadFile } from "@/lib/services/upload";
+import { createDocument } from "@/features/payment/services/document.service";
 
 function UploadZoneControlled({
   onFileChange,
@@ -77,6 +80,7 @@ export default function PaymentPage() {
   const [booking, setBooking] = useState<BookingResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [slipFile, setSlipFile] = useState<File | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -97,17 +101,38 @@ export default function PaymentPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await createPayment({
+      let slipDocumentId: number | undefined;
+      if (slipFile) {
+        const uploaded = await uploadFile(slipFile, "slips");
+        const doc = await createDocument({
+          booking_id: bookingId,
+          document_type_id: 3,
+          file_name: uploaded.file_name,
+          bucket_name: "payment-qr",
+          object_key: uploaded.object_key,
+          file_url: uploaded.url,
+          content_type: uploaded.content_type,
+          method_id: 2,
+        });
+        slipDocumentId = doc.id;
+      }
+
+      const transaction = await createPayment({
         invoice_id: invoice.id,
         amount_paid: invoice.total_amount,
         method_id: 3,
       });
+
+      if (slipDocumentId) {
+        await attachSlip(transaction.id, slipDocumentId);
+      }
+
       router.push("/payment/success");
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
       setSubmitting(false);
     }
-  }, [invoice, router]);
+  }, [invoice, slipFile, bookingId, router]);
 
   if (loading) return <PaymentPageSkeleton />;
 
@@ -209,7 +234,7 @@ export default function PaymentPage() {
               </p>
             </div>
 
-            <UploadZoneControlled onFileChange={() => {}} />
+            <UploadZoneControlled onFileChange={setSlipFile} />
 
             <div className="px-6 pb-5 flex flex-col gap-3">
               <label className="flex items-start gap-3 cursor-pointer">

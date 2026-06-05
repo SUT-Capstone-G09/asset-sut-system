@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/features/bookings/services/booking.service";
 import { createDocument } from "@/features/payment/services/document.service";
+import { uploadFile } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
 import {
   CalendarDays,
@@ -54,15 +55,6 @@ interface BookingDraft {
 
 interface BookingConfirmViewProps {
   room: Room;
-}
-
-function fileToDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 function formatFileSize(bytes: number): string {
@@ -128,18 +120,18 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);
 
-      // Save each document to DB
+      // Upload each document to MinIO then save record to DB
       for (const file of uploadedFiles) {
         try {
-          const fileUrl = await fileToDataURL(file);
+          const uploaded = await uploadFile(file, "documents");
           await createDocument({
             booking_id: booking.id,
             document_type_id: file.type === "application/pdf" ? 2 : 4,
-            file_name: file.name,
-            bucket_name: "local",
-            object_key: `bookings/${booking.id}/${file.name}`,
-            file_url: fileUrl,
-            content_type: file.type,
+            file_name: uploaded.file_name,
+            bucket_name: "payment-qr",
+            object_key: uploaded.object_key,
+            file_url: uploaded.url,
+            content_type: uploaded.content_type,
             method_id: 1,
           });
         } catch {

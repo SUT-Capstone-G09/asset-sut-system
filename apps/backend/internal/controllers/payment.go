@@ -11,11 +11,12 @@ import (
 )
 
 type PaymentController struct {
-	qrService *services.PaymentQRService
+	qrService      *services.PaymentQRService
+	paymentService *services.PaymentService
 }
 
-func NewPaymentController(qrService *services.PaymentQRService) *PaymentController {
-	return &PaymentController{qrService: qrService}
+func NewPaymentController(qrService *services.PaymentQRService, paymentService *services.PaymentService) *PaymentController {
+	return &PaymentController{qrService: qrService, paymentService: paymentService}
 }
 
 // GenerateQR creates a payment QR for an invoice. The amount is read from the
@@ -42,4 +43,65 @@ func (c *PaymentController) GenerateQR(ctx *gin.Context) {
 	}
 
 	response.OK(ctx, resp)
+}
+
+func (c *PaymentController) GetAll(ctx *gin.Context) {
+	txs, err := c.paymentService.GetAll()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, txs)
+}
+
+func (c *PaymentController) Create(ctx *gin.Context) {
+	var req dto.CreatePaymentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	tx, err := c.paymentService.Create(req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.Created(ctx, tx)
+}
+
+func (c *PaymentController) Verify(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	verifierID := ctx.GetUint("userID")
+	var req dto.VerifyPaymentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	tx, err := c.paymentService.Verify(id, verifierID, req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, tx)
+}
+
+func (c *PaymentController) AttachSlip(ctx *gin.Context) {
+	txID, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid transaction id")
+		return
+	}
+	docID, err := parseSubID(ctx, "docId")
+	if err != nil {
+		response.BadRequest(ctx, "invalid document id")
+		return
+	}
+	if err := c.paymentService.AttachSlip(txID, docID); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, gin.H{"message": "slip attached"})
 }
