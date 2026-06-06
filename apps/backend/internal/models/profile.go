@@ -1,9 +1,5 @@
 package models
 
-import (
-
-)
-
 type Admins struct {
 	Base
 	FirstName string `gorm:"not null" json:"first_name"`
@@ -20,6 +16,7 @@ type Staffs struct {
 	Phone string `gorm:"not null" json:"phone"`
 	LineID string `gorm:"not null" json:"line_id"`
 	UserID uint `gorm:"not null" json:"user_id"`
+	StaffLocations []StaffLocations `gorm:"foreignKey:StaffID" json:"staff_locations"`
 }
 
 type Requesters struct {

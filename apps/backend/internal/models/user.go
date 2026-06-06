@@ -1,9 +1,5 @@
 package models
 
-import (
-
-)
-
 type Users struct {
 	Base
 	Email string `gorm:"unique;not null" json:"email"`
@@ -15,4 +11,6 @@ type Users struct {
 	Staff *Staffs `gorm:"foreignKey:UserID;references:ID" json:"staffs"` // ความสัมพันธ์เเบบ 1[User] --- 1[Staff]
 	Requester *Requesters `gorm:"foreignKey:UserID;references:ID" json:"requesters"` // ความสัมพันธ์เเบบ 1[User] --- 1[Requester]
 	Roles []Roles `gorm:"many2many:user_roles" json:"roles"` // ความสัมพันธ์เเบบ N[User] --- N[Role]
+	Bookings []Bookings `gorm:"foreignKey:UserID" json:"bookings"` // ความสัมพันธ์เเบบ 1[User] --- N[Booking]
+	PaymentTransactions []PaymentTransactions `gorm:"foreignKey:VerifyBy" json:"payment_transactions"` // ความสัมพันธ์เเบบ 1[User] --- N[PaymentTransaction]
 }

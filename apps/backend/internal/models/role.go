@@ -1,9 +1,5 @@
 package models
 
-import (
-
-)
-
 type Roles struct {
 	Base
 	Name string `gorm:"unique;not null" json:"name"`

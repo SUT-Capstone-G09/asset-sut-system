@@ -1,9 +1,5 @@
 package models
 
-import (
-
-)
-
 type Permissions struct {
 	Base
 	Module string `gorm:"not null" json:"module"`
