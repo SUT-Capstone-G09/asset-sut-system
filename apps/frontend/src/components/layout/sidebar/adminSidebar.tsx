@@ -6,15 +6,10 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Store,
-  Users,
-  Building
-  ,
+  Building,
   Wallet,
-  FileUp,
   ClipboardList,
   Calendar,
-  BookOpen,
-  Presentation,
   Wrench,
   Settings,
   ChevronDown,
@@ -90,6 +85,18 @@ const menuGroups: MenuGroup[] = [
   {
     label: "การจองพื้นที่",
     items: [
+      {
+        id: "booking-requests",
+        label: "คำขอจองพื้นที่",
+        icon: ClipboardList,
+        href: "/admin/booking/requests",
+      },
+      {
+        id: "payment-verify",
+        label: "ตรวจสอบการชำระเงิน",
+        icon: Wallet,
+        href: "/admin/payment/verify",
+      },
       {
         id: "booking",
         label: "ขอใช้พื้นที่",

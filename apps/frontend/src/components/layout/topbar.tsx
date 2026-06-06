@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -11,20 +11,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  ChevronDown, 
-  User, 
-  LogOut, 
-  Settings, 
-  AlertCircle 
+import {
+  ChevronDown,
+  User,
+  LogOut,
+  Settings,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
-import { LoginModal } from "@/app/login/page";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { user, logout, isAuthenticated } = useAuthContext();
 
@@ -33,15 +32,15 @@ export default function Navbar() {
   }, []);
 
   // ไม่แสดง Navbar ในหน้าที่มี Sidebar
-  const isDashboardPage = pathname?.startsWith("/admin") || 
-                          pathname?.startsWith("/operator") || 
+  const isDashboardPage = pathname?.startsWith("/admin") ||
+                          pathname?.startsWith("/operator") ||
                           pathname?.startsWith("/user");
 
   if (!mounted || isDashboardPage) return null;
 
   // เมนูนำทางหลัก
   const navItems = [
-    { label: "เกี่ยวกับเรา", href: "/about" ,
+    { label: "เกี่ยวกับเรา", href: "/about",
       subItems: [
         { label: "เกี่ยวกับเรา", href: "/about" },
       ],
@@ -52,7 +51,7 @@ export default function Navbar() {
       subItems: [
         { label: "สำหรับผู้ประกอบการ", href: "/services/entrepreneur" },
         { label: "สำหรับผู้สนใจเช่า", href: "/services/tenant" },
-        { label: "ผู้ใช้บริการ", href: "/bookings" },
+        { label: "ผู้ใช้บริการ", href: "/my-bookings" },
       ],
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
@@ -192,7 +191,7 @@ export default function Navbar() {
                     {/* User Header */}
                     <div className="px-3 py-2 mb-1 border-b border-slate-50">
                       <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">บัญชีผู้ใช้งาน</p>
-                      <p className="text-sm font-bold text-brand-secondary truncate">{user.name}</p>
+                      <p className="text-sm font-bold text-brand-secondary truncate">{user.email}</p>
                     </div>
 
                     {/* Dynamic Role Items */}
@@ -222,7 +221,7 @@ export default function Navbar() {
                 </DropdownMenu>
               ) : (
                 <Button
-                  onClick={() => setIsLoginOpen(true)}
+                  onClick={() => router.push("/login")}
                   className="px-8 font-bold bg-brand-primary hover:bg-brand-primary/90 text-white"
                 >
                   Login
@@ -233,7 +232,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <LoginModal isOpen={isLoginOpen} onOpenChange={setIsLoginOpen} />
     </>
   );
 }

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 
 export default function AreasBanner() {
   return (
-    <section 
+    <section
       className="
         relative w-full h-[85vh] min-h-[700px] 
         flex items-center overflow-hidden 
@@ -10,13 +10,13 @@ export default function AreasBanner() {
       "
     >
       {/* Background Image */}
-      <div 
+      <div
         className="
           absolute inset-0 z-0
           [mask-image:linear-gradient(to_bottom,black_84%,transparent_100%)]
         "
       >
-        <div 
+        <div
           className="
             absolute inset-0 
             bg-cover bg-center 
@@ -25,29 +25,29 @@ export default function AreasBanner() {
           style={{ backgroundImage: "url('/Banner-Space.png')" }}
         />
         {/* gradient for text box */}
-        <div 
+        <div
           className="
             absolute inset-0 z-10
             bg-gradient-to-r from-black/80 via-black/20 to-transparent 
-          " 
+          "
         />
       </div>
-      
+
       {/* Content Container */}
-      <div 
+      <div
         className="
           container mx-auto px-8 md:px-20 
           relative z-20 
           flex justify-start items-center
         "
       >
-        <div 
+        <div
           className="
             max-w-xl space-y-8 
             flex flex-col items-start text-left
           "
         >
-          <div 
+          <div
             className="
               text-[9px] font-black uppercase tracking-[0.6em] 
               text-[#f26522] opacity-80 mb-2
@@ -56,7 +56,7 @@ export default function AreasBanner() {
             SUT Asset Management
           </div>
 
-          <h1 
+          <h1
             className="
               text-6xl md:text-7xl font-black uppercase 
               text-white leading-[0.9] tracking-tighter
@@ -67,7 +67,7 @@ export default function AreasBanner() {
             SPACE
           </h1>
 
-          <p 
+          <p
             className="
               max-w-sm text-lg font-medium italic leading-relaxed tracking-wide 
               text-white/60
@@ -77,7 +77,7 @@ export default function AreasBanner() {
           </p>
 
           <div className="pt-4">
-            <Button 
+            <Button
               className="
                 h-14 px-10 
                 bg-[#f26522] hover:bg-[#dd5b1c] text-white 

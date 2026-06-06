@@ -11,7 +11,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Save, Loader2 } from "lucide-react";
+import { Plus, X, Save, Loader2, AlertCircle } from "lucide-react";
 import { Room } from "../../types/room";
 import { roomSchema, RoomFormValues } from "../../schemas/room-schema";
 import RoomFormFields from "./forms/RoomFormFields";
@@ -19,11 +19,21 @@ import RoomFormFields from "./forms/RoomFormFields";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (newRoom: Room) => void;
+  onSave: (newRoom: Room) => void | Promise<void>;
 }
+
+const FIELD_LABELS: Record<string, string> = {
+  roomName: "ชื่อห้อง",
+  building: "อาคาร",
+  category: "ประเภทห้อง",
+  capacity: "ความจุ",
+  image: "รูปภาพ",
+  rates: "อัตราค่าใช้จ่าย",
+};
 
 export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const methods = useForm<RoomFormValues>({
     resolver: zodResolver(roomSchema) as any,
@@ -33,7 +43,7 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
       building: "",
       category: "",
       capacity: 1,
-      image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+      image: "",
       status: "available",
       equipment: [],
       notes: "",
@@ -48,31 +58,43 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
   });
 
   const onSubmit = async (data: RoomFormValues) => {
+    setFormErrors([]);
     setIsSubmitting(true);
-    
-    // Simulate API Call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const newRoom: Room = {
+        id: "",
+        roomName: data.roomName,
+        roomNumber: data.roomNumber ?? "",
+        building: data.building,
+        category: data.category,
+        capacity: Number(data.capacity),
+        image: data.image ?? "",
+        status: data.status,
+        equipment: data.equipment || [],
+        notes: data.notes,
+        rates: data.rates,
+        documents: data.documents || [],
+      };
+      await onSave(newRoom);
+      methods.reset();
+      onClose();
+    } catch (err) {
+      console.error("Failed to save room:", err);
+      setFormErrors(["เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง"]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const newRoom: Room = {
-      id: "RM-" + Math.floor(Math.random() * 9000 + 1000).toString(),
-      roomName: data.roomName,
-      roomNumber: data.roomNumber,
-      building: data.building,
-      category: data.category,
-      capacity: Number(data.capacity),
-      image: data.image,
-      status: data.status,
-      equipment: data.equipment || [],
-      notes: data.notes,
-      rates: data.rates,
-      documents: data.documents || []
-    };
-
-    onSave(newRoom);
-    setIsSubmitting(false);
-    methods.reset();
-    onClose();
-    alert("เพิ่มข้อมูลห้องสำเร็จ!");
+  const onInvalid = (errors: Record<string, unknown>) => {
+    const missing = Object.keys(errors)
+      .filter((k) => k in FIELD_LABELS)
+      .map((k) => FIELD_LABELS[k]);
+    setFormErrors(
+      missing.length > 0
+        ? [`กรุณากรอกข้อมูลให้ครบ: ${missing.join(", ")}`]
+        : ["กรุณาตรวจสอบข้อมูลให้ถูกต้อง"]
+    );
   };
 
   return (
@@ -83,7 +105,7 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
         className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
       >
         <FormProvider {...methods}>
-          <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col h-full">
+          <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)} className="flex flex-col h-full">
             {/* Header */}
             <SheetHeader className="px-6 py-5 border-b border-slate-100 flex flex-row items-center justify-between space-y-0 shrink-0 bg-white text-left">
               <div className="flex items-center gap-3">
@@ -120,7 +142,14 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
             </div>
 
             {/* Sticky Footer */}
-            <div className="px-6 py-5 border-t border-slate-100 flex items-center gap-4 bg-white/90 backdrop-blur-md shrink-0">
+            <div className="px-6 py-5 border-t border-slate-100 flex flex-col gap-3 bg-white/90 backdrop-blur-md shrink-0">
+              {formErrors.length > 0 && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-[7px] px-4 py-3">
+                  <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-xs font-bold text-red-600">{formErrors[0]}</p>
+                </div>
+              )}
+              <div className="flex items-center gap-4">
               <Button 
                 type="button"
                 variant="ghost" 
@@ -143,6 +172,7 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
                 )}
                 {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูลห้อง"}
               </Button>
+              </div>
             </div>
           </form>
         </FormProvider>
