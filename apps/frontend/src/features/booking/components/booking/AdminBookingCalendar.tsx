@@ -675,7 +675,7 @@ export default function AdminBookingCalendar() {
 
       {/* Booking Detail Drawer */}
       <BookingDrawer
-        booking={selectedBooking}
+        booking={selectedBooking ? (bookings.find(b => b.id === selectedBooking.id) || selectedBooking) : null}
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onUpdateStatus={handleUpdateStatus}

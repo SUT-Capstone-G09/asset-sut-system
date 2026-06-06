@@ -339,6 +339,59 @@ export default function PaymentVerificationModal({
                                 คลิกเพื่อขยายรูปสลิป
                               </div>
                             </div>
+
+                            {/* Official Receipt Section */}
+                            <div className="pt-4 border-t border-slate-200 mt-4 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-black text-slate-700 font-bold">
+                                  ใบเสร็จรับเงินอย่างเป็นทางการ (Official Receipt)
+                                </h4>
+                                {selectedBooking.officialReceipt && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated: Booking = {
+                                        ...selectedBooking,
+                                        officialReceipt: undefined,
+                                      };
+                                      onUpdateBooking(updated);
+                                    }}
+                                    className="text-[10px] font-bold text-red-500 hover:text-red-600 hover:underline cursor-pointer focus:outline-none bg-transparent border-none p-0"
+                                  >
+                                    ลบใบเสร็จ
+                                  </button>
+                                )}
+                              </div>
+
+                              {selectedBooking.officialReceipt ? (
+                                <div 
+                                  onClick={() => setPreviewImage(selectedBooking.officialReceipt || null)}
+                                  className="relative aspect-[3/4] max-h-[160px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50 cursor-zoom-in group shadow-sm"
+                                >
+                                  <img
+                                    src={selectedBooking.officialReceipt}
+                                    alt="Official Receipt"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                                    คลิกเพื่อขยายรูปใบเสร็จ
+                                  </div>
+                                </div>
+                              ) : (
+                                <ImageUpload
+                                  value=""
+                                  onChange={(url) => {
+                                    if (url) {
+                                      const updated: Booking = {
+                                        ...selectedBooking,
+                                        officialReceipt: url,
+                                      };
+                                      onUpdateBooking(updated);
+                                    }
+                                  }}
+                                />
+                              )}
+                            </div>
                           </>
                         ) : (
                           <>

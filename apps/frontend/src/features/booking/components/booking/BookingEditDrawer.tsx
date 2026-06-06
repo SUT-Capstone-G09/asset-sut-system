@@ -16,6 +16,7 @@ import { Booking } from "../../types/booking";
 import { bookingSchema, BookingFormValues } from "../../schemas/booking-schema";
 import BookingFormFields from "./forms/BookingFormFields";
 import { mockRooms } from "../../data/rooms";
+import { getHoursFromTimeSlot } from "../../utils/time";
 
 interface Props {
   booking: Booking | null;
@@ -25,27 +26,10 @@ interface Props {
   onSave: (updatedBooking: Booking) => void;
 }
 
-const getHoursFromTimeSlot = (timeSlot: string): number => {
-  try {
-    const match = timeSlot.match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
-    if (match) {
-      const startHour = parseInt(match[1], 10);
-      const startMin = parseInt(match[2], 10);
-      const endHour = parseInt(match[3], 10);
-      const endMin = parseInt(match[4], 10);
-      const diffMin = endHour * 60 + endMin - (startHour * 60 + startMin);
-      return Math.max(1, diffMin / 60);
-    }
-  } catch (e) {
-    console.error("Error parsing time slot:", e);
-  }
-  return 3; // Default fallback
-};
-
 export default function BookingEditDrawer({
   booking,
   open,
-  recurrenceMode,
+  recurrenceMode = "this",
   onClose,
   onSave,
 }: Props) {
@@ -73,6 +57,7 @@ export default function BookingEditDrawer({
       equipment: [],
       expenses: [],
       receiptImage: "",
+      officialReceipt: "",
       attachedDocuments: [],
     },
   });
@@ -130,6 +115,7 @@ export default function BookingEditDrawer({
         equipment: booking.equipment || [],
         expenses: defaultExpenses,
         receiptImage: booking.receiptImage || "",
+        officialReceipt: booking.officialReceipt || "",
         attachedDocuments: booking.attachedDocuments || [],
         housekeeperPrice: defaultHousekeeperPrice,
         housekeeperCount: defaultHousekeeperCount,
@@ -168,7 +154,7 @@ export default function BookingEditDrawer({
       requesterId: data.requesterId,
       requesterType: data.requesterType,
       purpose: data.purpose,
-      date: data.date,
+      date: data.date || booking.date,
       timeSlot: data.timeSlot,
       status: targetStatus,
       attendees: data.attendees,
@@ -179,9 +165,11 @@ export default function BookingEditDrawer({
       equipment: data.equipment,
       expenses: data.expenses,
       receiptImage: data.receiptImage,
+      officialReceipt: data.officialReceipt,
       attachedDocuments: data.attachedDocuments,
       housekeeperPrice: data.housekeeperPrice || 0,
       housekeeperCount: data.housekeeperCount || 0,
+      expenseStatus: targetStatus === "pending_payment" ? (booking.expenseStatus || "draft") : undefined,
     };
 
     onSave(updatedBooking);

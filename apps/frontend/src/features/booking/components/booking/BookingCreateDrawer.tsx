@@ -77,53 +77,53 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
     const formattedDate = now.toLocaleDateString("th-TH") + " " + now.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.";
 
     if (data.repeat) {
-      const baseGroupId = `${type === "classroom" ? "CB" : "MB"}-${Math.floor(100000 + Math.random() * 900000)}`;
-      const dates = generateRecurrenceDates({
-        startDate: data.date,
-        frequency: data.repeatFrequency || "daily",
-        customInterval: data.repeatCustomInterval,
-        customUnit: data.repeatCustomUnit,
-        daysOfWeek: data.repeatDaysOfWeek,
-        endDateType: data.repeatEndDateType || "none",
-        endDate: data.repeatEndDate,
-        endCount: data.repeatEndCount,
-      });
+      const getLocalDateString = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
 
-      const newBookings: Booking[] = dates.map((dateStr, index) => {
-        const uniqueId = `${type === "classroom" ? "CB" : "MB"}-${Math.floor(100 + Math.random() * 900)}-R${index + 1}`;
-        return {
-          id: uniqueId,
-          recurringGroupId: baseGroupId,
-          roomName: data.roomName,
-          roomNumber: data.roomNumber,
-          building: data.building,
-          category: data.category,
-          requesterName: data.requesterName,
-          requesterId: data.requesterId,
-          requesterType: data.requesterType,
-          purpose: data.purpose,
-          date: dateStr,
-          timeSlot: data.timeSlot,
-          status: "pending", // default to pending
-          attendees: data.attendees,
-          image: data.image || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-          createdAt: formattedDate,
-          contactPhone: data.contactPhone,
-          contactEmail: data.contactEmail,
-          notes: data.notes,
-          equipment: data.equipment,
-          attachedDocuments: data.attachedDocuments || [],
-          expenses: data.expenses || [],
-          housekeeperPrice: data.housekeeperPrice || 0,
-          housekeeperCount: data.housekeeperCount || 0
-        };
-      });
+      const newBooking: Booking = {
+        id: randomId,
+        roomName: data.roomName,
+        roomNumber: data.roomNumber,
+        building: data.building,
+        category: data.category,
+        requesterName: data.requesterName,
+        requesterId: data.requesterId,
+        requesterType: data.requesterType,
+        purpose: data.purpose,
+        date: data.date || getLocalDateString(),
+        timeSlot: data.timeSlot,
+        status: "pending", // default to pending
+        attendees: data.attendees,
+        image: data.image || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+        createdAt: formattedDate,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        notes: data.notes,
+        equipment: data.equipment,
+        attachedDocuments: data.attachedDocuments || [],
+        expenses: data.expenses || [],
+        housekeeperPrice: data.housekeeperPrice || 0,
+        housekeeperCount: data.housekeeperCount || 0,
+        repeat: true,
+        repeatFrequency: data.repeatFrequency,
+        repeatCustomInterval: data.repeatCustomInterval,
+        repeatCustomUnit: data.repeatCustomUnit,
+        repeatDaysOfWeek: data.repeatDaysOfWeek,
+        repeatEndDateType: data.repeatEndDateType,
+        repeatEndDate: data.repeatEndDate,
+        repeatEndCount: data.repeatEndCount,
+      };
 
-      onAdd(newBookings);
+      onAdd(newBooking);
       setIsSubmitting(false);
       methods.reset();
       onClose();
-      alert(`ยื่นคำขอจองสำเร็จ! (สร้างรายการจองทำซ้ำทั้งหมด ${newBookings.length} รายการ)`);
+      alert("ยื่นคำขอจองสำเร็จ! (บันทึกข้อมูลทำซ้ำ)");
     } else {
       const newBooking: Booking = {
         id: randomId,
@@ -135,7 +135,7 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
         requesterId: data.requesterId,
         requesterType: data.requesterType,
         purpose: data.purpose,
-        date: data.date,
+        date: data.date || "",
         timeSlot: data.timeSlot,
         status: "pending", // default to pending
         attendees: data.attendees,

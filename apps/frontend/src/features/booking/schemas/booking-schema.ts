@@ -9,7 +9,7 @@ const bookingBaseSchema = z.object({
   requesterId: z.string().min(1, "กรุณาระบุรหัสประจำตัวผู้ขอ"),
   requesterType: z.enum(["student", "staff", "external"]),
   purpose: z.string().min(1, "กรุณาระบุวัตถุประสงค์การใช้งาน"),
-  date: z.string().min(1, "กรุณาเลือกวันที่"),
+  date: z.string().optional(),
   timeSlot: z.string().min(1, "กรุณาเลือกช่วงเวลา"),
   attendees: z.coerce.number().min(1, "จำนวนผู้เข้าร่วมต้องมากกว่า 0"),
   contactPhone: z.string().optional(),
@@ -26,6 +26,7 @@ const bookingBaseSchema = z.object({
   ).optional(),
   attachedDocuments: z.array(z.string()).optional(),
   receiptImage: z.string().optional(),
+  officialReceipt: z.string().optional(),
   housekeeperPrice: z.coerce.number().min(0, "ราคาค่าแม่บ้านต้องไม่ต่ำกว่า 0").optional(),
   housekeeperCount: z.coerce.number().min(0, "จำนวนคนต้องไม่ต่ำกว่า 0").optional(),
   repeat: z.boolean().optional(),
@@ -39,6 +40,17 @@ const bookingBaseSchema = z.object({
 });
 
 export const bookingSchema = bookingBaseSchema.refine(
+  (data) => {
+    if (!data.repeat) {
+      return !!data.date && data.date.trim().length > 0;
+    }
+    return true;
+  },
+  {
+    message: "กรุณาเลือกวันที่",
+    path: ["date"],
+  }
+).refine(
   (data) => {
     if (data.repeat && data.repeatEndDateType === "date") {
       return !!data.repeatEndDate;
