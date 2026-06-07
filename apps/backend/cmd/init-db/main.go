@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/SUT-Capstone-G09/asset-sut-system/cmd/init-db/seed_data"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/database"
-	"github.com/SUT-Capstone-G09/asset-sut-system/cmd/init-db/seed_data"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 )
 

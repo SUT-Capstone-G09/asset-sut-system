@@ -15,8 +15,6 @@ func NewEmailController(emailService *services.EmailService) *EmailController {
 	return &EmailController{emailService: emailService}
 }
 
-// SendTest renders and sends the "booking.approved" template to an arbitrary
-// address. It exists to verify SMTP + template rendering and is admin-only.
 func (c *EmailController) SendTest(ctx *gin.Context) {
 	var req dto.SendTestEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

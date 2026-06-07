@@ -41,6 +41,7 @@ func main() {
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
 	invoiceRepo := repositories.NewInvoiceRepository(db)
 	paymentRepo := repositories.NewPaymentRepository(db)
+	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -52,10 +53,11 @@ func main() {
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
-	emailService, err := services.NewEmailService(cfg.SMTP)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo)
 	if err != nil {
 		log.Fatalf("failed to init email service: %v", err)
 	}
+	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
 
 	// ----------------------------------------
 	// Controllers
@@ -68,6 +70,8 @@ func main() {
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
 	uploadCtrl := controllers.NewUploadController(storageService)
 	emailCtrl := controllers.NewEmailController(emailService)
+	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
 	// Router
@@ -75,16 +79,18 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:              cfg,
-		AuthController:      authCtrl,
-		AdminController:     adminCtrl,
-		StaffController:     staffCtrl,
-		RequesterController: requesterCtrl,
-		RoleController:      roleCtrl,
-		PaymentController:   paymentCtrl,
-		UploadController:    uploadCtrl,
-		EmailController:     emailCtrl,
-		PermissionChecker:   permissionRepo,
+		Config:                  cfg,
+		AuthController:          authCtrl,
+		AdminController:         adminCtrl,
+		StaffController:         staffCtrl,
+		RequesterController:     requesterCtrl,
+		RoleController:          roleCtrl,
+		PaymentController:       paymentCtrl,
+		UploadController:        uploadCtrl,
+		EmailController:         emailCtrl,
+		EmailTemplateController: emailTemplateCtrl,
+		ImageController:         imageCtrl,
+		PermissionChecker:       permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

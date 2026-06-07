@@ -89,7 +89,7 @@ func (c *AuthController) ChangePassword(ctx *gin.Context) {
 }
 
 func (c *AuthController) setRefreshCookie(ctx *gin.Context, token string) {
-	ctx.SetCookie("refresh_token", token, int((7*24*time.Hour).Seconds()), refreshCookiePath, "", c.cookieSecure, true)
+	ctx.SetCookie("refresh_token", token, int((7 * 24 * time.Hour).Seconds()), refreshCookiePath, "", c.cookieSecure, true)
 }
 
 func (c *AuthController) clearRefreshCookie(ctx *gin.Context) {

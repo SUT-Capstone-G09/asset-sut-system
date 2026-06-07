@@ -14,27 +14,30 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
-	Server  ServerConfig
-	CORS	CORSConfig
-	JWT     JWTConfig
-	Cookie  CookieConfig
-	Minio   MinioConfig
-	Payment PaymentConfig
-	SMTP    SMTPConfig
+	Server   ServerConfig
+	CORS     CORSConfig
+	JWT      JWTConfig
+	Cookie   CookieConfig
+	Minio    MinioConfig
+	Payment  PaymentConfig
+	SMTP     SMTPConfig
 }
 
 type DatabaseConfig struct {
-	Host string
-	Port string
-	User string
+	Host     string
+	Port     string
+	User     string
 	Password string
-	DBName string
-	SSLMode string
-	LogMode string
+	DBName   string
+	SSLMode  string
+	LogMode  string
 }
 
 type ServerConfig struct {
 	Port string
+	// PublicBaseURL is the externally reachable base URL of this API (no trailing
+	// slash), used to build permanent image URLs embedded in emails.
+	PublicBaseURL string
 }
 
 type CORSConfig struct {
@@ -54,12 +57,12 @@ type CookieConfig struct {
 }
 
 type MinioConfig struct {
-	Endpoint      string
-	AccessKey     string
-	SecretKey     string
-	Bucket        string
-	UseSSL        bool
-	URLExpiry     time.Duration
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	UseSSL    bool
+	URLExpiry time.Duration
 }
 
 // PaymentConfig holds the payee (university) details used to build EMVCo QR
@@ -100,7 +103,8 @@ func LoadConfig() (*Config, error) {
 			LogMode:  getEnv("POSTGRES_LOGMODE", "false"),
 		},
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "8080"),
+			Port:          getEnv("SERVER_PORT", "8080"),
+			PublicBaseURL: strings.TrimRight(getEnv("PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
 		},
 		CORS: CORSConfig{
 			AllowOrigins:     parseStringSlice(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000")),
@@ -137,7 +141,7 @@ func LoadConfig() (*Config, error) {
 			Username: getEnv("SMTP_USERNAME", ""),
 			Password: getEnv("SMTP_PASSWORD", ""),
 			From:     getEnv("SMTP_FROM", "no-reply@sut.ac.th"),
-			FromName:    	getEnv("FROM_NAME", "ASSET SUT"),
+			FromName: getEnv("FROM_NAME", "ASSET SUT"),
 		},
 	}
 
@@ -162,7 +166,6 @@ func loadEnvFile() error {
 	return nil
 }
 
-
 func findEnvFile() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -173,24 +176,24 @@ func findEnvFile() (string, error) {
 
 	// Search up to 10 levels up for .env file
 	for i := 0; i < 10; i++ {
-        // สร้าง DirFS สำหรับ directory ปัจจุบัน
-        fsys := os.DirFS(currentDir)
-        
-        // ตรวจสอบว่า .env มีอยู่หรือไม่
-        if _, err := fsys.Open(".env"); err == nil {
-            return filepath.Join(currentDir, ".env"), nil
-        }
-        
-        // ขึ้นไป 1 level
-        parent := filepath.Dir(currentDir)
-        if parent == currentDir {
-            // ถึง root directory แล้ว
-            break
-        }
-        currentDir = parent
-    }
+		// สร้าง DirFS สำหรับ directory ปัจจุบัน
+		fsys := os.DirFS(currentDir)
 
-    return "", fmt.Errorf("no .env file found")
+		// ตรวจสอบว่า .env มีอยู่หรือไม่
+		if _, err := fsys.Open(".env"); err == nil {
+			return filepath.Join(currentDir, ".env"), nil
+		}
+
+		// ขึ้นไป 1 level
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			// ถึง root directory แล้ว
+			break
+		}
+		currentDir = parent
+	}
+
+	return "", fmt.Errorf("no .env file found")
 }
 
 func getEnv(key, defaultValue string) string {

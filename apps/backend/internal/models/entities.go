@@ -16,4 +16,7 @@ var AllEntities = []any{
 	// the rest (booking, document, ...) are not migrated yet.
 	&Invoice{},
 	&Payment{},
+
+	// Admin-managed email templates (no FK columns; safe to migrate on its own).
+	&EmailTemplate{},
 }
