@@ -20,6 +20,7 @@ type Dependencies struct {
 	RoleController      *controllers.RoleController
 	PaymentController   *controllers.PaymentController
 	UploadController    *controllers.UploadController
+	EmailController     *controllers.EmailController
 	PermissionChecker   middleware.PermissionChecker
 }
 
@@ -43,6 +44,7 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupAdminRoutes(v1, deps)
 		SetupPaymentRoutes(v1, deps)
 		SetupUploadRoutes(v1, deps)
+		SetupEmailRoutes(v1, deps)
 		SetupDemoRoutes(v1, deps)
 	}
 }

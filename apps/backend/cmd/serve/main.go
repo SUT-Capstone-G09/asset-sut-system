@@ -52,6 +52,10 @@ func main() {
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
+	emailService, err := services.NewEmailService(cfg.SMTP)
+	if err != nil {
+		log.Fatalf("failed to init email service: %v", err)
+	}
 
 	// ----------------------------------------
 	// Controllers
@@ -63,6 +67,7 @@ func main() {
 	roleCtrl := controllers.NewRoleController(roleService)
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
 	uploadCtrl := controllers.NewUploadController(storageService)
+	emailCtrl := controllers.NewEmailController(emailService)
 
 	// ----------------------------------------
 	// Router
@@ -78,6 +83,7 @@ func main() {
 		RoleController:      roleCtrl,
 		PaymentController:   paymentCtrl,
 		UploadController:    uploadCtrl,
+		EmailController:     emailCtrl,
 		PermissionChecker:   permissionRepo,
 	})
 

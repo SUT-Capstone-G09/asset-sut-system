@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ type Config struct {
 	Cookie  CookieConfig
 	Minio   MinioConfig
 	Payment PaymentConfig
+	SMTP    SMTPConfig
 }
 
 type DatabaseConfig struct {
@@ -72,6 +74,16 @@ type PaymentConfig struct {
 	MerchantCity string
 }
 
+// SMTPConfig holds the outbound mail server credentials used by EmailService.
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string // default "From" address, e.g. "SUT Asset <no-reply@sut.ac.th>"
+	FromName string // default "From" name, e.g. "SUT Activity"
+}
+
 func LoadConfig() (*Config, error) {
 	if err := loadEnvFile(); err != nil {
 		return nil, err
@@ -118,6 +130,14 @@ func LoadConfig() (*Config, error) {
 			BillerRef2:   getEnv("BILLER_REF2", ""),
 			MerchantName: getEnv("PAYMENT_MERCHANT_NAME", "SUT"),
 			MerchantCity: getEnv("PAYMENT_MERCHANT_CITY", "Nakhon Ratchasima"),
+		},
+		SMTP: SMTPConfig{
+			Host:     getEnv("SMTP_HOST", "localhost"),
+			Port:     parseInt(getEnv("SMTP_PORT", "587"), 587),
+			Username: getEnv("SMTP_USERNAME", ""),
+			Password: getEnv("SMTP_PASSWORD", ""),
+			From:     getEnv("SMTP_FROM", "no-reply@sut.ac.th"),
+			FromName:    	getEnv("FROM_NAME", "ASSET SUT"),
 		},
 	}
 
@@ -200,6 +220,14 @@ func parseStringSlice(s string) []string {
 		}
 	}
 	return result
+}
+
+func parseInt(s string, defaultValue int) int {
+	n, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil {
+		return defaultValue
+	}
+	return n
 }
 
 func parseDuration(s string) time.Duration {
