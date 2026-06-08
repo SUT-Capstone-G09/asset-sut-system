@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { X, Download, Loader2, Eraser } from "lucide-react";
+import { X, Download, Loader2, Eraser, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface DocumentFormModalProps {
   purpose: string;
   onClose: () => void;
   onGenerated: (file: File) => void;
+  onPurposeChange?: (value: string) => void;
 }
 
 const THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -124,9 +125,10 @@ interface FormData {
 
 const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่นๆ"];
 
-export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated }: DocumentFormModalProps) {
+export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated, onPurposeChange }: DocumentFormModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatedFile, setGeneratedFile] = useState<File | null>(null);
   const [sig, setSig] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({
     prefix: "นาย",
@@ -142,8 +144,11 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
   });
 
   const set = (f: keyof FormData) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm((p) => ({ ...p, [f]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const value = e.target.value;
+      setForm((p) => ({ ...p, [f]: value }));
+      if (f === "purposeText") onPurposeChange?.(value);
+    };
 
   // date/time helpers from timeslots
   const firstSlot = timeslots[0];
@@ -174,11 +179,15 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
       const url = URL.createObjectURL(blob);
       Object.assign(document.createElement("a"), { href: url, download: fileName }).click();
       URL.revokeObjectURL(url);
-      onGenerated(file);
-      onClose();
+      setGeneratedFile(file);
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleConfirm = () => {
+    if (generatedFile) onGenerated(generatedFile);
+    onClose();
   };
 
   const isValid = form.fullName.trim() && form.department.trim() && form.phone.trim() && form.purposeText.trim() && sig !== null;
@@ -437,14 +446,41 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <SignaturePad onChange={setSig} />
 
               {/* Submit */}
-              <Button onClick={handleGenerate} disabled={!isValid || generating}
-                className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                {generating
-                  ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้าง PDF...</>
-                  : <><Download size={16} /> ดาวน์โหลด PDF</>}
-              </Button>
-              {!isValid && (
-                <p className="text-xs text-red-400 text-center -mt-2">กรุณากรอกข้อมูลที่จำเป็นและวาดลายเซ็น</p>
+              {generatedFile ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-green-700">ดาวน์โหลดสำเร็จ</p>
+                      <p className="text-xs text-green-600 truncate">{generatedFile.name}</p>
+                    </div>
+                    <button
+                      onClick={handleGenerate}
+                      disabled={generating}
+                      className="text-xs text-green-600 hover:text-green-800 underline underline-offset-2 shrink-0"
+                    >
+                      ดาวน์โหลดอีกครั้ง
+                    </button>
+                  </div>
+                  <Button
+                    onClick={handleConfirm}
+                    className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    ตกลง
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button onClick={handleGenerate} disabled={!isValid || generating}
+                    className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                    {generating
+                      ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้าง PDF...</>
+                      : <><Download size={16} /> ดาวน์โหลด PDF</>}
+                  </Button>
+                  {!isValid && (
+                    <p className="text-xs text-red-400 text-center -mt-2">กรุณากรอกข้อมูลที่จำเป็นและวาดลายเซ็น</p>
+                  )}
+                </>
               )}
             </div>
           </div>

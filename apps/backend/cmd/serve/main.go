@@ -55,7 +55,7 @@ func main() {
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	locationService := services.NewLocationService(locationRepo, timeslotRepo)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
@@ -73,7 +73,21 @@ func main() {
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
 	documentCtrl := controllers.NewDocumentController(documentService)
-	uploadCtrl := controllers.NewUploadController(storageService)
+
+	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
+	var driveService *services.DriveService
+	if cfg.GDrive.ClientEmail != "" && cfg.GDrive.PrivateKey != "" {
+		var driveErr error
+		driveService, driveErr = services.NewDriveService(cfg.GDrive)
+		if driveErr != nil {
+			log.Printf("warning: Google Drive unavailable: %v", driveErr)
+			driveService = nil
+		} else {
+			log.Printf("Google Drive initialized (%d folder route(s))", len(cfg.GDrive.FolderRoutes))
+		}
+	}
+
+	uploadCtrl := controllers.NewUploadController(storageService, driveService, cfg.GDrive.FolderRoutes)
 
 	// ----------------------------------------
 	// Router
@@ -81,18 +95,18 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:              cfg,
-		AuthController:      authCtrl,
-		AdminController:     adminCtrl,
-		StaffController:     staffCtrl,
-		RequesterController: requesterCtrl,
-		RoleController:      roleCtrl,
-		LocationController:  locationCtrl,
-		BookingController:   bookingCtrl,
-		PaymentController:   paymentCtrl,
-		DocumentController:  documentCtrl,
-		UploadController:    uploadCtrl,
-		PermissionChecker:   permissionRepo,
+		Config:                cfg,
+		AuthController:        authCtrl,
+		AdminController:       adminCtrl,
+		StaffController:       staffCtrl,
+		RequesterController:   requesterCtrl,
+		RoleController:        roleCtrl,
+		LocationController:    locationCtrl,
+		BookingController:     bookingCtrl,
+		PaymentController:     paymentCtrl,
+		DocumentController: documentCtrl,
+		UploadController:   uploadCtrl,
+		PermissionChecker:  permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

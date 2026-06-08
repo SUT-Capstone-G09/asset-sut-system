@@ -14,6 +14,7 @@ import {
   savePricingTiers,
   locationToRoom,
 } from "../services/locationService";
+import { getCurrentUser } from "@/lib/utils/auth";
 
 export function useRoomFilters() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -25,6 +26,9 @@ export function useRoomFilters() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedBuilding, setSelectedBuilding] = useState("all");
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "admin";
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -135,6 +139,7 @@ export function useRoomFilters() {
   return {
     rooms,
     loading,
+    isAdmin,
     searchQuery,
     setSearchQuery,
     selectedCategory,

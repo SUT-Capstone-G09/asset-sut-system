@@ -1,13 +1,13 @@
-// app/(admin)/layout.tsx
 "use client";
+
 import { useAuthContext } from "@/lib/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, ReactNode } from "react";
-import AdminSidebar from "@/components/layout/sidebar/adminSidebar";
+import StaffSidebar from "@/components/layout/sidebar/staffSidebar";
 import DashboardTopbar from "@/components/layout/DashboardTopbar";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function StaffLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuthContext();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -22,20 +22,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         router.push("/login");
         return;
       }
-      if (user?.role !== "admin") {
-        router.push("/unauthorized");
+      if (user?.role === "admin") {
+        router.push("/admin/dashboard");
+        return;
+      }
+      if (user?.role !== "staff") {
+        router.push("/");
       }
     }
   }, [isAuthenticated, user, isMounted, router]);
 
   if (!isMounted) return null;
-
-  if (!isAuthenticated || user?.role !== "admin") return null;
+  if (!isAuthenticated || user?.role !== "staff") return null;
 
   return (
     <div className="min-h-screen bg-slate-50/30">
-      <AdminSidebar />
-      <DashboardTopbar searchPlaceholder="ค้นหาตามชื่อ, เลขสัญญา, หรือชื่อร้าน..." />
+      <StaffSidebar />
+      <DashboardTopbar searchPlaceholder="ค้นหาตามชื่อ, หรือรหัสห้อง..." />
       <main className="ml-64 pt-25 min-h-screen">
         <div className="px-6 pt-3 pb-1">
           <Breadcrumb />

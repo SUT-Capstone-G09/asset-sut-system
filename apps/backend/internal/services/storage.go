@@ -33,6 +33,7 @@ func NewStorageService(client *minio.Client, cfg config.MinioConfig) *StorageSer
 
 // UploadResult describes a stored object.
 type UploadResult struct {
+	BucketName  string
 	ObjectKey   string
 	URL         string
 	FileName    string
@@ -68,6 +69,7 @@ func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh 
 	}
 
 	return UploadResult{
+		BucketName:  s.bucket,
 		ObjectKey:   objectKey,
 		URL:         url,
 		FileName:    fh.Filename,

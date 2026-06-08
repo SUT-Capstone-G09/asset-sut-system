@@ -25,7 +25,9 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 }
 
 func (c *LocationController) GetAll(ctx *gin.Context) {
-	locations, err := c.locationService.GetAll()
+	role := ctx.GetString("role")
+	userID := ctx.GetUint("user_id")
+	locations, err := c.locationService.GetAll(role, userID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
@@ -39,9 +41,15 @@ func (c *LocationController) GetByID(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	location, err := c.locationService.GetByID(id)
+	role := ctx.GetString("role")
+	userID := ctx.GetUint("user_id")
+	location, err := c.locationService.GetByID(id, role, userID)
 	if err != nil {
-		response.NotFound(ctx, "location not found")
+		if err.Error() == "forbidden" {
+			response.Forbidden(ctx, "access denied")
+		} else {
+			response.NotFound(ctx, "location not found")
+		}
 		return
 	}
 	response.OK(ctx, location)
@@ -53,7 +61,9 @@ func (c *LocationController) Create(ctx *gin.Context) {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	location, err := c.locationService.Create(req)
+	role := ctx.GetString("role")
+	userID := ctx.GetUint("user_id")
+	location, err := c.locationService.Create(req, role, userID)
 	if err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -72,9 +82,15 @@ func (c *LocationController) Update(ctx *gin.Context) {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	location, err := c.locationService.Update(id, req)
+	role := ctx.GetString("role")
+	userID := ctx.GetUint("user_id")
+	location, err := c.locationService.Update(id, req, role, userID)
 	if err != nil {
-		response.NotFound(ctx, err.Error())
+		if err.Error() == "forbidden" {
+			response.Forbidden(ctx, "access denied")
+		} else {
+			response.NotFound(ctx, err.Error())
+		}
 		return
 	}
 	response.OK(ctx, location)
@@ -91,6 +107,90 @@ func (c *LocationController) Delete(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, gin.H{"message": "deleted"})
+}
+
+// ── Staff Location Assignment ─────────────────────────────────────────────────
+
+func (c *LocationController) GetLocationStaff(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	staff, err := c.locationService.GetLocationStaff(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, staff)
+}
+
+func (c *LocationController) AssignStaff(ctx *gin.Context) {
+	locationID, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.AssignStaffRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	if err := c.locationService.AssignStaff(locationID, req.UserID); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, gin.H{"message": "staff assigned"})
+}
+
+func (c *LocationController) UnassignStaff(ctx *gin.Context) {
+	locationID, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	staffUserID, err := parseSubID(ctx, "uid")
+	if err != nil {
+		response.BadRequest(ctx, "invalid staff user id")
+		return
+	}
+	if err := c.locationService.UnassignStaff(locationID, staffUserID); err != nil {
+		response.NotFound(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, gin.H{"message": "staff unassigned"})
+}
+
+func (c *LocationController) GetStaffLocations(ctx *gin.Context) {
+	staffUserID, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	locations, err := c.locationService.GetStaffLocations(staffUserID)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, locations)
+}
+
+func (c *LocationController) SetStaffLocations(ctx *gin.Context) {
+	staffUserID, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.AssignStaffLocationsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	if err := c.locationService.SetStaffLocations(staffUserID, req.LocationIDs); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, gin.H{"message": "locations updated"})
 }
 
 // ── Unavailabilities ──────────────────────────────────────────────────────────
