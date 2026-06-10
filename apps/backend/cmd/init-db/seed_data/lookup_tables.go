@@ -10,7 +10,7 @@ import (
 
 func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 	// Location types
-	for _, t := range []string{"ห้องบรรยาย", "ห้องปฏิบัติการ", "ห้องสัมมนา", "ห้องประชุมขนาดเล็ก", "ห้องประชุมขนาดกลาง", "ห้องประชุมขนาดใหญ่", "พื้นที่สาธารณะ", "อื่นๆ"} {
+	for _, t := range []string{"ห้องประชุม", "ห้องเรียน", "สนามกีฬา", "โถงอาคาร"} {
 		if err := db.FirstOrCreate(&models.LocationTypes{}, models.LocationTypes{Type: t}).Error; err != nil {
 			return err
 		}

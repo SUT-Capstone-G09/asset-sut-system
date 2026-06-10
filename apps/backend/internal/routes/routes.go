@@ -12,18 +12,21 @@ import (
 // cmd/serve/main.go (config, controllers) and passed down to each domain's
 // route registration function.
 type Dependencies struct {
-	Config              *config.Config
-	AuthController      *controllers.AuthController
-	AdminController     *controllers.AdminController
-	StaffController     *controllers.StaffController
-	RequesterController *controllers.RequesterController
-	RoleController      *controllers.RoleController
-	LocationController  *controllers.LocationController
-	BookingController   *controllers.BookingController
-	PaymentController   *controllers.PaymentController
-	DocumentController  *controllers.DocumentController
-	UploadController    *controllers.UploadController
-	PermissionChecker   middleware.PermissionChecker
+	Config                  *config.Config
+	AuthController          *controllers.AuthController
+	AdminController         *controllers.AdminController
+	StaffController         *controllers.StaffController
+	RequesterController     *controllers.RequesterController
+	RoleController          *controllers.RoleController
+	LocationController      *controllers.LocationController
+	BookingController       *controllers.BookingController
+	PaymentController       *controllers.PaymentController
+	DocumentController      *controllers.DocumentController
+	UploadController        *controllers.UploadController
+	EmailController         *controllers.EmailController
+	EmailTemplateController *controllers.EmailTemplateController
+	ImageController         *controllers.ImageController
+	PermissionChecker       middleware.PermissionChecker
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -46,6 +49,8 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupAdminRoutes(v1, deps)
 		SetupPaymentRoutes(v1, deps)
 		SetupUploadRoutes(v1, deps)
+		SetupEmailRoutes(v1, deps)
+		SetupImageRoutes(v1, deps)
 		SetupDemoRoutes(v1, deps)
 		SetupLocationRoutes(v1, deps)
 		SetupBookingRoutes(v1, deps)

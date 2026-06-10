@@ -43,8 +43,8 @@ func main() {
 	bookingRepo := repositories.NewBookingRepository(db)
 	timeslotRepo := repositories.NewTimeslotRepository(db)
 	invoiceRepo := repositories.NewInvoiceRepository(db)
-
 	documentRepo := repositories.NewDocumentRepository(db)
+	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -60,6 +60,11 @@ func main() {
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	documentService := services.NewDocumentService(documentRepo)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo)
+	if err != nil {
+		log.Fatalf("failed to init email service: %v", err)
+	}
+	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
 
 	// ----------------------------------------
 	// Controllers
@@ -74,6 +79,9 @@ func main() {
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
 	documentCtrl := controllers.NewDocumentController(documentService)
 	uploadCtrl := controllers.NewUploadController(storageService)
+	emailCtrl := controllers.NewEmailController(emailService)
+	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
 	// Router
@@ -81,18 +89,21 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:              cfg,
-		AuthController:      authCtrl,
-		AdminController:     adminCtrl,
-		StaffController:     staffCtrl,
-		RequesterController: requesterCtrl,
-		RoleController:      roleCtrl,
-		LocationController:  locationCtrl,
-		BookingController:   bookingCtrl,
-		PaymentController:   paymentCtrl,
-		DocumentController:  documentCtrl,
-		UploadController:    uploadCtrl,
-		PermissionChecker:   permissionRepo,
+		Config:                  cfg,
+		AuthController:          authCtrl,
+		AdminController:         adminCtrl,
+		StaffController:         staffCtrl,
+		RequesterController:     requesterCtrl,
+		RoleController:          roleCtrl,
+		LocationController:      locationCtrl,
+		BookingController:       bookingCtrl,
+		PaymentController:       paymentCtrl,
+		DocumentController:      documentCtrl,
+		UploadController:        uploadCtrl,
+		EmailController:         emailCtrl,
+		EmailTemplateController: emailTemplateCtrl,
+		ImageController:         imageCtrl,
+		PermissionChecker:       permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

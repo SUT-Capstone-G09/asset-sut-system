@@ -87,7 +87,7 @@ export default function MyBookingsView() {
             <Download size={15} />
             ส่งออก
           </Button>
-          <Link href="/bookings">
+          <Link href="/bookings/search">
             <Button className="h-10 gap-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold">
               <Plus size={15} />
               จองใหม่
