@@ -16,24 +16,24 @@ type LocationStatuses struct {
 
 type Locations struct {
 	Base
-	ParentID       *uint              `json:"parent_id"`
-	Parent         *Locations         `gorm:"foreignKey:ParentID" json:"parent,omitempty"`
-	Children       []Locations        `gorm:"foreignKey:ParentID" json:"children,omitempty"`
-	TypeID         uint               `gorm:"not null" json:"type_id"`
-	Type           *LocationTypes     `gorm:"foreignKey:TypeID" json:"type,omitempty"`
-	Name           string             `gorm:"not null" json:"name"`
-	Building       *string            `json:"building"`
-	ImageURL       *string            `json:"image_url"`
-	RoomNumber     *int               `json:"room_number"`
-	FloorNumber    *int               `json:"floor_number"`
-	Capacity       int                `gorm:"not null;default:0" json:"capacity"`
-	StatusID       uint               `gorm:"not null" json:"status_id"`
-	Status         *LocationStatuses  `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	Equipments     []LocationEquipments  `gorm:"foreignKey:LocationID" json:"equipments,omitempty"`
-	Addons         []LocationAddons      `gorm:"foreignKey:LocationID" json:"addons,omitempty"`
-	PricingTiers   []LocationPricingTiers `gorm:"foreignKey:LocationID" json:"pricing_tiers,omitempty"`
+	ParentID         *uint                      `json:"parent_id"`
+	Parent           *Locations                 `gorm:"foreignKey:ParentID" json:"parent,omitempty"`
+	Children         []Locations                `gorm:"foreignKey:ParentID" json:"children,omitempty"`
+	TypeID           uint                       `gorm:"not null" json:"type_id"`
+	Type             *LocationTypes             `gorm:"foreignKey:TypeID" json:"type,omitempty"`
+	Name             string                     `gorm:"not null" json:"name"`
+	Building         *string                    `json:"building"`
+	ImageURL         *string                    `json:"image_url"`
+	RoomNumber       *int                       `json:"room_number"`
+	FloorNumber      *int                       `json:"floor_number"`
+	Capacity         int                        `gorm:"not null;default:0" json:"capacity"`
+	StatusID         uint                       `gorm:"not null" json:"status_id"`
+	Status           *LocationStatuses          `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	Equipments       []LocationEquipments       `gorm:"foreignKey:LocationID" json:"equipments,omitempty"`
+	Addons           []LocationAddons           `gorm:"foreignKey:LocationID" json:"addons,omitempty"`
+	PricingTiers     []LocationPricingTiers     `gorm:"foreignKey:LocationID" json:"pricing_tiers,omitempty"`
 	Unavailabilities []LocationUnavailabilities `gorm:"foreignKey:LocationID" json:"unavailabilities,omitempty"`
-	StaffLocations []StaffLocations   `gorm:"foreignKey:LocationID" json:"staff_locations,omitempty"`
+	StaffLocations   []StaffLocations           `gorm:"foreignKey:LocationID" json:"staff_locations,omitempty"`
 }
 
 type StaffLocations struct {
@@ -55,7 +55,7 @@ type LocationUnavailabilities struct {
 
 type Equipments struct {
 	Base
-	Name              string               `gorm:"not null;unique" json:"name"`
+	Name               string               `gorm:"not null;unique" json:"name"`
 	LocationEquipments []LocationEquipments `gorm:"foreignKey:EquipmentID" json:"location_equipments,omitempty"`
 }
 
@@ -89,8 +89,8 @@ type LocationAddons struct {
 
 type RateTypes struct {
 	Base
-	Type          string                  `gorm:"not null;unique" json:"type"`
-	PricingTiers  []LocationPricingTiers  `gorm:"foreignKey:RateTypeID" json:"pricing_tiers,omitempty"`
+	Type         string                 `gorm:"not null;unique" json:"type"`
+	PricingTiers []LocationPricingTiers `gorm:"foreignKey:RateTypeID" json:"pricing_tiers,omitempty"`
 }
 
 type LocationPricingTiers struct {
