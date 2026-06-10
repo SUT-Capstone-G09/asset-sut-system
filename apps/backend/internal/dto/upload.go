@@ -2,6 +2,7 @@ package dto
 
 // UploadResponse is returned after a file is stored in object storage.
 type UploadResponse struct {
+	BucketName  string `json:"bucket_name"`
 	ObjectKey   string `json:"object_key"`
 	URL         string `json:"url"`
 	FileName    string `json:"file_name"`

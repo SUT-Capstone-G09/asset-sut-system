@@ -7,6 +7,63 @@ import (
 	"gorm.io/gorm"
 )
 
+// ── Staff Locations ───────────────────────────────────────────────────────────
+
+func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, error) {
+	var locs []models.Locations
+	err := r.db.
+		Joins("JOIN staff_locations sl ON sl.location_id = locations.id AND sl.deleted_at IS NULL").
+		Where("sl.user_id = ?", staffID).
+		Preload("Type").
+		Preload("Status").
+		Preload("PricingTiers.RequesterType").
+		Preload("PricingTiers.RateType").
+		Find(&locs).Error
+	return locs, err
+}
+
+func (r *LocationRepository) FindStaffByLocationID(locationID uint) ([]models.StaffLocations, error) {
+	var items []models.StaffLocations
+	err := r.db.
+		Where("location_id = ?", locationID).
+		Preload("User.Staff").
+		Find(&items).Error
+	return items, err
+}
+
+func (r *LocationRepository) AssignStaff(sl *models.StaffLocations) error {
+	return r.db.Where(models.StaffLocations{UserID: sl.UserID, LocationID: sl.LocationID}).
+		FirstOrCreate(sl).Error
+}
+
+func (r *LocationRepository) UnassignStaff(staffID, locationID uint) error {
+	return r.db.Where("user_id = ? AND location_id = ?", staffID, locationID).
+		Delete(&models.StaffLocations{}).Error
+}
+
+func (r *LocationRepository) IsStaffAssigned(staffID, locationID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.StaffLocations{}).
+		Where("user_id = ? AND location_id = ?", staffID, locationID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *LocationRepository) SetStaffLocations(staffID uint, locationIDs []uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", staffID).Delete(&models.StaffLocations{}).Error; err != nil {
+			return err
+		}
+		for _, locID := range locationIDs {
+			sl := models.StaffLocations{UserID: staffID, LocationID: locID}
+			if err := tx.Create(&sl).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 type LocationRepository struct {
 	db *gorm.DB
 }

@@ -45,7 +45,7 @@ export default function LoginPage() {
       const result = await loginApi(email, password);
       saveAuth(result.token, result.user);
       if (result.user.role === "admin") router.push("/admin/dashboard");
-      else if (result.user.role === "staff") router.push("/admin/dashboard");
+      else if (result.user.role === "staff") router.push("/staff/dashboard");
       else router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");

@@ -18,6 +18,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   areas: "พื้นที่",
   requests: "คำร้องขอ",
   admin: "จัดการระบบ",
+  staff: "Staff Portal",
   booking: "การจอง",
   "manage-rooms": "จัดการห้อง",
   verify: "ตรวจสอบ",

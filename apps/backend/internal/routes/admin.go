@@ -26,6 +26,8 @@ func SetupAdminRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		staffs.DELETE("/:id", deps.StaffController.Delete)
 		staffs.GET("/:id/permissions", deps.StaffController.GetPermissions)
 		staffs.PUT("/:id/permissions", deps.StaffController.AssignPermissions)
+		staffs.GET("/:id/locations", deps.LocationController.GetStaffLocations)
+		staffs.PUT("/:id/locations", deps.LocationController.SetStaffLocations)
 
 		requesters := adminOnly.Group("/requesters")
 		requesters.GET("", deps.RequesterController.GetAll)

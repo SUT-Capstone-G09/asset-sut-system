@@ -84,3 +84,6 @@ apps/backend/tmp/
 apps/backend/tmp/
 tmp/
 apps/backend/*.http
+
+.claude
+skills-lock.json

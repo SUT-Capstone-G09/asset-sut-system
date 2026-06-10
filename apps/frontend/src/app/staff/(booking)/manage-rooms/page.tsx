@@ -1,20 +1,22 @@
-"use client";
+"use client"
 
 import { useState } from "react";
 import { Building2 } from "lucide-react";
-import BookingHeader from "@/features/booking/components/booking/BookingHeader";
+import BookingHeader from "@/features/booking/components/admin/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";
 import { useRoomFilters } from "@/features/booking/hooks/useRoomFilters";
-import { Button } from "@/components/ui/button";
-import { Wallet } from "lucide-react";
-import ManageExpensesModal from "@/features/booking/components/rooms/ManageExpensesModal";
 
-export default function ManageRoomsPage() {
+const BREADCRUMBS = [
+  { label: "Staff", href: "/staff" },
+  { label: "การจัดการห้อง" },
+  { label: "รายชื่อห้องทั้งหมด" },
+];
+
+export default function StaffManageRoomsPage() {
   const {
     loading,
-    isAdmin,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -34,20 +36,15 @@ export default function ManageRoomsPage() {
   } = useRoomFilters();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isExpensesOpen, setIsExpensesOpen] = useState(false);
 
   // Staff with no assigned locations
-  if (!loading && !isAdmin && filteredRooms.length === 0 && searchQuery === "" &&
+  if (!loading && filteredRooms.length === 0 && searchQuery === "" &&
     selectedCategory === "all" && selectedStatus === "all" && selectedBuilding === "all") {
     return (
       <div className="p-8">
         <BookingHeader
           title="จัดการข้อมูลห้องเรียนและห้องประชุม"
-          breadcrumbs={[
-            { label: isAdmin ? "Admin" : "Staff", href: "/admin" },
-            { label: "การจัดการห้อง" },
-            { label: "รายชื่อห้องทั้งหมด" }
-          ]}
+          breadcrumbs={BREADCRUMBS}
           onCreateClick={() => setIsCreateOpen(true)}
           buttonLabel="เพิ่มข้อมูลห้อง"
         />
@@ -80,25 +77,9 @@ export default function ManageRoomsPage() {
     <div className="p-8 space-y-8">
       <BookingHeader
         title="จัดการข้อมูลห้องเรียนและห้องประชุม"
-        breadcrumbs={[
-          { label: isAdmin ? "Admin" : "Staff", href: "/admin" },
-          { label: "การจัดการห้อง" },
-          { label: "รายชื่อห้องทั้งหมด" },
-        ]}
+        breadcrumbs={BREADCRUMBS}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="เพิ่มข้อมูลห้อง"
-        extraAction={
-          isAdmin ? (
-            <Button
-              onClick={() => setIsExpensesOpen(true)}
-              variant="outline"
-              className="h-11 px-6 rounded-[7px] font-bold text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 cursor-pointer"
-            >
-              <Wallet size={16} className="text-[#f26522]" />
-              <span>จัดการค่าใช้จ่าย</span>
-            </Button>
-          ) : undefined
-        }
       />
 
       <RoomFilters
@@ -123,7 +104,7 @@ export default function ManageRoomsPage() {
         onUpdateStatus={handleUpdateRoomStatus}
         onEdit={handleEditRoom}
         onDelete={handleDeleteRoom}
-        canDelete={isAdmin}
+        canDelete={false}
       />
 
       <RoomCreateDrawer
@@ -131,13 +112,6 @@ export default function ManageRoomsPage() {
         onClose={() => setIsCreateOpen(false)}
         onSave={handleAddRoom}
       />
-
-      {isAdmin && (
-        <ManageExpensesModal
-          open={isExpensesOpen}
-          onClose={() => setIsExpensesOpen(false)}
-        />
-      )}
     </div>
   );
 }

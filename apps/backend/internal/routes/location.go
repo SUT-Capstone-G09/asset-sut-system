@@ -7,23 +7,24 @@ import (
 
 func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	auth := middleware.AuthMiddleware(deps.Config.JWT.Secret)
+	optAuth := middleware.OptionalAuthMiddleware(deps.Config.JWT.Secret)
 	lc := deps.LocationController
 
 	rg.GET("/location-types", lc.GetTypes)
 
 	locations := rg.Group("/locations")
 	{
-		locations.GET("", lc.GetAll)
-		locations.GET("/:id", lc.GetByID)
+		// Optional auth: staff gets filtered list, others get all
+		locations.GET("", optAuth, lc.GetAll)
+		locations.GET("/:id", optAuth, lc.GetByID)
 		locations.GET("/:id/monthly-availability", lc.GetMonthlyAvailability)
 
-		// Staff/Admin only mutations
+		// Staff/Admin mutations (ownership enforced in service for staff)
 		mgmt := locations.Group("")
 		mgmt.Use(auth, middleware.RequireRole("staff", "admin"))
 		{
 			mgmt.POST("", lc.Create)
 			mgmt.PUT("/:id", lc.Update)
-			mgmt.DELETE("/:id", lc.Delete)
 
 			mgmt.GET("/:id/unavailabilities", lc.GetUnavailabilities)
 			mgmt.POST("/:id/unavailabilities", lc.CreateUnavailability)
@@ -38,6 +39,16 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 			mgmt.POST("/:id/pricing-tiers", lc.CreatePricingTier)
 			mgmt.DELETE("/:id/pricing-tiers/:tid", lc.DeletePricingTier)
+		}
+
+		// Admin-only: delete location, manage staff assignments per location
+		adminOnly := locations.Group("")
+		adminOnly.Use(auth, middleware.RequireRole("admin"))
+		{
+			adminOnly.DELETE("/:id", lc.Delete)
+			adminOnly.GET("/:id/staff", lc.GetLocationStaff)
+			adminOnly.POST("/:id/staff", lc.AssignStaff)
+			adminOnly.DELETE("/:id/staff/:uid", lc.UnassignStaff)
 		}
 	}
 }
