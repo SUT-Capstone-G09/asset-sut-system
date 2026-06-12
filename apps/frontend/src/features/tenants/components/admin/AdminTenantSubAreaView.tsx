@@ -148,6 +148,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
           filteredTenants.map((tenant) => (
             <div
               key={tenant.id}
+              onClick={() => router.push(`/admin/tenants/lists/${area.id}/${tenant.id}`)}
               className="group flex flex-col bg-card rounded-2xl border border-border/50 shadow-sm hover:shadow-xl hover:border-brand-primary/30 transition-all duration-300 overflow-hidden cursor-pointer"
             >
               {/* Card Top / Cover Area */}

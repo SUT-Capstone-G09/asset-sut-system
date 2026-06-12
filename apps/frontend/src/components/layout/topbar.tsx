@@ -32,15 +32,15 @@ export default function Navbar() {
   }, []);
 
   // ไม่แสดง Navbar ในหน้าที่มี Sidebar
-  const isDashboardPage = pathname?.startsWith("/admin") || 
-                          pathname?.startsWith("/operator") || 
+  const isDashboardPage = pathname?.startsWith("/admin") ||
+                          pathname?.startsWith("/operator") ||
                           pathname?.startsWith("/user");
 
   if (!mounted || isDashboardPage) return null;
 
   // เมนูนำทางหลัก
   const navItems = [
-    { label: "เกี่ยวกับเรา", href: "/about" ,
+    { label: "เกี่ยวกับเรา", href: "/about",
       subItems: [
         { label: "เกี่ยวกับเรา", href: "/about" },
       ],
@@ -51,7 +51,7 @@ export default function Navbar() {
       subItems: [
         { label: "สำหรับผู้ประกอบการ", href: "/services/entrepreneur" },
         { label: "สำหรับผู้สนใจเช่า", href: "/services/tenant" },
-        { label: "ผู้ใช้บริการ", href: "/bookings" },
+        { label: "ผู้ใช้บริการ", href: "/my-bookings" },
       ],
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },

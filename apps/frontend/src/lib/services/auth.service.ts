@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient, AUTH_SUFFIX } from "./api-client";
 
 export interface AuthUser {
   id: number;
@@ -24,7 +24,7 @@ export interface RegisterPayload {
 }
 
 export async function loginApi(email: string, password: string) {
-  const data = await apiClient.post<LoginResponse>("/auth/login", { email, password });
+  const data = await apiClient.post<LoginResponse>(`/auth/login${AUTH_SUFFIX()}`, { email, password });
   return { token: data.access_token, user: data.user };
 }
 
@@ -33,10 +33,10 @@ export async function registerApi(payload: RegisterPayload) {
 }
 
 export async function logoutApi() {
-  await apiClient.post("/auth/logout").catch(() => {});
+  await apiClient.post(`/auth/logout${AUTH_SUFFIX()}`).catch(() => {});
 }
 
 export async function refreshTokenApi() {
-  const data = await apiClient.post<LoginResponse>("/auth/refresh");
+  const data = await apiClient.post<LoginResponse>(`/auth/refresh${AUTH_SUFFIX()}`);
   return { token: data.access_token, user: data.user };
 }

@@ -14,13 +14,14 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
-	Server   ServerConfig
-	CORS     CORSConfig
-	JWT      JWTConfig
-	Cookie   CookieConfig
-	Minio    MinioConfig
-	Payment  PaymentConfig
-	SMTP     SMTPConfig
+	Server  ServerConfig
+	CORS	CORSConfig
+	JWT     JWTConfig
+	Cookie  CookieConfig
+	Minio   MinioConfig
+	GDrive   GDriveConfig
+	Payment PaymentConfig
+	SMTP    SMTPConfig
 }
 
 type DatabaseConfig struct {
@@ -63,6 +64,14 @@ type MinioConfig struct {
 	Bucket    string
 	UseSSL    bool
 	URLExpiry time.Duration
+}
+
+type GDriveConfig struct {
+	ClientEmail  string
+	PrivateKey   string
+	// FolderRoutes: folder name → Drive folder ID
+	// driven by GDRIVE_FOLDER_ROUTES=booking-docs:1ABC,payment-slip:4DEF
+	FolderRoutes map[string]string
 }
 
 // PaymentConfig holds the payee (university) details used to build EMVCo QR
@@ -127,6 +136,11 @@ func LoadConfig() (*Config, error) {
 			UseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
 			URLExpiry: parseDuration(getEnv("MINIO_URL_EXPIRY", "15m")),
 		},
+		GDrive: GDriveConfig{
+			ClientEmail:  getEnv("GDRIVE_CLIENT_EMAIL", ""),
+			PrivateKey:   cleanPrivateKey(getEnv("GDRIVE_PRIVATE_KEY", "")),
+			FolderRoutes: parseDriveFolderRoutes(getEnv("GDRIVE_FOLDER_ROUTES", "")),
+		},
 		Payment: PaymentConfig{
 			PromptPayID:  getEnv("PROMPTPAY_ID", ""),
 			BillerID:     getEnv("BILLER_ID", ""),
@@ -175,6 +189,23 @@ func findEnvFile() (string, error) {
 	currentDir := cwd
 
 	// Search up to 10 levels up for .env file
+	for range 10 {
+        // สร้าง DirFS สำหรับ directory ปัจจุบัน
+        fsys := os.DirFS(currentDir)
+        
+        // ตรวจสอบว่า .env มีอยู่หรือไม่
+        if _, err := fsys.Open(".env"); err == nil {
+            return filepath.Join(currentDir, ".env"), nil
+        }
+        
+        // ขึ้นไป 1 level
+        parent := filepath.Dir(currentDir)
+        if parent == currentDir {
+            // ถึง root directory แล้ว
+            break
+        }
+        currentDir = parent
+    }
 	for i := 0; i < 10; i++ {
 		// สร้าง DirFS สำหรับ directory ปัจจุบัน
 		fsys := os.DirFS(currentDir)
@@ -239,4 +270,24 @@ func parseDuration(s string) time.Duration {
 		return 12 * time.Hour
 	}
 	return d
+}
+
+// parseDriveFolderRoutes แปลง "booking-docs:1ABC,payment-slip:4DEF" เป็น map
+func parseDriveFolderRoutes(s string) map[string]string {
+	m := make(map[string]string)
+	for _, pair := range strings.Split(s, ",") {
+		parts := strings.SplitN(strings.TrimSpace(pair), ":", 2)
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			m[parts[0]] = parts[1]
+		}
+	}
+	return m
+}
+
+// cleanPrivateKey แปลง literal \n ที่มาจาก .env ให้เป็น newline จริง
+// รองรับทั้ง \\n (double-escaped) และ \n (single-escaped)
+func cleanPrivateKey(key string) string {
+	key = strings.ReplaceAll(key, `\\n`, "\n")
+	key = strings.ReplaceAll(key, `\n`, "\n")
+	return strings.TrimSpace(key)
 }

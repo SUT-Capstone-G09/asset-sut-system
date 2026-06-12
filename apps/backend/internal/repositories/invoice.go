@@ -13,8 +13,38 @@ func NewInvoiceRepository(db *gorm.DB) *InvoiceRepository {
 	return &InvoiceRepository{db: db}
 }
 
-func (r *InvoiceRepository) FindByID(id uint) (*models.Invoice, error) {
-	var invoice models.Invoice
-	err := r.db.First(&invoice, id).Error
+func (r *InvoiceRepository) FindByBookingID(bookingID uint) (*models.Invoices, error) {
+	var invoice models.Invoices
+	err := r.db.
+		Preload("Status").
+		Preload("Transactions.Method").
+		Preload("Transactions.Status").
+		Where("booking_id = ?", bookingID).
+		First(&invoice).Error
 	return &invoice, err
+}
+
+func (r *InvoiceRepository) FindByID(id uint) (*models.Invoices, error) {
+	var invoice models.Invoices
+	err := r.db.
+		Preload("Status").
+		Preload("Transactions.Method").
+		Preload("Transactions.Status").
+		Preload("Transactions.Verifier").
+		First(&invoice, id).Error
+	return &invoice, err
+}
+
+func (r *InvoiceRepository) Create(invoice *models.Invoices) error {
+	return r.db.Create(invoice).Error
+}
+
+func (r *InvoiceRepository) Update(invoice *models.Invoices) error {
+	return r.db.Save(invoice).Error
+}
+
+func (r *InvoiceRepository) FindStatusByName(name string) (*models.InvoiceStatuses, error) {
+	var status models.InvoiceStatuses
+	err := r.db.Where("status = ?", name).First(&status).Error
+	return &status, err
 }

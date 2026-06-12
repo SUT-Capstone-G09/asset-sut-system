@@ -12,7 +12,7 @@ func SetupDemoRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	{
 		demo.GET("/booking",
 			middleware.RequireRole("staff", "admin"),
-			middleware.RequirePermission(deps.PermissionChecker, "booking", "read"),
+			middleware.RequirePermission("booking", "read"),
 			func(ctx *gin.Context) {
 				response.OK(ctx, gin.H{
 					"message": "access granted: you may read bookings",

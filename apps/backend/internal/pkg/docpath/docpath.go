@@ -1,0 +1,54 @@
+package docpath
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+var thaiMonths = [12]string{
+	"มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+	"พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+	"กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+}
+
+// MonthFolder returns "มิถุนายน_2569" for use as a subfolder name.
+func MonthFolder(t time.Time) string {
+	return fmt.Sprintf("%s_%d", thaiMonths[t.Month()-1], t.Year()+543)
+}
+
+// FileName builds "{location}_{month}_{year}_#{bookingID}.{ext}".
+// If bookingID is 0, the booking-ID segment is omitted.
+func FileName(locationName string, bookingDate time.Time, bookingID int, original string) string {
+	ext := strings.ToLower(filepath.Ext(original))
+	month := thaiMonths[bookingDate.Month()-1]
+	year := bookingDate.Year() + 543
+	if bookingID > 0 {
+		return fmt.Sprintf("%s_%s_%d_#%d%s", locationName, month, year, bookingID, ext)
+	}
+	return fmt.Sprintf("%s_%s_%d%s", locationName, month, year, ext)
+}
+
+// ObjectKey returns the full storage path:
+// "{folderName}/มิถุนายน_2569/{FileName(...)}"
+func ObjectKey(folderName string, bookingDate time.Time, locationName string, bookingID int, original string) string {
+	return folderName + "/" + MonthFolder(bookingDate) + "/" + FileName(locationName, bookingDate, bookingID, original)
+}
+
+// DocType declares where a document category is stored and what its Thai
+// folder name is. Add a new entry to DocTypes to register a new category.
+type DocType struct {
+	FolderName string // Thai folder name used in both MinIO and Drive
+	StoreMinio bool
+	StoreDrive bool
+}
+
+// DocTypes is the single source of truth for document routing.
+// To add a new doc type: add one line here.
+// To move a type from "both" to "Drive only": set StoreMinio = false.
+var DocTypes = map[string]DocType{
+	"booking-docs": {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
+	"payment-slip": {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
+	"other":        {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
+}

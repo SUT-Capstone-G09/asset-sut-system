@@ -1,16 +1,30 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   addMonths, subMonths, format, startOfWeek, endOfWeek,
   addDays, nextMonday, isBefore, startOfDay,
 } from "date-fns";
 import { Room } from "@/features/bookings/types";
-import { DayBookingTime } from "@/features/bookings/types/booking-calendar";
-import { getDayInfo } from "@/features/bookings/data/mock-availability";
+import { DayBookingTime, DayInfo } from "@/features/bookings/types/booking-calendar";
+import { getMonthlyAvailability, MonthlyAvailabilityMap } from "@/features/bookings/services/location.service";
 
 function calcHours(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+}
+
+function toDayInfo(map: MonthlyAvailabilityMap, dateStr: string): DayInfo {
+  const entry = map[dateStr];
+  if (!entry) return { status: "available" };
+  if (entry.status === "full") return { status: "full" };
+  if (entry.status === "partial") {
+    const ranges = entry.booked_ranges;
+    const label = ranges && ranges.length > 0
+      ? ranges.map(([s, e]) => `${s}-${e}`).join(", ")
+      : `${entry.booked_hours ?? 0} ชม.`;
+    return { status: "partial", partialSlot: label };
+  }
+  return { status: "available" };
 }
 
 const DEFAULT_TIME: DayBookingTime = { startTime: "09:00", endTime: "11:00" };
@@ -22,16 +36,34 @@ export function useBookingCalendar(room: Room) {
   const [dayTimes, setDayTimes] = useState<Record<string, DayBookingTime>>({});
   const [sameTimeForAll, setSameTimeForAll] = useState(false);
   const [globalTime, setGlobalTime] = useState<DayBookingTime>(DEFAULT_TIME);
+  const [availabilityMap, setAvailabilityMap] = useState<MonthlyAvailabilityMap>({});
+
+  useEffect(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+    getMonthlyAvailability(Number(room.id), year, month)
+      .then(setAvailabilityMap)
+      .catch(() => setAvailabilityMap({}));
+  }, [room.id, currentMonth]);
 
   const getEffectiveTime = (dateStr: string): DayBookingTime =>
     sameTimeForAll ? globalTime : (dayTimes[dateStr] ?? DEFAULT_TIME);
 
+  // Returns the first booked range that conflicts with [startTime, endTime], or null if clear.
+  const getTimeConflict = (dateStr: string, startTime: string, endTime: string): [string, string] | null => {
+    const ranges = availabilityMap[dateStr]?.booked_ranges;
+    if (!ranges) return null;
+    for (const [rs, re] of ranges) {
+      if (startTime < re && endTime > rs) return [rs, re];
+    }
+    return null;
+  };
+
   const toggleDate = (date: Date) => {
     if (isBefore(startOfDay(date), today)) return;
-    const info = getDayInfo(date);
-    if (info.status === "full" || info.status === "closed") return;
-
     const dateStr = format(date, "yyyy-MM-dd");
+    const info = toDayInfo(availabilityMap, dateStr);
+    if (info.status === "full") return;
     setSelectedDates((prev) => {
       if (prev.includes(dateStr)) return prev.filter((d) => d !== dateStr);
       return [...prev, dateStr].sort();
@@ -59,8 +91,9 @@ export function useBookingCalendar(room: Room) {
 
   const selectDates = (dates: Date[]) => {
     const valid = dates.filter((d) => {
-      const info = getDayInfo(d);
-      return !isBefore(startOfDay(d), today) && info.status !== "full" && info.status !== "closed";
+      const dateStr = format(d, "yyyy-MM-dd");
+      const info = toDayInfo(availabilityMap, dateStr);
+      return !isBefore(startOfDay(d), today) && info.status !== "full";
     });
     const strs = valid.map((d) => format(d, "yyyy-MM-dd"));
     setSelectedDates((prev) => [...new Set([...prev, ...strs])].sort());
@@ -120,5 +153,8 @@ export function useBookingCalendar(room: Room) {
     selectNextWeekdays,
     selectThisWeek,
     totalStats,
+    availabilityMap,
+    getDayInfo: (date: Date) => toDayInfo(availabilityMap, format(date, "yyyy-MM-dd")),
+    getTimeConflict,
   };
 }

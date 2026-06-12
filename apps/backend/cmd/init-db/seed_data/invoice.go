@@ -8,17 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// sampleInvoices are matched on BookingID so re-running the seeder is idempotent
-// (one invoice per booking). BookingID is a placeholder reference; bookings are
-// not seeded/migrated yet.
-var sampleInvoices = []models.Invoice{
-	{BookingID: 1, TotalAmount: 150.00},
-	{BookingID: 2, TotalAmount: 2500.50},
+var sampleInvoices = []models.Invoices{
+	{BookingID: 1, StatusID: 1, TotalAmount: 150},
+	{BookingID: 2, StatusID: 1, TotalAmount: 2500},
 }
 
 func seedInvoices(db *gorm.DB, cfg *config.Config) error {
 	for _, inv := range sampleInvoices {
-		if err := db.FirstOrCreate(&inv, models.Invoice{BookingID: inv.BookingID}).Error; err != nil {
+		if err := db.FirstOrCreate(&inv, models.Invoices{BookingID: inv.BookingID}).Error; err != nil {
 			return err
 		}
 	}

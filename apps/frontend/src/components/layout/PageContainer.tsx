@@ -1,12 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import Breadcrumb from "./Breadcrumb";
 
 interface PageContainerProps {
   children: React.ReactNode;
   className?: string;
-  withPadding?: boolean; // เลือกว่าจะเว้นระยะ Navbar (pt-20)
-  withScrollbar?: boolean; // เลือกว่าจะใช้ custom-scrollbar
+  withPadding?: boolean;
+  withScrollbar?: boolean;
+  withBreadcrumb?: boolean;
 }
 
 export default function PageContainer({
@@ -14,18 +16,22 @@ export default function PageContainer({
   className,
   withPadding = true,
   withScrollbar = true,
+  withBreadcrumb = true,
 }: PageContainerProps) {
   return (
     <div
       className={cn(
         "flex-1 w-full",
-        // ถ้าต้องการ Scroll แยกเฉพาะส่วน
         withScrollbar && "h-screen overflow-y-auto custom-scrollbar",
-        // ถ้าต้องการเว้นระยะ Navbar
         withPadding && "pt-20",
         className
       )}
     >
+      {withBreadcrumb && withPadding && (
+        <div className="px-6 pt-3 pb-1">
+          <Breadcrumb />
+        </div>
+      )}
       {children}
     </div>
   );

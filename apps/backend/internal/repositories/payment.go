@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"errors"
-
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
 )
@@ -15,35 +13,56 @@ func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
 	return &PaymentRepository{db: db}
 }
 
-// FindByInvoiceID returns the payment tied to an invoice, or gorm.ErrRecordNotFound.
-func (r *PaymentRepository) FindByInvoiceID(invoiceID uint) (*models.Payment, error) {
-	var payment models.Payment
-	err := r.db.Where("invoice_id = ?", invoiceID).First(&payment).Error
-	return &payment, err
+func (r *PaymentRepository) FindByID(id uint) (*models.PaymentTransactions, error) {
+	var tx models.PaymentTransactions
+	err := r.db.
+		Preload("Method").
+		Preload("Status").
+		Preload("Verifier").
+		First(&tx, id).Error
+	return &tx, err
 }
 
-func (r *PaymentRepository) Create(payment *models.Payment) error {
-	return r.db.Create(payment).Error
+func (r *PaymentRepository) FindByInvoiceID(invoiceID uint) ([]models.PaymentTransactions, error) {
+	var txs []models.PaymentTransactions
+	err := r.db.
+		Where("invoice_id = ?", invoiceID).
+		Preload("Method").
+		Preload("Status").
+		Preload("Verifier").
+		Find(&txs).Error
+	return txs, err
 }
 
-func (r *PaymentRepository) Save(payment *models.Payment) error {
-	return r.db.Save(payment).Error
+func (r *PaymentRepository) Create(tx *models.PaymentTransactions) error {
+	return r.db.Create(tx).Error
 }
 
-// UpsertForInvoice returns the existing payment for an invoice or creates a new
-// one. Used by QR generation so repeated requests reuse the same payment row.
-func (r *PaymentRepository) UpsertForInvoice(invoiceID uint, amount float64) (*models.Payment, error) {
-	payment, err := r.FindByInvoiceID(invoiceID)
-	if err == nil {
-		return payment, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
+func (r *PaymentRepository) Update(tx *models.PaymentTransactions) error {
+	return r.db.Save(tx).Error
+}
 
-	payment = &models.Payment{InvoiceID: invoiceID, Amount: amount}
-	if err := r.Create(payment); err != nil {
-		return nil, err
-	}
-	return payment, nil
+func (r *PaymentRepository) FindStatusByName(name string) (*models.PaymentStatuses, error) {
+	var status models.PaymentStatuses
+	err := r.db.Where("status = ?", name).First(&status).Error
+	return &status, err
+}
+
+func (r *PaymentRepository) FindMethodByID(id uint) (*models.PaymentMethods, error) {
+	var method models.PaymentMethods
+	err := r.db.First(&method, id).Error
+	return &method, err
+}
+
+func (r *PaymentRepository) FindAll() ([]models.PaymentTransactions, error) {
+	var txs []models.PaymentTransactions
+	err := r.db.
+		Preload("Method").
+		Preload("Status").
+		Preload("Verifier").
+		Preload("Invoice.Booking.User").
+		Preload("Invoice.Booking.Timeslots.Location").
+		Order("created_at DESC").
+		Find(&txs).Error
+	return txs, err
 }

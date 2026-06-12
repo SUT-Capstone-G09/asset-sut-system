@@ -30,6 +30,7 @@ interface RoomDrawerProps {
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
   onEdit: (updatedRoom: Room) => void;
   onDelete: (id: string) => void;
+  canDelete?: boolean;
 }
 
 export default function RoomDrawer({
@@ -38,7 +39,8 @@ export default function RoomDrawer({
   onClose,
   onUpdateStatus,
   onEdit,
-  onDelete
+  onDelete,
+  canDelete = true,
 }: RoomDrawerProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -270,14 +272,16 @@ export default function RoomDrawer({
               <Pencil size={18} />
             </button>
 
-            {/* Delete Icon Button */}
-            <button
-              onClick={handleDelete}
-              title="ลบห้อง"
-              className="size-12 rounded-[7px] border border-red-100 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white hover:border-transparent transition-all flex items-center justify-center shrink-0 cursor-pointer"
-            >
-              <Trash2 size={18} />
-            </button>
+            {/* Delete Icon Button - admin only */}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                title="ลบห้อง"
+                className="size-12 rounded-[7px] border border-red-100 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white hover:border-transparent transition-all flex items-center justify-center shrink-0 cursor-pointer"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
           </div>
         </SheetContent>
       </Sheet>

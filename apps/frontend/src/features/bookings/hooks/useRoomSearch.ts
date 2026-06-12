@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { differenceInCalendarDays } from "date-fns";
-import { mockRooms } from "@/features/bookings/data/mock-rooms";
 import { Room, RoomSearchParams, SortOption, ViewMode } from "@/features/bookings/types";
+import { getLocations, locationToRoom } from "@/features/bookings/services/location.service";
+import { useAuthContext } from "@/lib/context/auth-context";
 
 const DEFAULT_PARAMS: RoomSearchParams = {
   mode: "single",
@@ -13,15 +14,23 @@ const DEFAULT_PARAMS: RoomSearchParams = {
 };
 
 export function useRoomSearch() {
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [searchParams, setSearchParams] = useState<RoomSearchParams>(DEFAULT_PARAMS);
-  // snapshot ที่ใช้ filter จริง — อัปเดตเฉพาะตอนกด "ค้นหา"
   const [appliedParams, setAppliedParams] = useState<RoomSearchParams | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("price_asc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const { user } = useAuthContext();
+  const requesterTypeId = user?.requester_type_id;
+
+  useEffect(() => {
+    getLocations()
+      .then((locations) => setAllRooms(locations.map((loc) => locationToRoom(loc, requesterTypeId))))
+      .catch(() => setAllRooms([]));
+  }, [requesterTypeId]);
 
   const results = useMemo<Room[]>(() => {
     if (!appliedParams) return [];
-    const filtered = mockRooms.filter((r) =>
+    const filtered = allRooms.filter((r) =>
       appliedParams.capacity == null || r.capacityMax >= appliedParams.capacity
     );
     return [...filtered].sort((a, b) => {
@@ -29,7 +38,7 @@ export function useRoomSearch() {
       if (sortBy === "price_desc") return b.pricePerHour - a.pricePerHour;
       return b.capacityMax - a.capacityMax;
     });
-  }, [appliedParams, sortBy]);
+  }, [appliedParams, sortBy, allRooms]);
 
   const handleSearch = () => setAppliedParams({ ...searchParams });
 
