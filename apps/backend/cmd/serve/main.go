@@ -125,7 +125,6 @@ func main() {
 		EmailTemplateController:  emailTemplateCtrl,
 		EmailBroadcastController: emailBroadcastCtrl,
 		ImageController:          imageCtrl,
-		PermissionChecker:        permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

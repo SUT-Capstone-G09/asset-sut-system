@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
-	"github.com/SUT-Capstone-G09/asset-sut-system/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +26,6 @@ type Dependencies struct {
 	EmailTemplateController  *controllers.EmailTemplateController
 	EmailBroadcastController *controllers.EmailBroadcastController
 	ImageController          *controllers.ImageController
-	PermissionChecker        middleware.PermissionChecker
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
