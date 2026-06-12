@@ -23,19 +23,22 @@ export const generateMockTenants = (areaId: string, subLocations: string[]): Moc
   };
 
   subLocations.forEach((sub, index) => {
-    // Determine how many tenants in this sub location
-    const numTenants = specificNames[sub] ? specificNames[sub].length : Math.floor(Math.random() * 5) + 3;
+    // Determine how many tenants in this sub location deterministically
+    const numTenants = specificNames[sub] ? specificNames[sub].length : ((index + 3) % 4) + 2;
     
     for (let i = 0; i < numTenants; i++) {
       const name = specificNames[sub] ? specificNames[sub][i] : `ร้านค้า ${sub} ${i + 1}`;
+      const businessTypeIndex = (index + i) % businessTypes.length;
+      const ownerIndex = (index + i) % 6;
+      const yearOffset = (index + i) % 3; // 0, 1, 2 => 2025, 2026, 2027
       
       tenants.push({
-        id: `${areaId}-${sub}-${index}-${i}`,
+        id: `${areaId}-${index}-${i}`,
         name,
         subLocation: sub,
-        businessType: businessTypes[Math.floor(Math.random() * businessTypes.length)],
-        ownerName: `คุณ ${["สมชาย", "สมหญิง", "มาลี", "วิชัย", "นารี", "ปรีชา"][Math.floor(Math.random() * 6)]} ใจดี`,
-        contractEndDate: `202${Math.floor(Math.random() * 3) + 5}-12-31`,
+        businessType: businessTypes[businessTypeIndex],
+        ownerName: `คุณ ${["สมชาย", "สมหญิง", "มาลี", "วิชัย", "นารี", "ปรีชา"][ownerIndex]} ใจดี`,
+        contractEndDate: `202${5 + yearOffset}-12-31`,
       });
     }
   });

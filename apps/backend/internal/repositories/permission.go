@@ -31,6 +31,33 @@ func (r *PermissionRepository) FindByID(id uint) (*models.Permissions, error) {
 	return &permission, err
 }
 
+func (r *PermissionRepository) GetUserPermissions(userID uint) ([]string, error) {
+	var user models.Users
+	err := r.db.
+		Preload("Permissions").
+		Preload("Roles.Permissions").
+		First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{})
+	for _, p := range user.Permissions {
+		seen[p.Module+":"+p.Action] = struct{}{}
+	}
+	for _, role := range user.Roles {
+		for _, p := range role.Permissions {
+			seen[p.Module+":"+p.Action] = struct{}{}
+		}
+	}
+
+	perms := make([]string, 0, len(seen))
+	for k := range seen {
+		perms = append(perms, k)
+	}
+	return perms, nil
+}
+
 func (r *PermissionRepository) UserHasPermission(userID uint, module, action string) (bool, error) {
 	var user models.Users
 	err := r.db.

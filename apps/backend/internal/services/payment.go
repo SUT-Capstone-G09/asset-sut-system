@@ -1,0 +1,159 @@
+package services
+
+import (
+	"errors"
+	"time"
+
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
+)
+
+type PaymentService struct {
+	paymentRepo *repositories.PaymentRepository
+	invoiceRepo *repositories.InvoiceRepository
+}
+
+func NewPaymentService(
+	paymentRepo *repositories.PaymentRepository,
+	invoiceRepo *repositories.InvoiceRepository,
+) *PaymentService {
+	return &PaymentService{
+		paymentRepo: paymentRepo,
+		invoiceRepo: invoiceRepo,
+	}
+}
+
+func (s *PaymentService) GetAll() ([]dto.PaymentTransactionResponse, error) {
+	txs, err := s.paymentRepo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.PaymentTransactionResponse
+	for _, tx := range txs {
+		result = append(result, toPaymentResponse(tx))
+	}
+	return result, nil
+}
+
+func (s *PaymentService) GetByInvoiceID(invoiceID uint) ([]dto.PaymentTransactionResponse, error) {
+	txs, err := s.paymentRepo.FindByInvoiceID(invoiceID)
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.PaymentTransactionResponse
+	for _, tx := range txs {
+		result = append(result, toPaymentResponse(tx))
+	}
+	return result, nil
+}
+
+func (s *PaymentService) GetByID(id uint) (*dto.PaymentTransactionResponse, error) {
+	tx, err := s.paymentRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	res := toPaymentResponse(*tx)
+	return &res, nil
+}
+
+func (s *PaymentService) Create(req dto.CreatePaymentRequest) (*dto.PaymentTransactionResponse, error) {
+	_, err := s.invoiceRepo.FindByID(req.InvoiceID)
+	if err != nil {
+		return nil, errors.New("invoice not found")
+	}
+
+	pendingStatus, err := s.paymentRepo.FindStatusByName("pending")
+	if err != nil {
+		return nil, errors.New("payment status not configured")
+	}
+
+	_, err = s.paymentRepo.FindMethodByID(req.MethodID)
+	if err != nil {
+		return nil, errors.New("payment method not found")
+	}
+
+	now := time.Now()
+	tx := &models.PaymentTransactions{
+		InvoiceID:  req.InvoiceID,
+		AmountPaid: req.AmountPaid,
+		MethodID:   req.MethodID,
+		StatusID:   pendingStatus.ID,
+		PaidAt:     &now,
+	}
+	if err := s.paymentRepo.Create(tx); err != nil {
+		return nil, err
+	}
+	return s.GetByID(tx.ID)
+}
+
+func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentRequest) (*dto.PaymentTransactionResponse, error) {
+	tx, err := s.paymentRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("transaction not found")
+	}
+	tx.StatusID = req.StatusID
+	tx.VerifyBy = &verifierID
+	if err := s.paymentRepo.Update(tx); err != nil {
+		return nil, err
+	}
+
+	// If approved, mark invoice as paid
+	status, err := s.paymentRepo.FindStatusByName("approved")
+	if err == nil && req.StatusID == status.ID {
+		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
+		if err == nil {
+			paidStatus, err := s.invoiceRepo.FindStatusByName("paid")
+			if err == nil {
+				invoice.StatusID = paidStatus.ID
+				_ = s.invoiceRepo.Update(invoice)
+			}
+		}
+	}
+
+	return s.GetByID(tx.ID)
+}
+
+func (s *PaymentService) AttachSlip(txID, docID uint) error {
+	tx, err := s.paymentRepo.FindByID(txID)
+	if err != nil {
+		return errors.New("transaction not found")
+	}
+	tx.SlipDocumentID = &docID
+	return s.paymentRepo.Update(tx)
+}
+
+func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResponse {
+	res := dto.PaymentTransactionResponse{
+		ID:             tx.ID,
+		InvoiceID:      tx.InvoiceID,
+		AmountPaid:     tx.AmountPaid,
+		StatusID:       tx.StatusID,
+		SlipDocumentID: tx.SlipDocumentID,
+		VerifyBy:       tx.VerifyBy,
+		PaidAt:         tx.PaidAt,
+		CreatedAt:      tx.CreatedAt,
+	}
+	if tx.Method != nil {
+		res.Method = tx.Method.Method
+	}
+	if tx.Status != nil {
+		res.Status = tx.Status.Status
+	}
+	if tx.Verifier != nil {
+		res.VerifierName = tx.Verifier.FirstName + " " + tx.Verifier.LastName
+	}
+	if tx.Invoice != nil {
+		res.BookingID = tx.Invoice.BookingID
+		if tx.Invoice.Booking != nil {
+			b := tx.Invoice.Booking
+			if b.User != nil {
+				res.UserName = b.User.Email
+			}
+			if len(b.Timeslots) > 0 && b.Timeslots[0].Location != nil {
+				res.LocationName = b.Timeslots[0].Location.Name
+			}
+		}
+	}
+	return res
+}

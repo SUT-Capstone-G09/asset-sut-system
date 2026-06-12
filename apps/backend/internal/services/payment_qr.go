@@ -22,20 +22,17 @@ var ErrInvalidMode = errors.New("mode must be 'promptpay' or 'biller'")
 
 type PaymentQRService struct {
 	invoiceRepo *repositories.InvoiceRepository
-	paymentRepo *repositories.PaymentRepository
 	storage     *StorageService
 	cfg         config.PaymentConfig
 }
 
 func NewPaymentQRService(
 	invoiceRepo *repositories.InvoiceRepository,
-	paymentRepo *repositories.PaymentRepository,
 	storage *StorageService,
 	cfg config.PaymentConfig,
 ) *PaymentQRService {
 	return &PaymentQRService{
 		invoiceRepo: invoiceRepo,
-		paymentRepo: paymentRepo,
 		storage:     storage,
 		cfg:         cfg,
 	}
@@ -58,7 +55,7 @@ func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRReque
 	if err != nil {
 		return dto.GenerateQRResponse{}, err
 	}
-	amount := fmt.Sprintf("%.2f", invoice.TotalAmount)
+	amount := fmt.Sprintf("%.2f", float64(invoice.TotalAmount))
 
 	payload, err := s.buildPayload(mode, invoice.ID, amount)
 	if err != nil {
@@ -75,26 +72,14 @@ func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRReque
 		return dto.GenerateQRResponse{}, fmt.Errorf("upload qr: %w", err)
 	}
 
-	payment, err := s.paymentRepo.UpsertForInvoice(invoice.ID, invoice.TotalAmount)
-	if err != nil {
-		return dto.GenerateQRResponse{}, err
-	}
-	payment.Amount = invoice.TotalAmount
-	payment.QRPayload = payload
-	payment.QRObjectKey = objectKey
-	if err := s.paymentRepo.Save(payment); err != nil {
-		return dto.GenerateQRResponse{}, err
-	}
-
 	url, err := s.storage.PresignedURL(ctx, objectKey)
 	if err != nil {
 		return dto.GenerateQRResponse{}, err
 	}
 
 	return dto.GenerateQRResponse{
-		PaymentID: payment.ID,
 		InvoiceID: invoice.ID,
-		Amount:    invoice.TotalAmount,
+		Amount:    float64(invoice.TotalAmount),
 		Payload:   payload,
 		QRCodeURL: url,
 		ExpiresIn: s.storage.URLExpirySeconds(),

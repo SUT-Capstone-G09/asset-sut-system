@@ -21,6 +21,7 @@ type AuthService struct {
 	requesterRepo    *repositories.RequesterRepository
 	roleRepo         *repositories.RoleRepository
 	refreshTokenRepo *repositories.RefreshTokenRepository
+	permissionRepo   *repositories.PermissionRepository
 	jwtSecret        string
 }
 
@@ -31,6 +32,7 @@ func NewAuthService(
 	requesterRepo *repositories.RequesterRepository,
 	roleRepo *repositories.RoleRepository,
 	refreshTokenRepo *repositories.RefreshTokenRepository,
+	permissionRepo *repositories.PermissionRepository,
 	jwtSecret string,
 ) *AuthService {
 	return &AuthService{
@@ -40,6 +42,7 @@ func NewAuthService(
 		requesterRepo:    requesterRepo,
 		roleRepo:         roleRepo,
 		refreshTokenRepo: refreshTokenRepo,
+		permissionRepo:   permissionRepo,
 		jwtSecret:        jwtSecret,
 	}
 }
@@ -66,7 +69,12 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.TokenResponse, string, e
 		return nil, "", err
 	}
 
-	tokens, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, roleName, s.jwtSecret)
+	permissions, err := s.permissionRepo.GetUserPermissions(user.ID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	tokens, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, roleName, permissions, s.jwtSecret)
 	if err != nil {
 		return nil, "", err
 	}
@@ -76,7 +84,7 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.TokenResponse, string, e
 		return nil, "", err
 	}
 
-	summary := dto.UserSummary{ID: user.ID, Email: user.Email, Role: roleName}
+	summary := dto.UserSummary{ID: user.ID, Email: user.Email, Role: roleName, Permissions: permissions}
 	s.populateName(user.ID, roleName, &summary)
 
 	return &dto.TokenResponse{
@@ -163,11 +171,16 @@ func (s *AuthService) Refresh(rawRefreshToken string) (*dto.TokenResponse, strin
 		roleName = user.Roles[0].Name
 	}
 
+	permissions, err := s.permissionRepo.GetUserPermissions(stored.UserID)
+	if err != nil {
+		return nil, "", err
+	}
+
 	if err := s.refreshTokenRepo.DeleteByHash(tokenHash); err != nil {
 		return nil, "", err
 	}
 
-	tokens, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, roleName, s.jwtSecret)
+	tokens, err := jwtpkg.GenerateTokenPair(user.ID, user.Email, roleName, permissions, s.jwtSecret)
 	if err != nil {
 		return nil, "", err
 	}
@@ -177,7 +190,7 @@ func (s *AuthService) Refresh(rawRefreshToken string) (*dto.TokenResponse, strin
 		return nil, "", err
 	}
 
-	summary := dto.UserSummary{ID: user.ID, Email: user.Email, Role: roleName}
+	summary := dto.UserSummary{ID: user.ID, Email: user.Email, Role: roleName, Permissions: permissions}
 	s.populateName(user.ID, roleName, &summary)
 
 	return &dto.TokenResponse{
@@ -202,6 +215,7 @@ func (s *AuthService) populateName(userID uint, role string, out *dto.UserSummar
 		if p, err := s.requesterRepo.FindByUserID(userID); err == nil {
 			out.FirstName = p.FirstName
 			out.LastName = p.LastName
+			out.RequesterTypeID = p.RequesterTypeID
 		}
 	}
 }

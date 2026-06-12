@@ -1,16 +1,32 @@
-import { notFound } from "next/navigation";
-import { mockRooms } from "@/features/bookings/data/mock-rooms";
-import BookingCalendarView from "@/features/bookings/components/calendar/BookingCalendarView";
-import PageContainer from "@/components/layout/PageContainer";
+"use client";
 
-export default async function BookingCalendarPage({
+import { use } from "react";
+import { notFound } from "next/navigation";
+import { useEffect, useState } from "react";
+import PageContainer from "@/components/layout/PageContainer";
+import BookingCalendarView from "@/features/bookings/components/calendar/BookingCalendarView";
+import { getLocationById, locationDetailToRoom } from "@/features/bookings/services/location.service";
+import { Room } from "@/features/bookings/types";
+import { useAuthContext } from "@/lib/context/auth-context";
+
+export default function BookingCalendarPage({
   params,
 }: {
   params: Promise<{ roomId: string }>;
 }) {
-  const { roomId } = await params;
-  const room = mockRooms.find((r) => r.id === roomId);
-  if (!room) notFound();
+  const { roomId } = use(params);
+  const [room, setRoom] = useState<Room | null>(null);
+  const [notFound404, setNotFound404] = useState(false);
+  const { user } = useAuthContext();
+
+  useEffect(() => {
+    getLocationById(Number(roomId))
+      .then((loc) => setRoom(locationDetailToRoom(loc, user?.requester_type_id)))
+      .catch(() => setNotFound404(true));
+  }, [roomId, user?.requester_type_id]);
+
+  if (notFound404) notFound();
+  if (!room) return null;
 
   return (
     <PageContainer>

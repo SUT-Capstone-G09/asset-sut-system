@@ -16,16 +16,18 @@ interface RoomGridProps {
   onEdit: (updatedRoom: Room) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  canDelete?: boolean;
 }
 
-export default function RoomGrid({ 
-  filteredRooms, 
+export default function RoomGrid({
+  filteredRooms,
   buildings,
   onResetFilters,
   onUpdateStatus,
   onEdit,
   onDelete,
-  isLoading = false
+  isLoading = false,
+  canDelete = true,
 }: RoomGridProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -122,6 +124,7 @@ export default function RoomGrid({
         onUpdateStatus={onUpdateStatus}
         onEdit={onEdit}
         onDelete={onDelete}
+        canDelete={canDelete}
       />
     </div>
   );

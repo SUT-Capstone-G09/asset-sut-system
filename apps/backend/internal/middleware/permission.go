@@ -5,11 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type PermissionChecker interface {
-	UserHasPermission(userID uint, module, action string) (bool, error)
-}
-
-func RequirePermission(checker PermissionChecker, module, action string) gin.HandlerFunc {
+func RequirePermission(module, action string) gin.HandlerFunc {
+	required := module + ":" + action
 	return func(ctx *gin.Context) {
 		userID := ctx.GetUint("user_id")
 		if userID == 0 {
@@ -18,17 +15,14 @@ func RequirePermission(checker PermissionChecker, module, action string) gin.Han
 			return
 		}
 
-		allowed, err := checker.UserHasPermission(userID, module, action)
-		if err != nil {
-			response.InternalError(ctx, "failed to verify permission")
-			ctx.Abort()
-			return
+		for _, p := range ctx.GetStringSlice("permissions") {
+			if p == required {
+				ctx.Next()
+				return
+			}
 		}
-		if !allowed {
-			response.Forbidden(ctx, "insufficient permission")
-			ctx.Abort()
-			return
-		}
-		ctx.Next()
+
+		response.Forbidden(ctx, "insufficient permission")
+		ctx.Abort()
 	}
 }

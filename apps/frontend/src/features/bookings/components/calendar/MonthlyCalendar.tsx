@@ -2,11 +2,11 @@
 
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfDay, isBefore,
+  eachDayOfInterval, isSameMonth, isToday, startOfDay, isBefore,
 } from "date-fns";
 import { th } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getDayInfo } from "@/features/bookings/data/mock-availability";
+import { DayInfo } from "@/features/bookings/types/booking-calendar";
 import { cn } from "@/lib/utils";
 
 const DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -23,12 +23,14 @@ interface MonthlyCalendarProps {
   onSelectWeekend: () => void;
   onSelectNextWeekdays: () => void;
   onSelectThisWeek: () => void;
+  getDayInfo: (date: Date) => DayInfo;
 }
 
 export default function MonthlyCalendar({
   currentMonth, today, selectedDates,
   onToggleDate, onPrev, onNext, onToday,
   onClearAll, onSelectWeekend, onSelectNextWeekdays, onSelectThisWeek,
+  getDayInfo,
 }: MonthlyCalendarProps) {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -126,7 +128,7 @@ export default function MonthlyCalendar({
                 // full
                 info.status === "full" && !selected && "bg-red-50 text-red-300 cursor-not-allowed",
                 // partial
-                info.status === "partial" && !selected && "bg-green-50",
+                info.status === "partial" && !selected && "bg-orange-50",
                 // closed
                 info.status === "closed" && !selected && "bg-gray-100 text-gray-300 cursor-not-allowed",
                 // past
@@ -151,8 +153,8 @@ export default function MonthlyCalendar({
                 <span className="text-[9px] text-red-400 mt-0.5 font-medium">เต็ม</span>
               )}
               {info.status === "partial" && !selected && (
-                <span className="text-[9px] text-green-600 mt-0.5 leading-tight text-center px-0.5 truncate w-full">
-                  {info.partialSlot?.split(" ")[0]}
+                <span className="text-[8px] text-orange-500 mt-0.5 leading-tight text-center px-0.5 truncate w-full font-medium">
+                  {info.partialSlot ?? "ว่างบางส่วน"}
                 </span>
               )}
               {info.status === "closed" && (
@@ -174,7 +176,7 @@ export default function MonthlyCalendar({
           { color: "bg-brand-primary", label: "เลือกแล้ว" },
           { color: "bg-white border border-gray-200", label: "ว่าง" },
           { color: "bg-red-50 border border-red-100", label: "เต็ม" },
-          { color: "bg-green-50 border border-green-100", label: "ว่างบางส่วน" },
+          { color: "bg-orange-50 border border-orange-100", label: "มีช่วงเวลาที่ถูกจอง" },
           { color: "bg-gray-100", label: "ไม่เปิดให้บริการ" },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">

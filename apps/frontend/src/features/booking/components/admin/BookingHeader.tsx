@@ -9,7 +9,7 @@ import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 interface BookingHeaderProps {
   title: string;
   breadcrumbs: { label: string; href?: string }[];
-  onCreateClick: () => void;
+  onCreateClick?: () => void;
   buttonLabel?: string;
   extraAction?: React.ReactNode;
 }
@@ -37,20 +37,24 @@ export default function BookingHeader({
         </div>
 
         {/* Action Group */}
-        <div className="flex items-center gap-3">
-          {extraAction}
-          <Button
-            onClick={onCreateClick}
-            className={cn(
-              "h-11 px-6 rounded-[7px] font-bold text-xs text-white",
-              "bg-[#f26522] hover:bg-[#d8561d] transition-all",
-              "shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer"
+        {(extraAction || onCreateClick) && (
+          <div className="flex items-center gap-3">
+            {extraAction}
+            {onCreateClick && (
+              <Button
+                onClick={onCreateClick}
+                className={cn(
+                  "h-11 px-6 rounded-[7px] font-bold text-xs text-white",
+                  "bg-[#f26522] hover:bg-[#d8561d] transition-all",
+                  "shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer"
+                )}
+              >
+                <Plus size={18} strokeWidth={3} />
+                <span>{buttonLabel}</span>
+              </Button>
             )}
-          >
-            <Plus size={18} strokeWidth={3} />
-            <span>{buttonLabel}</span>
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

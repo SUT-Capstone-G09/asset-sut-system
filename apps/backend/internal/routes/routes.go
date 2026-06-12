@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
-	"github.com/SUT-Capstone-G09/asset-sut-system/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -12,19 +11,21 @@ import (
 // cmd/serve/main.go (config, controllers) and passed down to each domain's
 // route registration function.
 type Dependencies struct {
-	Config                   *config.Config
-	AuthController           *controllers.AuthController
-	AdminController          *controllers.AdminController
-	StaffController          *controllers.StaffController
-	RequesterController      *controllers.RequesterController
-	RoleController           *controllers.RoleController
-	PaymentController        *controllers.PaymentController
-	UploadController         *controllers.UploadController
+	Config              *config.Config
+	AuthController      *controllers.AuthController
+	AdminController     *controllers.AdminController
+	StaffController     *controllers.StaffController
+	RequesterController *controllers.RequesterController
+	RoleController      *controllers.RoleController
+	LocationController  *controllers.LocationController
+	BookingController   *controllers.BookingController
+	PaymentController   *controllers.PaymentController
+	DocumentController  *controllers.DocumentController
+	UploadController    *controllers.UploadController
 	EmailController          *controllers.EmailController
 	EmailTemplateController  *controllers.EmailTemplateController
 	EmailBroadcastController *controllers.EmailBroadcastController
 	ImageController          *controllers.ImageController
-	PermissionChecker        middleware.PermissionChecker
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -50,5 +51,8 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupEmailRoutes(v1, deps)
 		SetupImageRoutes(v1, deps)
 		SetupDemoRoutes(v1, deps)
+		SetupLocationRoutes(v1, deps)
+		SetupBookingRoutes(v1, deps)
+		SetupDocumentRoutes(v1, deps)
 	}
 }
