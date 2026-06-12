@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { Card } from "@/components/ui/card";
-import { Landmark, CreditCard } from "lucide-react";
+import { Landmark, CreditCard, QrCode } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 interface QRCodeCardProps {
   qrCodeUrl: string;
@@ -14,9 +14,14 @@ export function QRCodeCard({
   totalPrice,
 }: QRCodeCardProps) {
   return (
-    <Card className="p-6 shadow-sm border-slate-100">
-      <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-        <div className="border border-slate-200 rounded-2xl p-3 bg-white shadow-sm shrink-0">
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <SectionHeader
+        icon={<QrCode size={14} />}
+        label="ช่องทางการชำระเงิน"
+      />
+
+      <div className="mt-4 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+        <div className="border border-gray-100 rounded-2xl p-3 bg-white shadow-sm shrink-0">
           <Image
             src={qrCodeUrl}
             alt="QR Code"
@@ -27,29 +32,33 @@ export function QRCodeCard({
         </div>
 
         <div className="flex flex-col gap-4 w-full">
-          <h3 className="text-xl font-bold text-slate-800 text-center sm:text-left">
+          <h3 className="text-lg font-bold text-gray-900 text-center sm:text-left">
             สแกนเพื่อชำระเงิน
           </h3>
 
-          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100/80">
-            <Landmark className="w-5 h-5 text-slate-500 shrink-0" />
+          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-100 shrink-0">
+              <Landmark className="w-4 h-4 text-brand-primary" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-md text-slate-400 font-medium">
+              <span className="text-xs text-gray-400 font-medium">
                 ชื่อบัญชี
               </span>
-              <span className="text-lg font-semibold text-slate-700">
+              <span className="text-sm font-semibold text-gray-800">
                 {accountName}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100/80">
-            <CreditCard className="w-5 h-5 text-slate-500 shrink-0" />
+          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-100 shrink-0">
+              <CreditCard className="w-4 h-4 text-brand-primary" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-md text-slate-400 font-medium">
+              <span className="text-xs text-gray-400 font-medium">
                 จำนวนเงิน
               </span>
-              <span className="text-lg font-bold text-[#F15A24]">
+              <span className="text-lg font-bold text-brand-primary">
                 ฿
                 {totalPrice.toLocaleString("th-TH", {
                   minimumFractionDigits: 2,
@@ -59,6 +68,6 @@ export function QRCodeCard({
           </div>
         </div>
       </div>
-    </Card>
+    </section>
   );
 }

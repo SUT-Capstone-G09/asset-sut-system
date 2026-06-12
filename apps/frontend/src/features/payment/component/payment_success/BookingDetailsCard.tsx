@@ -1,16 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import Image from "next/image";
-import {
-  CheckCircle2,
-  ImageIcon,
-  MapPin,
-  Calendar,
-  Clock,
-  DollarSign,
-} from "lucide-react";
+import { Calendar, Clock, MapPin, ReceiptText } from "lucide-react";
+import { SectionHeader } from "../SectionHeader";
 
 interface BookingDetailsProps {
   roomName: string;
@@ -32,80 +21,68 @@ export function BookingDetailsCard({
   totalPrice,
 }: BookingDetailsProps) {
   return (
-    <Card className="shadow-sm border-slate-100 overflow-hidden pt-0">
-      <CardHeader className="border-b border-orange-600 pb-6 pt-6 bg-orange-500">
-        <div className="flex items-center gap-3 ">
-          <CheckCircle2 className="w-6 h-6 text-white shrink-0" />
-          <CardTitle className="text-white">รายละเอียดการจอง</CardTitle>
-        </div>
-      </CardHeader>
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
+      <SectionHeader icon={<ReceiptText size={14} />} label="รายละเอียดการจอง" />
 
-      <CardContent className="pt-0 space-y-4">
-        {/* Room Name */}
-        <div className="pb-4 border-b border-slate-100">
-          <p className="text-sm font-medium text-slate-500 mb-1">
-            ห้องที่จองไว้
-          </p>
-          <p className="text-lg font-bold text-slate-800">{roomName}</p>
-        </div>
+      {/* Room Name */}
+      <div>
+        <h3 className="text-lg font-bold text-brand-primary">{roomName}</h3>
+        <p className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
+          <MapPin size={13} className="text-brand-primary shrink-0" />
+          {location}
+        </p>
+      </div>
 
-        {/* Location */}
-        <div className="flex gap-3">
-          <MapPin className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">สถานที่</p>
-            <p className="text-md text-slate-700">{location}</p>
+      {/* Date & Time */}
+      <div className="grid grid-cols-2 gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3">
+        <div className="flex items-start gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-100 shrink-0">
+            <Calendar className="w-4 h-4 text-brand-primary" />
           </div>
-        </div>
-
-        {/* Date */}
-        <div className="flex gap-3">
-          <Calendar className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">วันที่จอง</p>
-            <p className="text-md text-slate-700">{bookingDate}</p>
-          </div>
-        </div>
-
-        {/* Time */}
-        <div className="flex gap-3">
-          <Clock className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">เวลา</p>
-            <p className="text-md text-slate-700">{bookingTime}</p>
-          </div>
-        </div>
-
-        {/* Pricing Details */}
-        <div className="pt-4 border-t border-slate-100 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-slate-600">อัตราต่อชั่วโมง</span>
-            <span className="font-medium text-slate-700">
-              ฿{hourlyRate.toLocaleString("th-TH")}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-slate-600">จำนวนชั่วโมง</span>
-            <span className="font-medium text-slate-700">{hours} ชั่วโมง</span>
-          </div>
-          <div className="flex justify-between items-center pt-7 border-t border-slate-100">
-            <span className="text-lg font-bold text-slate-800">
-              รวมทั้งสิ้น
-            </span>
-            <span className="text-2xl font-bold text-orange-500">
-              ฿{totalPrice.toLocaleString("th-TH")}
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-400 font-medium">วันที่จอง</span>
+            <span className="text-sm font-bold text-gray-800">
+              {bookingDate}
             </span>
           </div>
         </div>
+        <div className="flex items-start gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-100 shrink-0">
+            <Clock className="w-4 h-4 text-brand-primary" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-400 font-medium">เวลา</span>
+            <span className="text-sm font-bold text-gray-800">
+              {bookingTime}
+            </span>
+          </div>
+        </div>
+      </div>
 
-        {/* Status Badge */}
-        {/* <div className="pt-4">
-          <Badge className="w-full justify-center bg-orange-100 text-orange-700 hover:bg-orange-100 py-2 text-sm">
-            <Clock className="w-4 h-4 mr-2" />
-            รอการตรวจสอบการชำระเงินจากเจ้าหน้าที่
-          </Badge>
-        </div> */}
-      </CardContent>
-    </Card>
+      {/* Pricing Details */}
+      <div className="flex flex-col gap-2 text-sm">
+        <div className="flex justify-between text-gray-500">
+          <span>อัตราต่อชั่วโมง</span>
+          <span className="font-semibold text-gray-800">
+            ฿{hourlyRate.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex justify-between text-gray-500">
+          <span>จำนวนชั่วโมง</span>
+          <span className="font-semibold text-gray-800">{hours} ชั่วโมง</span>
+        </div>
+      </div>
+
+      <hr className="border-gray-100" />
+
+      <div className="flex justify-between items-center">
+        <span className="text-base font-bold text-brand-primary">
+          รวมทั้งสิ้น
+        </span>
+        <span className="text-2xl font-black text-brand-primary">
+          ฿{totalPrice.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+    </section>
   );
 }

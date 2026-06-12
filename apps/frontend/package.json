@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -14,6 +14,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.2.1",
+    "grapesjs": "^0.23.2",
+    "grapesjs-preset-newsletter": "^1.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",

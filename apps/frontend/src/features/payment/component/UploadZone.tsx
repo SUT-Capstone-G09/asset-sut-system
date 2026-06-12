@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, FileUp } from "lucide-react";
 import { useRef } from "react";
+import { SectionHeader } from "./SectionHeader";
 
 export function UploadZone() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,7 +22,12 @@ export function UploadZone() {
   };
 
   return (
-    <div className="upload-zone flex flex-col items-center justify-center p-8 m-4 rounded-2xl bg-slate-50/50 border-2 border-dashed transition-colors duration-200 hover:bg-orange-50">
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <SectionHeader
+        icon={<FileUp size={14} />}
+        label="อัปโหลดหลักฐานการชำระเงิน"
+      />
+
       <input
         ref={fileInputRef}
         type="file"
@@ -29,21 +35,24 @@ export function UploadZone() {
         onChange={handleFileSelect}
         className="hidden"
       />
-      <div className="p-3 bg-orange-50 rounded-2xl text-orange-500 mb-4">
-        <Upload className="w-6 h-6" />
+
+      <div className="mt-4 flex flex-col items-center justify-center p-8 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 transition-colors duration-200 hover:border-brand-primary/30 hover:bg-orange-50">
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-brand-primary mb-4">
+          <Upload className="w-6 h-6" />
+        </div>
+        <h4 className="text-sm font-semibold text-gray-800 mb-1">
+          อัปโหลดหลักฐานการชำระเงิน
+        </h4>
+        <p className="text-xs text-gray-400 text-center mb-6">
+          รองรับไฟล์ JPG, PNG หรือ PDF ขนาดไม่เกิน 5MB
+        </p>
+        <Button
+          onClick={handleButtonClick}
+          className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 px-6 rounded-xl"
+        >
+          เลือกไฟล์
+        </Button>
       </div>
-      <h4 className="text-md font-bold text-slate-800 mb-1">
-        อัปโหลดหลักฐานการชำระเงิน
-      </h4>
-      <p className="text-md text-slate-400 text-center mb-6">
-        หลักโหลดไฟล์ JPG, PNG or PDF และขนาดไฟล์ไม่เกิน 5MB.
-      </p>
-      <Button
-        onClick={handleButtonClick}
-        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-semibold shadow-md shadow-orange-500/20"
-      >
-        เลือกไฟล์
-      </Button>
-    </div>
+    </section>
   );
 }

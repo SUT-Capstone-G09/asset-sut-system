@@ -1,18 +1,42 @@
-// lib/services/auth.service.ts
-import { MOCK_USERS } from "../mock/users"
+import { apiClient } from "./api-client";
 
-export async function login(email: string, password: string) {
-  // simulate network delay
-  await new Promise(r => setTimeout(r, 500))
+export interface AuthUser {
+  id: number;
+  email: string;
+  role: string;
+  first_name: string;
+  last_name: string;
+}
 
-  const found = MOCK_USERS.find(
-    u => u.email === email && u.password === password
-  )
-  if (!found) throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+interface LoginResponse {
+  access_token: string;
+  user: AuthUser;
+}
 
-  // return เหมือน JWT response จริง
-  return {
-    token: `mock-token-${found.id}`,
-    user: { id: found.id, name: found.name, role: found.role, shopId: found.shopId },
-  }
+export interface RegisterPayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  line_id?: string;
+  phone?: string;
+  requester_type_id: number;
+}
+
+export async function loginApi(email: string, password: string) {
+  const data = await apiClient.post<LoginResponse>("/auth/login", { email, password });
+  return { token: data.access_token, user: data.user };
+}
+
+export async function registerApi(payload: RegisterPayload) {
+  await apiClient.post("/auth/register", payload);
+}
+
+export async function logoutApi() {
+  await apiClient.post("/auth/logout").catch(() => {});
+}
+
+export async function refreshTokenApi() {
+  const data = await apiClient.post<LoginResponse>("/auth/refresh");
+  return { token: data.access_token, user: data.user };
 }
