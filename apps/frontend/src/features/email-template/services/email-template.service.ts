@@ -5,8 +5,11 @@ import type {
   UpdateEmailTemplatePayload,
 } from "../types";
 
-export const getEmailTemplates = () =>
-  apiClient.get<EmailTemplate[]>("/email/templates");
+// Optional q searches name/key/subject server-side (see GET /email/templates?q=).
+export const getEmailTemplates = (q?: string) => {
+  const query = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+  return apiClient.get<EmailTemplate[]>(`/email/templates${query}`);
+};
 
 export const getEmailTemplate = (id: number) =>
   apiClient.get<EmailTemplate>(`/email/templates/${id}`);

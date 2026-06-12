@@ -27,11 +27,10 @@ export const getAudienceOptions = () =>
   apiClient.get<AudienceOptions>("/email/audiences/options");
 
 export const searchRecipients = (q: string) =>
-  apiClient.get<Recipient[]>(`/email/recipients/search?q=${encodeURIComponent(q)}`);
+  apiClient.get<Recipient[]>(
+    `/email/recipients/search?q=${encodeURIComponent(q)}`,
+  );
 
-// Extracts Go-template variable names ({{.foo}}) from a template's subject + body,
-// excluding userName (the server fills that per recipient). Used to render the
-// static-variable inputs in the composer.
 export function extractTemplateVariables(...sources: string[]): string[] {
   const re = /\{\{\s*\.(\w+)\s*\}\}/g;
   const found = new Set<string>();

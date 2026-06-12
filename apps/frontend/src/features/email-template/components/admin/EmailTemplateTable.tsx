@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   getEmailTemplates,
@@ -14,22 +15,48 @@ import type { EmailTemplate } from "../../types";
 
 export default function EmailTemplateTable() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  // Search is queried server-side. Debounce keystrokes; the empty query (initial
+  // load) fires immediately. setState lives in the async callback, not the effect
+  // body, per react-hooks rules.
   useEffect(() => {
-    getEmailTemplates()
-      .then(setTemplates)
-      .catch((e) => setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ"))
-      .finally(() => setLoading(false));
-  }, []);
+    const q = query.trim();
+    let ignore = false;
+    const handle = setTimeout(
+      async () => {
+        setLoading(true);
+        try {
+          const data = await getEmailTemplates(q);
+          if (!ignore) {
+            setError(null);
+            setTemplates(data);
+          }
+        } catch (e) {
+          if (!ignore)
+            setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+        } finally {
+          if (!ignore) setLoading(false);
+        }
+      },
+      q ? 300 : 0,
+    );
+    return () => {
+      ignore = true;
+      clearTimeout(handle);
+    };
+  }, [query]);
 
   const toggleActive = async (t: EmailTemplate) => {
     setBusyId(t.id);
     setError(null);
     try {
-      const updated = await updateEmailTemplate(t.id, { is_active: !t.is_active });
+      const updated = await updateEmailTemplate(t.id, {
+        is_active: !t.is_active,
+      });
       setTemplates((prev) => prev.map((x) => (x.id === t.id ? updated : x)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "อัปเดตสถานะไม่สำเร็จ");
@@ -52,10 +79,6 @@ export default function EmailTemplateTable() {
     }
   };
 
-  if (loading) {
-    return <div className="py-12 text-center text-sm text-gray-400">กำลังโหลด...</div>;
-  }
-
   return (
     <div className="space-y-4">
       {error && (
@@ -64,10 +87,22 @@ export default function EmailTemplateTable() {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button asChild>
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ค้นหาจากชื่อ, key หรือหัวข้อ"
+            className="pl-9"
+          />
+          {loading && (
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+          )}
+        </div>
+        <Button asChild className="bg-brand-primary hover:bg-brand-primary/90">
           <Link href="/admin/email-templates/new">
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 " />
             สร้าง Template
           </Link>
         </Button>
@@ -85,22 +120,40 @@ export default function EmailTemplateTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {templates.length === 0 ? (
+            {loading && templates.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
-                  ยังไม่มี template — กด &quot;สร้าง Template&quot; เพื่อเริ่ม
+                <td
+                  colSpan={5}
+                  className="px-4 py-10 text-center text-gray-400"
+                >
+                  กำลังโหลด...
+                </td>
+              </tr>
+            ) : templates.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-4 py-10 text-center text-gray-400"
+                >
+                  {query.trim()
+                    ? `ไม่พบ template ที่ตรงกับ "${query.trim()}"`
+                    : 'ยังไม่มี template — กด "สร้าง Template" เพื่อเริ่ม'}
                 </td>
               </tr>
             ) : (
               templates.map((t) => (
                 <tr key={t.id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{t.name}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">
+                    {t.name}
+                  </td>
                   <td className="px-4 py-3">
                     <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                       {t.key}
                     </code>
                   </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-gray-500">{t.subject}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-gray-500">
+                    {t.subject}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
@@ -122,7 +175,12 @@ export default function EmailTemplateTable() {
                           )}
                         />
                       </span>
-                      <span className={cn("text-xs", t.is_active ? "text-brand-primary" : "text-gray-400")}>
+                      <span
+                        className={cn(
+                          "text-xs",
+                          t.is_active ? "text-brand-primary" : "text-gray-400",
+                        )}
+                      >
                         {t.is_active ? "เปิด" : "ปิด"}
                       </span>
                     </button>

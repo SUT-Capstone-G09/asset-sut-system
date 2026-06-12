@@ -4,7 +4,7 @@ import BroadcastComposer from "@/features/email-template/components/admin/Broadc
 
 export default function SendBroadcastPage() {
   return (
-    <div className="space-y-6 p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-8">
       <Link
         href="/admin/email-templates"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"

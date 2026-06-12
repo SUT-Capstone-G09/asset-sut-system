@@ -25,8 +25,8 @@ func NewEmailTemplateService(repo *repositories.EmailTemplateRepository) *EmailT
 	return &EmailTemplateService{repo: repo}
 }
 
-func (s *EmailTemplateService) GetAll() ([]dto.EmailTemplateResponse, error) {
-	templates, err := s.repo.FindAll()
+func (s *EmailTemplateService) GetAll(search string) ([]dto.EmailTemplateResponse, error) {
+	templates, err := s.repo.FindAll(search)
 	if err != nil {
 		return nil, err
 	}

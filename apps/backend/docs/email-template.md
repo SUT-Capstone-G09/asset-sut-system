@@ -177,7 +177,7 @@ email client โหลดผ่าน  GET /api/v1/images/*  (public, proxy → 
 
 | Method | Path | ทำอะไร |
 |--------|------|--------|
-| `GET` | `/api/v1/email/templates` | รายการทั้งหมด |
+| `GET` | `/api/v1/email/templates` | รายการทั้งหมด (ใหม่สุดก่อน) — ใส่ `?q=` ค้นหาจาก name/key/subject ได้ |
 | `POST` | `/api/v1/email/templates` | สร้างใหม่ |
 | `GET` | `/api/v1/email/templates/:id` | ดูตัวเดียว |
 | `PUT` | `/api/v1/email/templates/:id` | แก้ไข (รวม toggle `is_active`) |

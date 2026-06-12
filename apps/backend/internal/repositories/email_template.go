@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"strings"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
 )
@@ -13,9 +15,16 @@ func NewEmailTemplateRepository(db *gorm.DB) *EmailTemplateRepository {
 	return &EmailTemplateRepository{db: db}
 }
 
-func (r *EmailTemplateRepository) FindAll() ([]models.EmailTemplate, error) {
+// FindAll returns templates newest-first. When search is non-empty it filters by
+// name/key/subject (case-insensitive) so the listing can be queried server-side.
+func (r *EmailTemplateRepository) FindAll(search string) ([]models.EmailTemplate, error) {
 	var templates []models.EmailTemplate
-	err := r.db.Order("key asc").Find(&templates).Error
+	q := r.db.Order("created_at desc")
+	if search = strings.TrimSpace(search); search != "" {
+		like := "%" + search + "%"
+		q = q.Where("name ILIKE ? OR key ILIKE ? OR subject ILIKE ?", like, like, like)
+	}
+	err := q.Find(&templates).Error
 	return templates, err
 }
 

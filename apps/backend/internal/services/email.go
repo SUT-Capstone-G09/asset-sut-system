@@ -90,8 +90,6 @@ func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepo
 	go s.worker()
 
 	if outboxRepo != nil {
-		// Recover anything a previous process left mid-send, then start the
-		// durable outbox worker for bulk (broadcast) delivery.
 		if n, err := outboxRepo.RequeueStuckSending(); err != nil {
 			log.Printf("outbox: failed to requeue stuck rows on startup: %v", err)
 		} else if n > 0 {
@@ -103,9 +101,6 @@ func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepo
 	return s, nil
 }
 
-// Render exposes template resolution (DB-first with code fallback) so callers
-// such as the broadcast service can pre-render per-recipient emails before
-// persisting them to the outbox.
 func (s *EmailService) Render(key string, data map[string]any) (subject, html, text string, err error) {
 	return s.render(key, data)
 }
@@ -205,10 +200,6 @@ func (s *EmailService) buildMessage(job emailJob) *gomail.Message {
 	return m
 }
 
-// sendWithTimeout runs one DialAndSend bounded by emailSendTimeout. On timeout it
-// returns an error (so the retry loop continues) and lets the blocked goroutine
-// finish on its own once the OS tears the connection down — the buffered channel
-// keeps that goroutine from leaking on send.
 func (s *EmailService) sendWithTimeout(m *gomail.Message) error {
 	done := make(chan error, 1)
 	go func() {
@@ -222,9 +213,6 @@ func (s *EmailService) sendWithTimeout(m *gomail.Message) error {
 	}
 }
 
-// outboxWorker polls the durable outbox for pending rows and delivers them. It
-// backs bulk (broadcast) sends, which must survive restarts — unlike the
-// in-memory queue used by Send.
 func (s *EmailService) outboxWorker() {
 	ticker := time.NewTicker(outboxPollInterval)
 	defer ticker.Stop()
@@ -240,9 +228,6 @@ func (s *EmailService) outboxWorker() {
 	}
 }
 
-// deliverOutbox makes one delivery attempt for a claimed row. Failures short of
-// the attempt cap return the row to pending (retried on a later poll); exhausted
-// rows are marked failed. Each attempt is bounded by sendWithTimeout.
 func (s *EmailService) deliverOutbox(row models.EmailOutbox) {
 	attempts := row.Attempts + 1
 	m := s.buildMessage(emailJob{to: row.ToEmail, subject: row.Subject, html: row.HTML, text: row.Text})
@@ -289,10 +274,6 @@ var (
 	reBlankLines  = regexp.MustCompile(`\n{3,}`)
 )
 
-// htmlToText is a best-effort plain-text rendering of an HTML email body, used as
-// the text/plain alternative for DB-defined templates. It drops script/style,
-// turns block-closing tags into line breaks, strips the rest, and unescapes
-// entities. It is a spam-scoring fallback, not a full HTML renderer.
 func htmlToText(htmlBody string) string {
 	s := reScriptStyle.ReplaceAllString(htmlBody, "")
 	s = reBlockBreak.ReplaceAllString(s, "\n")

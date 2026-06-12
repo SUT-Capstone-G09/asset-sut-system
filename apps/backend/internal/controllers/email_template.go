@@ -18,7 +18,7 @@ func NewEmailTemplateController(service *services.EmailTemplateService) *EmailTe
 }
 
 func (c *EmailTemplateController) GetAll(ctx *gin.Context) {
-	templates, err := c.service.GetAll()
+	templates, err := c.service.GetAll(ctx.Query("q"))
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
