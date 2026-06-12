@@ -9,7 +9,7 @@ func SetupEmailRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	email := rg.Group("/email")
 	email.Use(middleware.AuthMiddleware(deps.Config.JWT.Secret), middleware.RequireRole("admin"))
 	{
-		email.POST("/test", deps.EmailController.SendTest)
+		email.POST("/send-email", deps.EmailController.SendEmail)
 
 		templates := email.Group("/templates")
 		templates.GET("", deps.EmailTemplateController.GetAll)
@@ -19,7 +19,6 @@ func SetupEmailRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		templates.DELETE("/:id", deps.EmailTemplateController.Delete)
 		templates.POST("/image", deps.ImageController.Upload)
 
-		// Bulk send (broadcast) to an audience, plus the pickers that feed it.
 		broadcasts := email.Group("/broadcasts")
 		broadcasts.POST("/preview", deps.EmailBroadcastController.Preview)
 		broadcasts.POST("", deps.EmailBroadcastController.Create)

@@ -15,7 +15,7 @@ func NewEmailController(emailService *services.EmailService) *EmailController {
 	return &EmailController{emailService: emailService}
 }
 
-func (c *EmailController) SendTest(ctx *gin.Context) {
+func (c *EmailController) SendEmail(ctx *gin.Context) {
 	var req dto.SendTestEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
@@ -28,7 +28,7 @@ func (c *EmailController) SendTest(ctx *gin.Context) {
 	}
 
 	if err := c.emailService.Send(req.To, key, req.Data); err != nil {
-		response.InternalError(ctx, err.Error())
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
