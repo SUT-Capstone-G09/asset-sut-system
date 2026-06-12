@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"mime/multipart"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/docpath"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
 	"github.com/gin-gonic/gin"
@@ -15,8 +16,8 @@ const maxUploadSize = 10 << 20 // 10 MB
 
 type UploadController struct {
 	minio       *services.StorageService
-	drive       *services.DriveService   // nil ถ้าไม่ได้ configure
-	driveRoutes map[string]string        // folder name → Drive folder ID
+	drive       *services.DriveService  // nil ถ้าไม่ได้ configure
+	driveRoutes map[string]string       // doc-type key → Drive folder ID
 }
 
 func NewUploadController(
@@ -24,15 +25,12 @@ func NewUploadController(
 	drive *services.DriveService,
 	driveRoutes map[string]string,
 ) *UploadController {
-	return &UploadController{
-		minio:       minio,
-		drive:       drive,
-		driveRoutes: driveRoutes,
-	}
+	return &UploadController{minio: minio, drive: drive, driveRoutes: driveRoutes}
 }
 
-// Upload รับ multipart file + form field "folder"
-// แล้ว route ไปยัง Google Drive หรือ MinIO ตาม folder routing rules
+// Upload รับ multipart file + form fields แล้วอัปโหลดตาม DocTypes routing table
+// ถ้า doc type รู้จัก → ใช้ docpath naming, อัปโหลดไปทุก storage ที่ระบุ
+// ถ้าไม่รู้จัก → fallback ไป MinIO ด้วย path เดิม
 func (c *UploadController) Upload(ctx *gin.Context) {
 	fh, err := ctx.FormFile("file")
 	if err != nil {
@@ -46,7 +44,6 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 
 	folder := ctx.PostForm("folder")
 
-	// Parse optional booking_date (ISO date "2006-01-02"); fallback to now
 	bookingDate := time.Now()
 	if dateStr := ctx.PostForm("booking_date"); dateStr != "" {
 		if parsed, err := time.Parse("2006-01-02", dateStr); err == nil {
@@ -55,51 +52,62 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	}
 
 	locationName := ctx.PostForm("location_name")
-
 	bookingID, _ := strconv.Atoi(ctx.PostForm("booking_id"))
 
-	// Route to Drive if folder is mapped and Drive is configured
-	if c.drive != nil {
-		if drivefolderID, ok := c.driveRoutes[folder]; ok {
-			c.uploadToDrive(ctx, drivefolderID, fh, bookingDate, locationName, bookingID)
+	dt, known := docpath.DocTypes[folder]
+	if !known {
+		// Unknown folder → legacy MinIO path (sanitized)
+		result, err := c.minio.UploadMultipart(ctx.Request.Context(), folder, fh)
+		if err != nil {
+			response.InternalError(ctx, err.Error())
+			return
+		}
+		response.Created(ctx, dto.UploadResponse{
+			BucketName:  result.BucketName,
+			ObjectKey:   result.ObjectKey,
+			URL:         result.URL,
+			FileName:    result.FileName,
+			ContentType: result.ContentType,
+			Size:        result.Size,
+			ExpiresIn:   result.ExpiresIn,
+		})
+		return
+	}
+
+	objectKey := docpath.ObjectKey(dt.FolderName, bookingDate, locationName, bookingID, fh.Filename)
+
+	// ── MinIO ────────────────────────────────────────────────────────────────
+	var minioResult services.UploadResult
+	if dt.StoreMinio {
+		minioResult, err = c.minio.UploadWithKey(ctx.Request.Context(), objectKey, fh)
+		if err != nil {
+			response.InternalError(ctx, "minio upload failed: "+err.Error())
 			return
 		}
 	}
 
-	// Default: MinIO
-	c.uploadToMinio(ctx, folder, fh)
-}
-
-func (c *UploadController) uploadToMinio(ctx *gin.Context, folder string, fh *multipart.FileHeader) {
-	result, err := c.minio.UploadMultipart(ctx.Request.Context(), folder, fh)
-	if err != nil {
-		response.InternalError(ctx, err.Error())
-		return
+	// ── Google Drive ─────────────────────────────────────────────────────────
+	var driveURL string
+	if dt.StoreDrive && c.drive != nil {
+		if driveFolderID, ok := c.driveRoutes[folder]; ok {
+			driveResult, driveErr := c.drive.UploadMultipart(ctx.Request.Context(), driveFolderID, fh, bookingDate, locationName, bookingID)
+			if driveErr != nil {
+				// Drive failure is non-fatal — log and continue
+				log.Printf("drive upload warning (folder=%s): %v", folder, driveErr)
+			} else {
+				driveURL = driveResult.ViewURL
+			}
+		}
 	}
-	response.Created(ctx, dto.UploadResponse{
-		BucketName:  result.BucketName,
-		ObjectKey:   result.ObjectKey,
-		URL:         result.URL,
-		FileName:    result.FileName,
-		ContentType: result.ContentType,
-		Size:        result.Size,
-		ExpiresIn:   result.ExpiresIn,
-	})
-}
 
-func (c *UploadController) uploadToDrive(ctx *gin.Context, folderID string, fh *multipart.FileHeader, bookingDate time.Time, locationName string, bookingID int) {
-	result, err := c.drive.UploadMultipart(ctx.Request.Context(), folderID, fh, bookingDate, locationName, bookingID)
-	if err != nil {
-		response.InternalError(ctx, err.Error())
-		return
-	}
 	response.Created(ctx, dto.UploadResponse{
-		BucketName:  "gdrive",
-		ObjectKey:   result.FileID,
-		URL:         result.ViewURL,
-		FileName:    result.FileName,
-		ContentType: result.ContentType,
-		Size:        result.Size,
-		ExpiresIn:   0,
+		BucketName:  minioResult.BucketName,
+		ObjectKey:   minioResult.ObjectKey,
+		URL:         minioResult.URL,
+		DriveURL:    driveURL,
+		FileName:    fh.Filename,
+		ContentType: minioResult.ContentType,
+		Size:        fh.Size,
+		ExpiresIn:   minioResult.ExpiresIn,
 	})
 }

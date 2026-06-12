@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"golang.org/x/oauth2/google"
@@ -15,6 +13,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/docpath"
 )
 
 type DriveService struct {
@@ -63,7 +62,7 @@ func NewDriveService(cfg config.GDriveConfig) (*DriveService, error) {
 // สร้าง subfolder อัตโนมัติถ้ายังไม่มี
 func (s *DriveService) UploadMultipart(ctx context.Context, folderID string, fh *multipart.FileHeader, bookingDate time.Time, locationName string, bookingID int) (DriveUploadResult, error) {
 	// หา (หรือสร้าง) subfolder ตามเดือนของวันที่จอง
-	monthFolderID, err := s.getOrCreateMonthFolder(ctx, folderID, monthFolderName(bookingDate))
+	monthFolderID, err := s.getOrCreateMonthFolder(ctx, folderID, docpath.MonthFolder(bookingDate))
 	if err != nil {
 		return DriveUploadResult{}, err
 	}
@@ -80,7 +79,7 @@ func (s *DriveService) UploadMultipart(ctx context.Context, folderID string, fh 
 	}
 
 	meta := &drive.File{
-		Name:    buildDriveFileName(locationName, bookingDate, bookingID, fh.Filename),
+		Name:    docpath.FileName(locationName, bookingDate, bookingID, fh.Filename),
 		Parents: []string{monthFolderID},
 	}
 
@@ -151,25 +150,3 @@ func (s *DriveService) getOrCreateMonthFolder(ctx context.Context, parentID, fol
 	return created.Id, nil
 }
 
-var thaiMonths = [12]string{
-	"มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
-	"พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
-	"กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
-}
-
-// monthFolderName คืนชื่อ folder ตามเดือนของ t เช่น "มิถุนายน_2569"
-func monthFolderName(t time.Time) string {
-	return fmt.Sprintf("%s_%d", thaiMonths[t.Month()-1], t.Year()+543)
-}
-
-// buildDriveFileName สร้างชื่อไฟล์ในรูปแบบ "{location}_{เดือนไทย}_{ปีพศ}_#{bookingID}.{ext}"
-// เช่น "ห้องประชุมรวมใหญ่ B4101_มิถุนายน_2569_#13.pdf"
-func buildDriveFileName(locationName string, bookingDate time.Time, bookingID int, original string) string {
-	ext := strings.ToLower(filepath.Ext(original))
-	month := thaiMonths[bookingDate.Month()-1]
-	year := bookingDate.Year() + 543
-	if bookingID > 0 {
-		return fmt.Sprintf("%s_%s_%d_#%d%s", locationName, month, year, bookingID, ext)
-	}
-	return fmt.Sprintf("%s_%s_%d%s", locationName, month, year, ext)
-}

@@ -34,6 +34,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		ctx.Set("user_id", claims.UserID)
 		ctx.Set("email", claims.Email)
 		ctx.Set("role", claims.Role)
+		ctx.Set("permissions", claims.Permissions)
 		ctx.Next()
 	}
 }
@@ -56,6 +57,7 @@ func OptionalAuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		ctx.Set("user_id", claims.UserID)
 		ctx.Set("email", claims.Email)
 		ctx.Set("role", claims.Role)
+		ctx.Set("permissions", claims.Permissions)
 		ctx.Next()
 	}
 }

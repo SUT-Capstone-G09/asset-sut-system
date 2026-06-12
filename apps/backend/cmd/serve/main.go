@@ -49,13 +49,13 @@ func main() {
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
-	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, cfg.JWT.Secret)
+	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
 	adminService := services.NewAdminService(userRepo, adminRepo, roleRepo)
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	locationService := services.NewLocationService(locationRepo, timeslotRepo, storageService)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
@@ -106,7 +106,6 @@ func main() {
 		PaymentController:     paymentCtrl,
 		DocumentController: documentCtrl,
 		UploadController:   uploadCtrl,
-		PermissionChecker:  permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

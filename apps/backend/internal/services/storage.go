@@ -79,6 +79,43 @@ func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh 
 	}, nil
 }
 
+// UploadWithKey stores an uploaded form file under the exact objectKey provided.
+// Use this when the key has already been built by a trusted source (e.g. docpath.ObjectKey)
+// and must not be sanitized or randomized.
+func (s *StorageService) UploadWithKey(ctx context.Context, objectKey string, fh *multipart.FileHeader) (UploadResult, error) {
+	file, err := fh.Open()
+	if err != nil {
+		return UploadResult{}, fmt.Errorf("open upload: %w", err)
+	}
+	defer file.Close()
+
+	contentType := fh.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	if _, err := s.client.PutObject(ctx, s.bucket, objectKey, file, fh.Size, minio.PutObjectOptions{
+		ContentType: contentType,
+	}); err != nil {
+		return UploadResult{}, fmt.Errorf("upload object: %w", err)
+	}
+
+	url, err := s.PresignedURL(ctx, objectKey)
+	if err != nil {
+		return UploadResult{}, err
+	}
+
+	return UploadResult{
+		BucketName:  s.bucket,
+		ObjectKey:   objectKey,
+		URL:         url,
+		FileName:    fh.Filename,
+		ContentType: contentType,
+		Size:        fh.Size,
+		ExpiresIn:   int(s.urlExpiry.Seconds()),
+	}, nil
+}
+
 // UploadBytes stores raw bytes under an explicit object key (used when the
 // caller already has the content in memory, e.g. a rendered QR image).
 func (s *StorageService) UploadBytes(ctx context.Context, objectKey string, data []byte, contentType string) error {

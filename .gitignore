@@ -87,3 +87,4 @@ apps/backend/*.http
 
 .claude
 skills-lock.json
+CONTEXT.md
