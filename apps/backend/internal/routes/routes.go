@@ -12,18 +12,19 @@ import (
 // cmd/serve/main.go (config, controllers) and passed down to each domain's
 // route registration function.
 type Dependencies struct {
-	Config                  *config.Config
-	AuthController          *controllers.AuthController
-	AdminController         *controllers.AdminController
-	StaffController         *controllers.StaffController
-	RequesterController     *controllers.RequesterController
-	RoleController          *controllers.RoleController
-	PaymentController       *controllers.PaymentController
-	UploadController        *controllers.UploadController
-	EmailController         *controllers.EmailController
-	EmailTemplateController *controllers.EmailTemplateController
-	ImageController         *controllers.ImageController
-	PermissionChecker       middleware.PermissionChecker
+	Config                   *config.Config
+	AuthController           *controllers.AuthController
+	AdminController          *controllers.AdminController
+	StaffController          *controllers.StaffController
+	RequesterController      *controllers.RequesterController
+	RoleController           *controllers.RoleController
+	PaymentController        *controllers.PaymentController
+	UploadController         *controllers.UploadController
+	EmailController          *controllers.EmailController
+	EmailTemplateController  *controllers.EmailTemplateController
+	EmailBroadcastController *controllers.EmailBroadcastController
+	ImageController          *controllers.ImageController
+	PermissionChecker        middleware.PermissionChecker
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto

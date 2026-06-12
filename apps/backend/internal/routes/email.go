@@ -18,6 +18,16 @@ func SetupEmailRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		templates.PUT("/:id", deps.EmailTemplateController.Update)
 		templates.DELETE("/:id", deps.EmailTemplateController.Delete)
 		templates.POST("/image", deps.ImageController.Upload)
+
+		// Bulk send (broadcast) to an audience, plus the pickers that feed it.
+		broadcasts := email.Group("/broadcasts")
+		broadcasts.POST("/preview", deps.EmailBroadcastController.Preview)
+		broadcasts.POST("", deps.EmailBroadcastController.Create)
+		broadcasts.GET("", deps.EmailBroadcastController.List)
+		broadcasts.GET("/:id", deps.EmailBroadcastController.Get)
+
+		email.GET("/audiences/options", deps.EmailBroadcastController.Options)
+		email.GET("/recipients/search", deps.EmailBroadcastController.SearchRecipients)
 	}
 }
 

@@ -42,6 +42,9 @@ func main() {
 	invoiceRepo := repositories.NewInvoiceRepository(db)
 	paymentRepo := repositories.NewPaymentRepository(db)
 	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
+	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
+	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
+	recipientRepo := repositories.NewRecipientRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -53,11 +56,14 @@ func main() {
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
-	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {
 		log.Fatalf("failed to init email service: %v", err)
 	}
 	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
+	emailBroadcastService := services.NewEmailBroadcastService(
+		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
+	)
 
 	// ----------------------------------------
 	// Controllers
@@ -71,6 +77,7 @@ func main() {
 	uploadCtrl := controllers.NewUploadController(storageService)
 	emailCtrl := controllers.NewEmailController(emailService)
 	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	emailBroadcastCtrl := controllers.NewEmailBroadcastController(emailBroadcastService)
 	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
@@ -79,18 +86,19 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:                  cfg,
-		AuthController:          authCtrl,
-		AdminController:         adminCtrl,
-		StaffController:         staffCtrl,
-		RequesterController:     requesterCtrl,
-		RoleController:          roleCtrl,
-		PaymentController:       paymentCtrl,
-		UploadController:        uploadCtrl,
-		EmailController:         emailCtrl,
-		EmailTemplateController: emailTemplateCtrl,
-		ImageController:         imageCtrl,
-		PermissionChecker:       permissionRepo,
+		Config:                   cfg,
+		AuthController:           authCtrl,
+		AdminController:          adminCtrl,
+		StaffController:          staffCtrl,
+		RequesterController:      requesterCtrl,
+		RoleController:           roleCtrl,
+		PaymentController:        paymentCtrl,
+		UploadController:         uploadCtrl,
+		EmailController:          emailCtrl,
+		EmailTemplateController:  emailTemplateCtrl,
+		EmailBroadcastController: emailBroadcastCtrl,
+		ImageController:          imageCtrl,
+		PermissionChecker:        permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

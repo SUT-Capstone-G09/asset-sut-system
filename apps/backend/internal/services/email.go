@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 	"gopkg.in/gomail.v2"
 )
@@ -28,6 +29,11 @@ const (
 	// so a stalled server could otherwise block the single worker — and the whole
 	// queue — indefinitely.
 	emailSendTimeout = 30 * time.Second
+
+	// Outbox worker tuning: how often to poll for pending rows and how many to
+	// claim per cycle. Used for durable bulk (broadcast) sends.
+	outboxPollInterval = 3 * time.Second
+	outboxBatchSize    = 20
 )
 
 type emailTemplate struct {
@@ -52,15 +58,16 @@ type emailJob struct {
 }
 
 type EmailService struct {
-	cfg      config.SMTPConfig
-	dialer   *gomail.Dialer
-	htmlTmpl *template.Template
-	textTmpl *texttemplate.Template
-	repo     *repositories.EmailTemplateRepository
-	queue    chan emailJob
+	cfg        config.SMTPConfig
+	dialer     *gomail.Dialer
+	htmlTmpl   *template.Template
+	textTmpl   *texttemplate.Template
+	repo       *repositories.EmailTemplateRepository
+	outboxRepo *repositories.EmailOutboxRepository
+	queue      chan emailJob
 }
 
-func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepository) (*EmailService, error) {
+func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepository, outboxRepo *repositories.EmailOutboxRepository) (*EmailService, error) {
 	htmlTmpl, err := template.ParseFS(emailTemplateFS, "templates/email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse html email templates: %w", err)
@@ -71,17 +78,36 @@ func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepo
 	}
 
 	s := &EmailService{
-		cfg:      cfg,
-		dialer:   gomail.NewDialer(cfg.Host, cfg.Port, cfg.Username, cfg.Password),
-		htmlTmpl: htmlTmpl,
-		textTmpl: textTmpl,
-		repo:     repo,
-		queue:    make(chan emailJob, emailQueueSize),
+		cfg:        cfg,
+		dialer:     gomail.NewDialer(cfg.Host, cfg.Port, cfg.Username, cfg.Password),
+		htmlTmpl:   htmlTmpl,
+		textTmpl:   textTmpl,
+		repo:       repo,
+		outboxRepo: outboxRepo,
+		queue:      make(chan emailJob, emailQueueSize),
 	}
 
 	go s.worker()
 
+	if outboxRepo != nil {
+		// Recover anything a previous process left mid-send, then start the
+		// durable outbox worker for bulk (broadcast) delivery.
+		if n, err := outboxRepo.RequeueStuckSending(); err != nil {
+			log.Printf("outbox: failed to requeue stuck rows on startup: %v", err)
+		} else if n > 0 {
+			log.Printf("outbox: requeued %d stuck 'sending' rows on startup", n)
+		}
+		go s.outboxWorker()
+	}
+
 	return s, nil
+}
+
+// Render exposes template resolution (DB-first with code fallback) so callers
+// such as the broadcast service can pre-render per-recipient emails before
+// persisting them to the outbox.
+func (s *EmailService) Render(key string, data map[string]any) (subject, html, text string, err error) {
+	return s.render(key, data)
 }
 
 func (s *EmailService) Send(to, key string, data map[string]any) error {
@@ -194,6 +220,52 @@ func (s *EmailService) sendWithTimeout(m *gomail.Message) error {
 	case <-time.After(emailSendTimeout):
 		return fmt.Errorf("smtp send timed out after %s", emailSendTimeout)
 	}
+}
+
+// outboxWorker polls the durable outbox for pending rows and delivers them. It
+// backs bulk (broadcast) sends, which must survive restarts — unlike the
+// in-memory queue used by Send.
+func (s *EmailService) outboxWorker() {
+	ticker := time.NewTicker(outboxPollInterval)
+	defer ticker.Stop()
+	for range ticker.C {
+		rows, err := s.outboxRepo.ClaimPending(outboxBatchSize)
+		if err != nil {
+			log.Printf("outbox: claim pending failed: %v", err)
+			continue
+		}
+		for _, row := range rows {
+			s.deliverOutbox(row)
+		}
+	}
+}
+
+// deliverOutbox makes one delivery attempt for a claimed row. Failures short of
+// the attempt cap return the row to pending (retried on a later poll); exhausted
+// rows are marked failed. Each attempt is bounded by sendWithTimeout.
+func (s *EmailService) deliverOutbox(row models.EmailOutbox) {
+	attempts := row.Attempts + 1
+	m := s.buildMessage(emailJob{to: row.ToEmail, subject: row.Subject, html: row.HTML, text: row.Text})
+
+	if err := s.sendWithTimeout(m); err != nil {
+		if attempts >= emailMaxAttempts {
+			log.Printf("outbox: permanently failed id=%d to=%s after %d attempts: %v", row.ID, row.ToEmail, attempts, err)
+			if e := s.outboxRepo.MarkFailed(row.ID, attempts, err.Error()); e != nil {
+				log.Printf("outbox: mark failed id=%d error: %v", row.ID, e)
+			}
+			return
+		}
+		log.Printf("outbox: attempt %d/%d failed id=%d to=%s: %v", attempts, emailMaxAttempts, row.ID, row.ToEmail, err)
+		if e := s.outboxRepo.MarkRetry(row.ID, attempts, err.Error()); e != nil {
+			log.Printf("outbox: mark retry id=%d error: %v", row.ID, e)
+		}
+		return
+	}
+
+	if e := s.outboxRepo.MarkSent(row.ID); e != nil {
+		log.Printf("outbox: mark sent id=%d error: %v", row.ID, e)
+	}
+	log.Printf("outbox: sent id=%d to=%s", row.ID, row.ToEmail)
 }
 
 func renderTextString(name, tmplStr string, data map[string]any) (string, error) {
