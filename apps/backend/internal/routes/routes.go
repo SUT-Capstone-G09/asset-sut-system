@@ -22,6 +22,10 @@ type Dependencies struct {
 	PaymentController   *controllers.PaymentController
 	DocumentController  *controllers.DocumentController
 	UploadController    *controllers.UploadController
+	EmailController          *controllers.EmailController
+	EmailTemplateController  *controllers.EmailTemplateController
+	EmailBroadcastController *controllers.EmailBroadcastController
+	ImageController          *controllers.ImageController
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -44,6 +48,8 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupAdminRoutes(v1, deps)
 		SetupPaymentRoutes(v1, deps)
 		SetupUploadRoutes(v1, deps)
+		SetupEmailRoutes(v1, deps)
+		SetupImageRoutes(v1, deps)
 		SetupDemoRoutes(v1, deps)
 		SetupLocationRoutes(v1, deps)
 		SetupBookingRoutes(v1, deps)

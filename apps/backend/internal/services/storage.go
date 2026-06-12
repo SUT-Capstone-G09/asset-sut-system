@@ -125,6 +125,22 @@ func (s *StorageService) UploadBytes(ctx context.Context, objectKey string, data
 	return err
 }
 
+// Stream opens an object for reading along with its metadata (size, content
+// type). The caller must Close the returned object. Used to proxy public images
+// without exposing the bucket or relying on expiring presigned URLs.
+func (s *StorageService) Stream(ctx context.Context, objectKey string) (*minio.Object, minio.ObjectInfo, error) {
+	obj, err := s.client.GetObject(ctx, s.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, minio.ObjectInfo{}, fmt.Errorf("get object: %w", err)
+	}
+	info, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, minio.ObjectInfo{}, err
+	}
+	return obj, info, nil
+}
+
 // PresignedURL returns a temporary download URL for an object.
 func (s *StorageService) PresignedURL(ctx context.Context, objectKey string) (string, error) {
 	u, err := s.client.PresignedGetObject(ctx, s.bucket, objectKey, s.urlExpiry, nil)

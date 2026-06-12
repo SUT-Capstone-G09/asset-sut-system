@@ -12,6 +12,7 @@ import {
   Calendar,
   Wrench,
   Settings,
+  Mail,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -131,6 +132,16 @@ const menuGroups: MenuGroup[] = [
         label: "จัดการประชาสัมพันธ์",
         icon: Wrench,
         href: "/admin/news-management",
+      },
+      {
+        id: "email-templates",
+        label: "เทมเพลตอีเมล",
+        icon: Mail,
+        subItems: [
+          { label: "จัดการเทมเพลต", href: "/admin/email-templates" },
+          { label: "ส่งอีเมล", href: "/admin/email-templates/send" },
+          { label: "ประวัติการส่ง", href: "/admin/email-templates/broadcasts" },
+        ],
       },
       {
         id: "access-setting",

@@ -45,6 +45,11 @@ func main() {
 	invoiceRepo := repositories.NewInvoiceRepository(db)
 
 	documentRepo := repositories.NewDocumentRepository(db)
+	//paymentRepo := repositories.NewPaymentRepository(db)
+	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
+	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
+	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
+	recipientRepo := repositories.NewRecipientRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -60,6 +65,15 @@ func main() {
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	documentService := services.NewDocumentService(documentRepo)
+	//paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
+	if err != nil {
+		log.Fatalf("failed to init email service: %v", err)
+	}
+	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
+	emailBroadcastService := services.NewEmailBroadcastService(
+		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
+	)
 
 	// ----------------------------------------
 	// Controllers
@@ -88,6 +102,11 @@ func main() {
 	}
 
 	uploadCtrl := controllers.NewUploadController(storageService, driveService, cfg.GDrive.FolderRoutes)
+	//uploadCtrl := controllers.NewUploadController(storageService)
+	emailCtrl := controllers.NewEmailController(emailService)
+	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	emailBroadcastCtrl := controllers.NewEmailBroadcastController(emailBroadcastService)
+	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
 	// Router
@@ -106,6 +125,10 @@ func main() {
 		PaymentController:     paymentCtrl,
 		DocumentController: documentCtrl,
 		UploadController:   uploadCtrl,
+		EmailController:          emailCtrl,
+		EmailTemplateController:  emailTemplateCtrl,
+		EmailBroadcastController: emailBroadcastCtrl,
+		ImageController:          imageCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

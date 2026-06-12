@@ -18,6 +18,8 @@
     "html2canvas": "^1.4.1",
     "html2canvas-pro": "^2.0.4",
     "jspdf": "^4.2.1",
+    "grapesjs": "^0.23.2",
+    "grapesjs-preset-newsletter": "^1.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
