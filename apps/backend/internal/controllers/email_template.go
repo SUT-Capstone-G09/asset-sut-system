@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"errors"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -65,6 +67,10 @@ func (c *EmailTemplateController) Update(ctx *gin.Context) {
 	}
 	t, err := c.service.Update(id, req)
 	if err != nil {
+		if errors.Is(err, services.ErrInvalidTemplateSyntax) {
+			response.BadRequest(ctx, err.Error())
+			return
+		}
 		response.NotFound(ctx, err.Error())
 		return
 	}

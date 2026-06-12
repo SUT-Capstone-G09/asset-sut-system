@@ -22,16 +22,15 @@ func (c *EmailController) SendTest(ctx *gin.Context) {
 		return
 	}
 
-	err := c.emailService.Send(req.To, "booking.approved", map[string]any{
-		"userName":   req.UserName,
-		"assetName":  req.AssetName,
-		"amount":     req.Amount,
-		"paymentUrl": req.PaymentURL,
-	})
-	if err != nil {
+	key := req.Key
+	if key == "" {
+		key = "booking.approved"
+	}
+
+	if err := c.emailService.Send(req.To, key, req.Data); err != nil {
 		response.InternalError(ctx, err.Error())
 		return
 	}
 
-	response.OK(ctx, gin.H{"message": "email queued for delivery", "to": req.To})
+	response.OK(ctx, gin.H{"message": "email queued for delivery", "to": req.To, "key": key})
 }

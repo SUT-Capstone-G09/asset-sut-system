@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import grapesjs, { type Editor } from "grapesjs";
 import presetNewsletter from "grapesjs-preset-newsletter";
 import "grapesjs/dist/css/grapes.min.css";
-import { TEMPLATE_VARIABLES } from "../../constants";
+import { SUT_COLOR_PALETTE, TEMPLATE_VARIABLES } from "../../constants";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
@@ -42,6 +42,13 @@ export default function EmailTemplateEditor({
       height: "70vh",
       storageManager: false,
       plugins: [presetNewsletter],
+      colorPicker: {
+        // Surface the SUT brand palette as quick swatches while keeping the full
+        // custom picker available above it.
+        showPalette: true,
+        palette: SUT_COLOR_PALETTE,
+        hideAfterPaletteSelect: true,
+      },
       assetManager: {
         uploadFile: async (e: DragEvent) => {
           const files =
