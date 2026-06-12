@@ -11,10 +11,6 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
-// ErrInvalidTemplateSyntax is returned by Create/Update when the admin-supplied
-// Subject or CompiledHTML is not a parseable Go template. Validating here means a
-// malformed template is rejected at save time (HTTP 400) instead of silently
-// failing later at send time, where the error is only logged.
 var ErrInvalidTemplateSyntax = errors.New("invalid template syntax")
 
 type EmailTemplateService struct {
@@ -103,9 +99,6 @@ func (s *EmailTemplateService) Delete(id uint) error {
 	return s.repo.Delete(id)
 }
 
-// validateTemplateSyntax parses Subject as a text/template and CompiledHTML as an
-// html/template — the same engines render() uses at send time — so a broken
-// template (e.g. an unclosed "{{.userName") is caught when the admin saves it.
 func validateTemplateSyntax(subject, compiledHTML string) error {
 	if _, err := texttemplate.New("subject").Parse(subject); err != nil {
 		return fmt.Errorf("%w: subject: %v", ErrInvalidTemplateSyntax, err)

@@ -10,8 +10,6 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
-// previewSampleSize caps how many recipients the preview returns alongside the
-// total count.
 const previewSampleSize = 5
 
 type EmailBroadcastService struct {
@@ -44,8 +42,6 @@ func NewEmailBroadcastService(
 	}
 }
 
-// Preview resolves an audience without sending, returning the total count and a
-// small sample so the admin can sanity-check before committing.
 func (s *EmailBroadcastService) Preview(spec dto.AudienceSpec) (*dto.PreviewAudienceResponse, error) {
 	recipients, err := s.recipientRepo.Resolve(spec)
 	if err != nil {
@@ -58,9 +54,6 @@ func (s *EmailBroadcastService) Preview(spec dto.AudienceSpec) (*dto.PreviewAudi
 	return &dto.PreviewAudienceResponse{Count: len(recipients), Sample: sample}, nil
 }
 
-// Create resolves the audience, renders one email per recipient (filling
-// {{.userName}} from the recipient and merging the admin's static Data), and
-// persists them to the outbox for the background worker to deliver.
 func (s *EmailBroadcastService) Create(req dto.SendBroadcastRequest, adminUserID uint) (*dto.CreateBroadcastResponse, error) {
 	recipients, err := s.recipientRepo.Resolve(req.Audience)
 	if err != nil {
@@ -136,8 +129,6 @@ func (s *EmailBroadcastService) List() ([]dto.BroadcastResponse, error) {
 	return result, nil
 }
 
-// Options returns the role names and requester types available as audience
-// filters in the compose UI.
 func (s *EmailBroadcastService) Options() (*dto.AudienceOptionsResponse, error) {
 	roles, err := s.roleRepo.FindAll()
 	if err != nil {
