@@ -171,7 +171,6 @@ export default function ManageExpensesModal({
                   <Badge className="bg-[#fdf2ec] text-[#f26522] hover:bg-[#fdf2ec] border-none font-extrabold text-xs px-2.5 py-0.5 rounded-lg shadow-sm">
                     {filteredExpenses.length}
                   </Badge>
-                  <Sparkles size={18} className="text-[#f26522] animate-pulse" />
                 </DialogTitle>
                 <p className="text-[11px] font-semibold text-slate-400 tracking-wide">
                   Track and manage expenditures for rooms and assets.

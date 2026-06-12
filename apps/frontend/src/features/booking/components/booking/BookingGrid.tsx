@@ -1,11 +1,23 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import { LayoutGrid, List, MapPin, ArrowRight, Search, Clock, Calendar, User } from "lucide-react";
+import {
+  LayoutGrid,
+  List,
+  MapPin,
+  ArrowRight,
+  Search,
+  Clock,
+  Calendar,
+  User,
+} from "lucide-react";
 import BookingCard from "./BookingCard";
 import BookingDrawer from "./BookingDrawer";
 import { BookingGridSkeleton } from "./BookingSkeleton";
-import { Booking } from "@/features/booking/types/booking";
+import {
+  Booking,
+  BOOKING_STATUS_CONFIG,
+} from "@/features/booking/types/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -13,20 +25,37 @@ interface BookingGridProps {
   filteredBookings: Booking[];
   buildings: string[];
   onResetFilters: () => void;
-  onUpdateStatus: (id: string, status: "pending" | "approved" | "rejected") => void;
-  onEdit: (updatedBooking: Booking) => void;
-  onDelete: (id: string) => void;
+  onUpdateStatus: (
+    id: string,
+    status:
+      | "pending"
+      | "pending_payment"
+      | "verifying_payment"
+      | "approved"
+      | "rejected",
+  ) => void;
+  onEdit: (updatedBooking: Booking, mode: "this" | "following" | "all") => void;
+  onDelete: (
+    idOrFilter:
+      | string
+      | {
+          id: string;
+          recurringGroupId: string;
+          mode: "this" | "following" | "all";
+          date: string;
+        },
+  ) => void;
   isLoading?: boolean;
 }
 
-export default function BookingGrid({ 
-  filteredBookings, 
+export default function BookingGrid({
+  filteredBookings,
   buildings,
   onResetFilters,
   onUpdateStatus,
   onEdit,
   onDelete,
-  isLoading = false
+  isLoading = false,
 }: BookingGridProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -116,10 +145,14 @@ export default function BookingGrid({
           <div className="p-6 bg-white rounded-lg shadow-xl shadow-slate-200 mb-4">
             <Search size={48} className="text-slate-300" />
           </div>
-          <p className="text-lg font-bold text-slate-900">ไม่พบคำขอจองที่ตรงเงื่อนไข</p>
-          <p className="text-sm text-slate-400">ลองปรับการค้นหาหรือล้างตัวกรอง</p>
-          <Button 
-            variant="outline" 
+          <p className="text-lg font-bold text-slate-900">
+            ไม่พบคำขอจองที่ตรงเงื่อนไข
+          </p>
+          <p className="text-sm text-slate-400">
+            ลองปรับการค้นหาหรือล้างตัวกรอง
+          </p>
+          <Button
+            variant="outline"
             onClick={onResetFilters}
             className="mt-6 rounded-[7px] border-slate-200 text-slate-600 font-bold cursor-pointer"
           >
@@ -134,10 +167,14 @@ export default function BookingGrid({
           <div className="p-6 bg-white rounded-lg shadow-xl shadow-slate-200 mb-4">
             <Search size={48} className="text-slate-300" />
           </div>
-          <p className="text-lg font-bold text-slate-900">ไม่พบคำขอจองที่ตรงเงื่อนไข</p>
-          <p className="text-sm text-slate-400">ลองปรับการค้นหาหรือล้างตัวกรอง</p>
-          <Button 
-            variant="outline" 
+          <p className="text-lg font-bold text-slate-900">
+            ไม่พบคำขอจองที่ตรงเงื่อนไข
+          </p>
+          <p className="text-sm text-slate-400">
+            ลองปรับการค้นหาหรือล้างตัวกรอง
+          </p>
+          <Button
+            variant="outline"
             onClick={onResetFilters}
             className="mt-6 rounded-[7px] border-slate-200 text-slate-600 font-bold cursor-pointer"
           >
@@ -147,7 +184,12 @@ export default function BookingGrid({
       )}
 
       <BookingDrawer
-        booking={selectedBooking}
+        booking={
+          selectedBooking
+            ? filteredBookings.find((b) => b.id === selectedBooking.id) ||
+              selectedBooking
+            : null
+        }
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onUpdateStatus={onUpdateStatus}
@@ -158,7 +200,15 @@ export default function BookingGrid({
   );
 }
 
-function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean; onClick: () => void; icon: React.ElementType }) {
+function ViewToggleButton({
+  isActive,
+  onClick,
+  icon: Icon,
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+}) {
   return (
     <button
       onClick={onClick}
@@ -166,7 +216,7 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
         "p-1.5 rounded-md transition-all duration-300 cursor-pointer",
         isActive
           ? "bg-white text-[#f26522] shadow-md shadow-slate-200 scale-105"
-          : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+          : "text-slate-400 hover:text-slate-600 hover:bg-white/50",
       )}
     >
       <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -174,26 +224,15 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
   );
 }
 
-const statusConfig: Record<string, { label: string; text: string; bg: string }> = {
-  pending: {
-    label: "รออนุมัติ",
-    text: "text-amber-600",
-    bg: "bg-amber-50 border-amber-100",
-  },
-  approved: {
-    label: "อนุมัติแล้ว",
-    text: "text-emerald-600",
-    bg: "bg-emerald-50 border-emerald-100",
-  },
-  rejected: {
-    label: "ปฏิเสธ",
-    text: "text-red-600",
-    bg: "bg-red-50 border-red-100",
-  },
-};
-
-function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }) {
-  const status = statusConfig[booking.status] || statusConfig.pending;
+function ListRow({
+  booking,
+  onClick,
+}: {
+  booking: Booking;
+  onClick: () => void;
+}) {
+  const status =
+    BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
 
   return (
     <div
@@ -201,7 +240,7 @@ function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }
       className={cn(
         "bg-white rounded-lg border border-slate-100 p-5",
         "flex items-center gap-6 cursor-pointer group transition-all duration-300",
-        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1"
+        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:translate-x-1",
       )}
     >
       <div className="relative size-20 rounded-md overflow-hidden shrink-0 shadow-sm">
@@ -226,37 +265,61 @@ function ListRow({ booking, onClick }: { booking: Booking; onClick: () => void }
       </div>
 
       <div className="hidden lg:flex items-center gap-12 shrink-0 px-8 border-x border-slate-100">
-        <ListInfoItem icon={Calendar} label="วันที่ใช้ห้อง" value={booking.date} />
+        <ListInfoItem
+          icon={Calendar}
+          label="วันที่ใช้ห้อง"
+          value={booking.date}
+        />
         <ListInfoItem icon={Clock} label="เวลา" value={booking.timeSlot} />
         <div className="text-center space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">สถานะ</p>
-          <span className={cn("px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0", status.bg, status.text)}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            สถานะ
+          </p>
+          <span
+            className={cn(
+              "px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0",
+              status.gridBg,
+              status.gridText,
+            )}
+          >
             {status.label}
           </span>
         </div>
       </div>
 
-      <button className={cn(
-        "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
-        "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
-        "transition-all duration-300 flex items-center justify-center"
-      )}>
-        <ArrowRight size={20} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
+      <button
+        className={cn(
+          "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
+          "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
+          "transition-all duration-300 flex items-center justify-center",
+        )}
+      >
+        <ArrowRight
+          size={20}
+          strokeWidth={2.5}
+          className="transition-transform group-hover:translate-x-1"
+        />
       </button>
     </div>
   );
 }
 
-function ListInfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function ListInfoItem({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="text-center space-y-1">
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1 justify-center">
         <Icon size={10} />
         {label}
       </p>
-      <p className="text-sm font-bold text-slate-700">
-        {value}
-      </p>
+      <p className="text-sm font-bold text-slate-700">{value}</p>
     </div>
   );
 }

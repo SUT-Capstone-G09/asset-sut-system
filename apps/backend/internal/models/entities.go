@@ -43,13 +43,9 @@ var AllEntities = []any{
 	&DocumentTypes{},
 	&Methods{},
 	&Documents{},
-	// Payment QR feature. Invoice before Payment so the invoices table exists
-	// first. Only these two payment-domain models have GORM-valid FK columns;
-	// the rest (booking, document, ...) are not migrated yet.
 
-	// Admin-managed email templates (no FK columns; safe to migrate on its own).
+	// Email
 	&EmailTemplate{},
-
 	&EmailBroadcast{},
 	&EmailOutbox{},
 }

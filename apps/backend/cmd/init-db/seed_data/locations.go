@@ -22,65 +22,68 @@ func intPtr(v int) *int { return &v }
 func strPtr(v string) *string { return &v }
 
 var roomSeeds = []roomSeed{
+	// ห้องประชุม
 	{
-		Name: "ห้องประชุม Executive A", TypeName: "ห้องประชุมขนาดเล็ก", Building: "อาคารบริหาร",
+		Name: "ห้องประชุม Executive A", TypeName: "ห้องประชุม", Building: "อาคารบริหาร",
 		Capacity: 20, PriceHourly: 500,
 		Equipments: []string{"WiFi", "โปรเจคเตอร์"},
 	},
 	{
-		Name: "ห้องประชุมสร้างสรรค์ B", TypeName: "ห้องประชุมขนาดเล็ก", Building: "อาคารบริหาร",
+		Name: "ห้องประชุมสร้างสรรค์ B", TypeName: "ห้องประชุม", Building: "อาคารบริหาร",
 		Capacity: 20, PriceHourly: 450,
 		Equipments: []string{"Smart TV", "WiFi"},
 	},
 	{
-		Name: "ห้อง Boardroom Premium C", TypeName: "ห้องประชุมขนาดกลาง", Building: "อาคารบริหาร",
+		Name: "ห้อง Boardroom Premium C", TypeName: "ห้องประชุม", Building: "อาคารบริหาร",
 		FloorNumber: intPtr(45), Capacity: 25, PriceHourly: 800,
 		Equipments: []string{"รวมบริการต้อนรับ", "WiFi"},
 	},
 	{
-		Name: "ห้องประชุม Smart D", TypeName: "ห้องประชุมขนาดเล็ก", Building: "อาคารเรียนรวม 1",
+		Name: "ห้องประชุม Smart D", TypeName: "ห้องประชุม", Building: "อาคารเรียนรวม 1",
 		FloorNumber: intPtr(3), Capacity: 15, PriceHourly: 350,
 		Equipments: []string{"WiFi", "Smart TV"},
 	},
 	{
-		Name: "ห้องอบรม Training Room 1", TypeName: "ห้องบรรยาย", Building: "อาคารเรียนรวม 1",
-		FloorNumber: intPtr(2), Capacity: 50, PriceHourly: 900,
-		Equipments: []string{"WiFi", "โปรเจคเตอร์", "ไวท์บอร์ด"},
-	},
-	{
-		Name: "ห้องสัมมนา Grand Hall", TypeName: "ห้องสัมมนา", Building: "อาคารเรียนรวม 2",
-		FloorNumber: intPtr(1), Capacity: 300, PriceHourly: 3500,
-		Equipments: []string{"WiFi", "ระบบเสียง", "โปรเจคเตอร์", "รวมบริการต้อนรับ"},
-	},
-	{
-		Name: "ห้องประชุมย่อย Mini E", TypeName: "ห้องประชุมขนาดเล็ก", Building: "อาคารเรียนรวม 2",
+		Name: "ห้องประชุมย่อย Mini E", TypeName: "ห้องประชุม", Building: "อาคารเรียนรวม 2",
 		FloorNumber: intPtr(1), Capacity: 10, PriceHourly: 200,
 		Equipments: []string{"WiFi"},
 	},
 	{
-		Name: "ห้อง Co-Working Space", TypeName: "พื้นที่สาธารณะ", Building: "อาคารเครื่องมือ F1",
-		FloorNumber: intPtr(4), Capacity: 30, PriceHourly: 300,
-		Equipments: []string{"WiFi", "ที่จอดรถ"},
+		Name: "ห้องสัมมนา Grand Hall", TypeName: "ห้องประชุม", Building: "อาคารเรียนรวม 2",
+		FloorNumber: intPtr(1), Capacity: 300, PriceHourly: 3500,
+		Equipments: []string{"WiFi", "ระบบเสียง", "โปรเจคเตอร์", "รวมบริการต้อนรับ"},
 	},
 	{
-		Name: "ห้องประชุม VIP Suite", TypeName: "ห้องประชุมขนาดใหญ่", Building: "อาคารบริหาร",
+		Name: "ห้องประชุม VIP Suite", TypeName: "ห้องประชุม", Building: "อาคารบริหาร",
 		FloorNumber: intPtr(20), Capacity: 20, PriceHourly: 1200,
 		Equipments: []string{"WiFi", "Smart TV", "รวมบริการต้อนรับ", "ที่จอดรถ"},
 	},
 	{
-		Name: "ห้องอีเวนท์ Multipurpose Hall", TypeName: "พื้นที่สาธารณะ", Building: "อาคารเครื่องมือ F2",
-		FloorNumber: intPtr(1), Capacity: 500, PriceHourly: 8000,
-		Equipments: []string{"WiFi", "ระบบเสียง", "แสงสี", "โปรเจคเตอร์", "รวมบริการต้อนรับ"},
+		Name: "ห้องประชุม Classic G", TypeName: "ห้องประชุม", Building: "อาคารเรียนรวม 1",
+		FloorNumber: intPtr(2), Capacity: 30, PriceHourly: 400,
+		Equipments: []string{"WiFi", "โปรเจคเตอร์"},
+	},
+	// ห้องเรียน
+	{
+		Name: "ห้องอบรม Training Room 1", TypeName: "ห้องเรียน", Building: "อาคารเรียนรวม 1",
+		FloorNumber: intPtr(2), Capacity: 50, PriceHourly: 900,
+		Equipments: []string{"WiFi", "โปรเจคเตอร์", "ไวท์บอร์ด"},
 	},
 	{
-		Name: "ห้องประชุม Innovation Lab", TypeName: "ห้องปฏิบัติการ", Building: "อาคารเครื่องมือ F1",
+		Name: "ห้องปฏิบัติการ Innovation Lab", TypeName: "ห้องเรียน", Building: "อาคารเครื่องมือ F1",
 		FloorNumber: intPtr(5), Capacity: 25, PriceHourly: 650,
 		Equipments: []string{"WiFi", "Smart TV", "ไวท์บอร์ด"},
 	},
+	// โถงอาคาร
 	{
-		Name: "ห้องประชุม Classic G", TypeName: "ห้องประชุมขนาดกลาง", Building: "อาคารเรียนรวม 1",
-		FloorNumber: intPtr(2), Capacity: 30, PriceHourly: 400,
-		Equipments: []string{"WiFi", "โปรเจคเตอร์"},
+		Name: "ห้อง Co-Working Space", TypeName: "โถงอาคาร", Building: "อาคารเครื่องมือ F1",
+		FloorNumber: intPtr(4), Capacity: 30, PriceHourly: 300,
+		Equipments: []string{"WiFi", "ที่จอดรถ"},
+	},
+	{
+		Name: "ห้องอีเวนท์ Multipurpose Hall", TypeName: "โถงอาคาร", Building: "อาคารเครื่องมือ F2",
+		FloorNumber: intPtr(1), Capacity: 500, PriceHourly: 8000,
+		Equipments: []string{"WiFi", "ระบบเสียง", "แสงสี", "โปรเจคเตอร์", "รวมบริการต้อนรับ"},
 	},
 }
 

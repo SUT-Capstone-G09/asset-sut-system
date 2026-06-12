@@ -20,11 +20,12 @@ import { bookingSchema, BookingFormValues } from "../../schemas/booking-schema";
 import BookingFormFields from "./forms/BookingFormFields";
 import { useState } from "react";
 import { Booking } from "../../types/booking";
+import { generateRecurrenceDates } from "../../utils/recurrence";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAdd: (newBooking: Booking) => void;
+  onAdd: (newBooking: Booking | Booking[]) => void;
   type: "classroom" | "meeting";
 }
 
@@ -51,7 +52,17 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
       image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
       equipment: [],
       attachedDocuments: [],
-      expenses: []
+      expenses: [],
+      housekeeperPrice: 0,
+      housekeeperCount: 0,
+      repeat: false,
+      repeatFrequency: "daily",
+      repeatCustomInterval: 1,
+      repeatCustomUnit: "day",
+      repeatDaysOfWeek: [],
+      repeatEndDateType: "none",
+      repeatEndDate: "",
+      repeatEndCount: 10
     }
   });
 
@@ -65,35 +76,87 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
     const now = new Date();
     const formattedDate = now.toLocaleDateString("th-TH") + " " + now.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.";
 
-    const newBooking: Booking = {
-      id: randomId,
-      roomName: data.roomName,
-      roomNumber: data.roomNumber,
-      building: data.building,
-      category: data.category,
-      requesterName: data.requesterName,
-      requesterId: data.requesterId,
-      requesterType: data.requesterType,
-      purpose: data.purpose,
-      date: data.date,
-      timeSlot: data.timeSlot,
-      status: "pending", // default to pending
-      attendees: data.attendees,
-      image: data.image || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-      createdAt: formattedDate,
-      contactPhone: data.contactPhone,
-      contactEmail: data.contactEmail,
-      notes: data.notes,
-      equipment: data.equipment,
-      attachedDocuments: data.attachedDocuments || [],
-      expenses: []
-    };
+    if (data.repeat) {
+      const getLocalDateString = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
 
-    onAdd(newBooking);
-    setIsSubmitting(false);
-    methods.reset();
-    onClose();
-    alert("ยื่นคำขอจองสำเร็จ!");
+      const newBooking: Booking = {
+        id: randomId,
+        roomName: data.roomName,
+        roomNumber: data.roomNumber,
+        building: data.building,
+        category: data.category,
+        requesterName: data.requesterName,
+        requesterId: data.requesterId,
+        requesterType: data.requesterType,
+        purpose: data.purpose,
+        date: data.date || getLocalDateString(),
+        timeSlot: data.timeSlot,
+        status: "pending", // default to pending
+        attendees: data.attendees,
+        image: data.image || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+        createdAt: formattedDate,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        notes: data.notes,
+        equipment: data.equipment,
+        attachedDocuments: data.attachedDocuments || [],
+        expenses: data.expenses || [],
+        housekeeperPrice: data.housekeeperPrice || 0,
+        housekeeperCount: data.housekeeperCount || 0,
+        repeat: true,
+        repeatFrequency: data.repeatFrequency,
+        repeatCustomInterval: data.repeatCustomInterval,
+        repeatCustomUnit: data.repeatCustomUnit,
+        repeatDaysOfWeek: data.repeatDaysOfWeek,
+        repeatEndDateType: data.repeatEndDateType,
+        repeatEndDate: data.repeatEndDate,
+        repeatEndCount: data.repeatEndCount,
+      };
+
+      onAdd(newBooking);
+      setIsSubmitting(false);
+      methods.reset();
+      onClose();
+      alert("ยื่นคำขอจองสำเร็จ! (บันทึกข้อมูลทำซ้ำ)");
+    } else {
+      const newBooking: Booking = {
+        id: randomId,
+        roomName: data.roomName,
+        roomNumber: data.roomNumber,
+        building: data.building,
+        category: data.category,
+        requesterName: data.requesterName,
+        requesterId: data.requesterId,
+        requesterType: data.requesterType,
+        purpose: data.purpose,
+        date: data.date || "",
+        timeSlot: data.timeSlot,
+        status: "pending", // default to pending
+        attendees: data.attendees,
+        image: data.image || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+        createdAt: formattedDate,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        notes: data.notes,
+        equipment: data.equipment,
+        attachedDocuments: data.attachedDocuments || [],
+        expenses: data.expenses || [],
+        housekeeperPrice: data.housekeeperPrice || 0,
+        housekeeperCount: data.housekeeperCount || 0
+      };
+
+      onAdd(newBooking);
+      setIsSubmitting(false);
+      methods.reset();
+      onClose();
+      alert("ยื่นคำขอจองสำเร็จ!");
+    }
   };
 
   return (
