@@ -22,16 +22,9 @@ import (
 var emailTemplateFS embed.FS
 
 const (
-	emailQueueSize   = 100
-	emailMaxAttempts = 3
-	// emailSendTimeout bounds a single SMTP delivery attempt. gomail caps the TCP
-	// connect at 10s but sets no deadline on the SMTP conversation (HELO/AUTH/DATA),
-	// so a stalled server could otherwise block the single worker — and the whole
-	// queue — indefinitely.
-	emailSendTimeout = 30 * time.Second
-
-	// Outbox worker tuning: how often to poll for pending rows and how many to
-	// claim per cycle. Used for durable bulk (broadcast) sends.
+	emailQueueSize     = 100
+	emailMaxAttempts   = 3
+	emailSendTimeout   = 30 * time.Second
 	outboxPollInterval = 3 * time.Second
 	outboxBatchSize    = 20
 )
@@ -131,8 +124,6 @@ func (s *EmailService) render(key string, data map[string]any) (subject, html, t
 			if err != nil {
 				return "", "", "", fmt.Errorf("render db body for %q: %w", key, err)
 			}
-			// DB templates store HTML only; derive a plain-text alternative so the
-			// email is sent multipart (HTML-only mail scores worse with spam filters).
 			return subject, html, htmlToText(html), nil
 		}
 	}
@@ -171,8 +162,6 @@ func (s *EmailService) worker() {
 
 func (s *EmailService) deliver(job emailJob) {
 	for attempt := 1; attempt <= emailMaxAttempts; attempt++ {
-		// Build a fresh message per attempt: a timed-out attempt may leave a
-		// goroutine still reading its message, so attempts must not share one.
 		if err := s.sendWithTimeout(s.buildMessage(job)); err == nil {
 			log.Printf("email sent to %s (subject=%q)", job.to, job.subject)
 			return

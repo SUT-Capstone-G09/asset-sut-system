@@ -50,8 +50,6 @@ var AllEntities = []any{
 	// Admin-managed email templates (no FK columns; safe to migrate on its own).
 	&EmailTemplate{},
 
-	// Bulk email: a broadcast (campaign) and its durable per-recipient outbox.
-	// BroadcastID is a plain uint, not a GORM-managed FK, so these migrate alone.
 	&EmailBroadcast{},
 	&EmailOutbox{},
 }

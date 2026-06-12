@@ -8,9 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// RecipientRepository resolves broadcast audiences into concrete (email, name)
-// targets. The display name lives in one of three profile tables (admins, staffs,
-// requesters), so every lookup LEFT JOINs all three and COALESCEs the name.
 type RecipientRepository struct {
 	db *gorm.DB
 }
@@ -19,14 +16,12 @@ func NewRecipientRepository(db *gorm.DB) *RecipientRepository {
 	return &RecipientRepository{db: db}
 }
 
-// recipientRow is the scan target for the profile-join query.
 type recipientRow struct {
 	ID    uint
 	Email string
 	Name  string
 }
 
-// baseQuery returns active, non-deleted users joined to their profile name.
 func (r *RecipientRepository) baseQuery() *gorm.DB {
 	return r.db.Table("users AS u").
 		Select(`u.id AS id, u.email AS email,
@@ -50,13 +45,11 @@ func toRecipients(rows []recipientRow) []dto.Recipient {
 	return out
 }
 
-// Resolve expands an audience spec into the list of recipients to email.
 func (r *RecipientRepository) Resolve(spec dto.AudienceSpec) ([]dto.Recipient, error) {
 	q := r.baseQuery()
 
 	switch spec.Type {
 	case "all":
-		// no extra filter
 	case "roles":
 		if len(spec.Roles) == 0 {
 			return []dto.Recipient{}, nil
@@ -90,8 +83,6 @@ func (r *RecipientRepository) Resolve(spec dto.AudienceSpec) ([]dto.Recipient, e
 	return toRecipients(rows), nil
 }
 
-// userIDsByRoles resolves role names to user IDs via the GORM many2many
-// association, avoiding hardcoded join-table column names.
 func (r *RecipientRepository) userIDsByRoles(names []string) ([]uint, error) {
 	var roles []models.Roles
 	if err := r.db.Preload("Users").Where("name IN ?", names).Find(&roles).Error; err != nil {
@@ -111,7 +102,6 @@ func (r *RecipientRepository) userIDsByRoles(names []string) ([]uint, error) {
 	return ids, nil
 }
 
-// Search finds active users by name or email for the individual-recipient picker.
 func (r *RecipientRepository) Search(q string, limit int) ([]dto.Recipient, error) {
 	if limit <= 0 {
 		limit = 20
