@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
@@ -135,19 +136,18 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		basePrice += priceSnapshot
 
 		for _, addonID := range tsInput.AddonIDs {
-			for _, la := range location.Addons {
-				if la.ID == addonID && la.IsActive {
-					bta := &models.BookingTimeslotAddons{
-						LocationAddonID: la.ID,
-						TimeslotID:      ts.ID,
-						Name:            la.Name,
-						AppliedPrice:    la.DefaultPrice,
-						Quantity:        1,
-						TotalPrice:      la.DefaultPrice,
-					}
-					_ = s.timeslotRepo.CreateAddon(bta)
-					addonPrice += la.DefaultPrice
+			la, err := s.locationRepo.FindAddonByID(addonID)
+			if err == nil && la.IsActive && (la.LocationID == nil || *la.LocationID == location.ID) {
+				bta := &models.BookingTimeslotAddons{
+					LocationAddonID: &la.ID,
+					TimeslotID:      ts.ID,
+					Name:            la.Name,
+					AppliedPrice:    la.DefaultPrice,
+					Quantity:        1,
+					TotalPrice:      la.DefaultPrice,
 				}
+				_ = s.timeslotRepo.CreateAddon(bta)
+				addonPrice += la.DefaultPrice
 			}
 		}
 	}
@@ -176,20 +176,101 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 	if err != nil {
 		return nil, err
 	}
+
+	var targetStatusName string = req.Status
+	isVirtualStatus := false
+	originalVirtualStatus := req.Status
+
+	if targetStatusName == "pending_payment" || targetStatusName == "verifying_payment" {
+		targetStatusName = "approved"
+		isVirtualStatus = true
+	}
+
+	var targetStatusID uint
+	if req.Status != "" {
+		st, err := s.bookingRepo.FindStatusByName(targetStatusName)
+		if err != nil {
+			return nil, errors.New("invalid status name: " + req.Status)
+		}
+		targetStatusID = st.ID
+	} else if req.StatusID != 0 {
+		targetStatusID = req.StatusID
+	} else {
+		return nil, errors.New("either status or status_id is required")
+	}
+
 	oldStatusID := booking.StatusID
-	booking.StatusID = req.StatusID
+	booking.StatusID = targetStatusID
 	if err := s.bookingRepo.Update(booking); err != nil {
 		return nil, err
 	}
 	_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
 		BookingID:    booking.ID,
 		FromStatusID: &oldStatusID,
-		ToStatusID:   req.StatusID,
+		ToStatusID:   targetStatusID,
 		ChangedBy:    changedBy,
 		ChangedAt:    time.Now(),
 		Note:         req.Note,
 	})
+
+	// Update invoice status if it was a virtual payment status or if approved/rejected/cancelled
+	invoice, err := s.invoiceRepo.FindByBookingID(booking.ID)
+	if err == nil && invoice != nil {
+		var invoiceStatusName string
+		if isVirtualStatus {
+			if originalVirtualStatus == "pending_payment" {
+				invoiceStatusName = "pending"
+			}
+		} else if req.Status == "approved" {
+			invoiceStatusName = "paid"
+		} else if req.Status == "rejected" || req.Status == "cancelled" {
+			invoiceStatusName = "cancelled"
+		}
+
+		if invoiceStatusName != "" {
+			invStatus, err := s.invoiceRepo.FindStatusByName(invoiceStatusName)
+			if err == nil && invStatus != nil {
+				invoice.StatusID = invStatus.ID
+				_ = s.invoiceRepo.Update(invoice)
+			}
+		}
+	}
+
 	return s.GetByID(booking.ID)
+}
+
+func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRequest) (*dto.BookingResponse, error) {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(booking.Timeslots) == 0 {
+		return nil, errors.New("booking has no timeslots to attach expenses to")
+	}
+	firstTimeslotID := booking.Timeslots[0].ID
+
+	var newTimeslotAddons []models.BookingTimeslotAddons
+	var addonPrice int = 0
+	for _, item := range req.Expenses {
+		total := item.AppliedPrice * item.Quantity
+		addonPrice += total
+		newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
+			TimeslotID:   firstTimeslotID,
+			Name:         item.AddonName,
+			AppliedPrice: item.AppliedPrice,
+			Quantity:     item.Quantity,
+			TotalPrice:   total,
+		})
+	}
+
+	totalPrice := booking.BasePrice + addonPrice
+
+	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, addonPrice, totalPrice); err != nil {
+		return nil, err
+	}
+
+	return s.GetByID(id)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -228,10 +309,68 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 		CreatedAt:  b.CreatedAt,
 	}
 	if b.Status != nil {
-		res.Status = b.Status.Status
+		currentStatus := b.Status.Status
+		if currentStatus == "approved" {
+			if b.Invoice == nil || b.Invoice.TotalAmount == 0 {
+				res.Status = "approved"
+			} else {
+				invoiceStatus := ""
+				if b.Invoice.Status != nil {
+					invoiceStatus = b.Invoice.Status.Status
+				}
+				if invoiceStatus == "paid" {
+					res.Status = "approved"
+				} else if invoiceStatus == "pending" {
+					hasPendingPayment := false
+					for _, tx := range b.Invoice.Transactions {
+						if tx.Status != nil && tx.Status.Status == "pending" {
+							hasPendingPayment = true
+							break
+						}
+					}
+					if hasPendingPayment {
+						res.Status = "verifying_payment"
+					} else {
+						res.Status = "pending_payment"
+					}
+				} else if invoiceStatus == "cancelled" {
+					res.Status = "cancelled"
+				} else {
+					res.Status = "approved"
+				}
+			}
+		} else {
+			res.Status = currentStatus
+		}
 	}
 	if b.User != nil {
 		res.UserName = b.User.Email
+		res.ContactEmail = b.User.Email
+
+		if b.User.Admin != nil {
+			res.RequesterName = b.User.Admin.FirstName + " " + b.User.Admin.LastName
+			res.ContactPhone = b.User.Admin.Phone
+			res.RequesterType = "admin"
+			res.RequesterID = fmt.Sprintf("A-%d", b.User.Admin.ID)
+		} else if b.User.Staff != nil {
+			res.RequesterName = b.User.Staff.FirstName + " " + b.User.Staff.LastName
+			res.ContactPhone = b.User.Staff.Phone
+			res.RequesterType = "staff"
+			res.RequesterID = fmt.Sprintf("S-%d", b.User.Staff.ID)
+		} else if b.User.Requester != nil {
+			res.RequesterName = b.User.Requester.FirstName + " " + b.User.Requester.LastName
+			res.ContactPhone = b.User.Requester.Phone
+			res.RequesterID = fmt.Sprintf("R-%d", b.User.Requester.ID)
+			if b.User.Requester.RequesterType.Type != "" {
+				res.RequesterType = b.User.Requester.RequesterType.Type
+			} else {
+				res.RequesterType = "student"
+			}
+		} else {
+			res.RequesterName = b.User.Email
+			res.RequesterID = fmt.Sprintf("U-%d", b.UserID)
+			res.RequesterType = "external"
+		}
 	}
 	for _, ts := range b.Timeslots {
 		tsRes := dto.TimeslotResponse{
@@ -277,6 +416,18 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 			logRes.ChangedByName = log.ChangedByUser.Email
 		}
 		res.StatusLogs = append(res.StatusLogs, logRes)
+	}
+	res.BookingAddons = make([]dto.BookingAddonResponse, 0)
+	for _, ts := range b.Timeslots {
+		for _, bta := range ts.Addons {
+			res.BookingAddons = append(res.BookingAddons, dto.BookingAddonResponse{
+				ID:           bta.ID,
+				AddonName:    bta.Name,
+				AppliedPrice: bta.AppliedPrice,
+				Quantity:     bta.Quantity,
+				TotalPrice:   bta.TotalPrice,
+			})
+		}
 	}
 	return res
 }

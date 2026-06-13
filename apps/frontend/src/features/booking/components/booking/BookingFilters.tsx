@@ -60,7 +60,7 @@ export default function BookingFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">ทุกประเภทห้อง</SelectItem>
-            {categories.map((cat) => (
+            {categories.filter(Boolean).map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
               </SelectItem>
@@ -77,7 +77,7 @@ export default function BookingFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">ทุกอาคาร</SelectItem>
-            {buildings.map((bldg) => (
+            {buildings.filter(Boolean).map((bldg) => (
               <SelectItem key={bldg} value={bldg}>
                 {bldg}
               </SelectItem>

@@ -15,7 +15,8 @@ export interface CreateBookingPayload {
 }
 
 export interface UpdateBookingStatusPayload {
-  status_id: number;
+  status_id?: number;
+  status?: string;
   note?: string;
 }
 
@@ -36,6 +37,11 @@ export interface BookingResponseDTO {
   id: number;
   user_id: number;
   user_name: string;
+  requester_name?: string;
+  requester_id?: string;
+  requester_type?: string;
+  contact_phone?: string;
+  contact_email?: string;
   purpose: string;
   base_price: number;
   addon_price: number;
@@ -43,6 +49,13 @@ export interface BookingResponseDTO {
   status: string;
   status_id: number;
   timeslots: TimeslotResponseDTO[];
+  booking_addons?: {
+    id: number;
+    addon_name: string;
+    applied_price: number;
+    quantity: number;
+    total_price: number;
+  }[];
   status_logs: {
     id: number;
     from_status: string;
@@ -78,9 +91,26 @@ export async function updateBookingStatus(
   return apiClient.put<BookingResponseDTO>(`/bookings/${id}/status`, payload);
 }
 
+export interface UpdateBookingExpensesPayload {
+  expenses: {
+    addon_name: string;
+    applied_price: number;
+    quantity: number;
+  }[];
+}
+
+export async function updateBookingExpenses(
+  id: number,
+  payload: UpdateBookingExpensesPayload
+): Promise<BookingResponseDTO> {
+  return apiClient.put<BookingResponseDTO>(`/bookings/${id}/expenses`, payload);
+}
+
 // Map backend status strings to Thai UI labels
 const STATUS_MAP: Record<string, BookingStatus> = {
   pending: "รออนุมัติ",
+  pending_payment: "รอชำระเงิน",
+  verifying_payment: "รอตรวจสอบการชำระเงิน",
   approved: "อนุมัติแล้ว",
   completed: "ที่ผ่านมา",
   cancelled: "ยกเลิก",

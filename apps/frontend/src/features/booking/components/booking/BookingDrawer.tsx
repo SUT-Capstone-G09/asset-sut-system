@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
 import { mockRooms } from "../../data/rooms";
-import { mockExpenses } from "../../data/expenses";
+import { addonService, Addon } from "@/lib/services/addon.service";
 import { getHoursFromTimeSlot } from "../../utils/time";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 
@@ -139,18 +139,32 @@ export default function BookingDrawer({
   const [editedExpenses, setEditedExpenses] = useState<any[]>([]);
   const [housekeeperPrice, setHousekeeperPrice] = useState(0);
   const [housekeeperCount, setHousekeeperCount] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
+  const [masterAddons, setMasterAddons] = useState<Addon[]>([]);
+
+  React.useEffect(() => {
+    if (open) {
+      addonService.getAll()
+        .then(setMasterAddons)
+        .catch((err) => console.error("Failed to load master addons in drawer:", err));
+    }
+  }, [open]);
 
   React.useEffect(() => {
     if (booking) {
       const customExps = (booking.expenses || []).filter(
         (exp) =>
-          !exp.name.startsWith("ค่าห้อง") && !exp.name.startsWith("ค่าแม่บ้าน"),
+          !exp.name.startsWith("ค่าห้อง") &&
+          !exp.name.startsWith("ค่าแม่บ้าน") &&
+          !exp.name.startsWith("ส่วนลด"),
       );
       setEditedExpenses(customExps);
       setHousekeeperPrice(booking.housekeeperPrice || 0);
       setHousekeeperCount(booking.housekeeperCount || 0);
+      const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
+      setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
       setIsEditingExpenses(false);
     }
   }, [booking]);
@@ -208,10 +222,13 @@ export default function BookingDrawer({
   const housekeeperFeeName = `ค่าแม่บ้าน (${housekeeperPrice} บาท/คน x ${housekeeperCount} คน)`;
   const housekeeperFeeAmount = housekeeperPrice * housekeeperCount;
 
-  const totalExpensesComputed =
+  const totalExpensesComputed = Math.max(
+    0,
     roomFeeAmount +
-    housekeeperFeeAmount +
-    editedExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      housekeeperFeeAmount +
+      editedExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) -
+      discount
+  );
 
   const handleSaveExpenses = () => {
     if (!booking) return;
@@ -222,6 +239,9 @@ export default function BookingDrawer({
         ? [{ name: housekeeperFeeName, amount: housekeeperFeeAmount }]
         : []),
       ...editedExpenses,
+      ...(discount > 0
+        ? [{ name: `ส่วนลด`, amount: -discount }]
+        : []),
     ];
 
     const updated: Booking = {
@@ -734,6 +754,31 @@ export default function BookingDrawer({
                         </div>
                       </div>
 
+                      {/* Discount Settings card */}
+                      <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-3 mb-4 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span className="text-xs font-extrabold text-slate-700">
+                            ตั้งค่าส่วนลด (Discount Settings)
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 text-left">
+                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                            จำนวนเงินส่วนลด (฿)
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="เช่น 100"
+                            value={discount || ""}
+                            onChange={(e) =>
+                              setDiscount(Number(e.target.value) || 0)
+                            }
+                            className="w-full h-10 px-3 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-[7px] text-xs font-bold text-slate-700"
+                          />
+                        </div>
+                      </div>
+
                       {/* Header for list and Add button */}
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-500">
@@ -784,6 +829,29 @@ export default function BookingDrawer({
                                   type="text"
                                   readOnly
                                   value={housekeeperFeeAmount}
+                                  className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-400 bg-transparent text-xs cursor-not-allowed"
+                                />
+                                <div className="h-full px-3 bg-slate-100 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
+                                  บาท
+                                </div>
+                              </div>
+                              <div className="size-8 shrink-0" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2.5 Discount (Read-only, if discount > 0) */}
+                        {discount > 0 && (
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-xs font-bold text-slate-400 truncate flex-1 select-none">
+                              ส่วนลด
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center rounded-lg border border-slate-200/50 bg-slate-50/80 w-[160px] h-10 shadow-sm overflow-hidden">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={`-${discount}`}
                                   className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-400 bg-transparent text-xs cursor-not-allowed"
                                 />
                                 <div className="h-full px-3 bg-slate-100 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
@@ -856,11 +924,14 @@ export default function BookingDrawer({
                             const customExps = (booking.expenses || []).filter(
                               (exp) =>
                                 !exp.name.startsWith("ค่าห้อง") &&
-                                !exp.name.startsWith("ค่าแม่บ้าน"),
+                                !exp.name.startsWith("ค่าแม่บ้าน") &&
+                                !exp.name.startsWith("ส่วนลด"),
                             );
                             setEditedExpenses(customExps);
                             setHousekeeperPrice(booking.housekeeperPrice || 0);
                             setHousekeeperCount(booking.housekeeperCount || 0);
+                            const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
+                            setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
                           }}
                           className="flex-1 h-10 rounded-[7px] bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
                         >
@@ -920,11 +991,14 @@ export default function BookingDrawer({
                             const customExps = (booking.expenses || []).filter(
                               (exp) =>
                                 !exp.name.startsWith("ค่าห้อง") &&
-                                !exp.name.startsWith("ค่าแม่บ้าน"),
+                                !exp.name.startsWith("ค่าแม่บ้าน") &&
+                                !exp.name.startsWith("ส่วนลด"),
                             );
                             setEditedExpenses(customExps);
                             setHousekeeperPrice(booking.housekeeperPrice || 0);
                             setHousekeeperCount(booking.housekeeperCount || 0);
+                            const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
+                            setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
                             setIsEditingExpenses(true);
                           }}
                           className="h-10 rounded-[7px] bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
@@ -984,7 +1058,7 @@ export default function BookingDrawer({
 
                       {/* Expenses List */}
                       <div className="max-h-[260px] overflow-y-auto custom-scrollbar space-y-2 pr-1 text-left">
-                        {mockExpenses.filter((exp) => {
+                        {masterAddons.filter((exp) => {
                           const displayName = exp.itemName.startsWith("ค่า")
                             ? exp.itemName
                             : `ค่า${exp.itemName}`;
@@ -997,7 +1071,7 @@ export default function BookingDrawer({
                               .includes(expenseSearchQuery.toLowerCase())
                           );
                         }).length > 0 ? (
-                          mockExpenses
+                          masterAddons
                             .filter((exp) => {
                               const displayName = exp.itemName.startsWith("ค่า")
                                 ? exp.itemName

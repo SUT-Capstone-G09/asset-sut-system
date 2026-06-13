@@ -40,4 +40,19 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 			mgmt.DELETE("/:id/pricing-tiers/:tid", lc.DeletePricingTier)
 		}
 	}
+
+	addons := rg.Group("/addons")
+	addons.Use(auth)
+	{
+		addons.GET("", lc.GetGlobalAddons)
+		addons.GET("/:id", lc.GetAddonByID)
+
+		adminOnly := addons.Group("")
+		adminOnly.Use(middleware.RequireRole("admin"))
+		{
+			adminOnly.POST("", lc.CreateGlobalAddon)
+			adminOnly.PUT("/:id", lc.UpdateAddon)
+			adminOnly.DELETE("/:id", lc.DeleteAddon)
+		}
+	}
 }

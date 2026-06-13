@@ -30,10 +30,10 @@ export default function BookingRequestsPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selected, setSelected] = useState<BookingResponseDTO | null>(null);
 
-  const handleAction = async (id: number, statusId: number) => {
+  const handleAction = async (id: number, status: string) => {
     setActionLoading(id);
     try {
-      await updateBookingStatus(id, { status_id: statusId });
+      await updateBookingStatus(id, { status });
       reload();
     } finally {
       setActionLoading(null);
@@ -128,7 +128,7 @@ export default function BookingRequestsPage() {
                               size="sm"
                               className="h-7 px-2.5 text-xs bg-green-500 hover:bg-green-600 text-white gap-1"
                               disabled={actionLoading === b.id}
-                              onClick={() => handleAction(b.id, 2)}
+                              onClick={() => handleAction(b.id, "approved")}
                             >
                               <CheckCircle size={12} /> อนุมัติ
                             </Button>
@@ -137,7 +137,7 @@ export default function BookingRequestsPage() {
                               variant="outline"
                               className="h-7 px-2.5 text-xs border-red-200 text-red-500 hover:bg-red-50 gap-1"
                               disabled={actionLoading === b.id}
-                              onClick={() => handleAction(b.id, 3)}
+                              onClick={() => handleAction(b.id, "rejected")}
                             >
                               <XCircle size={12} /> ปฏิเสธ
                             </Button>

@@ -23,7 +23,7 @@ import {
   Sparkle,
   HelpCircle
 } from "lucide-react";
-import { mockExpenses as initialExpenses, Expense } from "../../data/expenses";
+import { addonService, Addon as Expense } from "@/lib/services/addon.service";
 import AddExpenseModal from "./AddExpenseModal";
 import { Badge } from "@/components/ui/badge";
 
@@ -85,7 +85,8 @@ export default function ManageExpensesModal({
   open,
   onClose
 }: ManageExpensesModalProps) {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   
@@ -98,11 +99,21 @@ export default function ManageExpensesModal({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
 
+  useEffect(() => {
+    if (open) {
+      setIsLoading(true);
+      addonService.getAll()
+        .then(setExpenses)
+        .catch((err) => console.error("Failed to load expenses:", err))
+        .finally(() => setIsLoading(false));
+    }
+  }, [open]);
+
   // Filtered Expenses
   const filteredExpenses = useMemo(() => {
     return expenses.filter((exp) => {
       const matchesSearch = exp.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            exp.subtext.toLowerCase().includes(searchQuery.toLowerCase());
+                            (exp.subtext || "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === "ALL" || exp.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
@@ -129,25 +140,30 @@ export default function ManageExpensesModal({
     }
   }, [filteredExpenses, currentPage, totalPages]);
 
-  const handleAddExpense = (newExpense: Omit<Expense, "id">) => {
-    const id = `EXP-${String(expenses.length + 1).padStart(3, "0")}`;
-    setExpenses((prev) => [
-      {
-        id,
-        ...newExpense
-      },
-      ...prev
-    ]);
-    // Reset filters to see the new item
-    setSearchQuery("");
-    setSelectedCategory("ALL");
-    setCurrentPage(1);
+  const handleAddExpense = async (newExpense: Omit<Expense, "id">) => {
+    try {
+      const created = await addonService.create(newExpense);
+      setExpenses((prev) => [created, ...prev]);
+      // Reset filters to see the new item
+      setSearchQuery("");
+      setSelectedCategory("ALL");
+      setCurrentPage(1);
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถเพิ่มค่าใช้จ่ายได้");
+    }
   };
 
-  const handleUpdateExpense = (updatedExpense: Expense) => {
-    setExpenses((prev) =>
-      prev.map((exp) => (exp.id === updatedExpense.id ? updatedExpense : exp))
-    );
+  const handleUpdateExpense = async (updatedExpense: Expense) => {
+    try {
+      const updated = await addonService.update(updatedExpense.id, updatedExpense);
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === updated.id ? updated : exp))
+      );
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถแก้ไขค่าใช้จ่ายได้");
+    }
   };
 
   const handleViewExpense = (expense: Expense) => {

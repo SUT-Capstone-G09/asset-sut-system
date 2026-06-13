@@ -101,10 +101,7 @@ const menuGroups: MenuGroup[] = [
         id: "booking",
         label: "ขอใช้พื้นที่",
         icon: Calendar,
-        subItems: [
-          { label: "ห้องเรียน", href: "/admin/booking/classroom" },
-          { label: "ห้องประชุม", href: "/admin/booking/meeting" },
-        ],
+        href: "/admin/booking",
       },
       {
         id: "manage-rooms",

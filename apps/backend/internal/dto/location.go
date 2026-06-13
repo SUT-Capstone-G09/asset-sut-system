@@ -89,7 +89,7 @@ type CreateAddonRequest struct {
 
 type AddonResponse struct {
 	ID           uint   `json:"id"`
-	LocationID   uint   `json:"location_id"`
+	LocationID   *uint  `json:"location_id,omitempty"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	DefaultPrice int    `json:"default_price"`

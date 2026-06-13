@@ -76,7 +76,7 @@ type ChargeTypes struct {
 
 type LocationAddons struct {
 	Base
-	LocationID   uint         `gorm:"not null" json:"location_id"`
+	LocationID   *uint        `json:"location_id"`
 	Location     *Locations   `gorm:"foreignKey:LocationID" json:"location,omitempty"`
 	Name         string       `gorm:"not null" json:"name"`
 	Description  string       `json:"description"`

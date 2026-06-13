@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { bookingSchema, BookingFormValues } from "../../schemas/booking-schema";
 import BookingFormFields from "./forms/BookingFormFields";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuthContext } from "@/lib/context/auth-context";
 import { Booking } from "../../types/booking";
 import { generateRecurrenceDates } from "../../utils/recurrence";
 
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Props) {
+  const { user } = useAuthContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<BookingFormValues>({
@@ -65,6 +67,41 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
       repeatEndCount: 10
     }
   });
+
+  useEffect(() => {
+    if (open) {
+      methods.reset({
+        roomName: "",
+        roomNumber: "",
+        building: "",
+        category: "",
+        requesterName: "",
+        requesterId: "",
+        requesterType: "student",
+        purpose: "",
+        date: "",
+        timeSlot: "",
+        attendees: 1,
+        contactPhone: "",
+        contactEmail: "",
+        notes: "",
+        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+        equipment: [],
+        attachedDocuments: [],
+        expenses: [],
+        housekeeperPrice: 0,
+        housekeeperCount: 0,
+        repeat: false,
+        repeatFrequency: "daily",
+        repeatCustomInterval: 1,
+        repeatCustomUnit: "day",
+        repeatDaysOfWeek: [],
+        repeatEndDateType: "none",
+        repeatEndDate: "",
+        repeatEndCount: 10
+      });
+    }
+  }, [open, methods]);
 
   const onSubmit = async (data: BookingFormValues) => {
     setIsSubmitting(true);

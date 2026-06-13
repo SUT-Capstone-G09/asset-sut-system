@@ -121,3 +121,10 @@ func (r *LocationRepository) FindUnavailabilitiesByDate(locationID uint, date ti
 	err := r.db.Where("location_id = ? AND date = ?", locationID, date.Format("2006-01-02")).Find(&items).Error
 	return items, err
 }
+
+func (r *LocationRepository) FindAllGlobalAddons() ([]models.LocationAddons, error) {
+	var addons []models.LocationAddons
+	err := r.db.Where("location_id IS NULL").Find(&addons).Error
+	return addons, err
+}
+

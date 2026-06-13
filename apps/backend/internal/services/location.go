@@ -209,7 +209,7 @@ func (s *LocationService) RemoveEquipment(locationID, equipmentID uint) error {
 
 // ── Addons ───────────────────────────────────────────────────────────────────
 
-func (s *LocationService) CreateAddon(locationID uint, req dto.CreateAddonRequest) (*dto.AddonResponse, error) {
+func (s *LocationService) CreateAddon(locationID *uint, req dto.CreateAddonRequest) (*dto.AddonResponse, error) {
 	addon := &models.LocationAddons{
 		LocationID:   locationID,
 		Name:         req.Name,
@@ -262,6 +262,16 @@ func (s *LocationService) UpdateAddon(id uint, req dto.CreateAddonRequest) (*dto
 func (s *LocationService) DeleteAddon(id uint) error {
 	return s.locationRepo.DeleteAddon(id)
 }
+
+func (s *LocationService) GetAddonByID(id uint) (*dto.AddonResponse, error) {
+	item, err := s.locationRepo.FindAddonByID(id)
+	if err != nil {
+		return nil, err
+	}
+	res := toAddonResponse(*item)
+	return &res, nil
+}
+
 
 // ── Pricing Tiers ─────────────────────────────────────────────────────────────
 
@@ -356,3 +366,21 @@ func toAddonResponse(a models.LocationAddons) dto.AddonResponse {
 	}
 	return res
 }
+
+// ── Global Addon Services ───────────────────────────────────────────────────
+
+func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
+	items, err := s.locationRepo.FindAllGlobalAddons()
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.AddonResponse
+	for _, item := range items {
+		result = append(result, toAddonResponse(item))
+	}
+	return result, nil
+}
+
+
+
+

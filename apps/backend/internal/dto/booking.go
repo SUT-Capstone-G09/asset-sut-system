@@ -18,7 +18,8 @@ type CreateBookingRequest struct {
 }
 
 type UpdateBookingStatusRequest struct {
-	StatusID uint   `json:"status_id" binding:"required"`
+	StatusID uint   `json:"status_id"`
+	Status   string `json:"status"`
 	Note     string `json:"note"`
 }
 
@@ -54,16 +55,32 @@ type StatusLogResponse struct {
 }
 
 type BookingResponse struct {
-	ID         uint               `json:"id"`
-	UserID     uint               `json:"user_id"`
-	UserName   string             `json:"user_name"`
-	Purpose    string             `json:"purpose"`
-	BasePrice  int                `json:"base_price"`
-	AddonPrice int                `json:"addon_price"`
-	TotalPrice int                `json:"total_price"`
-	Status     string             `json:"status"`
-	StatusID   uint               `json:"status_id"`
-	Timeslots  []TimeslotResponse `json:"timeslots"`
-	StatusLogs []StatusLogResponse `json:"status_logs"`
-	CreatedAt  time.Time          `json:"created_at"`
+	ID            uint               `json:"id"`
+	UserID        uint               `json:"user_id"`
+	UserName      string             `json:"user_name"`
+	RequesterName string             `json:"requester_name"`
+	RequesterID   string             `json:"requester_id"`
+	RequesterType string             `json:"requester_type"`
+	ContactPhone  string             `json:"contact_phone"`
+	ContactEmail  string             `json:"contact_email"`
+	Purpose       string             `json:"purpose"`
+	BasePrice     int                `json:"base_price"`
+	AddonPrice    int                `json:"addon_price"`
+	TotalPrice    int                `json:"total_price"`
+	Status        string             `json:"status"`
+	StatusID      uint               `json:"status_id"`
+	Timeslots     []TimeslotResponse `json:"timeslots"`
+	StatusLogs    []StatusLogResponse `json:"status_logs"`
+	BookingAddons []BookingAddonResponse `json:"booking_addons"`
+	CreatedAt     time.Time          `json:"created_at"`
+}
+
+type BookingAddonInput struct {
+	AddonName    string `json:"addon_name" binding:"required"`
+	AppliedPrice int    `json:"applied_price" binding:"required"`
+	Quantity     int    `json:"quantity" binding:"required"`
+}
+
+type UpdateBookingExpensesRequest struct {
+	Expenses []BookingAddonInput `json:"expenses"`
 }
