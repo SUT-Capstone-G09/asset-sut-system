@@ -10,6 +10,7 @@ export interface AuthUser {
   first_name: string;
   last_name: string;
   requester_type_id?: number; // 1 = ภายใน, 2 = ภายนอก
+  permissions?: string[]; // e.g. ["location_mgmt:create", "booking:read"]
 }
 
 interface AuthContextType {

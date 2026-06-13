@@ -43,4 +43,9 @@ var AllEntities = []any{
 	&DocumentTypes{},
 	&Methods{},
 	&Documents{},
+
+	// Email
+	&EmailTemplate{},
+	&EmailBroadcast{},
+	&EmailOutbox{},
 }

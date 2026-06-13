@@ -4,7 +4,7 @@
 `StorageService` ตัวเดียว เพื่อให้ทุก module อัปโหลดไฟล์และได้ presigned URL กลับมา
 โดยไม่ต้องยุ่งกับ MinIO client ตรงๆ พร้อม endpoint upload กลางสำหรับ frontend
 
-> อัปเดตล่าสุด: 2026-06-03
+> อัปเดตล่าสุด: 2026-06-08
 
 ---
 
@@ -73,24 +73,45 @@ if err := storage.UploadBytes(ctx, key, pdfBytes, "application/pdf"); err != nil
 
 ### `POST /api/v1/uploads`  *(ต้องล็อกอิน — `Authorization: Bearer <token>`)*
 
-อัปโหลดไฟล์เดียวแบบ `multipart/form-data`
+อัปโหลดไฟล์เดียวแบบ `multipart/form-data` — ระบบจะ route ไปยัง **Google Drive** หรือ **MinIO**
+อัตโนมัติตามชื่อ `folder` (ดูรายละเอียดใน `docs/gdrive-storage.md`)
 
 | field | ชนิด | บังคับ | หมายเหตุ |
 |-------|------|--------|----------|
-| `file` | File | ✅ | ไฟล์ที่จะอัปโหลด |
-| `folder` | Text | — | โฟลเดอร์จัดกลุ่ม เช่น `slips`, `documents` (ถูก sanitize) |
+| `file` | File | ✅ | ไฟล์ที่จะอัปโหลด (สูงสุด 10MB) |
+| `folder` | Text | — | โฟลเดอร์จัดกลุ่ม — ถ้าตรงกับ `GDRIVE_FOLDER_ROUTES` จะไป Drive, อื่นๆ ไป MinIO |
+| `booking_date` | Text | — | ISO date `YYYY-MM-DD` — ใช้จัด subfolder เดือนใน Drive |
+| `location_name` | Text | — | ชื่อสถานที่ — ใช้ตั้งชื่อไฟล์ใน Drive |
+| `booking_id` | Text | — | เลข booking — ทำให้ชื่อไฟล์ unique ใน Drive |
 
-**Response 201**
+**Response 201 (MinIO)**
 ```json
 {
   "success": true,
   "data": {
+    "bucket_name": "asset-sut-bucket",
     "object_key": "slips/20260603081500-a1b2c3d4.png",
-    "url": "http://localhost:9000/payment-qr/slips/20260603081500-a1b2c3d4.png?X-Amz-...",
+    "url": "http://localhost:9000/asset-sut-bucket/slips/...?X-Amz-...",
     "file_name": "slip.png",
     "content_type": "image/png",
     "size": 20480,
     "expires_in": 900
+  }
+}
+```
+
+**Response 201 (Google Drive)**
+```json
+{
+  "success": true,
+  "data": {
+    "bucket_name": "gdrive",
+    "object_key": "1A2B3CxxxxxxxxxxxxxxxxxxxxxxZZZ",
+    "url": "https://drive.google.com/file/d/1A2B3C.../view",
+    "file_name": "เอกสาร.pdf",
+    "content_type": "application/pdf",
+    "size": 102400,
+    "expires_in": 0
   }
 }
 ```
@@ -226,7 +247,9 @@ slips
   ต้องเอา `object_key` ไปผูกกับตารางของตัวเอง (เช่น `Document`, `Payment.SlipDocumentID`)
 - รองรับ **1 ไฟล์ต่อ 1 request** (field `file`) — ถ้าต้องอัปหลายไฟล์ เรียกซ้ำหลายครั้ง
 - presigned URL เป็น URL **ชั่วคราว** (ตาม `MINIO_URL_EXPIRY`) — เก็บ `object_key` ไว้
-  แล้วขอ URL ใหม่ผ่าน `PresignedURL` เมื่อต้องใช้ ไม่ควรเก็บ URL ลง DB
+  แล้วขอ URL ใหม่ผ่าน `PresignedURL` เมื่อต้องใช้ **ไม่ควรเก็บ URL ลง DB**
+  > ✅ แก้แล้วใน `LocationService` — `resolveImageURL()` generate presigned URL ใหม่ทุกครั้งที่ fetch
+  > โดย frontend `ImageUpload.tsx` ส่ง `object_key` (ไม่ใช่ URL) ลง DB ตั้งแต่ 2026-06-08
 
 **สรุป:** ใช้เป็นระบบอัปโหลดไฟล์กลางได้ทุก module ในระดับ dev/internal ส่วน production
 ให้เพิ่มการตรวจชนิดไฟล์/permission ตาม use case

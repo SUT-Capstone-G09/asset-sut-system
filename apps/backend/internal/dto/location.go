@@ -117,6 +117,24 @@ type PricingTierResponse struct {
 	Price           int    `json:"price"`
 }
 
+// ── Staff Location ───────────────────────────────────────────────────────────
+
+type StaffLocationResponse struct {
+	UserID     uint   `json:"user_id"`
+	LocationID uint   `json:"location_id"`
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	Email      string `json:"email"`
+}
+
+type AssignStaffRequest struct {
+	UserID uint `json:"user_id" binding:"required"`
+}
+
+type AssignStaffLocationsRequest struct {
+	LocationIDs []uint `json:"location_ids"`
+}
+
 // ── Availability ────────────────────────────────────────────────────────────
 
 type AvailabilityQuery struct {

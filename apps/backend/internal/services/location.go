@@ -1,46 +1,67 @@
 package services
 
 import (
+	"context"
+	"errors"
+	"strings"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
 type LocationService struct {
-	locationRepo  *repositories.LocationRepository
-	timeslotRepo  *repositories.TimeslotRepository
+	locationRepo *repositories.LocationRepository
+	timeslotRepo *repositories.TimeslotRepository
+	staffRepo    *repositories.StaffRepository
+	storage      *StorageService
 }
 
-func NewLocationService(locationRepo *repositories.LocationRepository, timeslotRepo *repositories.TimeslotRepository) *LocationService {
-	return &LocationService{locationRepo: locationRepo, timeslotRepo: timeslotRepo}
+func NewLocationService(locationRepo *repositories.LocationRepository, timeslotRepo *repositories.TimeslotRepository, staffRepo *repositories.StaffRepository, storage *StorageService) *LocationService {
+	return &LocationService{locationRepo: locationRepo, timeslotRepo: timeslotRepo, staffRepo: staffRepo, storage: storage}
 }
 
 func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
 	return s.locationRepo.FindAllTypes()
 }
 
-func (s *LocationService) GetAll() ([]dto.LocationResponse, error) {
-	locations, err := s.locationRepo.FindAll()
+func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
+	var locations []models.Locations
+	var err error
+	if role == "staff" && userID > 0 {
+		locations, err = s.locationRepo.FindByStaffID(userID)
+	} else {
+		locations, err = s.locationRepo.FindAll()
+	}
 	if err != nil {
 		return nil, err
 	}
 	var result []dto.LocationResponse
 	for _, l := range locations {
-		result = append(result, toLocationResponse(l))
+		result = append(result, s.toLocationResponse(l))
 	}
 	return result, nil
 }
 
-func (s *LocationService) GetByID(id uint) (*dto.LocationResponse, error) {
+func (s *LocationService) GetByID(id uint, role string, userID uint) (*dto.LocationResponse, error) {
+	if role == "staff" && userID > 0 {
+		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		if err != nil {
+			return nil, err
+		}
+		if !assigned {
+			return nil, errors.New("forbidden")
+		}
+	}
 	location, err := s.locationRepo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
-	res := toLocationResponse(*location)
+	res := s.toLocationResponse(*location)
 	return &res, nil
 }
 
-func (s *LocationService) Create(req dto.CreateLocationRequest) (*dto.LocationResponse, error) {
+func (s *LocationService) Create(req dto.CreateLocationRequest, role string, userID uint) (*dto.LocationResponse, error) {
 	location := &models.Locations{
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
@@ -55,10 +76,26 @@ func (s *LocationService) Create(req dto.CreateLocationRequest) (*dto.LocationRe
 	if err := s.locationRepo.Create(location); err != nil {
 		return nil, err
 	}
-	return s.GetByID(location.ID)
+	// Auto-assign to staff who created it
+	if role == "staff" && userID > 0 {
+		sl := &models.StaffLocations{UserID: userID, LocationID: location.ID}
+		if err := s.locationRepo.AssignStaff(sl); err != nil {
+			return nil, err
+		}
+	}
+	return s.GetByID(location.ID, "admin", 0)
 }
 
-func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest) (*dto.LocationResponse, error) {
+func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role string, userID uint) (*dto.LocationResponse, error) {
+	if role == "staff" && userID > 0 {
+		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		if err != nil {
+			return nil, err
+		}
+		if !assigned {
+			return nil, errors.New("forbidden")
+		}
+	}
 	location, err := s.locationRepo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -93,11 +130,69 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest) (*dto.L
 	if err := s.locationRepo.Update(location); err != nil {
 		return nil, err
 	}
-	return s.GetByID(location.ID)
+	return s.GetByID(location.ID, "admin", 0)
 }
 
 func (s *LocationService) Delete(id uint) error {
 	return s.locationRepo.Delete(id)
+}
+
+// ── Staff Location Management ─────────────────────────────────────────────────
+
+func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocationResponse, error) {
+	items, err := s.locationRepo.FindStaffByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.StaffLocationResponse
+	for _, sl := range items {
+		res := dto.StaffLocationResponse{
+			UserID:     sl.UserID,
+			LocationID: sl.LocationID,
+		}
+		if sl.User != nil {
+			res.Email = sl.User.Email
+			if sl.User.Staff != nil {
+				res.FirstName = sl.User.Staff.FirstName
+				res.LastName = sl.User.Staff.LastName
+			}
+		}
+		result = append(result, res)
+	}
+	return result, nil
+}
+
+func (s *LocationService) AssignStaff(locationID, staffUserID uint) error {
+	sl := &models.StaffLocations{UserID: staffUserID, LocationID: locationID}
+	return s.locationRepo.AssignStaff(sl)
+}
+
+func (s *LocationService) UnassignStaff(locationID, staffUserID uint) error {
+	return s.locationRepo.UnassignStaff(staffUserID, locationID)
+}
+
+func (s *LocationService) GetStaffLocations(staffID uint) ([]dto.LocationResponse, error) {
+	staff, err := s.staffRepo.FindByID(staffID)
+	if err != nil {
+		return nil, err
+	}
+	locations, err := s.locationRepo.FindByStaffID(staff.UserID)
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.LocationResponse
+	for _, l := range locations {
+		result = append(result, s.toLocationResponse(l))
+	}
+	return result, nil
+}
+
+func (s *LocationService) SetStaffLocations(staffID uint, locationIDs []uint) error {
+	staff, err := s.staffRepo.FindByID(staffID)
+	if err != nil {
+		return err
+	}
+	return s.locationRepo.SetStaffLocations(staff.UserID, locationIDs)
 }
 
 // ── Unavailabilities ─────────────────────────────────────────────────────────
@@ -301,14 +396,31 @@ func (s *LocationService) DeletePricingTier(id uint) error {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-func toLocationResponse(l models.Locations) dto.LocationResponse {
+// resolveImageURL แปลง object_key เป็น presigned URL ใหม่
+// ถ้าค่าที่เก็บเป็น URL อยู่แล้ว (http/https) จะส่งคืนตามเดิม
+func (s *LocationService) resolveImageURL(objectKeyOrURL *string) *string {
+	if objectKeyOrURL == nil || *objectKeyOrURL == "" {
+		return objectKeyOrURL
+	}
+	if strings.HasPrefix(*objectKeyOrURL, "http://") || strings.HasPrefix(*objectKeyOrURL, "https://") {
+		return objectKeyOrURL // เป็น URL เดิม (ข้อมูลเก่า) — ส่งคืนตามเดิม
+	}
+	// เป็น object_key → generate presigned URL ใหม่
+	url, err := s.storage.PresignedURL(context.Background(), *objectKeyOrURL)
+	if err != nil {
+		return objectKeyOrURL // fallback
+	}
+	return &url
+}
+
+func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationResponse {
 	res := dto.LocationResponse{
 		ID:          l.ID,
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
 		Building:    l.Building,
-		ImageURL:    l.ImageURL,
+		ImageURL:    s.resolveImageURL(l.ImageURL),
 		RoomNumber:  l.RoomNumber,
 		FloorNumber: l.FloorNumber,
 		Capacity:    l.Capacity,

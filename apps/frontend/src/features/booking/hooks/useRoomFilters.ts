@@ -14,6 +14,7 @@ import {
   savePricingTiers,
   locationToRoom,
 } from "../services/locationService";
+import { getCurrentUser } from "@/lib/utils/auth";
 
 export function useRoomFilters() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -25,6 +26,9 @@ export function useRoomFilters() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedBuilding, setSelectedBuilding] = useState("all");
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "admin";
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -108,11 +112,17 @@ export function useRoomFilters() {
     const existingDTO = locationDTOs.get(updatedRoom.id);
     const existingTierIds = existingDTO?.pricing_tiers?.map((t) => t.id) ?? [];
 
+    // ส่ง image_url เฉพาะเมื่อเป็น object_key ใหม่ (ไม่ใช่ presigned URL เดิม)
+    // ถ้าส่ง presigned URL กลับไป backend จะเก็บ URL ที่หมดอายุใน DB
+    const newImageKey = updatedRoom.image && !updatedRoom.image.startsWith("http")
+      ? updatedRoom.image
+      : undefined;
+
     await updateLocation(Number(updatedRoom.id), {
       ...(typeId && { type_id: typeId }),
       name: updatedRoom.roomName,
       building: updatedRoom.building || undefined,
-      image_url: updatedRoom.image || undefined,
+      ...(newImageKey !== undefined && { image_url: newImageKey }),
       room_number: updatedRoom.roomNumber ? parseInt(updatedRoom.roomNumber) : undefined,
       capacity: updatedRoom.capacity,
       ...(statusId && { status_id: statusId }),
@@ -135,6 +145,7 @@ export function useRoomFilters() {
   return {
     rooms,
     loading,
+    isAdmin,
     searchQuery,
     setSearchQuery,
     selectedCategory,

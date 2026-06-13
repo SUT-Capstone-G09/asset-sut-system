@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 )
 
 func CORS(cfg config.CORSConfig) gin.HandlerFunc {

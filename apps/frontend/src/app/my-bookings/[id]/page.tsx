@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -11,9 +11,12 @@ import {
   MapPin,
   CheckCircle2,
   CreditCard,
+  Download,
+  Eye,
   FileText,
   Package,
   Loader2,
+  UploadCloud,
   X,
   ZoomIn,
 } from "lucide-react";
@@ -26,8 +29,10 @@ import {
 } from "@/features/bookings/services/booking.service";
 import {
   getDocumentsByBookingId,
+  createDocument,
   DocumentDTO,
 } from "@/features/payment/services/document.service";
+import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 
 // ── Step mapping ──────────────────────────────────────────────────────────────
 const STEPS = [
@@ -405,7 +410,7 @@ export default function BookingDetailPage() {
                 {tab === "detail" ? (
                   <BookingDetailTab booking={booking} />
                 ) : (
-                  <BookingDocsTab bookingId={booking.id} />
+                  <BookingDocsTab bookingId={booking.id} bookingDate={firstSlot?.date?.slice(0, 10)} locationName={firstSlot?.location_name} />
                 )}
               </div>
             </div>
@@ -551,83 +556,152 @@ function BookingDetailTab({ booking }: { booking: BookingResponseDTO }) {
   );
 }
 
-function BookingDocsTab({ bookingId }: { bookingId: number }) {
+function BookingDocsTab({ bookingId, bookingDate, locationName }: { bookingId: number; bookingDate?: string; locationName?: string }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<DocumentDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDocs = () => {
+    setLoading(true);
+    setFetchError(null);
     getDocumentsByBookingId(bookingId)
       .then((data) => setDocs(data ?? []))
-      .catch(() => setDocs([]))
+      .catch((err: Error) => {
+        setDocs([]);
+        setFetchError(err?.message ?? "โหลดเอกสารไม่สำเร็จ");
+      })
       .finally(() => setLoading(false));
-  }, [bookingId]);
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
-        <Loader2 size={16} className="animate-spin" />
-        <span className="text-sm">กำลังโหลดเอกสาร...</span>
-      </div>
-    );
-  }
+  useEffect(() => { fetchDocs(); }, [bookingId]);
 
-  if (docs.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
-        <FileText size={32} className="text-gray-200" />
-        <p className="text-sm font-medium">ยังไม่มีเอกสาร</p>
-        <p className="text-xs text-gray-300">
-          เอกสารสำหรับการจอง #{bookingId} จะแสดงที่นี่
-        </p>
-      </div>
-    );
-  }
-
-  const openDoc = (doc: DocumentDTO) => {
-    const url = doc.file_url;
-    if (url.startsWith("data:")) {
-      const [header, base64] = url.split(",");
-      const mime = header.replace("data:", "").replace(";base64", "");
-      const bytes = atob(base64);
-      const arr = new Uint8Array(bytes.length);
-      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-      const blob = new Blob([arr], { type: mime });
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, "_blank", "noopener,noreferrer");
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    } else {
-      window.open(url, "_blank", "noopener,noreferrer");
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, locationName, bookingId);
+      await createDocument({
+        booking_id: bookingId,
+        document_type_id: file.type === "application/pdf" ? 2 : 4,
+        file_name: uploaded.file_name,
+        bucket_name: uploaded.bucket_name,
+        object_key: uploaded.object_key,
+        file_url: uploaded.url,
+        content_type: uploaded.content_type,
+        method_id: 1,
+      });
+      fetchDocs();
+    } catch {
+      setUploadError("อัปโหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
+  const openDoc = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const downloadDoc = async (doc: DocumentDTO) => {
+    const res = await fetch(doc.file_url);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement("a"), { href: url, download: doc.file_name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
   return (
-    <div className="flex flex-col gap-3">
-      {docs.map((doc) => (
+    <div className="flex flex-col gap-4">
+      {/* Upload button */}
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          onChange={handleFileChange}
+        />
         <button
-          key={doc.id}
-          onClick={() => openDoc(doc)}
-          className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 transition-colors group text-left w-full"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-brand-primary/40 hover:bg-orange-50 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 hover:text-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <div className="w-9 h-9 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
-            <FileText size={16} className="text-brand-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-brand-primary">
-              {doc.file_name}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {doc.document_type} · {doc.method}
-            </p>
-          </div>
-          <span className="text-xs text-gray-400 shrink-0">
-            {new Date(doc.created_at).toLocaleDateString("th-TH", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
+          {uploading
+            ? <><Loader2 size={15} className="animate-spin" /> กำลังอัปโหลด...</>
+            : <><UploadCloud size={15} /> อัปโหลดเอกสารเพิ่มเติม</>}
         </button>
-      ))}
+        {uploadError && (
+          <p className="text-xs text-red-400 mt-1.5 text-center">{uploadError}</p>
+        )}
+      </div>
+
+      {/* Document list */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8 gap-2 text-gray-400">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-sm">กำลังโหลดเอกสาร...</span>
+        </div>
+      ) : fetchError ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2">
+          <p className="text-sm font-medium text-red-500">โหลดเอกสารไม่สำเร็จ</p>
+          <p className="text-xs text-red-400 text-center max-w-xs">{fetchError}</p>
+          <button onClick={fetchDocs} className="text-xs text-brand-primary underline mt-1">ลองใหม่</button>
+        </div>
+      ) : docs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
+          <FileText size={32} className="text-gray-200" />
+          <p className="text-sm font-medium">ยังไม่มีเอกสาร</p>
+          <p className="text-xs text-gray-300">อัปโหลดเอกสารด้านบนเพื่อเพิ่มเอกสารการจอง</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {docs.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3"
+            >
+              <div className="w-9 h-9 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                <FileText size={16} className="text-brand-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 truncate">
+                  {doc.file_name}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {doc.document_type} ·{" "}
+                  {new Date(doc.created_at).toLocaleDateString("th-TH", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  title="ดูเอกสาร"
+                  onClick={() => openDoc(doc.file_url)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-primary hover:bg-orange-50 transition-colors"
+                >
+                  <Eye size={15} />
+                </button>
+                <button
+                  title="ดาวน์โหลด"
+                  onClick={() => downloadDoc(doc)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-primary hover:bg-orange-50 transition-colors"
+                >
+                  <Download size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

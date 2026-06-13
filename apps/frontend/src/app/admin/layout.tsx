@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         router.push("/login");
         return;
       }
-      if (user?.role !== "admin" && user?.role !== "staff") {
+      if (user?.role !== "admin") {
         router.push("/unauthorized");
       }
     }
@@ -30,8 +30,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!isMounted) return null;
 
-  if (!isAuthenticated || (user?.role !== "admin" && user?.role !== "staff"))
-    return null;
+  if (!isAuthenticated || user?.role !== "admin") return null;
 
   return (
     <div className="min-h-screen bg-slate-50/30">
