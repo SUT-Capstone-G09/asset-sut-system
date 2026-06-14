@@ -7,10 +7,10 @@ import { MapPin, Search } from "lucide-react";
 
 const MapContainer = dynamic(
   () => import('@/components/map/MapContainer'),
-  { 
+  {  
     ssr: false,
     loading: () => (
-      <div 
+      <div  
         className="
           h-[600px] w-full flex items-center justify-center 
           bg-gray-100 rounded-2xl
@@ -39,7 +39,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
   return (
     <section className="space-y-8 py-6">
       {/* Header */}
-      <div 
+      <div  
         className="
           flex flex-col lg:flex-row lg:items-end justify-between gap-8 
           border-b border-gray-100 pb-10
@@ -48,7 +48,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-[2px] bg-[#f26522]" />
-            <span 
+            <span  
               className="
                 text-[10px] font-black uppercase tracking-[0.4em] 
                 text-[#f26522]
@@ -58,7 +58,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
             </span>
           </div>
 
-          <h2 
+          <h2  
             className="
               text-4xl md:text-5xl font-black leading-none uppercase tracking-tighter 
               text-gray-900
@@ -90,9 +90,9 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
           </div>
         </div>
       </div>
-      
+            
       {/* Split Layout */}
-      <div 
+      <div  
         className="
           grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0 overflow-hidden 
           bg-white border border-gray-100 rounded-2xl
@@ -104,7 +104,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
         </div>
 
         {/* List Side */}
-        <div 
+        <div  
           className="
             flex flex-col h-[600px] lg:h-[700px] 
             bg-white border-l border-gray-100
@@ -123,7 +123,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
               </span>
             </div>
           </div>
-          
+                    
           <div className="flex-grow overflow-y-auto custom-scrollbar">
             {categories.map((cat) => {
               const catLocations = filteredLocations.filter(l => l.category === cat);
@@ -132,7 +132,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
               return (
                 <div key={cat}>
                   {/* Category Header */}
-                  <div 
+                  <div  
                     className="
                       px-6 py-5 flex items-center justify-between 
                       bg-gray-50/50 backdrop-blur-sm border-b border-gray-100
@@ -147,7 +147,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
                   </div>
 
                   {catLocations.map((loc) => (
-                    <div 
+                    <div  
                       key={loc.id}
                       className="
                         group p-8 bg-white border-b border-gray-50 
@@ -156,7 +156,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
                     >
                       <div className="flex items-center gap-6">
                         <div className="space-y-1.5 flex-grow">
-                          <h4 
+                          <h4  
                             className="
                               text-lg font-bold text-gray-900 leading-tight 
                               group-hover:text-[#f26522] transition-colors
@@ -168,7 +168,7 @@ export default function AreasMapSection({ locations, categories }: AreasMapSecti
                             {loc.address}
                           </p>
                         </div>
-                        <div 
+                        <div  
                           className="
                             w-10 h-10 flex items-center justify-center 
                             bg-white border border-gray-100 rounded-full shadow-sm 

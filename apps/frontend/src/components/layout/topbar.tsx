@@ -76,7 +76,7 @@ export default function Navbar() {
     },
     {
       label: "แจ้งปัญหา",
-      href: user.role === "operator" ? "/operator/report" : "/user/report",
+      href: user.role === "operator" ? "/operator/report" : "/user/requests",
       icon: AlertCircle,
       show: user.role !== "admin",
     },

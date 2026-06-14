@@ -92,7 +92,7 @@ const AdminRequestTable = () => {
                 <td className="px-6 py-5 text-[10px] text-slate-400">{req.date}</td>
                 <td className="px-6 py-5">
                   <button
-                    onClick={() => router.push(`/requests/manage-requests`)} // Link ไปหน้าจัดการ
+                    onClick={() => router.push(`/admin/requests/manage-requests`)} // Link ไปหน้าจัดการ
                     className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-200"
                   >
                     เปิดดู

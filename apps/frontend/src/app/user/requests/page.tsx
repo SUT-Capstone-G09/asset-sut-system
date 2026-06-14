@@ -40,7 +40,7 @@ const AssetSutUI = () => {
           </div>
 
           <button className="bg-orange-500 text-white px-6 py-3 rounded-xl font-medium flex items-center hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all"
-            onClick={() => router.push('/requests/add-request')}>
+            onClick={() => router.push('/user/requests/add-request')}>
             <PlusCircle size={20} className="mr-2" />
             แจ้งเรื่องใหม่
           </button>

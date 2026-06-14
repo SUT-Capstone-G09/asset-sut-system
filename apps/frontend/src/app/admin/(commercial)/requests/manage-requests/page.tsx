@@ -84,16 +84,6 @@ const AdminRequestDetail = () => {
         onConfirm={handleConfirmSave}
       />
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col sticky top-0 h-screen">
-        <div className="p-6"><h1 className="text-2xl font-bold text-[#E9652B]">Asset SUT</h1></div>
-        <nav className="flex-1 px-4 space-y-1">
-          <SidebarNavItem label="แดชบอร์ด" icon={<LayoutDashboard size={18} />} />
-          <SidebarNavItem label="รายการคำร้อง" icon={<ClipboardList size={18} />} active />
-          <SidebarNavItem label="แจ้งเรื่องใหม่" icon={<PlusCircle size={18} />} />
-        </nav>
-      </aside>
-
       <div className="flex-1">
         {/* Header */}
         {/* <header className="bg-white border-b px-8 py-4 flex justify-between items-center">
@@ -112,7 +102,7 @@ const AdminRequestDetail = () => {
           <AssetBreadcrumb
             items={[
               { label: "หน้าหลัก", href: "/" },
-              { label: "รายการคำร้อง", href: "/requests/list-requests" },
+              { label: "รายการคำร้อง", href: "/admin/requests" },
               { label: "รายละเอียดคำร้อง #REF-2024-089" }
             ]}
           />
@@ -139,10 +129,10 @@ const AdminRequestDetail = () => {
                 <h4 className="font-black text-slate-800 mb-4 flex items-center"><Paperclip size={18} className="mr-2" /> ไฟล์แนบและหลักฐาน</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border-2 border-white shadow-sm">
-                    <img src="/api/placeholder/400/200" alt="evidence-1" className="w-full h-full object-cover" />
+                    <img src="https://i0.wp.com/krujakkrapong.com/wp-content/uploads/2024/07/%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A%E0%B9%81%E0%B8%88%E0%B9%89%E0%B8%87%E0%B8%8B%E0%B9%88%E0%B8%AD%E0%B8%A12-1.jpg?fit=800%2C450&ssl=1" alt="evidence-1" className="w-full h-full object-cover" />
                   </div>
                   <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border-2 border-white shadow-sm">
-                    <img src="/api/placeholder/400/200" alt="evidence-2" className="w-full h-full object-cover" />
+                    <img src="https://www.shutterstock.com/image-vector/cheerful-cartoon-handyman-hard-hat-260nw-2708489951.jpg" alt="evidence-2" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
