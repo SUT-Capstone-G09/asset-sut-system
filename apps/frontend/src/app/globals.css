@@ -189,3 +189,12 @@ html {
     scrollbar-width: none;
   }
 }
+.upload-zone {
+  border-color: #cbd5e1; /* slate-300 */
+  background-color: #f8fafc; /* slate-50 */
+}
+
+.upload-zone:hover {
+  border-color: #f97316; /* orange-500 */
+  background-color: #fff7ed; /* orange-50 */
+}

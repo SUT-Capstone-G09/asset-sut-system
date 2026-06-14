@@ -1,0 +1,69 @@
+package dto
+
+import "time"
+
+// ── Booking ──────────────────────────────────────────────────────────────────
+
+type TimeslotInput struct {
+	LocationID uint      `json:"location_id" binding:"required"`
+	Date       time.Time `json:"date" binding:"required"`
+	StartTime  time.Time `json:"start_time" binding:"required"`
+	EndTime    time.Time `json:"end_time" binding:"required"`
+	AddonIDs   []uint    `json:"addon_ids"`
+}
+
+type CreateBookingRequest struct {
+	Purpose   string          `json:"purpose" binding:"required"`
+	Timeslots []TimeslotInput `json:"timeslots" binding:"required,min=1"`
+}
+
+type UpdateBookingStatusRequest struct {
+	StatusID uint   `json:"status_id" binding:"required"`
+	Note     string `json:"note"`
+}
+
+type TimeslotResponse struct {
+	ID            uint      `json:"id"`
+	LocationID    uint      `json:"location_id"`
+	LocationName  string    `json:"location_name"`
+	LocationImage *string   `json:"location_image"`
+	Date          time.Time `json:"date"`
+	StartTime     time.Time `json:"start_time"`
+	EndTime       time.Time `json:"end_time"`
+	PriceSnapshot int       `json:"price_snapshot"`
+	Status        string    `json:"status"`
+	Addons        []BookingAddonResponse `json:"addons"`
+}
+
+type BookingAddonResponse struct {
+	ID           uint   `json:"id"`
+	AddonName    string `json:"addon_name"`
+	AppliedPrice int    `json:"applied_price"`
+	Quantity     int    `json:"quantity"`
+	TotalPrice   int    `json:"total_price"`
+}
+
+type StatusLogResponse struct {
+	ID           uint      `json:"id"`
+	FromStatus   string    `json:"from_status"`
+	ToStatus     string    `json:"to_status"`
+	ChangedBy    uint      `json:"changed_by"`
+	ChangedByName string   `json:"changed_by_name"`
+	ChangedAt    time.Time `json:"changed_at"`
+	Note         string    `json:"note"`
+}
+
+type BookingResponse struct {
+	ID         uint               `json:"id"`
+	UserID     uint               `json:"user_id"`
+	UserName   string             `json:"user_name"`
+	Purpose    string             `json:"purpose"`
+	BasePrice  int                `json:"base_price"`
+	AddonPrice int                `json:"addon_price"`
+	TotalPrice int                `json:"total_price"`
+	Status     string             `json:"status"`
+	StatusID   uint               `json:"status_id"`
+	Timeslots  []TimeslotResponse `json:"timeslots"`
+	StatusLogs []StatusLogResponse `json:"status_logs"`
+	CreatedAt  time.Time          `json:"created_at"`
+}
