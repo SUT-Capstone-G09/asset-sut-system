@@ -131,13 +131,13 @@ func (s *AuthService) Register(req dto.RegisterRequesterRequest) error {
 		return err
 	}
 
-	requester := &models.Requesters{
+	requester := &models.Profiles{
 		FirstName:       req.FirstName,
 		LastName:        req.LastName,
 		Phone:           req.Phone,
 		LineID:          req.LineID,
 		UserID:          user.ID,
-		RequesterTypeID: requesterTypeID,
+		RequesterTypeID: &requesterTypeID,
 	}
 	return s.requesterRepo.Create(requester)
 }
@@ -215,7 +215,9 @@ func (s *AuthService) populateName(userID uint, role string, out *dto.UserSummar
 		if p, err := s.requesterRepo.FindByUserID(userID); err == nil {
 			out.FirstName = p.FirstName
 			out.LastName = p.LastName
-			out.RequesterTypeID = p.RequesterTypeID
+			if p.RequesterTypeID != nil {
+				out.RequesterTypeID = *p.RequesterTypeID
+			}
 		}
 	}
 }

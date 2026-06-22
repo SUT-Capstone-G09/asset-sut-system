@@ -85,7 +85,7 @@ func (s *StaffService) Create(req dto.CreateStaffRequest) (*dto.StaffResponse, e
 		return nil, err
 	}
 
-	staff := &models.Staffs{
+	staff := &models.Profiles{
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Phone:     req.Phone,
@@ -172,7 +172,7 @@ func (s *StaffService) GetProfile(userID uint) (*dto.StaffResponse, error) {
 	return s.GetByID(staff.ID)
 }
 
-func toStaffResponse(st models.Staffs) dto.StaffResponse {
+func toStaffResponse(st models.Profiles) dto.StaffResponse {
 	res := dto.StaffResponse{
 		ID:        st.ID,
 		FirstName: st.FirstName,

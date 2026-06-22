@@ -83,7 +83,7 @@ func (s *RequesterService) Delete(id uint) error {
 	return s.userRepo.Deactivate(requester.UserID)
 }
 
-func toRequesterResponse(r models.Requesters) dto.RequesterResponse {
+func toRequesterResponse(r models.Profiles) dto.RequesterResponse {
 	res := dto.RequesterResponse{
 		ID:        r.ID,
 		FirstName: r.FirstName,
@@ -95,7 +95,7 @@ func toRequesterResponse(r models.Requesters) dto.RequesterResponse {
 		res.Email = r.User.Email
 		res.IsActive = r.User.IsActive
 	}
-	if r.RequesterType.ID != 0 {
+	if r.RequesterType != nil {
 		res.RequesterType = r.RequesterType.Type
 	}
 	return res
