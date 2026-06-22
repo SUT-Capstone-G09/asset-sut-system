@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
 import { MapPin, ArrowRight, User, Calendar, Clock } from "lucide-react";
-import { Booking } from "../../types/booking";
+import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -17,36 +17,8 @@ interface BookingCardProps {
   onClick?: () => void;
 }
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    dot: string;
-  }
-> = {
-  pending: {
-    label: "รออนุมัติ",
-    color: "bg-amber-50/90 text-amber-700 border-amber-100",
-    dot: "bg-amber-400",
-  },
-  approved: {
-    label: "อนุมัติแล้ว",
-    color: "bg-emerald-50/90 text-emerald-700 border-emerald-100",
-    dot: "bg-emerald-500",
-  },
-  rejected: {
-    label: "ปฏิเสธ",
-    color: "bg-red-50/90 text-red-500 border-red-100",
-    dot: "bg-red-400",
-  },
-};
-
-export default function BookingCard({
-  booking,
-  onClick,
-}: BookingCardProps) {
-  const status = statusConfig[booking.status ?? "pending"];
+export default function BookingCard({ booking, onClick }: BookingCardProps) {
+  const status = BOOKING_STATUS_CONFIG[booking.status ?? "pending"];
 
   return (
     <Card
@@ -56,7 +28,7 @@ export default function BookingCard({
         "bg-white w-full",
         "transition-all duration-300",
         "hover:shadow-md hover:border-[#f26522]/20 hover:-translate-y-1",
-        "cursor-pointer flex flex-col gap-0 py-0 border-slate-200/60 rounded-[7px]"
+        "cursor-pointer flex flex-col gap-0 py-0 border-slate-200/60 rounded-[7px]",
       )}
     >
       {/* Card Image */}
@@ -77,21 +49,34 @@ export default function BookingCard({
 
         {/* Top Badges */}
         <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-          {/* Status Badge */}
-          <div
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm shadow-sm ring-1 ring-black/5",
-              status.color.split(" ")[1]
+          {/* Status & Repeat Badges */}
+          <div className="flex flex-col gap-1.5 items-start">
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm shadow-sm ring-1 ring-black/5",
+                status.cardText,
+              )}
+            >
+              <div
+                className={cn(
+                  "size-1.5 rounded-full animate-pulse",
+                  status.dot,
+                )}
+              />
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                {status.label}
+              </span>
+            </div>
+
+            {booking.repeat && (
+              <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 text-white rounded-full shadow-sm text-[8px] font-black uppercase tracking-widest">
+                ทำซ้ำ
+              </div>
             )}
-          >
-            <div className={cn("size-1.5 rounded-full animate-pulse", status.dot)} />
-            <span className="text-[9px] font-black uppercase tracking-widest">
-              {status.label}
-            </span>
           </div>
 
           {/* Booking ID */}
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/40 backdrop-blur-md border border-white/20 rounded-md">
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/40 backdrop-blur-md border border-white/20 rounded-[5px]">
             <span className="text-[8px] font-bold text-white uppercase tracking-wider">
               {booking.id}
             </span>
@@ -100,7 +85,7 @@ export default function BookingCard({
 
         {/* Bottom Category */}
         <div className="absolute bottom-3 left-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-[5px] border border-white/20">
             <MapPin size={10} className="text-[#f26522]" strokeWidth={2.5} />
             <span className="text-[9px] font-bold text-white uppercase tracking-wider">
               {booking.category}
@@ -135,12 +120,20 @@ export default function BookingCard({
         <div className="rounded-[7px] bg-slate-50 px-4 py-3 flex items-start gap-2.5">
           <User size={14} className="text-slate-400 mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">ผู้ขอใช้พื้นที่</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+              ผู้ขอใช้พื้นที่
+            </p>
             <p className="text-[12px] font-bold text-slate-700 truncate mt-1">
               {booking.requesterName}
             </p>
             <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">
-              ID: {booking.requesterId} ({booking.requesterType === 'student' ? 'นักศึกษา' : booking.requesterType === 'staff' ? 'เจ้าหน้าที่' : 'ภายนอก'})
+              ID: {booking.requesterId} (
+              {booking.requesterType === "student"
+                ? "นักศึกษา"
+                : booking.requesterType === "staff"
+                  ? "เจ้าหน้าที่"
+                  : "ภายนอก"}
+              )
             </p>
           </div>
         </div>
@@ -166,7 +159,7 @@ export default function BookingCard({
             "text-[12px] font-semibold text-slate-600",
             "transition-all duration-300",
             "group-hover:bg-[#f26522] group-hover:text-white",
-            "active:scale-[0.98]"
+            "active:scale-[0.98]",
           )}
         >
           ดูรายละเอียด

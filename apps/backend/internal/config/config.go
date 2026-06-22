@@ -14,14 +14,14 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
-	Server  ServerConfig
-	CORS	CORSConfig
-	JWT     JWTConfig
-	Cookie  CookieConfig
-	Minio   MinioConfig
+	Server   ServerConfig
+	CORS     CORSConfig
+	JWT      JWTConfig
+	Cookie   CookieConfig
+	Minio    MinioConfig
 	GDrive   GDriveConfig
-	Payment PaymentConfig
-	SMTP    SMTPConfig
+	Payment  PaymentConfig
+	SMTP     SMTPConfig
 }
 
 type DatabaseConfig struct {
@@ -189,36 +189,15 @@ func findEnvFile() (string, error) {
 	currentDir := cwd
 
 	// Search up to 10 levels up for .env file
-	for range 10 {
-        // สร้าง DirFS สำหรับ directory ปัจจุบัน
-        fsys := os.DirFS(currentDir)
-        
-        // ตรวจสอบว่า .env มีอยู่หรือไม่
-        if _, err := fsys.Open(".env"); err == nil {
-            return filepath.Join(currentDir, ".env"), nil
-        }
-        
-        // ขึ้นไป 1 level
-        parent := filepath.Dir(currentDir)
-        if parent == currentDir {
-            // ถึง root directory แล้ว
-            break
-        }
-        currentDir = parent
-    }
 	for i := 0; i < 10; i++ {
-		// สร้าง DirFS สำหรับ directory ปัจจุบัน
 		fsys := os.DirFS(currentDir)
 
-		// ตรวจสอบว่า .env มีอยู่หรือไม่
 		if _, err := fsys.Open(".env"); err == nil {
 			return filepath.Join(currentDir, ".env"), nil
 		}
 
-		// ขึ้นไป 1 level
 		parent := filepath.Dir(currentDir)
 		if parent == currentDir {
-			// ถึง root directory แล้ว
 			break
 		}
 		currentDir = parent
@@ -285,7 +264,6 @@ func parseDriveFolderRoutes(s string) map[string]string {
 }
 
 // cleanPrivateKey แปลง literal \n ที่มาจาก .env ให้เป็น newline จริง
-// รองรับทั้ง \\n (double-escaped) และ \n (single-escaped)
 func cleanPrivateKey(key string) string {
 	key = strings.ReplaceAll(key, `\\n`, "\n")
 	key = strings.ReplaceAll(key, `\n`, "\n")

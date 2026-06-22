@@ -11,17 +11,17 @@ import (
 // cmd/serve/main.go (config, controllers) and passed down to each domain's
 // route registration function.
 type Dependencies struct {
-	Config              *config.Config
-	AuthController      *controllers.AuthController
-	AdminController     *controllers.AdminController
-	StaffController     *controllers.StaffController
-	RequesterController *controllers.RequesterController
-	RoleController      *controllers.RoleController
-	LocationController  *controllers.LocationController
-	BookingController   *controllers.BookingController
-	PaymentController   *controllers.PaymentController
-	DocumentController  *controllers.DocumentController
-	UploadController    *controllers.UploadController
+	Config                   *config.Config
+	AuthController           *controllers.AuthController
+	AdminController          *controllers.AdminController
+	StaffController          *controllers.StaffController
+	RequesterController      *controllers.RequesterController
+	RoleController           *controllers.RoleController
+	LocationController       *controllers.LocationController
+	BookingController        *controllers.BookingController
+	PaymentController        *controllers.PaymentController
+	DocumentController       *controllers.DocumentController
+	UploadController         *controllers.UploadController
 	EmailController          *controllers.EmailController
 	EmailTemplateController  *controllers.EmailTemplateController
 	EmailBroadcastController *controllers.EmailBroadcastController

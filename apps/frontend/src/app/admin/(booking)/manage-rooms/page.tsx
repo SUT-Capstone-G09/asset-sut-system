@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Building2 } from "lucide-react";
-import BookingHeader from "@/features/booking/components/admin/BookingHeader";
+import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";
@@ -83,7 +83,7 @@ export default function ManageRoomsPage() {
         breadcrumbs={[
           { label: isAdmin ? "Admin" : "Staff", href: "/admin" },
           { label: "การจัดการห้อง" },
-          { label: "รายชื่อห้องทั้งหมด" }
+          { label: "รายชื่อห้องทั้งหมด" },
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="เพิ่มข้อมูลห้อง"

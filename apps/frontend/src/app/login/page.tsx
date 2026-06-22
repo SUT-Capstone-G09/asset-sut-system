@@ -145,7 +145,7 @@ export default function LoginPage() {
                       id="login-password" type={showPass ? "text" : "password"}
                       placeholder="กรอกรหัสผ่าน" value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required className="h-11 rounded-xl border-gray-200 pr-10 focus:border-brand-primary"
+                      required className="h-11 rounded-xl border-gray-200 pr-10 focus:border-brand-primary [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     />
                     <button
                       type="button" onClick={() => setShowPass(!showPass)}
@@ -245,7 +245,7 @@ export default function LoginPage() {
                       type={showRegPass ? "text" : "password"} placeholder="อย่างน้อย 8 ตัวอักษร"
                       value={reg.password}
                       onChange={(e) => setReg({ ...reg, password: e.target.value })}
-                      required minLength={8} className="h-10 rounded-xl border-gray-200 pr-10"
+                      required minLength={8} className="h-10 rounded-xl border-gray-200 pr-10 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     />
                     <button type="button" onClick={() => setShowRegPass(!showRegPass)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
