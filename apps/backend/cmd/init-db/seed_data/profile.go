@@ -31,14 +31,14 @@ func seedAdmins(db *gorm.DB, cfg *config.Config) error {
 	}
 	db.Model(&user).Association("Roles").Replace([]models.Roles{adminRole})
 
-	admin := models.Admins{
+	admin := models.Profiles{
 		FirstName: "ไพสินทร์",
 		LastName:  "ศรีสุข",
 		Phone:     "1234567890",
 		LineID:    "superadmi",
 		UserID:    user.ID,
 	}
-	if err := db.FirstOrCreate(&admin, models.Admins{UserID: admin.UserID}).Error; err != nil {
+	if err := db.FirstOrCreate(&admin, models.Profiles{UserID: admin.UserID}).Error; err != nil {
 		return err
 	}
 	log.Println("Admin seeded successfully.")
@@ -67,14 +67,14 @@ func seedStaffs(db *gorm.DB, cfg *config.Config) error {
 	}
 	db.Model(&user).Association("Roles").Replace([]models.Roles{staffRole})
 
-	staff := models.Staffs{
+	staff := models.Profiles{
 		FirstName: "กฤษณะ",
 		LastName:  "สุขสวัสดิ์",
 		Phone:     "0987654321",
 		LineID:    "kris",
 		UserID:    user.ID,
 	}
-	if err := db.FirstOrCreate(&staff, models.Staffs{UserID: staff.UserID}).Error; err != nil {
+	if err := db.FirstOrCreate(&staff, models.Profiles{UserID: staff.UserID}).Error; err != nil {
 		return err
 	}
 	log.Println("Staff seeded successfully.")
@@ -117,15 +117,16 @@ func seedRequesters(db *gorm.DB, cfg *config.Config) error {
 	}
 	db.Model(&user).Association("Roles").Replace([]models.Roles{requesterRole})
 
-	requester := models.Requesters{
+	requesterTypeID := uint(2)
+	requester := models.Profiles{
 		FirstName:       "วรวุฒิ",
 		LastName:        "ทัศน์ทอง",
 		Phone:           "5551234567",
 		LineID:          "worawut",
 		UserID:          user.ID,
-		RequesterTypeID: 2,
+		RequesterTypeID: &requesterTypeID,
 	}
-	if err := db.FirstOrCreate(&requester, models.Requesters{UserID: requester.UserID}).Error; err != nil {
+	if err := db.FirstOrCreate(&requester, models.Profiles{UserID: requester.UserID}).Error; err != nil {
 		return err
 	}
 	log.Println("Requester seeded successfully.")
