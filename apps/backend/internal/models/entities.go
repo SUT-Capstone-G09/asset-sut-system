@@ -21,6 +21,15 @@ var AllEntities = []any{
 	&RateTypes{},
 	&LocationPricingTiers{},
 
+	// Area
+	&Buildings{},
+	&Areas{},
+	&AreaImages{},
+	&AreaTags{},
+	&FloorPlans{},
+	&MapLayers{},
+	&MapElements{},
+
 	// Booking
 	&BookingStatuses{},
 	&Bookings{},
