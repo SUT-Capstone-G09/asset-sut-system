@@ -54,4 +54,10 @@ var AllEntities = []any{
 	&EmailTemplate{},
 	&EmailBroadcast{},
 	&EmailOutbox{},
+
+	// Evaluation
+	&GradeSettings{},
+	&EvaluationCriteria{},
+	&Evaluations{},
+	&EvaluationsDetail{},
 }
