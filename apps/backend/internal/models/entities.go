@@ -45,4 +45,15 @@ var AllEntities = []any{
 	&EmailTemplate{},
 	&EmailBroadcast{},
 	&EmailOutbox{},
+
+	// Tenant
+	&TenantProfiles{},
+	&TenantContacts{},
+	&TenantKYC{},
+
+	// Contract
+	&BusinessTypes{},
+	&Contracts{},
+	&ContractHistory{},
+	&ContractInvoices{},
 }
