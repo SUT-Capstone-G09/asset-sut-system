@@ -13,9 +13,10 @@ type Bookings struct {
 	UserID      uint             `gorm:"not null" json:"user_id"`
 	User        *Users           `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Purpose     string           `gorm:"not null" json:"purpose"`
-	BasePrice   int              `gorm:"not null;default:0" json:"base_price"`
-	AddonPrice  int              `gorm:"not null;default:0" json:"addon_price"`
-	TotalPrice  int              `gorm:"not null;default:0" json:"total_price"`
+	BasePrice     int              `gorm:"not null;default:0" json:"base_price"`
+	AddonPrice    int              `gorm:"not null;default:0" json:"addon_price"`
+	DiscountPrice int              `gorm:"not null;default:0" json:"discount_price"`
+	TotalPrice    int              `gorm:"not null;default:0" json:"total_price"`
 	StatusID    uint             `gorm:"not null" json:"status_id"`
 	Status      *BookingStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	Timeslots   []Timeslots      `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`

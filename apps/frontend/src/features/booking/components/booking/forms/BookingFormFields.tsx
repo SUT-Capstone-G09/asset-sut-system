@@ -36,7 +36,7 @@ import { getHoursFromTimeSlot } from "../../../utils/time";
 interface BookingFormFieldsProps {
   isEdit?: boolean;
   recurrenceMode?: "this" | "following" | "all";
-  type: "classroom" | "meeting";
+  type: string;
 }
 
 const CLASSROOM_CATEGORIES = ["ห้องบรรยาย", "ห้องปฏิบัติการ", "ห้องสัมมนา"];
@@ -208,75 +208,6 @@ export default function BookingFormFields({
         />
       </div>
 
-      {/* Section: Payment Slip (Only for Edit Mode) */}
-      {isEdit && (
-        <div className="space-y-4 text-left">
-          <div
-            className="flex items-center gap-2.5 mb-2"
-            style={{ color: themeColor }}
-          >
-            <div
-              className={cn(
-                "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
-                themeBg,
-              )}
-            >
-              <Briefcase size={18} strokeWidth={2.5} />
-            </div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
-              หลักฐานการชำระเงิน (Receipt Slip)
-            </h3>
-          </div>
-
-          <Controller
-            name="receiptImage"
-            control={control}
-            render={({ field }) => (
-              <ImageUpload
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.receiptImage?.message}
-              />
-            )}
-          />
-          <Separator className="bg-slate-100 mt-6" />
-        </div>
-      )}
-
-      {/* Section: Official Receipt (Only for Edit Mode + Approved Status) */}
-      {isEdit && watchedStatus === "approved" && (
-        <div className="space-y-4 text-left">
-          <div
-            className="flex items-center gap-2.5 mb-2"
-            style={{ color: themeColor }}
-          >
-            <div
-              className={cn(
-                "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
-                themeBg,
-              )}
-            >
-              <FileText size={18} strokeWidth={2.5} />
-            </div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
-              ใบเสร็จรับเงินอย่างเป็นทางการ (Official Receipt)
-            </h3>
-          </div>
-
-          <Controller
-            name="officialReceipt"
-            control={control}
-            render={({ field }) => (
-              <ImageUpload
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.officialReceipt?.message}
-              />
-            )}
-          />
-          <Separator className="bg-slate-100 mt-6" />
-        </div>
-      )}
 
       {/* Section: Status (Only for Edit Mode) */}
       {isEdit && (
@@ -315,10 +246,10 @@ export default function BookingFormFields({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">รออนุมัติ (Pending)</SelectItem>
-                    <SelectItem value="pending_payment">รอชำระเงิน (Pending Payment)</SelectItem>
-                    <SelectItem value="verifying_payment">รอตรวจสอบการชำระเงิน (Verifying Payment)</SelectItem>
-                    <SelectItem value="approved">อนุมัติแล้ว (Approved)</SelectItem>
+                    <SelectItem value="approved">อนุมัติ (Approved)</SelectItem>
                     <SelectItem value="rejected">ปฏิเสธ (Rejected)</SelectItem>
+                    <SelectItem value="cancelled">ยกเลิก (Cancelled)</SelectItem>
+                    <SelectItem value="completed">เสร็จสิ้น (Completed)</SelectItem>
                   </SelectContent>
                 </Select>
               )}

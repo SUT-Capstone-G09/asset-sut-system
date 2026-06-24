@@ -86,22 +86,7 @@ export default function BookingFilters({
         </Select>
       </div>
 
-      {/* Status Filter */}
-      <div className="w-full xl:w-40">
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="h-11 bg-slate-50 border-none rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30">
-            <SelectValue placeholder="ทุกสถานะการจอง" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ทุกสถานะการจอง</SelectItem>
-            <SelectItem value="pending">รออนุมัติ</SelectItem>
-            <SelectItem value="pending_payment">รอชำระเงิน</SelectItem>
-            <SelectItem value="verifying_payment">รอตรวจสอบการชำระเงิน</SelectItem>
-            <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
-            <SelectItem value="rejected">ปฏิเสธ</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+
 
       {/* Reset Button */}
       <Button 

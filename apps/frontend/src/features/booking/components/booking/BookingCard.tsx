@@ -1,23 +1,33 @@
 "use client";
 
-import { MapPin, ArrowRight, User, Calendar, Clock } from "lucide-react";
+import { MapPin, User, Calendar, Clock, Mail, ChevronRight, Receipt } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BookingCardProps {
   booking: Booking;
   onClick?: () => void;
+  onEditClick?: () => void;
+  onExpensesClick?: () => void;
+  onUpdateStatus?: (id: string, status: any) => void;
 }
 
-export default function BookingCard({ booking, onClick }: BookingCardProps) {
+export default function BookingCard({ 
+  booking, 
+  onClick, 
+  onEditClick, 
+  onExpensesClick,
+  onUpdateStatus 
+}: BookingCardProps) {
   const status = BOOKING_STATUS_CONFIG[booking.status ?? "pending"];
 
   return (
@@ -25,153 +35,147 @@ export default function BookingCard({ booking, onClick }: BookingCardProps) {
       onClick={onClick}
       className={cn(
         "group overflow-hidden",
-        "bg-white w-full",
+        "bg-white w-full flex flex-col md:flex-row",
         "transition-all duration-300",
-        "hover:shadow-md hover:border-[#f26522]/20 hover:-translate-y-1",
-        "cursor-pointer flex flex-col gap-0 py-0 border-slate-200/60 rounded-[7px]",
+        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/30 hover:-translate-y-1",
+        "cursor-pointer border border-slate-100 rounded-[12px] p-4 gap-6",
       )}
     >
-      {/* Card Image */}
-      <div className="relative h-44 w-full overflow-hidden bg-slate-100 rounded-t-[7px]">
+      {/* 1. Left Side: Image */}
+      <div className="w-full md:w-[240px] shrink-0 bg-slate-100 rounded-[8px] overflow-hidden aspect-square md:aspect-auto md:h-auto">
         <img
           src={booking.image}
           alt={booking.roomName}
-          loading="lazy"
-          suppressHydrationWarning={true}
-          className="
-            h-full w-full object-cover
-            transition-transform duration-700
-            group-hover:scale-110
-          "
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
+      </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20" />
-
-        {/* Top Badges */}
-        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-          {/* Status & Repeat Badges */}
-          <div className="flex flex-col gap-1.5 items-start">
-            <div
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm shadow-sm ring-1 ring-black/5",
-                status.cardText,
-              )}
+      {/* 2. Middle Section: Room Info & User Info */}
+      <div className="flex-[2] flex flex-col justify-center gap-5 py-2">
+        {/* Status, Title, Location */}
+        <div className="space-y-3">
+          <div onClick={(e) => e.stopPropagation()} className="w-fit">
+            <Select
+              value={booking.status}
+              onValueChange={(val) => {
+                onUpdateStatus?.(booking.id, val as any);
+              }}
             >
-              <div
+              <SelectTrigger
                 className={cn(
-                  "size-1.5 rounded-full animate-pulse",
-                  status.dot,
+                  "h-9 px-4 py-2 rounded-full border-0 shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer flex items-center justify-between gap-3 text-xs font-bold tracking-wide min-w-[140px]",
+                  status.gridBg || "bg-slate-100",
+                  status.gridText || "text-slate-700",
                 )}
-              />
-              <span className="text-[9px] font-black uppercase tracking-widest">
-                {status.label}
-              </span>
-            </div>
-
-            {booking.repeat && (
-              <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 text-white rounded-full shadow-sm text-[8px] font-black uppercase tracking-widest">
-                ทำซ้ำ
-              </div>
-            )}
+              >
+                  <SelectValue placeholder="สถานะ" />
+              </SelectTrigger>
+              <SelectContent className="bg-white z-[200]">
+                <SelectItem value="pending" className="text-xs font-bold text-amber-700 focus:bg-amber-50">
+                  รออนุมัติ
+                </SelectItem>
+                <SelectItem value="approved" className="text-xs font-bold text-emerald-700 focus:bg-emerald-50">
+                  อนุมัติ
+                </SelectItem>
+                <SelectItem value="rejected" className="text-xs font-bold text-red-600 focus:bg-red-50">
+                  ปฏิเสธ
+                </SelectItem>
+                <SelectItem value="completed" className="text-xs font-bold text-teal-700 focus:bg-teal-50">
+                  เสร็จสิ้น
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Booking ID */}
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-black/40 backdrop-blur-md border border-white/20 rounded-[5px]">
-            <span className="text-[8px] font-bold text-white uppercase tracking-wider">
-              {booking.id}
-            </span>
+          <h3 className="text-[22px] font-extrabold text-slate-900 leading-snug group-hover:text-[#f26522] transition-colors line-clamp-2">
+            {booking.roomName}
+          </h3>
+
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <MapPin size={16} className="shrink-0" />
+            <span className="text-sm">{booking.building}</span>
           </div>
         </div>
 
-        {/* Bottom Category */}
-        <div className="absolute bottom-3 left-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-[5px] border border-white/20">
-            <MapPin size={10} className="text-[#f26522]" strokeWidth={2.5} />
-            <span className="text-[9px] font-bold text-white uppercase tracking-wider">
-              {booking.category}
-            </span>
+        <hr className="border-slate-100 w-full" />
+
+        {/* User Info */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-9 rounded-full bg-blue-100/50 text-blue-600 flex items-center justify-center shrink-0">
+              <User size={16} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] text-slate-500 font-medium">ผู้ขอใช้บริการ</span>
+              <span className="text-sm font-bold text-slate-800 truncate">{booking.requesterName}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3.5">
+            <div className="size-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+              <Mail size={16} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] text-slate-500 font-medium">อีเมล</span>
+              <span className="text-sm font-bold text-slate-800 truncate">
+                {booking.contactEmail || "ไม่ระบุอีเมล"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <CardHeader className="space-y-1 p-5 pb-0">
-        <CardTitle
-          className="
-            text-[16px] font-bold leading-snug
-            text-slate-900 line-clamp-1 group-hover:text-[#f26522] transition-colors
-          "
-        >
-          {booking.roomName}
-        </CardTitle>
+      {/* 3. Right Section: Date/Time & Buttons */}
+      <div className="flex-1 flex flex-col justify-between md:border-l border-slate-100 md:pl-6 min-w-[220px] py-2 gap-6">
+        {/* Date and Time */}
+        <div className="space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="size-11 rounded-xl bg-[#f26522] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Calendar size={20} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] text-slate-500 font-medium">วันที่</span>
+              <span className="text-[15px] font-bold text-slate-900 truncate">{booking.date}</span>
+            </div>
+          </div>
 
-        <CardDescription
-          className="
-            text-[12px] leading-relaxed
-            text-slate-500 line-clamp-2
-          "
-        >
-          {booking.building}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="p-5 py-4 space-y-3">
-        {/* Requester Info */}
-        <div className="rounded-[7px] bg-slate-50 px-4 py-3 flex items-start gap-2.5">
-          <User size={14} className="text-slate-400 mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              ผู้ขอใช้พื้นที่
-            </p>
-            <p className="text-[12px] font-bold text-slate-700 truncate mt-1">
-              {booking.requesterName}
-            </p>
-            <p className="text-[9.5px] font-medium text-slate-400 mt-0.5">
-              ID: {booking.requesterId} (
-              {booking.requesterType === "student"
-                ? "นักศึกษา"
-                : booking.requesterType === "staff"
-                  ? "เจ้าหน้าที่"
-                  : "ภายนอก"}
-              )
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="size-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 shadow-sm">
+              <Clock size={20} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] text-slate-500 font-medium">เวลา</span>
+              <span className="text-[15px] font-bold text-slate-900 truncate">{booking.timeSlot}</span>
+            </div>
           </div>
         </div>
 
-        {/* Date and Time slots */}
-        <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-600">
-          <div className="flex items-center gap-1.5 bg-slate-50/50 p-2 rounded-[7px] border border-slate-100">
-            <Calendar size={12} className="text-[#f26522] shrink-0" />
-            <span className="truncate">{booking.date}</span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-slate-50/50 p-2 rounded-[7px] border border-slate-100">
-            <Clock size={12} className="text-[#f26522] shrink-0" />
-            <span className="truncate">{booking.timeSlot}</span>
-          </div>
-        </div>
-      </CardContent>
-
-      <CardFooter className="p-5 pt-0">
-        <button
-          className={cn(
-            "flex w-full items-center justify-center gap-2",
-            "rounded-[7px] bg-slate-50 py-3",
-            "text-[12px] font-semibold text-slate-600",
-            "transition-all duration-300",
-            "group-hover:bg-[#f26522] group-hover:text-white",
-            "active:scale-[0.98]",
+        <div className="flex flex-col gap-3 mt-auto">
+          {(booking.status === "approved" || booking.status === "pending" || booking.status === "completed") && (
+            <Button 
+              variant="secondary"
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg h-[44px] font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2"
+              onClick={(e) => { e.stopPropagation(); onExpensesClick ? onExpensesClick() : onClick?.(); }}
+            >
+              <Receipt size={16} />
+              จัดการค่าใช้จ่าย
+            </Button>
           )}
-        >
-          ดูรายละเอียด
-          <ArrowRight
-            size={14}
-            className="
-              transition-transform duration-200
-              group-hover:translate-x-0.5
-            "
-          />
-        </button>
-      </CardFooter>
+          <Button 
+            className="w-full bg-[#f26522] text-white hover:bg-[#d8561d] rounded-lg h-[44px] font-bold text-sm shadow-sm transition-colors"
+            onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+          >
+            ดูรายละเอียด
+          </Button>
+          <Button 
+            variant="outline"
+            className="w-full border-slate-200 text-slate-900 hover:bg-slate-50 rounded-lg h-[44px] font-bold text-sm"
+            onClick={(e) => { e.stopPropagation(); onEditClick ? onEditClick() : onClick?.(); }}
+          >
+            แก้ไข
+          </Button>
+        </div>
+      </div>
     </Card>
   );
 }

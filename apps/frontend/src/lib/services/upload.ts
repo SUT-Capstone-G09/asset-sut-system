@@ -14,6 +14,8 @@ export interface UploadResult {
 export const UPLOAD_FOLDERS = {
   LOCATION_PICS: process.env.NEXT_PUBLIC_UPLOAD_FOLDER_LOCATIONS || "location-pics",
   PAYMENT_QR: process.env.NEXT_PUBLIC_UPLOAD_FOLDER_PAYMENT || "payment-qr",
+  PAYMENT_SLIP: process.env.NEXT_PUBLIC_UPLOAD_FOLDER_PAYMENT_SLIP || "payment-slip",
+  PAYMENT_RECEIPT: process.env.NEXT_PUBLIC_UPLOAD_FOLDER_RECEIPT || "payment-receipt",
   BOOKING_DOCS: process.env.NEXT_PUBLIC_UPLOAD_FOLDER_BOOKING || "booking-docs",
 } as const;
 

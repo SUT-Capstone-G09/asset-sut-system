@@ -66,12 +66,14 @@ type BookingResponse struct {
 	Purpose       string             `json:"purpose"`
 	BasePrice     int                `json:"base_price"`
 	AddonPrice    int                `json:"addon_price"`
+	DiscountPrice int                `json:"discount_price"`
 	TotalPrice    int                `json:"total_price"`
 	Status        string             `json:"status"`
 	StatusID      uint               `json:"status_id"`
 	Timeslots     []TimeslotResponse `json:"timeslots"`
 	StatusLogs    []StatusLogResponse `json:"status_logs"`
 	BookingAddons []BookingAddonResponse `json:"booking_addons"`
+	Documents     []DocumentResponse     `json:"documents"`
 	CreatedAt     time.Time          `json:"created_at"`
 }
 
@@ -81,6 +83,12 @@ type BookingAddonInput struct {
 	Quantity     int    `json:"quantity" binding:"required"`
 }
 
+type TimeslotExpensesInput struct {
+	TimeslotID uint                `json:"timeslot_id" binding:"required"`
+	Expenses   []BookingAddonInput `json:"expenses"`
+}
+
 type UpdateBookingExpensesRequest struct {
-	Expenses []BookingAddonInput `json:"expenses"`
+	DiscountPrice int                     `json:"discount_price"`
+	Timeslots     []TimeslotExpensesInput `json:"timeslots"`
 }

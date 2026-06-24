@@ -1,17 +1,23 @@
 package services
 
 import (
+	"context"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
 type DocumentService struct {
-	documentRepo *repositories.DocumentRepository
+	documentRepo   *repositories.DocumentRepository
+	storageService *StorageService
 }
 
-func NewDocumentService(documentRepo *repositories.DocumentRepository) *DocumentService {
-	return &DocumentService{documentRepo: documentRepo}
+func NewDocumentService(documentRepo *repositories.DocumentRepository, storageService *StorageService) *DocumentService {
+	return &DocumentService{
+		documentRepo:   documentRepo,
+		storageService: storageService,
+	}
 }
 
 func (s *DocumentService) GetByBookingID(bookingID uint) ([]dto.DocumentResponse, error) {
@@ -21,7 +27,7 @@ func (s *DocumentService) GetByBookingID(bookingID uint) ([]dto.DocumentResponse
 	}
 	var result []dto.DocumentResponse
 	for _, d := range docs {
-		result = append(result, toDocumentResponse(d))
+		result = append(result, s.toDocumentResponse(d))
 	}
 	return result, nil
 }
@@ -31,7 +37,7 @@ func (s *DocumentService) GetByID(id uint) (*dto.DocumentResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := toDocumentResponse(*doc)
+	res := s.toDocumentResponse(*doc)
 	return &res, nil
 }
 
@@ -56,7 +62,7 @@ func (s *DocumentService) Delete(id uint) error {
 	return s.documentRepo.Delete(id)
 }
 
-func toDocumentResponse(d models.Documents) dto.DocumentResponse {
+func (s *DocumentService) toDocumentResponse(d models.Documents) dto.DocumentResponse {
 	res := dto.DocumentResponse{
 		ID:             d.ID,
 		BookingID:      d.BookingID,
@@ -66,6 +72,12 @@ func toDocumentResponse(d models.Documents) dto.DocumentResponse {
 		ContentType:    d.ContentType,
 		CreatedAt:      d.CreatedAt,
 	}
+	
+	// Generate fresh presigned URL
+	if freshURL, err := s.storageService.PresignedURL(context.Background(), d.ObjectKey); err == nil {
+		res.FileURL = freshURL
+	}
+
 	if d.DocumentType != nil {
 		res.DocumentType = d.DocumentType.Type
 	}

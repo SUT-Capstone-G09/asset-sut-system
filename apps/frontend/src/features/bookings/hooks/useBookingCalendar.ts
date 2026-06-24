@@ -127,7 +127,11 @@ export function useBookingCalendar(room: Room) {
       const t = sameTimeForAll ? globalTime : (dayTimes[dateStr] ?? DEFAULT_TIME);
       const h = calcHours(t.startTime, t.endTime);
       totalHours += h;
-      totalPrice += h * room.pricePerHour;
+      if (h > 4 && room.pricePerDay !== undefined) {
+        totalPrice += room.pricePerDay;
+      } else {
+        totalPrice += h * room.pricePerHour;
+      }
     }
     return { totalHours, totalPrice };
   }, [selectedDates, dayTimes, sameTimeForAll, globalTime, room.pricePerHour]);

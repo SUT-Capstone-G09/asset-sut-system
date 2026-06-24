@@ -195,7 +195,12 @@ export default function BookingPanel({
                 const label = format(date, "EEEE, d MMM.", { locale: th });
                 const time = getEffectiveTime(dateStr);
                 const hours = calcHours(time.startTime, time.endTime);
-                const price = hours * room.pricePerHour;
+                let price = hours * room.pricePerHour;
+                let isDaily = false;
+                if (hours > 4 && room.pricePerDay !== undefined) {
+                  price = room.pricePerDay;
+                  isDaily = true;
+                }
 
                 return (
                   <div key={dateStr} className="border border-gray-100 rounded-xl p-3 flex flex-col gap-2">
@@ -235,7 +240,7 @@ export default function BookingPanel({
                     })()}
 
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>{hours} ชม.</span>
+                      <span>{isDaily ? `${hours} ชม. (เหมาวัน)` : `${hours} ชม.`}</span>
                       <span className="font-medium text-gray-600">
                         ฿{price.toLocaleString()}
                       </span>

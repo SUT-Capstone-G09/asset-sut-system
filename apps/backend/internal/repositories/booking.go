@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -26,6 +28,7 @@ func (r *BookingRepository) FindAll() ([]models.Bookings, error) {
 		Preload("Timeslots.Addons").
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
+		Preload("Documents").
 		Find(&bookings).Error
 	return bookings, err
 }
@@ -43,6 +46,7 @@ func (r *BookingRepository) FindByUserID(userID uint) ([]models.Bookings, error)
 		Preload("Timeslots.Addons").
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
+		Preload("Documents").
 		Find(&bookings).Error
 	return bookings, err
 }
@@ -62,6 +66,7 @@ func (r *BookingRepository) FindByID(id uint) (*models.Bookings, error) {
 		Preload("StatusLogs.ChangedByUser").
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
+		Preload("Documents").
 		First(&booking, id).Error
 	return &booking, err
 }
@@ -85,7 +90,7 @@ func (r *BookingRepository) FindStatusByName(name string) (*models.BookingStatus
 	return &status, err
 }
 
-func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, addonPrice int, totalPrice int) error {
+func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, addonPrice int, discountPrice int, totalPrice int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Get timeslot IDs for this booking
 		var timeslotIDs []uint
@@ -93,24 +98,57 @@ func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []model
 			return err
 		}
 
-		// 2. Delete existing timeslot addons for these timeslots
 		if len(timeslotIDs) > 0 {
-			if err := tx.Where("timeslot_id IN ?", timeslotIDs).Delete(&models.BookingTimeslotAddons{}).Error; err != nil {
+			// Get existing addons
+			var existingAddons []models.BookingTimeslotAddons
+			if err := tx.Where("timeslot_id IN ?", timeslotIDs).Find(&existingAddons).Error; err != nil {
 				return err
 			}
-		}
 
-		// 3. Insert new timeslot addons if there are any
-		if len(addons) > 0 {
-			if err := tx.Create(&addons).Error; err != nil {
-				return err
+			existingMap := make(map[string]models.BookingTimeslotAddons)
+			for _, ea := range existingAddons {
+				key := fmt.Sprintf("%d-%s", ea.TimeslotID, ea.Name)
+				existingMap[key] = ea
+			}
+
+			keptMap := make(map[string]bool)
+
+			for _, a := range addons {
+				key := fmt.Sprintf("%d-%s", a.TimeslotID, a.Name)
+				if ea, exists := existingMap[key]; exists {
+					// Update existing
+					ea.AppliedPrice = a.AppliedPrice
+					ea.Quantity = a.Quantity
+					ea.TotalPrice = a.TotalPrice
+					if err := tx.Save(&ea).Error; err != nil {
+						return err
+					}
+					keptMap[key] = true
+				} else {
+					// Create new
+					if err := tx.Create(&a).Error; err != nil {
+						return err
+					}
+					keptMap[key] = true
+				}
+			}
+
+			// Delete removed addons
+			for _, ea := range existingAddons {
+				key := fmt.Sprintf("%d-%s", ea.TimeslotID, ea.Name)
+				if !keptMap[key] {
+					if err := tx.Delete(&ea).Error; err != nil {
+						return err
+					}
+				}
 			}
 		}
 
 		// 4. Update the booking prices
 		if err := tx.Model(&models.Bookings{}).Where("id = ?", bookingID).Updates(map[string]interface{}{
-			"addon_price": addonPrice,
-			"total_price": totalPrice,
+			"addon_price":    addonPrice,
+			"discount_price": discountPrice,
+			"total_price":    totalPrice,
 		}).Error; err != nil {
 			return err
 		}

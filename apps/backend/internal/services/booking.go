@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -16,6 +17,7 @@ type BookingService struct {
 	locationRepo   *repositories.LocationRepository
 	invoiceRepo    *repositories.InvoiceRepository
 	requesterRepo  *repositories.RequesterRepository
+	storageService *StorageService
 }
 
 func NewBookingService(
@@ -24,13 +26,15 @@ func NewBookingService(
 	locationRepo *repositories.LocationRepository,
 	invoiceRepo *repositories.InvoiceRepository,
 	requesterRepo *repositories.RequesterRepository,
+	storageService *StorageService,
 ) *BookingService {
 	return &BookingService{
-		bookingRepo:   bookingRepo,
-		timeslotRepo:  timeslotRepo,
-		locationRepo:  locationRepo,
-		invoiceRepo:   invoiceRepo,
-		requesterRepo: requesterRepo,
+		bookingRepo:    bookingRepo,
+		timeslotRepo:   timeslotRepo,
+		locationRepo:   locationRepo,
+		invoiceRepo:    invoiceRepo,
+		requesterRepo:  requesterRepo,
+		storageService: storageService,
 	}
 }
 
@@ -41,7 +45,7 @@ func (s *BookingService) GetAll() ([]dto.BookingResponse, error) {
 	}
 	var result []dto.BookingResponse
 	for _, b := range bookings {
-		result = append(result, toBookingResponse(b))
+		result = append(result, s.toBookingResponse(b))
 	}
 	return result, nil
 }
@@ -53,7 +57,7 @@ func (s *BookingService) GetByUserID(userID uint) ([]dto.BookingResponse, error)
 	}
 	var result []dto.BookingResponse
 	for _, b := range bookings {
-		result = append(result, toBookingResponse(b))
+		result = append(result, s.toBookingResponse(b))
 	}
 	return result, nil
 }
@@ -63,7 +67,7 @@ func (s *BookingService) GetByID(id uint) (*dto.BookingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := toBookingResponse(*booking)
+	res := s.toBookingResponse(*booking)
 	return &res, nil
 }
 
@@ -248,25 +252,38 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 	if len(booking.Timeslots) == 0 {
 		return nil, errors.New("booking has no timeslots to attach expenses to")
 	}
-	firstTimeslotID := booking.Timeslots[0].ID
 
 	var newTimeslotAddons []models.BookingTimeslotAddons
 	var addonPrice int = 0
-	for _, item := range req.Expenses {
-		total := item.AppliedPrice * item.Quantity
-		addonPrice += total
-		newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
-			TimeslotID:   firstTimeslotID,
-			Name:         item.AddonName,
-			AppliedPrice: item.AppliedPrice,
-			Quantity:     item.Quantity,
-			TotalPrice:   total,
-		})
+
+	for _, tsInput := range req.Timeslots {
+		for _, item := range tsInput.Expenses {
+			total := item.AppliedPrice * item.Quantity
+
+			// If the item is a discount, subtract it from the total addon price
+			// Otherwise, add it.
+			if len(item.AddonName) >= 18 && item.AddonName[:18] == "ส่วนลด" || item.AddonName == "ส่วนลด" {
+				addonPrice -= total
+			} else {
+				addonPrice += total
+			}
+
+			newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
+				TimeslotID:   tsInput.TimeslotID,
+				Name:         item.AddonName,
+				AppliedPrice: item.AppliedPrice,
+				Quantity:     item.Quantity,
+				TotalPrice:   total,
+			})
+		}
 	}
 
-	totalPrice := booking.BasePrice + addonPrice
+	// Omit base price from total calculation since room fee is already in the expenses array
+	// Wait, the user said room price should be combined and saved to base price.
+	// We don't touch the basePrice here because it was calculated during Create.
+	totalPrice := booking.BasePrice + addonPrice - req.DiscountPrice
 
-	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, addonPrice, totalPrice); err != nil {
+	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, addonPrice, req.DiscountPrice, totalPrice); err != nil {
 		return nil, err
 	}
 
@@ -285,63 +302,60 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 		hours = 1
 	}
 
-	// Find hourly tier matching user's requester type
+	// 1. Try to match the exact requesterTypeID
+	if requesterTypeID != 0 {
+		// If booking exceeds 4 hours, try to use the daily rate
+		if hours > 4 {
+			for _, tier := range location.PricingTiers {
+				if tier.RequesterTypeID == requesterTypeID &&
+					tier.RateType != nil && tier.RateType.Type == "daily" {
+					return tier.Price
+				}
+			}
+		}
+
+		// Find hourly tier matching user's requester type
+		for _, tier := range location.PricingTiers {
+			if tier.RequesterTypeID == requesterTypeID &&
+				tier.RateType != nil && tier.RateType.Type == "hourly" {
+				return int(hours) * tier.Price
+			}
+		}
+	}
+
+	// 2. Fallback if no exact tier found or requesterTypeID is 0 (e.g. Admin booking)
+	if hours > 4 {
+		for _, tier := range location.PricingTiers {
+			if tier.RateType != nil && tier.RateType.Type == "daily" {
+				return tier.Price
+			}
+		}
+	}
+
 	for _, tier := range location.PricingTiers {
-		if tier.RequesterTypeID == requesterTypeID &&
-			tier.RateType != nil && tier.RateType.Type == "hourly" {
+		if tier.RateType != nil && tier.RateType.Type == "hourly" {
 			return int(hours) * tier.Price
 		}
 	}
 
-	// Fallback to first tier
+	// Ultimate fallback to first tier
 	return int(hours) * location.PricingTiers[0].Price
 }
 
-func toBookingResponse(b models.Bookings) dto.BookingResponse {
+func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingResponse {
 	res := dto.BookingResponse{
 		ID:         b.ID,
 		UserID:     b.UserID,
 		Purpose:    b.Purpose,
-		BasePrice:  b.BasePrice,
-		AddonPrice: b.AddonPrice,
-		TotalPrice: b.TotalPrice,
-		StatusID:   b.StatusID,
-		CreatedAt:  b.CreatedAt,
+		BasePrice:     b.BasePrice,
+		AddonPrice:    b.AddonPrice,
+		DiscountPrice: b.DiscountPrice,
+		TotalPrice:    b.TotalPrice,
+		StatusID:      b.StatusID,
+		CreatedAt:     b.CreatedAt,
 	}
 	if b.Status != nil {
-		currentStatus := b.Status.Status
-		if currentStatus == "approved" {
-			if b.Invoice == nil || b.Invoice.TotalAmount == 0 {
-				res.Status = "approved"
-			} else {
-				invoiceStatus := ""
-				if b.Invoice.Status != nil {
-					invoiceStatus = b.Invoice.Status.Status
-				}
-				if invoiceStatus == "paid" {
-					res.Status = "approved"
-				} else if invoiceStatus == "pending" {
-					hasPendingPayment := false
-					for _, tx := range b.Invoice.Transactions {
-						if tx.Status != nil && tx.Status.Status == "pending" {
-							hasPendingPayment = true
-							break
-						}
-					}
-					if hasPendingPayment {
-						res.Status = "verifying_payment"
-					} else {
-						res.Status = "pending_payment"
-					}
-				} else if invoiceStatus == "cancelled" {
-					res.Status = "cancelled"
-				} else {
-					res.Status = "approved"
-				}
-			}
-		} else {
-			res.Status = currentStatus
-		}
+		res.Status = b.Status.Status
 	}
 	if b.User != nil {
 		res.UserName = b.User.Email
@@ -428,6 +442,31 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 				TotalPrice:   bta.TotalPrice,
 			})
 		}
+	}
+	res.Documents = make([]dto.DocumentResponse, 0)
+	for _, doc := range b.Documents {
+		docRes := dto.DocumentResponse{
+			ID:             doc.ID,
+			BookingID:      doc.BookingID,
+			DocumentTypeID: doc.DocumentTypeID,
+			FileName:       doc.FileName,
+			FileURL:        doc.FileURL,
+			ContentType:    doc.ContentType,
+			CreatedAt:      doc.CreatedAt,
+		}
+		
+		// Generate fresh presigned URL
+		if freshURL, err := s.storageService.PresignedURL(context.Background(), doc.ObjectKey); err == nil {
+			docRes.FileURL = freshURL
+		}
+
+		if doc.DocumentType != nil {
+			docRes.DocumentType = doc.DocumentType.Type
+		}
+		if doc.Method != nil {
+			docRes.Method = doc.Method.Method
+		}
+		res.Documents = append(res.Documents, docRes)
 	}
 	return res
 }

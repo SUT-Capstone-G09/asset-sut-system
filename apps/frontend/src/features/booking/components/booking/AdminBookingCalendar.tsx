@@ -30,11 +30,10 @@ import {
 import Link from "next/link";
 
 import { Booking } from "../../types/booking";
-import { Room } from "../../types/room";
-import { mockRooms } from "../../data/rooms";
-import { mockClassroomBookings } from "../../data/classroom-bookings";
-import { mockMeetingBookings } from "../../data/meeting-bookings";
 import BookingDrawer from "./BookingDrawer";
+import { getAllBookings } from "@/features/bookings/services/booking.service";
+import { getLocations, AdminLocationDTO } from "@/features/booking/services/locationService";
+import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
 import { 
   Select, 
   SelectContent, 
@@ -47,13 +46,14 @@ import { Button } from "@/components/ui/button";
 const DOW = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
 export default function AdminBookingCalendar() {
-  // Current date showing on the calendar (default to May 2026 as mock data is populated here)
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2026, 4, 1)); // May 2026
+  // Current date showing on the calendar (default to current month)
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
 
-  // Unique list of buildings from mockRooms
+  // Unique list of buildings from real locations
   const buildingsList = useMemo(() => {
-    return Array.from(new Set(mockRooms.map((r) => r.building)));
-  }, []);
+    return Array.from(new Set(locations.map((loc) => loc.building).filter(Boolean))) as string[];
+  }, [locations]);
 
   // Filter States
   const [selectedBuilding, setSelectedBuilding] = useState<string>("อาคารเรียนรวม 1");
@@ -62,119 +62,37 @@ export default function AdminBookingCalendar() {
   // Rooms filtered by the selected building
   const filteredRooms = useMemo(() => {
     if (selectedBuilding === "all") {
-      return mockRooms;
+      return locations;
     }
-    return mockRooms.filter((r) => r.building === selectedBuilding);
-  }, [selectedBuilding]);
+    return locations.filter((loc) => loc.building === selectedBuilding);
+  }, [selectedBuilding, locations]);
 
   // Selected Room Object
   const selectedRoom = useMemo(() => {
-    return mockRooms.find((r) => r.roomNumber === selectedRoomNumber && r.building === selectedBuilding);
-  }, [selectedRoomNumber, selectedBuilding]);
+    return locations.find((loc) => String(loc.room_number) === selectedRoomNumber && loc.building === selectedBuilding);
+  }, [selectedRoomNumber, selectedBuilding, locations]);
 
   // Merge classroom and meeting bookings, then inject extra bookings to populate calendar like mockup
-  const [bookings, setBookings] = useState<Booking[]>(() => {
-    const baseBookings = [...mockClassroomBookings, ...mockMeetingBookings];
-    
-    // Inject extra mockup-like bookings for room B1101 (in อาคารเรียนรวม 1) in May 2026
-    const extraBookings: Booking[] = [
-      {
-        id: "EXTRA-001",
-        roomName: "ห้องบรรยาย B1101",
-        roomNumber: "B1101",
-        building: "อาคารเรียนรวม 1",
-        category: "ห้องบรรยาย",
-        requesterName: "นายสมชาย เจริญสุข",
-        requesterId: "B6500999",
-        requesterType: "student",
-        purpose: "Meeting 3",
-        date: "2026-05-01",
-        timeSlot: "09:00 - 11:00 น.",
-        status: "approved",
-        attendees: 15,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-        createdAt: "2026-04-28 10:00 น.",
-        contactPhone: "089-999-9999",
-        contactEmail: "somchai.j@g.sut.ac.th",
-        equipment: ["เครื่องฉายโปรเจคเตอร์", "ไมโครโฟนไร้สาย"]
-      },
-      {
-        id: "EXTRA-002",
-        roomName: "ห้องบรรยาย B1101",
-        roomNumber: "B1101",
-        building: "อาคารเรียนรวม 1",
-        category: "ห้องบรรยาย",
-        requesterName: "สโมสรนักศึกษา",
-        requesterId: "ACT-005",
-        requesterType: "student",
-        purpose: "Student Activity - Pending",
-        date: "2026-05-04",
-        timeSlot: "13:00 - 18:00 น.",
-        status: "pending",
-        attendees: 50,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-        createdAt: "2026-04-29 11:30 น.",
-        contactPhone: "088-888-8888",
-        contactEmail: "student.act@g.sut.ac.th"
-      },
-      {
-        id: "EXTRA-003",
-        roomName: "ห้องบรรยาย B1101",
-        roomNumber: "B1101",
-        building: "อาคารเรียนรวม 1",
-        category: "ห้องบรรยาย",
-        requesterName: "อ.ดร.วิชาการ ดีเลิศ",
-        requesterId: "STAFF-099",
-        requesterType: "staff",
-        purpose: "Lecture C",
-        date: "2026-05-06",
-        timeSlot: "10:00 - 15:00 น.",
-        status: "approved",
-        attendees: 80,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-        createdAt: "2026-04-30 09:00 น.",
-        contactPhone: "087-777-7777",
-        contactEmail: "academic.d@sut.ac.th"
-      },
-      {
-        id: "EXTRA-004",
-        roomName: "ห้องบรรยาย B1101",
-        roomNumber: "B1101",
-        building: "อาคารเรียนรวม 1",
-        category: "ห้องบรรยาย",
-        requesterName: "ฝ่ายซ่อมบำรุงอาคาร",
-        requesterId: "MAINT-001",
-        requesterType: "staff",
-        purpose: "Maintenance",
-        date: "2026-05-06",
-        timeSlot: "15:00 - 17:00 น.",
-        status: "rejected", // Will style this as gray "Maintenance"
-        attendees: 2,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-        createdAt: "2026-05-01 08:00 น.",
-        notes: "ซ่อมบำรุงระบบเครื่องปรับอากาศและเปลี่ยนหลอดไฟที่ชำรุด"
-      },
-      {
-        id: "EXTRA-005",
-        roomName: "ห้องบรรยาย B1101",
-        roomNumber: "B1101",
-        building: "อาคารเรียนรวม 1",
-        category: "ห้องบรรยาย",
-        requesterName: "ชมรมดนตรีสากล",
-        requesterId: "MUSIC-09",
-        requesterType: "student",
-        purpose: "Activity A",
-        date: "2026-05-13",
-        timeSlot: "08:00 - 17:00 น.",
-        status: "pending",
-        attendees: 25,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-        createdAt: "2026-05-02 13:00 น."
-      }
-    ];
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
-    return [...baseBookings, ...extraBookings];
-  });
+  React.useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [bookingsData, locationsData] = await Promise.all([
+          getAllBookings(),
+          getLocations(),
+        ]);
+        setLocations(locationsData);
+        const locMap = new Map<number, AdminLocationDTO>();
+        locationsData.forEach((loc) => locMap.set(loc.id, loc));
+        const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
+        setBookings(mappedBookings);
+      } catch (err) {
+        console.error("Failed to fetch calendar bookings:", err);
+      }
+    };
+    fetchAll();
+  }, []);
 
   // Drawer state
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -198,23 +116,23 @@ export default function AdminBookingCalendar() {
       if (b.status === "rejected") return false;
 
       // 2. Exclude bookings for rooms that are under maintenance
-      const room = mockRooms.find((r) => r.roomNumber === b.roomNumber && r.building === b.building);
-      if (room?.status === "maintenance") return false;
+      const loc = locations.find((l) => String(l.room_number) === b.roomNumber && l.building === b.building);
+      if (loc?.status?.toLowerCase() === "maintenance") return false;
 
       const matchesBuilding = selectedBuilding === "all" || b.building === selectedBuilding;
       const matchesRoom = selectedRoomNumber === "all" || b.roomNumber === selectedRoomNumber;
       return matchesBuilding && matchesRoom;
     });
-  }, [bookings, selectedBuilding, selectedRoomNumber]);
+  }, [bookings, selectedBuilding, selectedRoomNumber, locations]);
 
   // Statistics
   const todayBookingsCount = useMemo(() => {
-    const todayStr = format(new Date(2026, 4, 31), "yyyy-MM-dd"); // Use May 31, 2026 as simulated "today"
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     return calendarBookings.filter((b) => b.date === todayStr).length;
   }, [calendarBookings]);
 
   const pendingBookingsCount = useMemo(() => {
-    return calendarBookings.filter((b) => b.status === "pending" || b.status === "verifying_payment").length;
+    return calendarBookings.filter((b) => b.status === "pending").length;
   }, [calendarBookings]);
 
   // Booking updates from drawer
@@ -416,8 +334,8 @@ export default function AdminBookingCalendar() {
               onValueChange={(val) => {
                 setSelectedBuilding(val);
                 // Reset selected room to the first room of this new building or "all"
-                const firstRoom = mockRooms.find((r) => r.building === val);
-                setSelectedRoomNumber(firstRoom ? firstRoom.roomNumber : "all");
+                const firstRoom = locations.find((r) => r.building === val);
+                setSelectedRoomNumber(firstRoom ? String(firstRoom.room_number) : "all");
               }}
             >
               <SelectTrigger className="h-11 bg-slate-50 border-none rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 w-full text-slate-700 font-bold text-xs">
@@ -450,8 +368,8 @@ export default function AdminBookingCalendar() {
               <SelectContent>
                 <SelectItem value="all" className="text-xs font-medium">ทุกห้อง</SelectItem>
                 {filteredRooms.map((room) => (
-                  <SelectItem key={room.id} value={room.roomNumber} className="text-xs font-medium">
-                    {room.roomName.replace("ห้องบรรยาย ", "").replace("ห้องปฏิบัติการคอมพิวเตอร์ ", "").replace("ห้องสัมมนา ", "").replace("ห้องประชุมสารนิเทศ ", "").replace("ห้องประชุมวิชาการ ", "")} ({room.roomNumber})
+                  <SelectItem key={room.id} value={String(room.room_number)} className="text-xs font-medium">
+                    {room.name.replace("ห้องบรรยาย ", "").replace("ห้องปฏิบัติการคอมพิวเตอร์ ", "").replace("ห้องสัมมนา ", "").replace("ห้องประชุมสารนิเทศ ", "").replace("ห้องประชุมวิชาการ ", "")} ({room.room_number})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -587,17 +505,17 @@ export default function AdminBookingCalendar() {
                     } else if (booking.status === "pending") {
                       // Amber Style for Pending
                       badgeClass = "bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100/80 shadow-sm";
-                    } else if (booking.status === "pending_payment") {
-                      // Sky Style for Pending Payment
-                      badgeClass = "bg-sky-50 text-sky-700 border-sky-200/60 hover:bg-sky-100/80 shadow-sm";
-                    } else if (booking.status === "verifying_payment") {
-                      // Indigo Style for Verifying Payment
-                      badgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200/60 hover:bg-indigo-100/80 shadow-sm";
                     } else if (booking.status === "rejected") {
                       // Red Style for Rejected
                       badgeClass = "bg-red-50 text-red-600 border-red-200/60 hover:bg-red-100/80 shadow-sm";
+                    } else if (booking.status === "cancelled") {
+                      // Slate Style for Cancelled
+                      badgeClass = "bg-slate-100 text-slate-500 border-slate-200/60 hover:bg-slate-200/80 shadow-sm";
+                    } else if (booking.status === "completed") {
+                      // Teal Style for Completed
+                      badgeClass = "bg-teal-50 text-teal-700 border-teal-200/60 hover:bg-teal-100/80 shadow-sm";
                     } else {
-                      // Gray Style for default / maintenance
+                      // Gray Style for default
                       badgeClass = "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 shadow-sm";
                     }
 
@@ -633,12 +551,12 @@ export default function AdminBookingCalendar() {
             <span>รออนุมัติ (Pending)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-sky-500 border border-sky-600/10 shadow-sm" />
-            <span>รอชำระเงิน (Pending Payment)</span>
+            <span className="size-3 rounded-full bg-slate-400 border border-slate-500/10 shadow-sm" />
+            <span>ยกเลิก (Cancelled)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-indigo-500 border border-indigo-600/10 shadow-sm" />
-            <span>รอตรวจสอบการชำระเงิน (Verifying Payment)</span>
+            <span className="size-3 rounded-full bg-teal-500 border border-teal-600/10 shadow-sm" />
+            <span>เสร็จสิ้น (Completed)</span>
           </div>
         </div>
 

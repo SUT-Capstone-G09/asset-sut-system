@@ -100,10 +100,10 @@ interface Props {
     id: string,
     status:
       | "pending"
-      | "pending_payment"
-      | "verifying_payment"
       | "approved"
-      | "rejected",
+      | "rejected"
+      | "cancelled"
+      | "completed",
   ) => void;
   onEdit: (updated: Booking, mode: "this" | "following" | "all") => void;
   onDelete: (
@@ -116,6 +116,7 @@ interface Props {
           date: string;
         },
   ) => void;
+  initialMode?: "view" | "edit";
 }
 
 export default function BookingDrawer({
@@ -125,6 +126,7 @@ export default function BookingDrawer({
   onUpdateStatus,
   onEdit,
   onDelete,
+  initialMode = "view",
 }: Props) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
@@ -146,11 +148,14 @@ export default function BookingDrawer({
 
   React.useEffect(() => {
     if (open) {
+      setIsEditOpen(initialMode === "edit");
       addonService.getAll()
         .then(setMasterAddons)
         .catch((err) => console.error("Failed to load master addons in drawer:", err));
+    } else {
+      setIsEditOpen(false);
     }
-  }, [open]);
+  }, [open, initialMode]);
 
   React.useEffect(() => {
     if (booking) {
@@ -170,7 +175,7 @@ export default function BookingDrawer({
   }, [booking]);
 
   const handleAddExpenseItem = () => {
-    setEditedExpenses((prev) => [...prev, { name: "", amount: 0 }]);
+    setEditedExpenses((prev) => [...prev, { name: "", amount: 0, unitPrice: 0, quantity: 1 }]);
   };
 
   const handleRemoveExpenseItem = (index: number) => {
@@ -179,15 +184,34 @@ export default function BookingDrawer({
 
   const handleExpenseChange = (
     index: number,
-    key: "name" | "amount",
+    key: "name" | "amount" | "unitPrice" | "quantity",
     value: any,
   ) => {
     setEditedExpenses((prev) =>
       prev.map((exp, idx) => {
         if (idx === index) {
+          if (key === "name") return { ...exp, name: value };
+          
+          let newUnitPrice = exp.unitPrice || 0;
+          let newQuantity = exp.quantity || 1;
+          let newAmount = exp.amount || 0;
+          
+          if (key === "quantity") {
+            newQuantity = Math.max(1, Number(value) || 1);
+            newAmount = newUnitPrice * newQuantity;
+          } else if (key === "unitPrice") {
+            newUnitPrice = Number(value) || 0;
+            newAmount = newUnitPrice * newQuantity;
+          } else if (key === "amount") {
+            newAmount = Number(value) || 0;
+            newUnitPrice = newAmount / newQuantity;
+          }
+          
           return {
             ...exp,
-            [key]: key === "amount" ? Number(value) || 0 : value,
+            unitPrice: newUnitPrice,
+            quantity: newQuantity,
+            amount: newAmount,
           };
         }
         return exp;
@@ -214,10 +238,14 @@ export default function BookingDrawer({
   const dailyRate = isInternal
     ? (room?.rates?.dailyInternal ?? 1000)
     : (room?.rates?.dailyExternal ?? 2500);
+  // Use actual seeded basePrice from backend if available, fallback to computed
+  const actualHourlyRate = booking?.basePrice ? (booking.basePrice / hours) : hourlyRate;
+  const actualDailyRate = booking?.basePrice ? booking.basePrice : dailyRate;
+  const roomFeeAmount = booking?.basePrice || (useDaily ? dailyRate : hourlyRate * hours);
+  
   const roomFeeName = useDaily
     ? "ค่าห้องรายวัน"
-    : `ค่าห้องรายชั่วโมง (${hourlyRate} บาท/ชม. x ${hours} ชม.)`;
-  const roomFeeAmount = useDaily ? dailyRate : hourlyRate * hours;
+    : `ค่าห้องรายชั่วโมง (${actualHourlyRate} บาท/ชม. x ${hours} ชม.)`;
 
   const housekeeperFeeName = `ค่าแม่บ้าน (${housekeeperPrice} บาท/คน x ${housekeeperCount} คน)`;
   const housekeeperFeeAmount = housekeeperPrice * housekeeperCount;
@@ -233,14 +261,29 @@ export default function BookingDrawer({
   const handleSaveExpenses = () => {
     if (!booking) return;
 
-    const finalExpenses = [
-      { name: roomFeeName, amount: roomFeeAmount },
+    const finalExpenses: import("../../types/booking").BookingExpense[] = [
+      { 
+        name: roomFeeName, 
+        unitPrice: booking?.basePrice ? (useDaily ? booking.basePrice : booking.basePrice / hours) : (useDaily ? dailyRate : hourlyRate),
+        quantity: useDaily ? 1 : hours,
+        amount: booking?.basePrice || roomFeeAmount 
+      },
       ...(housekeeperFeeAmount > 0
-        ? [{ name: housekeeperFeeName, amount: housekeeperFeeAmount }]
+        ? [{ 
+            name: housekeeperFeeName, 
+            unitPrice: housekeeperPrice, 
+            quantity: housekeeperCount, 
+            amount: housekeeperFeeAmount 
+          }]
         : []),
-      ...editedExpenses,
+      ...editedExpenses.map(exp => ({
+        name: exp.name,
+        unitPrice: exp.unitPrice || exp.amount, // Default to total amount if unit price is missing
+        quantity: exp.quantity || 1, // Default to 1 if missing
+        amount: exp.amount
+      })),
       ...(discount > 0
-        ? [{ name: `ส่วนลด`, amount: -discount }]
+        ? [{ name: `ส่วนลด`, unitPrice: discount, quantity: 1, amount: discount }]
         : []),
     ];
 
@@ -276,16 +319,6 @@ export default function BookingDrawer({
       icon: MapPin,
       label: "อาคาร / สถานที่",
       value: booking.building,
-    },
-    {
-      icon: Building2,
-      label: "เลขที่ห้อง / ชื่อห้อง",
-      value: booking.roomNumber,
-    },
-    {
-      icon: LayoutGrid,
-      label: "ประเภทห้อง",
-      value: booking.category,
     },
     {
       icon: Maximize2,
@@ -395,30 +428,12 @@ export default function BookingDrawer({
                         </div>
                       </SelectItem>
                       <SelectItem
-                        value="pending_payment"
-                        className="text-xs font-bold text-sky-700 focus:bg-sky-50"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <div className="size-1.5 rounded-full bg-sky-500" />
-                          <span>รอชำระเงิน</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem
-                        value="verifying_payment"
-                        className="text-xs font-bold text-indigo-700 focus:bg-indigo-50"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <div className="size-1.5 rounded-full bg-indigo-500" />
-                          <span>รอตรวจสอบการชำระเงิน</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem
                         value="approved"
                         className="text-xs font-bold text-emerald-700 focus:bg-emerald-50"
                       >
                         <div className="flex items-center gap-1.5">
                           <div className="size-1.5 rounded-full bg-emerald-500" />
-                          <span>อนุมัติแล้ว</span>
+                          <span>อนุมัติ</span>
                         </div>
                       </SelectItem>
                       <SelectItem
@@ -428,6 +443,16 @@ export default function BookingDrawer({
                         <div className="flex items-center gap-1.5">
                           <div className="size-1.5 rounded-full bg-red-500" />
                           <span>ปฏิเสธ</span>
+                        </div>
+                      </SelectItem>
+
+                      <SelectItem
+                        value="completed"
+                        className="text-xs font-bold text-teal-700 focus:bg-teal-50"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div className="size-1.5 rounded-full bg-teal-500" />
+                          <span>เสร็จสิ้น</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -584,31 +609,63 @@ export default function BookingDrawer({
                 รายละเอียดการจองใช้พื้นที่
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
-                  <Calendar size={20} className="text-[#f26522]" />
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-                      วันที่ต้องการใช้
-                    </span>
-                    <span className="text-sm font-bold text-slate-700">
-                      {booking.date}
-                    </span>
-                  </div>
-                </div>
+              {booking.timeslots && booking.timeslots.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {booking.timeslots.map((ts) => (
+                    <div key={ts.id} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                        <Calendar size={20} className="text-[#f26522]" />
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                            วันที่ต้องการใช้
+                          </span>
+                          <span className="text-sm font-bold text-slate-700">
+                            {ts.date}
+                          </span>
+                        </div>
+                      </div>
 
-                <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
-                  <Clock size={20} className="text-[#f26522]" />
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-                      ช่วงเวลา
-                    </span>
-                    <span className="text-sm font-bold text-slate-700">
-                      {booking.timeSlot}
-                    </span>
+                      <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                        <Clock size={20} className="text-[#f26522]" />
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                            ช่วงเวลา
+                          </span>
+                          <span className="text-sm font-bold text-slate-700">
+                            {ts.timeSlot}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                    <Calendar size={20} className="text-[#f26522]" />
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                        วันที่ต้องการใช้
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {booking.date}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                    <Clock size={20} className="text-[#f26522]" />
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                        ช่วงเวลา
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {booking.timeSlot}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {booking.repeat && (
                 <div className="p-4 rounded-[7px] border border-emerald-100 bg-emerald-50/40 space-y-2 text-left">
@@ -661,18 +718,22 @@ export default function BookingDrawer({
                               className="text-[#6d6e70] group-hover:text-[#f26522] transition-colors shrink-0"
                             />
                             <span className="text-xs font-bold text-slate-600 truncate">
-                              {doc}
+                              {(() => {
+                                try {
+                                  return decodeURIComponent(doc.split('?')[0].split('/').pop() || 'เอกสารแนบ');
+                                } catch (e) {
+                                  return doc.split('?')[0].split('/').pop() || 'เอกสารแนบ';
+                                }
+                              })()}
                             </span>
                           </div>
                           <a
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              alert(`ดาวน์โหลดไฟล์: ${doc}`);
-                            }}
+                            href={doc}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-[10px] font-bold text-[#f26522] hover:text-[#d8561d] transition-colors cursor-pointer shrink-0"
                           >
-                            ดาวน์โหลด
+                            ดาวน์โหลด/ดูไฟล์
                           </a>
                         </div>
                       ))}
@@ -681,644 +742,7 @@ export default function BookingDrawer({
                 )}
             </div>
 
-            {/* Section: Expenses (either has expenses, or status is pending_payment, or is editing) */}
-            {((booking.expenses && booking.expenses.length > 0) ||
-              booking.status === "pending_payment" ||
-              isEditingExpenses) && (
-              <>
-                <hr className="border-slate-100" />
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pr-1">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
-                      <Banknote size={14} className="text-[#f26522]" />
-                      ค่าใช้จ่าย (Expenses)
-                    </h3>
-                    {booking.status === "pending_payment" && (
-                      <span
-                        className={cn(
-                          "text-[9px] font-black px-2 py-0.5 rounded-[5px] border uppercase tracking-wider",
-                          booking.expenseStatus === "sent"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                            : "bg-amber-50 text-amber-700 border-amber-100",
-                        )}
-                      >
-                        {booking.expenseStatus === "sent"
-                          ? "แจ้งผู้ใช้งานแล้ว"
-                          : "ฉบับร่าง (ยังไม่ได้แจ้ง)"}
-                      </span>
-                    )}
-                  </div>
 
-                  {isEditingExpenses ? (
-                    /* Inline Editor Mode (drawn from BookingFormFields.tsx design) */
-                    <div className="space-y-4">
-                      {/* Housekeeper Settings card */}
-                      <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-3 mb-4 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#f26522]" />
-                          <span className="text-xs font-extrabold text-slate-700">
-                            ตั้งค่าค่าบริการแม่บ้าน (Housekeeper Settings)
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5 text-left">
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                              ราคาค่าแม่บ้านต่อคน (฿)
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="เช่น 450"
-                              value={housekeeperPrice || ""}
-                              onChange={(e) =>
-                                setHousekeeperPrice(Number(e.target.value) || 0)
-                              }
-                              className="w-full h-10 px-3 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-[7px] text-xs font-bold text-slate-700"
-                            />
-                          </div>
-                          <div className="space-y-1.5 text-left">
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                              จำนวนแม่บ้าน (คน)
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="เช่น 2"
-                              value={housekeeperCount || ""}
-                              onChange={(e) =>
-                                setHousekeeperCount(Number(e.target.value) || 0)
-                              }
-                              className="w-full h-10 px-3 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-[7px] text-xs font-bold text-slate-700"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Discount Settings card */}
-                      <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-3 mb-4 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="text-xs font-extrabold text-slate-700">
-                            ตั้งค่าส่วนลด (Discount Settings)
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 text-left">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                            จำนวนเงินส่วนลด (฿)
-                          </span>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="เช่น 100"
-                            value={discount || ""}
-                            onChange={(e) =>
-                              setDiscount(Number(e.target.value) || 0)
-                            }
-                            className="w-full h-10 px-3 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-[7px] text-xs font-bold text-slate-700"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Header for list and Add button */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500">
-                          รายการค่าใช้จ่ายทั้งหมด
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddExpenseModalOpen(true)}
-                          className="text-xs font-bold text-[#f26522] hover:text-[#d8561d] transition-colors flex items-center gap-1 cursor-pointer focus:outline-none bg-transparent border-none py-1 px-2 rounded hover:bg-slate-50"
-                        >
-                          <Plus size={14} strokeWidth={2.5} />
-                          เพิ่มรายการ
-                        </button>
-                      </div>
-
-                      {/* List of expenses including read-only ones */}
-                      <div className="space-y-3.5 bg-slate-50/30 border border-slate-200/60 rounded-[7px] p-4 text-left">
-                        {/* 1. Room Fee (Read-only) */}
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-xs font-bold text-slate-400 truncate flex-1 select-none">
-                            {roomFeeName}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center rounded-lg border border-slate-200/50 bg-slate-50/80 w-[160px] h-10 shadow-sm overflow-hidden">
-                              <input
-                                type="text"
-                                readOnly
-                                value={roomFeeAmount}
-                                className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-400 bg-transparent text-xs cursor-not-allowed"
-                              />
-                              <div className="h-full px-3 bg-slate-100 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
-                                บาท
-                              </div>
-                            </div>
-                            <div className="size-8 shrink-0" />
-                          </div>
-                        </div>
-
-                        {/* 2. Housekeeper Fee (Read-only, if count/price > 0) */}
-                        {housekeeperFeeAmount > 0 && (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-xs font-bold text-slate-400 truncate flex-1 select-none">
-                              {housekeeperFeeName}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center rounded-lg border border-slate-200/50 bg-slate-50/80 w-[160px] h-10 shadow-sm overflow-hidden">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={housekeeperFeeAmount}
-                                  className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-400 bg-transparent text-xs cursor-not-allowed"
-                                />
-                                <div className="h-full px-3 bg-slate-100 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
-                                  บาท
-                                </div>
-                              </div>
-                              <div className="size-8 shrink-0" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 2.5 Discount (Read-only, if discount > 0) */}
-                        {discount > 0 && (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-xs font-bold text-slate-400 truncate flex-1 select-none">
-                              ส่วนลด
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center rounded-lg border border-slate-200/50 bg-slate-50/80 w-[160px] h-10 shadow-sm overflow-hidden">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={`-${discount}`}
-                                  className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-400 bg-transparent text-xs cursor-not-allowed"
-                                />
-                                <div className="h-full px-3 bg-slate-100 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
-                                  บาท
-                                </div>
-                              </div>
-                              <div className="size-8 shrink-0" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 3. Custom Expenses (Editable) */}
-                        {editedExpenses.map((exp, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between gap-4 group"
-                          >
-                            <span className="text-xs font-bold text-slate-500 truncate flex-1 select-none">
-                              {exp.name}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center rounded-lg border border-slate-200 bg-white focus-within:ring-1 focus-within:ring-[#f26522]/30 focus-within:border-[#f26522] transition-all overflow-hidden w-[160px] h-10 shadow-sm">
-                                <input
-                                  type="number"
-                                  value={exp.amount || ""}
-                                  onChange={(e) =>
-                                    handleExpenseChange(
-                                      index,
-                                      "amount",
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="w-full h-full px-3 outline-none border-none text-left font-bold text-slate-700 bg-transparent text-xs"
-                                  placeholder="0"
-                                />
-                                <div className="h-full px-3 bg-slate-50 border-l border-slate-100 flex items-center text-[10px] font-bold text-slate-400 select-none">
-                                  บาท
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveExpenseItem(index)}
-                                className="size-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:bg-red-50 focus:text-red-500"
-                                title="ลบรายการ"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Total Sum */}
-                        <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-200">
-                          <span className="text-xs font-black text-slate-700 select-none">
-                            ยอดรวมสุทธิ (Total)
-                          </span>
-                          <span className="text-sm font-black text-slate-800">
-                            {totalExpensesComputed.toLocaleString()} บาท
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Inline editor action buttons */}
-                      <div className="flex items-center gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEditingExpenses(false);
-                            // Restore original housekeeper settings and filter original custom expenses
-                            const customExps = (booking.expenses || []).filter(
-                              (exp) =>
-                                !exp.name.startsWith("ค่าห้อง") &&
-                                !exp.name.startsWith("ค่าแม่บ้าน") &&
-                                !exp.name.startsWith("ส่วนลด"),
-                            );
-                            setEditedExpenses(customExps);
-                            setHousekeeperPrice(booking.housekeeperPrice || 0);
-                            setHousekeeperCount(booking.housekeeperCount || 0);
-                            const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
-                            setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
-                          }}
-                          className="flex-1 h-10 rounded-[7px] bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 font-bold text-xs transition-all cursor-pointer"
-                        >
-                          ยกเลิก
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveExpenses}
-                          className="flex-1 h-10 rounded-[7px] bg-[#f26522] text-white hover:bg-[#d8561d] font-bold text-xs shadow-sm transition-all cursor-pointer"
-                        >
-                          บันทึกค่าใช้จ่าย
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Read-only List Mode */
-                    <div className="rounded-[7px] border border-slate-100 bg-slate-50/50 p-4 space-y-3">
-                      {(booking.expenses || []).map((exp, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center text-xs"
-                        >
-                          <span className="font-bold text-slate-500">
-                            {exp.name}
-                          </span>
-                          <span className="font-extrabold text-slate-700">
-                            ฿ {Number(exp.amount).toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                      {(!booking.expenses || booking.expenses.length === 0) && (
-                        <p className="text-xs text-slate-400 text-center py-2">
-                          ไม่มีค่าใช้จ่ายสำหรับคำขอนี้
-                        </p>
-                      )}
-                      <hr className="border-slate-200/60" />
-                      <div className="flex justify-between items-center text-sm font-black">
-                        <span className="text-slate-600">
-                          ยอดรวมสุทธิ (Total)
-                        </span>
-                        <span className="text-[#f26522] text-sm">
-                          ฿{" "}
-                          {(booking.expenses || [])
-                            .reduce((sum, item) => sum + Number(item.amount), 0)
-                            .toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Buttons when status is pending_payment and not in editing mode */}
-                  {booking.status === "pending_payment" &&
-                    !isEditingExpenses && (
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        <button
-                          onClick={() => {
-                            const customExps = (booking.expenses || []).filter(
-                              (exp) =>
-                                !exp.name.startsWith("ค่าห้อง") &&
-                                !exp.name.startsWith("ค่าแม่บ้าน") &&
-                                !exp.name.startsWith("ส่วนลด"),
-                            );
-                            setEditedExpenses(customExps);
-                            setHousekeeperPrice(booking.housekeeperPrice || 0);
-                            setHousekeeperCount(booking.housekeeperCount || 0);
-                            const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
-                            setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
-                            setIsEditingExpenses(true);
-                          }}
-                          className="h-10 rounded-[7px] bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <Pencil size={12} />
-                          แก้ไขค่าใช้จ่าย
-                        </button>
-                        <button
-                          onClick={handleNotifyExpenses}
-                          disabled={booking.expenseStatus === "sent"}
-                          className={cn(
-                            "h-10 rounded-[7px] font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm",
-                            booking.expenseStatus === "sent"
-                              ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                              : "bg-[#f26522] text-white hover:bg-[#d8561d] shadow-[#f26522]/10",
-                          )}
-                        >
-                          <Banknote size={12} />
-                          แจ้งค่าใช้จ่าย
-                        </button>
-                      </div>
-                    )}
-
-                  {/* Modal Popup Dialog for Selecting Expenses (drawn from BookingFormFields.tsx design) */}
-                  <Dialog
-                    open={isAddExpenseModalOpen}
-                    onOpenChange={setIsAddExpenseModalOpen}
-                  >
-                    <DialogContent className="w-[95vw] max-w-[420px] p-6 bg-white rounded-[24px] border-none shadow-2xl flex flex-col gap-4 overflow-hidden transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
-                      <DialogHeader className="text-left pb-2 border-b border-slate-100 relative pr-6">
-                        <DialogTitle className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                          <Banknote
-                            className="text-[#f26522]"
-                            size={18}
-                            strokeWidth={2.5}
-                          />
-                          เลือกรายการค่าใช้จ่ายเพิ่มเติม
-                        </DialogTitle>
-                      </DialogHeader>
-
-                      {/* Search Field */}
-                      <div className="relative">
-                        <Search
-                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                          size={14}
-                        />
-                        <input
-                          type="text"
-                          placeholder="ค้นหารายการ หรือหมวดหมู่..."
-                          value={expenseSearchQuery}
-                          onChange={(e) =>
-                            setExpenseSearchQuery(e.target.value)
-                          }
-                          className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f26522]/10 focus:border-[#f26522] focus:bg-white transition-all font-bold"
-                        />
-                      </div>
-
-                      {/* Expenses List */}
-                      <div className="max-h-[260px] overflow-y-auto custom-scrollbar space-y-2 pr-1 text-left">
-                        {masterAddons.filter((exp) => {
-                          const displayName = exp.itemName.startsWith("ค่า")
-                            ? exp.itemName
-                            : `ค่า${exp.itemName}`;
-                          return (
-                            displayName
-                              .toLowerCase()
-                              .includes(expenseSearchQuery.toLowerCase()) ||
-                            exp.category
-                              .toLowerCase()
-                              .includes(expenseSearchQuery.toLowerCase())
-                          );
-                        }).length > 0 ? (
-                          masterAddons
-                            .filter((exp) => {
-                              const displayName = exp.itemName.startsWith("ค่า")
-                                ? exp.itemName
-                                : `ค่า${exp.itemName}`;
-                              return (
-                                displayName
-                                  .toLowerCase()
-                                  .includes(expenseSearchQuery.toLowerCase()) ||
-                                exp.category
-                                  .toLowerCase()
-                                  .includes(expenseSearchQuery.toLowerCase())
-                              );
-                            })
-                            .map((exp) => {
-                              const displayName = exp.itemName.startsWith("ค่า")
-                                ? exp.itemName
-                                : `ค่า${exp.itemName}`;
-                              return (
-                                <button
-                                  key={exp.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setEditedExpenses((prev) => [
-                                      ...prev,
-                                      {
-                                        name: displayName,
-                                        amount: exp.pricePerUnit,
-                                      },
-                                    ]);
-                                    setIsAddExpenseModalOpen(false);
-                                    setExpenseSearchQuery("");
-                                  }}
-                                  className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-[#f26522]/20 hover:bg-[#f26522]/5 hover:shadow-sm transition-all group text-left cursor-pointer bg-white"
-                                >
-                                  <div className="min-w-0 flex-1 pr-3">
-                                    <p className="text-xs font-black text-slate-700 group-hover:text-[#f26522] transition-colors truncate">
-                                      {displayName}
-                                    </p>
-                                    <p className="text-[9px] font-bold text-slate-400 mt-0.5 tracking-wider uppercase">
-                                      {exp.category}
-                                    </p>
-                                  </div>
-                                  <div className="text-right shrink-0">
-                                    <span className="text-xs font-black text-slate-800 bg-slate-50 group-hover:bg-[#f26522]/10 group-hover:text-[#f26522] px-2.5 py-1 rounded-lg transition-colors">
-                                      ฿{exp.pricePerUnit.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })
-                        ) : (
-                          <div className="text-center py-8 text-xs font-bold text-slate-400">
-                            ไม่พบรายการค่าใช้จ่าย
-                          </div>
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </>
-            )}
-
-            {/* Section: Receipt (if uploaded) */}
-            {booking.receiptImage ? (
-              <>
-                <hr className="border-slate-100" />
-                <div className="space-y-4 text-left">
-                  <div className="flex justify-between items-center pr-1">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
-                      <Briefcase size={14} className="text-[#f26522]" />
-                      หลักฐานใบเสร็จรับเงิน (Receipt)
-                    </h3>
-                    <div className="flex items-center gap-2.5">
-                      <a
-                        href={booking.receiptImage}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <ExternalLink size={10} />
-                        เปิดดูไฟล์หลักฐาน
-                      </a>
-                      <span className="size-1 rounded-full bg-slate-300" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกหลักฐานชำระเงินเดิม?")) {
-                            const updated = {
-                              ...booking,
-                              receiptImage: undefined,
-                              status: booking.status === "verifying_payment" ? "pending_payment" : booking.status,
-                            };
-                            onEdit(updated, "this");
-                            alert("ยกเลิกหลักฐานการชำระเงินสำเร็จ กรุณาอัปโหลดสลิปใหม่");
-                          }
-                        }}
-                        className="text-[10px] font-bold text-red-500 hover:text-red-600 hover:underline cursor-pointer focus:outline-none bg-transparent border-none p-0"
-                      >
-                        เปลี่ยนไฟล์หลักฐาน
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="relative rounded-[7px] overflow-hidden border border-slate-200 aspect-video w-full bg-slate-50 group max-w-sm">
-                    <img
-                      src={booking.receiptImage}
-                      alt="Receipt"
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <a
-                      href={booking.receiptImage}
-                      download="receipt.png"
-                      onClick={(e) => {
-                        if (booking.receiptImage?.startsWith("data:")) {
-                          // Allow default download
-                        } else {
-                          e.preventDefault();
-                          alert("ดาวน์โหลดใบเสร็จสำเร็จ!");
-                        }
-                      }}
-                      className="absolute bottom-3 right-3 size-9 rounded-[7px] bg-black/45 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all flex items-center justify-center cursor-pointer"
-                      title="ดาวน์โหลดใบเสร็จ"
-                    >
-                      <Download size={16} />
-                    </a>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* If no receipt image but payment is required (has expenses) */
-              booking.expenses && booking.expenses.length > 0 && (
-                <>
-                  <hr className="border-slate-100" />
-                  <div className="space-y-4 text-left">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
-                      <Briefcase size={14} className="text-[#f26522]" />
-                      อัปโหลดหลักฐานการชำระเงิน (Upload Receipt Slip)
-                    </h3>
-                    <div className="max-w-sm">
-                      <ImageUpload
-                        value=""
-                        onChange={(url) => {
-                          if (url) {
-                            const updated = {
-                              ...booking,
-                              receiptImage: url,
-                              status: booking.status === "pending_payment" ? "verifying_payment" : booking.status,
-                            };
-                            onEdit(updated, "this");
-                            alert("อัปโหลดหลักฐานการชำระเงินสำเร็จ!");
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </>
-              )
-            )}
-
-            {/* Section: Official Receipt (Only if status is approved) */}
-            {booking.status === "approved" && (
-              <>
-                <hr className="border-slate-100" />
-                <div className="space-y-4 text-left">
-                  <div className="flex justify-between items-center pr-1">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
-                      <FileText size={14} className="text-[#f26522]" />
-                      ใบเสร็จรับเงินอย่างเป็นทางการ (Official Receipt)
-                    </h3>
-                    {booking.officialReceipt && (
-                      <div className="flex items-center gap-2.5">
-                        <a
-                          href={booking.officialReceipt}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <ExternalLink size={10} />
-                          เปิดดูใบเสร็จ
-                        </a>
-                        <span className="size-1 rounded-full bg-slate-300" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกใบเสร็จรับเงินอย่างเป็นทางการเดิม?")) {
-                              const updated = {
-                                ...booking,
-                                officialReceipt: undefined,
-                              };
-                              onEdit(updated, "this");
-                              alert("ยกเลิกใบเสร็จรับเงินอย่างเป็นทางการสำเร็จ");
-                            }
-                          }}
-                          className="text-[10px] font-bold text-red-500 hover:text-red-600 hover:underline cursor-pointer focus:outline-none bg-transparent border-none p-0"
-                        >
-                          เปลี่ยนไฟล์ใบเสร็จ
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {booking.officialReceipt ? (
-                    <div className="relative rounded-[7px] overflow-hidden border border-slate-200 aspect-video w-full bg-slate-50 group max-w-sm">
-                      <img
-                        src={booking.officialReceipt}
-                        alt="Official Receipt"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <a
-                        href={booking.officialReceipt}
-                        download="official_receipt.png"
-                        onClick={(e) => {
-                          if (booking.officialReceipt?.startsWith("data:")) {
-                            // Allow default download
-                          } else {
-                            e.preventDefault();
-                            alert("ดาวน์โหลดใบเสร็จรับเงินสำเร็จ!");
-                          }
-                        }}
-                        className="absolute bottom-3 right-3 size-9 rounded-[7px] bg-black/45 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all flex items-center justify-center cursor-pointer"
-                        title="ดาวน์โหลดใบเสร็จ"
-                      >
-                        <Download size={16} />
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="max-w-sm">
-                      <ImageUpload
-                        value=""
-                        onChange={(url) => {
-                          if (url) {
-                            const updated = {
-                              ...booking,
-                              officialReceipt: url,
-                            };
-                            onEdit(updated, "this");
-                            alert("อัปโหลดใบเสร็จรับเงินอย่างเป็นทางการสำเร็จ!");
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            <hr className="border-slate-100" />
 
             {/* Section 4: Actions */}
             <div className="space-y-4">
@@ -1328,42 +752,6 @@ export default function BookingDrawer({
               </h3>
 
               <div className="flex flex-col gap-3">
-                {booking.status === "pending_payment" &&
-                  (booking.expenseStatus === "sent" ? (
-                    <div className="bg-sky-50 border border-sky-100 rounded-[7px] p-4 text-center text-xs font-bold text-sky-700 select-none">
-                      แจ้งค่าใช้จ่ายเรียบร้อยแล้ว
-                      รอผู้ขอใช้พื้นที่ดำเนินการชำระเงินและแนบหลักฐานใบเสร็จ
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border border-amber-100 rounded-[7px] p-4 text-center text-xs font-bold text-amber-700 select-none">
-                      กรุณากรอกค่าใช้จ่ายและกด "แจ้งค่าใช้จ่าย"
-                      เพื่อส่งข้อมูลให้ผู้ใช้ดำเนินการชำระเงิน
-                    </div>
-                  ))}
-
-                {booking.status === "verifying_payment" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={handleApprove}
-                      className="h-12 rounded-[7px] bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 shadow-md shadow-emerald-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <CheckCircle2 size={18} />
-                      อนุมัติการจ่ายเงิน
-                    </button>
-                    <button
-                      onClick={() => {
-                        onUpdateStatus(booking.id, "pending_payment");
-                        alert("ปฏิเสธหลักฐานชำระเงินแล้ว!");
-                        onClose();
-                      }}
-                      className="h-12 rounded-[7px] bg-red-600 text-white font-bold text-sm hover:bg-red-700 shadow-md shadow-red-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <XCircle size={18} />
-                      ปฏิเสธสลิปชำระเงิน
-                    </button>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleEditClick}
@@ -1392,13 +780,23 @@ export default function BookingDrawer({
         recurrenceMode={
           booking.recurringGroupId ? selectedRecurrenceMode : "this"
         }
-        onClose={() => setIsEditOpen(false)}
+        onClose={() => {
+          if (initialMode === "edit") {
+            onClose();
+          } else {
+            setIsEditOpen(false);
+          }
+        }}
         onSave={(updated) => {
           onEdit(
             updated,
             booking.recurringGroupId ? selectedRecurrenceMode : "this",
           );
-          setIsEditOpen(false);
+          if (initialMode === "edit") {
+            onClose();
+          } else {
+            setIsEditOpen(false);
+          }
         }}
       />
 

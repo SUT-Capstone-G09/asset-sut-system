@@ -18,11 +18,9 @@ const statusMapToId: Record<string, number> = {
   rejected: 3,
   cancelled: 4,
   completed: 5,
-  pending_payment: 6,
-  verifying_payment: 7,
 };
 
-function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Map<number, AdminLocationDTO>): Booking {
+export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Map<number, AdminLocationDTO>): Booking {
   const firstSlot = b.timeslots?.[0];
   const locId = firstSlot?.location_id;
   const loc = locId ? locationsMap.get(locId) : undefined;
@@ -39,8 +37,8 @@ function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Map<numbe
   let status: Booking["status"] = "pending";
   if (b.status === "approved") status = "approved";
   else if (b.status === "rejected") status = "rejected";
-  else if (b.status === "pending_payment") status = "pending_payment";
-  else if (b.status === "verifying_payment") status = "verifying_payment";
+  else if (b.status === "cancelled") status = "cancelled";
+  else if (b.status === "completed") status = "completed";
 
   // Parse housekeeper details from saved booking addons if any
   let housekeeperPrice = 0;
@@ -59,7 +57,9 @@ function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Map<numbe
 
   return {
     id: String(b.id),
-    roomName: loc?.name ?? firstSlot?.location_name ?? "ไม่ทราบชื่อห้อง",
+    basePrice: b.base_price || 0,
+    discountPrice: b.discount_price || 0,
+    roomName: loc?.name || firstSlot?.location_name || "ไม่ระบุห้อง",
     roomNumber: loc?.room_number ? String(loc.room_number) : "",
     building: loc?.building ?? "",
     category: loc?.type ?? "",
@@ -79,15 +79,36 @@ function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Map<numbe
     equipment: [],
     expenses: (b.booking_addons || []).map((addon) => ({
       name: addon.addon_name,
+      unitPrice: addon.applied_price,
+      quantity: addon.quantity,
       amount: addon.total_price,
     })),
-    attachedDocuments: [],
+    timeslots: (b.timeslots || []).map((ts) => {
+      const tsDate = new Date(ts.date).toISOString().split("T")[0];
+      const tsStart = new Date(ts.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const tsEnd = new Date(ts.end_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return {
+        id: ts.id,
+        date: tsDate,
+        timeSlot: `${tsStart} - ${tsEnd} น.`,
+        priceSnapshot: ts.price_snapshot,
+        expenses: (ts.addons || []).map((addon) => ({
+          name: addon.addon_name,
+          unitPrice: addon.applied_price,
+          quantity: addon.quantity,
+          amount: addon.total_price,
+        })),
+      };
+    }),
+    attachedDocuments: (b.documents || []).map((doc) => doc.file_url),
     housekeeperPrice,
     housekeeperCount,
   };
 }
 
-export function useBookingFilters(type: "classroom" | "meeting" | "all") {
+export type BookingTypeFilter = "classroom" | "meeting" | "sport" | "hall" | "all";
+
+export function useBookingFilters(type: BookingTypeFilter) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,14 +131,17 @@ export function useBookingFilters(type: "classroom" | "meeting" | "all") {
       
       const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
       
-      // Filter by classroom vs meeting categories
-      const classroomCategories = ["ห้องบรรยาย", "ห้องปฏิบัติการ", "ห้องสัมมนา"];
+      // Filter by exactly matched DB categories
+      const typeToCategory: Record<string, string> = {
+        classroom: "ห้องเรียน",
+        meeting: "ห้องประชุม",
+        sport: "สนามกีฬา",
+        hall: "โถงอาคาร",
+      };
+      
       const filtered = mappedBookings.filter((b) => {
         if (type === "all") return true;
-        const isClassroom = classroomCategories.some(
-          (cat) => b.category.includes(cat) || cat.includes(b.category)
-        );
-        return type === "classroom" ? isClassroom : !isClassroom;
+        return b.category === typeToCategory[type];
       });
       
       setBookings(filtered);
@@ -214,10 +238,10 @@ export function useBookingFilters(type: "classroom" | "meeting" | "all") {
     id: string,
     status:
       | "pending"
-      | "pending_payment"
-      | "verifying_payment"
       | "approved"
-      | "rejected",
+      | "rejected"
+      | "cancelled"
+      | "completed",
   ) => {
     await updateBookingStatus(Number(id), { status });
     await fetchAll();
@@ -225,13 +249,31 @@ export function useBookingFilters(type: "classroom" | "meeting" | "all") {
 
   const handleEditBooking = async (updatedBooking: Booking) => {
     await updateBookingStatus(Number(updatedBooking.id), { status: updatedBooking.status });
-    if (updatedBooking.expenses) {
+    if (updatedBooking.timeslots && updatedBooking.timeslots.length > 0) {
       await updateBookingExpenses(Number(updatedBooking.id), {
-        expenses: updatedBooking.expenses.map((exp) => ({
-          addon_name: exp.name,
-          applied_price: exp.amount,
-          quantity: 1,
+        discount_price: updatedBooking.discountPrice || 0,
+        timeslots: updatedBooking.timeslots.map((ts) => ({
+          timeslot_id: ts.id,
+          expenses: ts.expenses.map((exp) => ({
+            addon_name: exp.name,
+            applied_price: exp.unitPrice,
+            quantity: exp.quantity,
+          })),
         })),
+      });
+    } else {
+      await updateBookingExpenses(Number(updatedBooking.id), {
+        discount_price: updatedBooking.discountPrice || 0,
+        timeslots: [
+          {
+            timeslot_id: 0,
+            expenses: (updatedBooking.expenses || []).map((exp) => ({
+              addon_name: exp.name,
+              applied_price: exp.unitPrice,
+              quantity: exp.quantity,
+            })),
+          },
+        ],
       });
     }
     await fetchAll();

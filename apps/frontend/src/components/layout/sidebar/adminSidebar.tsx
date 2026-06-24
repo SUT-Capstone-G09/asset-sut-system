@@ -97,16 +97,16 @@ const menuGroups: MenuGroup[] = [
         href: "/admin/booking/requests",
       },
       {
-        id: "payment-verify",
-        label: "ตรวจสอบการชำระเงิน",
-        icon: Wallet,
-        href: "/admin/payment/verify",
-      },
-      {
         id: "booking",
         label: "ขอใช้พื้นที่",
         icon: Calendar,
         href: "/admin/booking",
+      },
+      {
+        id: "payment-verify",
+        label: "ตรวจสอบการชำระเงิน",
+        icon: Wallet,
+        href: "/admin/payment/verify",
       },
       {
         id: "manage-rooms",

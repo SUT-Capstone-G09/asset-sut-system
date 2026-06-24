@@ -43,13 +43,13 @@ export default function PaymentVerificationModal({
   bookings,
   onUpdateBooking,
 }: PaymentVerificationModalProps) {
-  const [activeTab, setActiveTab] = useState<"pending_payment" | "verifying_payment">("pending_payment");
+  const [activeTab, setActiveTab] = useState<"awaiting" | "verifying">("awaiting");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [slipImage, setSlipImage] = useState<string>("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Filter bookings based on selected status tab
-  const filteredList = bookings.filter((b) => b.status === activeTab);
+  // Filter bookings based on selected status tab — using approved as awaiting and completed as verified (legacy)
+  const filteredList = bookings.filter((b) => b.status === "approved");
 
   const selectedBooking = bookings.find((b) => b.id === selectedBookingId);
 
@@ -116,11 +116,11 @@ export default function PaymentVerificationModal({
     if (bookingToUpdate) {
       const updated: Booking = {
         ...bookingToUpdate,
-        status: "verifying_payment",
-        receiptImage: "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&q=80&w=800", // Simulated receipt slip image
+        status: "completed",
+        receiptImage: "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&q=80&w=800",
       };
       onUpdateBooking(updated);
-      alert("จำลองการแจ้งชำระเงินสำเร็จ! รายการถูกส่งไปที่ฝั่ง 'รอตรวจสอบการชำระเงิน' แล้ว");
+      alert("จำลองการแจ้งชำระเงินสำเร็จ!");
       setSelectedBookingId(null);
     }
   };
@@ -174,11 +174,11 @@ export default function PaymentVerificationModal({
     if (bookingToUpdate) {
       const updated: Booking = {
         ...bookingToUpdate,
-        status: "pending_payment",
+        status: "pending",
         receiptImage: undefined, // Clear the slip image
       };
       onUpdateBooking(updated);
-      alert("ปฏิเสธการชำระเงินแล้ว ระบบจะส่งกลับไปให้ผู้ขอใช้งานชำระเงินใหม่อีกครั้ง");
+      alert("ปฏิเสธการชำระเงินแล้ว");
       setSelectedBookingId(null);
     }
   };
@@ -226,33 +226,33 @@ export default function PaymentVerificationModal({
           <div className="flex border-b border-slate-100 shrink-0 bg-slate-50/50 p-2 gap-2">
             <button
               onClick={() => {
-                setActiveTab("pending_payment");
+                setActiveTab("awaiting");
                 setSelectedBookingId(null);
                 setSlipImage("");
               }}
               className={cn(
                 "flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2",
-                activeTab === "pending_payment"
+                activeTab === "awaiting"
                   ? "bg-white text-[#f26522] shadow-sm border border-slate-200/50"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
               )}
             >
-              รอชำระเงิน ({bookings.filter(b => b.status === "pending_payment").length})
+              รอชำระเงิน ({bookings.filter(b => b.status === "approved").length})
             </button>
             <button
               onClick={() => {
-                setActiveTab("verifying_payment");
+                setActiveTab("verifying");
                 setSelectedBookingId(null);
                 setSlipImage("");
               }}
               className={cn(
                 "flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2",
-                activeTab === "verifying_payment"
+                activeTab === "verifying"
                   ? "bg-white text-[#f26522] shadow-sm border border-slate-200/50"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
               )}
             >
-              รอตรวจสอบการชำระเงิน ({bookings.filter(b => b.status === "verifying_payment").length})
+              รอตรวจสอบการชำระเงิน ({bookings.filter(b => b.status === "completed").length})
             </button>
           </div>
 
@@ -489,7 +489,7 @@ export default function PaymentVerificationModal({
                     </div>
 
                     {/* Action inputs based on status */}
-                    {activeTab === "pending_payment" && (
+                    {activeTab === "awaiting" && (
                       <div className="space-y-3 bg-slate-50/50 border border-slate-100 p-4 rounded-xl">
                         <h4 className="text-xs font-black text-slate-700 font-bold">จำลองการชำระเงินโดยผู้ใช้งาน</h4>
                         <p className="text-[10px] text-slate-500 leading-relaxed">
@@ -498,7 +498,7 @@ export default function PaymentVerificationModal({
                       </div>
                     )}
 
-                    {activeTab === "verifying_payment" && (
+                    {activeTab === "verifying" && (
                       <div className="space-y-3">
                         {selectedBooking.receiptImage ? (
                           <>
@@ -617,7 +617,7 @@ export default function PaymentVerificationModal({
                   </div>
 
                   <div className="pt-6 border-t border-slate-100 mt-6 flex items-center gap-3">
-                    {activeTab === "pending_payment" ? (
+                    {activeTab === "awaiting" ? (
                       <Button
                         onClick={() => handleSimulatePayment(selectedBooking.id)}
                         className="w-full h-11 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold text-xs shadow-md shadow-[#f26522]/10 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"

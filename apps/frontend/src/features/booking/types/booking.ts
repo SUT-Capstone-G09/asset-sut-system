@@ -1,10 +1,21 @@
 export interface BookingExpense {
   name: string;
+  unitPrice: number;
+  quantity: number;
   amount: number;
+}
+
+export interface TimeslotDetail {
+  id: number;
+  date: string;
+  timeSlot: string;
+  expenses: BookingExpense[];
+  priceSnapshot: number;
 }
 
 export interface Booking {
   id: string;
+  basePrice?: number;
   roomName: string;
   roomNumber: string;
   building: string;
@@ -15,7 +26,7 @@ export interface Booking {
   purpose: string;
   date: string;
   timeSlot: string; // e.g., "09:00 - 12:00 น."
-  status: "pending" | "pending_payment" | "verifying_payment" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled" | "completed";
   attendees: number;
   image: string;
   createdAt: string;
@@ -23,12 +34,14 @@ export interface Booking {
   contactPhone?: string;
   contactEmail?: string;
   equipment?: string[];
-  expenses?: BookingExpense[];
+  expenses?: BookingExpense[]; // Keep this for backward compatibility or aggregated view
+  timeslots?: TimeslotDetail[];
   attachedDocuments?: string[];
   receiptImage?: string;
   officialReceipt?: string;
   housekeeperPrice?: number;
   housekeeperCount?: number;
+  discountPrice?: number;
   recurringGroupId?: string;
   expenseStatus?: "draft" | "sent";
   repeat?: boolean;
@@ -65,28 +78,6 @@ export const BOOKING_STATUS_CONFIG: Record<Booking["status"], StatusConfigItem> 
     drawerBg: "bg-amber-50 border-amber-100",
     drawerDot: "bg-amber-500",
   },
-  pending_payment: {
-    label: "รอชำระเงิน",
-    color: "bg-sky-50/90 text-sky-700 border-sky-100",
-    dot: "bg-sky-500",
-    cardText: "text-sky-700",
-    gridText: "text-sky-600",
-    gridBg: "bg-sky-50 border-sky-100",
-    drawerText: "text-sky-700",
-    drawerBg: "bg-sky-50 border-sky-100",
-    drawerDot: "bg-sky-500",
-  },
-  verifying_payment: {
-    label: "รอตรวจสอบการชำระเงิน",
-    color: "bg-indigo-50/90 text-indigo-700 border-indigo-100",
-    dot: "bg-indigo-500",
-    cardText: "text-indigo-700",
-    gridText: "text-indigo-600",
-    gridBg: "bg-indigo-50 border-indigo-100",
-    drawerText: "text-indigo-700",
-    drawerBg: "bg-indigo-50 border-indigo-100",
-    drawerDot: "bg-indigo-500",
-  },
   approved: {
     label: "อนุมัติแล้ว",
     color: "bg-emerald-50/90 text-emerald-700 border-emerald-100",
@@ -108,5 +99,27 @@ export const BOOKING_STATUS_CONFIG: Record<Booking["status"], StatusConfigItem> 
     drawerText: "text-red-700",
     drawerBg: "bg-red-50 border-red-100",
     drawerDot: "bg-red-500",
+  },
+  cancelled: {
+    label: "ยกเลิก",
+    color: "bg-slate-50/90 text-slate-500 border-slate-200",
+    dot: "bg-slate-400",
+    cardText: "text-slate-500",
+    gridText: "text-slate-500",
+    gridBg: "bg-slate-50 border-slate-200",
+    drawerText: "text-slate-600",
+    drawerBg: "bg-slate-50 border-slate-200",
+    drawerDot: "bg-slate-400",
+  },
+  completed: {
+    label: "เสร็จสิ้น",
+    color: "bg-teal-50/90 text-teal-700 border-teal-100",
+    dot: "bg-teal-500",
+    cardText: "text-teal-700",
+    gridText: "text-teal-600",
+    gridBg: "bg-teal-50 border-teal-100",
+    drawerText: "text-teal-700",
+    drawerBg: "bg-teal-50 border-teal-100",
+    drawerDot: "bg-teal-500",
   },
 };

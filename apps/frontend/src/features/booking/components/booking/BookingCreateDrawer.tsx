@@ -27,7 +27,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onAdd: (newBooking: Booking | Booking[]) => void;
-  type: "classroom" | "meeting";
+  type: string;
 }
 
 export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Props) {
@@ -109,7 +109,7 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
     // Simulate API Call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const randomId = `${type === "classroom" ? "CB" : "MB"}-${Math.floor(100 + Math.random() * 900)}`;
+    const randomId = `${type === "classroom" ? "CB" : type === "meeting" ? "MB" : type === "sport" ? "SB" : "HB"}-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date();
     const formattedDate = now.toLocaleDateString("th-TH") + " " + now.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.";
 
@@ -213,7 +213,7 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
                 </div>
                 
                 <SheetTitle className="text-xl font-bold text-slate-900 tracking-tight">
-                  {type === "classroom" ? "ยื่นขอจองห้องเรียน" : "ยื่นขอจองห้องประชุม"}
+                  {type === "classroom" ? "ยื่นขอจองห้องเรียน" : type === "meeting" ? "ยื่นขอจองห้องประชุม" : type === "sport" ? "ยื่นขอจองสนามกีฬา" : type === "hall" ? "ยื่นขอจองโถงอาคาร" : "ยื่นขอจองพื้นที่"}
                 </SheetTitle>
 
                 <SheetDescription className="sr-only">

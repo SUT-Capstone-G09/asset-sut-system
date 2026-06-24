@@ -33,6 +33,10 @@ func FileName(locationName string, bookingDate time.Time, bookingID int, origina
 // ObjectKey returns the full storage path:
 // "{folderName}/มิถุนายน_2569/{FileName(...)}"
 func ObjectKey(folderName string, bookingDate time.Time, locationName string, bookingID int, original string) string {
+	if folderName == "สลิปการชำระเงิน" || folderName == "ใบเสร็จรับเงิน" {
+		// Use original filename for payment slips and receipts
+		return folderName + "/" + MonthFolder(bookingDate) + "/" + original
+	}
 	return folderName + "/" + MonthFolder(bookingDate) + "/" + FileName(locationName, bookingDate, bookingID, original)
 }
 
@@ -48,7 +52,8 @@ type DocType struct {
 // To add a new doc type: add one line here.
 // To move a type from "both" to "Drive only": set StoreMinio = false.
 var DocTypes = map[string]DocType{
-	"booking-docs": {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
-	"payment-slip": {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
-	"other":        {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
+	"booking-docs":    {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
+	"payment-slip":    {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
+	"payment-receipt": {FolderName: "ใบเสร็จรับเงิน", StoreMinio: true, StoreDrive: true},
+	"other":           {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
 }
