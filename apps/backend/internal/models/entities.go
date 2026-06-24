@@ -45,4 +45,11 @@ var AllEntities = []any{
 	&EmailTemplate{},
 	&EmailBroadcast{},
 	&EmailOutbox{},
+
+	//Envelope
+	&DocumentEnvelopes{},
+	&EnvelopeOrders{},
+	&EnvelopePayments{},
+	&OrderDeliveries{},
+	&Receipts{},
 }
