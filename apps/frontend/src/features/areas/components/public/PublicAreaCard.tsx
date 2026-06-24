@@ -11,11 +11,11 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 
-interface AreaCardProps {
+interface PublicAreaCardProps {
   location: Location;
 }
 
-export default function AreaCard({ location }: AreaCardProps) {
+export default function PublicAreaCard({ location }: PublicAreaCardProps) {
   return (
     <Card
       className={cn(

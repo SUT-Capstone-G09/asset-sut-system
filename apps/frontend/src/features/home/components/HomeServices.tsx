@@ -6,7 +6,7 @@ import {
   ShoppingCart, GraduationCap, Truck, Store, Building2,
   ArrowRight,
 } from "lucide-react";
-import AreaCard from "@/features/areas/components/public/AreaCard";
+import PublicAreaCard from "@/features/areas/components/public/PublicAreaCard";
 import { Location } from "@/features/areas/types/location";
 
 const stats = [
@@ -158,7 +158,7 @@ export default function HomeServices() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {areas.map((area) => (
               <Link key={area.id} href="/areas" className="block w-full">
-                <AreaCard location={area as Location} />
+                <PublicAreaCard location={area as Location} />
               </Link>
             ))}
           </div>
