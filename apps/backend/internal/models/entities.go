@@ -60,4 +60,11 @@ var AllEntities = []any{
 	&EvaluationCriteria{},
 	&Evaluations{},
 	&EvaluationsDetail{},
+
+	// News
+	&NewsCategories{},
+	&NewsAnnouncements{},
+	&NewsLeaseOffers{},
+	&NewsLogs{},
+	&NewsViews{},
 }
