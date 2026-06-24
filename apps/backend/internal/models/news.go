@@ -7,11 +7,11 @@ type NewsAnnouncements struct {
 	CategoryID       uint              `gorm:"not null" json:"category_id"`
 	Category         NewsCategories    `gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" json:"category,omitempty"`
 	Title            string            `gorm:"type:varchar(255);not null" json:"title"`
-	ShortDescription string            `gorm:"type:text;not null" json:"short_description"`
-	Qualifications   string            `gorm:"type:text;not null" json:"qualifications"`
-	RequiredDocs     string            `gorm:"type:text;not null" json:"required_docs"`
-	MainImage        string            `gorm:"type:varchar(511);not null" json:"main_image"` // ปรับขนาดเผื่อ URL ยาวๆ
-	Pdf              string            `gorm:"type:varchar(511);" json:"pdf"` // เอา not null ออก เพื่อให้ไม่มีไฟล์แนบ PDF ได้
+	ShortDescription string            `gorm:"type:text" json:"short_description"`
+	Qualifications   string            `gorm:"type:text" json:"qualifications"`
+	RequiredDocs     string            `gorm:"type:text" json:"required_docs"`
+	MainImage        string            `gorm:"type:varchar(511)" json:"main_image"` // ปรับขนาดเผื่อ URL ยาวๆ
+	Pdf              string            `gorm:"type:varchar(511)" json:"pdf"` // เอา not null ออก เพื่อให้ไม่มีไฟล์แนบ PDF ได้
 	PublishDate      *time.Time        `gorm:"type:timestamp" json:"publish_date"` // ใช้ Pointer timestamp เพื่อรองรับวันที่+เวลาและเป็นค่าว่างได้
 	ExpireDate       *time.Time        `gorm:"type:timestamp" json:"expire_date"`  // ใช้ Pointer timestamp
 	Status           string            `gorm:"type:varchar(50);not null;default:'Draft'" json:"status"`
