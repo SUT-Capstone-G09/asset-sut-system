@@ -55,6 +55,12 @@ var AllEntities = []any{
 	&EmailBroadcast{},
 	&EmailOutbox{},
 
+	//Envelope
+	&DocumentEnvelopes{},
+	&EnvelopeOrders{},
+	&EnvelopePayments{},
+	&OrderDeliveries{},
+	&Receipts{},
 	// Evaluation
 	&GradeSettings{},
 	&EvaluationCriteria{},
