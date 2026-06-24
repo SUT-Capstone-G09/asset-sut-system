@@ -55,6 +55,16 @@ var AllEntities = []any{
 	&EmailBroadcast{},
 	&EmailOutbox{},
 
+	// Tenant
+	&TenantProfiles{},
+	&TenantContacts{},
+	&TenantKYC{},
+
+	// Contract
+	&BusinessTypes{},
+	&Contracts{},
+	&ContractHistory{},
+	&ContractInvoices{},
 	//Envelope
 	&DocumentEnvelopes{},
 	&EnvelopeOrders{},
