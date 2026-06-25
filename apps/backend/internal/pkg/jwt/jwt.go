@@ -32,7 +32,9 @@ func GenerateTokenPair(userID uint, email, role, secret string) (*TokenPair, err
 		Role:   role,
 		Type:   TokenTypeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			// TODO: revert to 15 minutes before production. Extended during
+			// ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

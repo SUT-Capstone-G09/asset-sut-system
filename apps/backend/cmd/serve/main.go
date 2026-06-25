@@ -45,6 +45,7 @@ func main() {
 	invoiceRepo := repositories.NewInvoiceRepository(db)
 	paymentRepo := repositories.NewPaymentRepository(db)
 	documentRepo := repositories.NewDocumentRepository(db)
+	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -55,12 +56,17 @@ func main() {
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	locationService := services.NewLocationService(locationRepo, timeslotRepo)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo)
 	documentService := services.NewDocumentService(documentRepo)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo)
+	if err != nil {
+		log.Fatalf("failed to init email service: %v", err)
+	}
+	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
 
 	// ----------------------------------------
 	// Controllers
@@ -74,7 +80,24 @@ func main() {
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentQRService, paymentService)
 	documentCtrl := controllers.NewDocumentController(documentService)
-	uploadCtrl := controllers.NewUploadController(storageService)
+
+	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
+	var driveService *services.DriveService
+	if cfg.GDrive.ClientEmail != "" && cfg.GDrive.PrivateKey != "" {
+		var driveErr error
+		driveService, driveErr = services.NewDriveService(cfg.GDrive)
+		if driveErr != nil {
+			log.Printf("warning: Google Drive unavailable: %v", driveErr)
+			driveService = nil
+		} else {
+			log.Printf("Google Drive initialized (%d folder route(s))", len(cfg.GDrive.FolderRoutes))
+		}
+	}
+
+	uploadCtrl := controllers.NewUploadController(storageService, driveService, cfg.GDrive.FolderRoutes)
+	emailCtrl := controllers.NewEmailController(emailService)
+	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
 	// Router
@@ -82,18 +105,21 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:              cfg,
-		AuthController:      authCtrl,
-		AdminController:     adminCtrl,
-		StaffController:     staffCtrl,
-		RequesterController: requesterCtrl,
-		RoleController:      roleCtrl,
-		LocationController:  locationCtrl,
-		BookingController:   bookingCtrl,
-		PaymentController:   paymentCtrl,
-		DocumentController:  documentCtrl,
-		UploadController:    uploadCtrl,
-		PermissionChecker:   permissionRepo,
+		Config:                  cfg,
+		AuthController:          authCtrl,
+		AdminController:         adminCtrl,
+		StaffController:         staffCtrl,
+		RequesterController:     requesterCtrl,
+		RoleController:          roleCtrl,
+		LocationController:      locationCtrl,
+		BookingController:       bookingCtrl,
+		PaymentController:       paymentCtrl,
+		DocumentController:      documentCtrl,
+		UploadController:        uploadCtrl,
+		EmailController:         emailCtrl,
+		EmailTemplateController: emailTemplateCtrl,
+		ImageController:         imageCtrl,
+		PermissionChecker:       permissionRepo,
 	})
 
 	addr := ":" + cfg.Server.Port

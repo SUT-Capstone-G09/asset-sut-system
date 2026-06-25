@@ -16,7 +16,8 @@ import {
   User,
   LogOut,
   Settings,
-  AlertCircle
+  AlertCircle,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
@@ -51,7 +52,7 @@ export default function Navbar() {
       subItems: [
         { label: "สำหรับผู้ประกอบการ", href: "/services/entrepreneur" },
         { label: "สำหรับผู้สนใจเช่า", href: "/services/tenant" },
-        { label: "ผู้ใช้บริการ", href: "/my-bookings" },
+        { label: "ผู้ใช้บริการ", href: "/bookings" },
       ],
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
@@ -72,6 +73,12 @@ export default function Navbar() {
       href: user.role === "operator" ? "/operator/profile" : "/user/profile",
       icon: User,
       show: user.role !== "admin",
+    },
+    {
+      label: "การจองของฉัน",
+      href: "/my-bookings",
+      icon: CalendarDays,
+      show: user.role === "requester",
     },
     {
       label: "แจ้งปัญหา",

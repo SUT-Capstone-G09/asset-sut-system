@@ -91,6 +91,14 @@ export interface LocationTypeDTO {
   type: string;
 }
 
+export interface StaffLocationDTO {
+  user_id: number;
+  location_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export async function getLocationTypes(): Promise<LocationTypeDTO[]> {
   return apiClient.get<LocationTypeDTO[]>("/location-types");
 }
@@ -117,6 +125,26 @@ export async function createPricingTier(locationId: number, payload: CreatePrici
 
 export async function deletePricingTier(locationId: number, tierId: number): Promise<void> {
   await apiClient.delete(`/locations/${locationId}/pricing-tiers/${tierId}`);
+}
+
+export async function getLocationStaff(locationId: number): Promise<StaffLocationDTO[]> {
+  return apiClient.get<StaffLocationDTO[]>(`/locations/${locationId}/staff`);
+}
+
+export async function assignStaffToLocation(locationId: number, userId: number): Promise<void> {
+  await apiClient.post(`/locations/${locationId}/staff`, { user_id: userId });
+}
+
+export async function unassignStaffFromLocation(locationId: number, userId: number): Promise<void> {
+  await apiClient.delete(`/locations/${locationId}/staff/${userId}`);
+}
+
+export async function getStaffLocations(staffUserId: number): Promise<AdminLocationDTO[]> {
+  return apiClient.get<AdminLocationDTO[]>(`/staffs/${staffUserId}/locations`);
+}
+
+export async function setStaffLocations(staffUserId: number, locationIds: number[]): Promise<void> {
+  await apiClient.put(`/staffs/${staffUserId}/locations`, { location_ids: locationIds });
 }
 
 // requester_type_id: 1=ภายใน, 2=ภายนอก | rate_type_id: 1=hourly, 2=daily

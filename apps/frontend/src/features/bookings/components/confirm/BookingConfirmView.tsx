@@ -4,13 +4,15 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/features/bookings/services/booking.service";
 import { createDocument } from "@/features/payment/services/document.service";
-import { uploadFile } from "@/lib/services/upload";
+import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
 import {
   CalendarDays,
   Car,
   Check,
   Clock,
+  Download,
+  Eye,
   FilePen,
   FileText,
   FileUp,
@@ -106,6 +108,18 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const removeFile = (index: number) =>
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
 
+  const openLocalFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
+  const downloadLocalFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    Object.assign(document.createElement("a"), { href: url, download: file.name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
   const handleConfirm = async () => {
     if (!draft || !purpose.trim()) return;
     setSubmitting(true);
@@ -120,15 +134,16 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);
 
-      // Upload each document to MinIO then save record to DB
+      // Upload each document — ส่งวันที่จองและชื่อสถานที่เพื่อตั้งชื่อไฟล์และจัด folder
+      const bookingDate = draft.timeslots[0]?.date; // "YYYY-MM-DD"
       for (const file of uploadedFiles) {
         try {
-          const uploaded = await uploadFile(file, "documents");
+          const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, room.name, booking.id);
           await createDocument({
             booking_id: booking.id,
             document_type_id: file.type === "application/pdf" ? 2 : 4,
             file_name: uploaded.file_name,
-            bucket_name: "payment-qr",
+            bucket_name: uploaded.bucket_name,
             object_key: uploaded.object_key,
             file_url: uploaded.url,
             content_type: uploaded.content_type,
@@ -277,12 +292,22 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                       <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
                       <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
                     </div>
-                    <button
-                      onClick={() => removeFile(i)}
-                      className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
-                    >
-                      <X size={15} />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        title="ดูเอกสาร"
+                        onClick={() => openLocalFile(file)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-brand-primary hover:bg-orange-50 transition-colors"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        title="ดาวน์โหลด"
+                        onClick={() => downloadLocalFile(file)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-brand-primary hover:bg-orange-50 transition-colors"
+                      >
+                        <Download size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -415,6 +440,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
           setUploadedFiles((prev) => [...prev, file]);
           setGenerateDoc(true);
         }}
+        onPurposeChange={setPurpose}
       />
     )}
     </>

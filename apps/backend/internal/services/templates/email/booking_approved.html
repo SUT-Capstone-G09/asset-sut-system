@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>การจองได้รับการอนุมัติ</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f5; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#ea7317; padding:28px 32px; text-align:center;">
+                            <h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:600;">การจองของคุณได้รับการอนุมัติ</h1>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:32px;">
+                            <p style="margin:0 0 16px; color:#18181b; font-size:16px;">เรียน คุณ{{.userName}}</p>
+                            <p style="margin:0 0 16px; color:#3f3f46; font-size:15px; line-height:1.6;">
+                                คำขอจอง <strong>{{.assetName}}</strong> ของคุณได้รับการอนุมัติแล้ว
+                                กรุณาดำเนินการชำระเงินเพื่อยืนยันการจอง
+                            </p>
+
+                            <!-- Amount box -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0; background-color:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+                                <tr>
+                                    <td style="padding:20px 24px;">
+                                        <p style="margin:0 0 4px; color:#71717a; font-size:13px;">ยอดที่ต้องชำระ</p>
+                                        <p style="margin:0; color:#ea7317; font-size:28px; font-weight:700;">{{.amount}} บาท</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- CTA -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                                <tr>
+                                    <td style="border-radius:8px; background-color:#ea7317;">
+                                        <a href="{{.paymentUrl}}" target="_blank"
+                                           style="display:inline-block; padding:14px 32px; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; border-radius:8px;">
+                                            ชำระเงิน
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin:16px 0 0; color:#a1a1aa; font-size:13px; line-height:1.6;">
+                                หากปุ่มด้านบนใช้งานไม่ได้ คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:<br>
+                                <span style="color:#71717a; word-break:break-all;">{{.paymentUrl}}</span>
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding:24px 32px; background-color:#fafafa; border-top:1px solid #e4e4e7; text-align:center;">
+                            <p style="margin:0; color:#a1a1aa; font-size:12px;">
+                                อีเมลฉบับนี้ส่งโดยอัตโนมัติ กรุณาอย่าตอบกลับ
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

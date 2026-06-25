@@ -1,0 +1,155 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Pencil, Trash2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  getEmailTemplates,
+  updateEmailTemplate,
+  deleteEmailTemplate,
+} from "../../services/email-template.service";
+import type { EmailTemplate } from "../../types";
+
+export default function EmailTemplateTable() {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  useEffect(() => {
+    getEmailTemplates()
+      .then(setTemplates)
+      .catch((e) => setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleActive = async (t: EmailTemplate) => {
+    setBusyId(t.id);
+    setError(null);
+    try {
+      const updated = await updateEmailTemplate(t.id, { is_active: !t.is_active });
+      setTemplates((prev) => prev.map((x) => (x.id === t.id ? updated : x)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "อัปเดตสถานะไม่สำเร็จ");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remove = async (t: EmailTemplate) => {
+    if (!confirm(`ลบ template "${t.name}" ?`)) return;
+    setBusyId(t.id);
+    setError(null);
+    try {
+      await deleteEmailTemplate(t.id);
+      setTemplates((prev) => prev.filter((x) => x.id !== t.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="py-12 text-center text-sm text-gray-400">กำลังโหลด...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button asChild>
+          <Link href="/admin/email-templates/new">
+            <Plus className="h-4 w-4" />
+            สร้าง Template
+          </Link>
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+        <table className="w-full text-sm">
+          <thead className="border-b border-gray-100 bg-gray-50/60 text-left text-xs text-gray-400">
+            <tr>
+              <th className="px-4 py-3 font-medium">ชื่อ</th>
+              <th className="px-4 py-3 font-medium">Key</th>
+              <th className="px-4 py-3 font-medium">หัวข้อ</th>
+              <th className="px-4 py-3 font-medium">สถานะ</th>
+              <th className="px-4 py-3 text-right font-medium">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {templates.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                  ยังไม่มี template — กด &quot;สร้าง Template&quot; เพื่อเริ่ม
+                </td>
+              </tr>
+            ) : (
+              templates.map((t) => (
+                <tr key={t.id} className="hover:bg-gray-50/50">
+                  <td className="px-4 py-3 font-medium text-gray-800">{t.name}</td>
+                  <td className="px-4 py-3">
+                    <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                      {t.key}
+                    </code>
+                  </td>
+                  <td className="max-w-xs truncate px-4 py-3 text-gray-500">{t.subject}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      disabled={busyId === t.id}
+                      onClick={() => toggleActive(t)}
+                      className="flex items-center gap-2 disabled:opacity-50"
+                      title="คลิกเพื่อสลับสถานะ"
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+                          t.is_active ? "bg-brand-primary" : "bg-gray-300",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "ml-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                            t.is_active ? "translate-x-4" : "translate-x-0",
+                          )}
+                        />
+                      </span>
+                      <span className={cn("text-xs", t.is_active ? "text-brand-primary" : "text-gray-400")}>
+                        {t.is_active ? "เปิด" : "ปิด"}
+                      </span>
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-1">
+                      <Button asChild variant="ghost" size="icon-sm">
+                        <Link href={`/admin/email-templates/${t.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={busyId === t.id}
+                        onClick={() => remove(t)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

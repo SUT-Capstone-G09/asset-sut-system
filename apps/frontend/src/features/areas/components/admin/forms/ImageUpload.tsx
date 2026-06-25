@@ -4,15 +4,16 @@ import React, { useRef, useState, useEffect } from "react";
 import { UploadCloud, X, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { uploadFile } from "@/lib/services/upload";
+import { uploadFile, UPLOAD_FOLDERS, UploadFolder } from "@/lib/services/upload";
 
 interface ImageUploadProps {
   value?: string;
-  onChange: (value: string) => void;
+  onChange: (url: string) => void;
+  folder?: UploadFolder | string;
   error?: string;
 }
 
-export default function ImageUpload({ value, onChange, error }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.LOCATION_PICS, error }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
   const [uploading, setUploading] = useState(false);
@@ -33,10 +34,10 @@ export default function ImageUpload({ value, onChange, error }: ImageUploadProps
     setUploadError(null);
 
     try {
-      const result = await uploadFile(file, "images");
+      const result = await uploadFile(file, folder);
       URL.revokeObjectURL(localUrl);
-      setPreview(result.url);
-      onChange(result.url);
+      setPreview(result.url); // ใช้ URL สำหรับ preview เท่านั้น
+      onChange(result.object_key); // เก็บ object_key ลง DB (backend จะ generate URL ใหม่ตอน fetch)
     } catch (err) {
       URL.revokeObjectURL(localUrl);
       setPreview(null);

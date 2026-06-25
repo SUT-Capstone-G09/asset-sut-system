@@ -7,16 +7,21 @@ import (
 
 func SetupDocumentRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	auth := middleware.AuthMiddleware(deps.Config.JWT.Secret)
+	dc := deps.DocumentController
 
-	// /bookings/:id/documents
-	rg.Group("/bookings").Use(auth).GET("/:id/documents", deps.DocumentController.GetByBookingID)
+	// GET /bookings/:id/documents — list documents for a booking
+	bookings := rg.Group("/bookings")
+	bookings.Use(auth)
+	{
+		bookings.GET("/:id/documents", dc.GetByBookingID)
+	}
 
-	// /documents
+	// Document CRUD (direct)
 	docs := rg.Group("/documents")
 	docs.Use(auth)
 	{
-		docs.POST("", deps.DocumentController.Create)
-		docs.GET("/:id", deps.DocumentController.GetByID)
-		docs.DELETE("/:id", deps.DocumentController.Delete)
+		docs.GET("/:id", dc.GetByID)
+		docs.POST("", dc.Create)
+		docs.DELETE("/:id", dc.Delete)
 	}
 }

@@ -38,6 +38,28 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthMiddleware parses the JWT if present and populates context values,
+// but does not abort the request if the token is missing or invalid.
+func OptionalAuthMiddleware(jwtSecret string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		authHeader := ctx.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			ctx.Next()
+			return
+		}
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := jwtpkg.ParseToken(tokenStr, jwtSecret)
+		if err != nil || claims.Type != jwtpkg.TokenTypeAccess {
+			ctx.Next()
+			return
+		}
+		ctx.Set("user_id", claims.UserID)
+		ctx.Set("email", claims.Email)
+		ctx.Set("role", claims.Role)
+		ctx.Next()
+	}
+}
+
 func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		userRole := ctx.GetString("role")

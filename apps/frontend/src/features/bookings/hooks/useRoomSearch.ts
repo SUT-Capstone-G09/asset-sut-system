@@ -1,8 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { differenceInCalendarDays } from "date-fns";
 import { Room, RoomSearchParams, SortOption, ViewMode } from "@/features/bookings/types";
-import { getLocations, locationToRoom } from "@/features/bookings/services/location.service";
+import { getLocations, locationToRoom, LocationDTO } from "@/features/bookings/services/location.service";
 import { useAuthContext } from "@/lib/context/auth-context";
+
+const CATEGORY_TO_TYPE: Record<string, string> = {
+  meeting: "ห้องประชุม",
+  classroom: "ห้องเรียน",
+  sports: "สนามกีฬา",
+  hall: "โถงอาคาร",
+};
 
 const DEFAULT_PARAMS: RoomSearchParams = {
   mode: "single",
@@ -13,7 +20,7 @@ const DEFAULT_PARAMS: RoomSearchParams = {
   capacity: undefined,
 };
 
-export function useRoomSearch() {
+export function useRoomSearch(category?: string) {
   const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [searchParams, setSearchParams] = useState<RoomSearchParams>(DEFAULT_PARAMS);
   const [appliedParams, setAppliedParams] = useState<RoomSearchParams | null>(null);
@@ -24,9 +31,14 @@ export function useRoomSearch() {
 
   useEffect(() => {
     getLocations()
-      .then((locations) => setAllRooms(locations.map((loc) => locationToRoom(loc, requesterTypeId))))
+      .then((locations) => {
+        const filtered = category
+          ? locations.filter((loc: LocationDTO) => loc.type === CATEGORY_TO_TYPE[category])
+          : locations;
+        setAllRooms(filtered.map((loc) => locationToRoom(loc, requesterTypeId)));
+      })
       .catch(() => setAllRooms([]));
-  }, [requesterTypeId]);
+  }, [requesterTypeId, category]);
 
   const results = useMemo<Room[]>(() => {
     if (!appliedParams) return [];
