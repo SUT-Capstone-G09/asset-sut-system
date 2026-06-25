@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import EmailTemplateForm, {
   type EmailTemplateFormValues,
 } from "@/features/email-template/components/admin/EmailTemplateForm";
+import EmailTemplateFormSkeleton from "@/features/email-template/components/admin/EmailTemplateFormSkeleton";
 import {
   getEmailTemplate,
   updateEmailTemplate,
@@ -59,7 +60,7 @@ export default function EditEmailTemplatePage() {
       </Link>
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-gray-400">กำลังโหลด...</div>
+        <EmailTemplateFormSkeleton />
       ) : !template ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {error ?? "ไม่พบ template"}

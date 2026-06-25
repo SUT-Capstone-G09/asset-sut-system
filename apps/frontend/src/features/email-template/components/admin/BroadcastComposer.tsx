@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
@@ -80,35 +81,53 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
+type StepState = "todo" | "active" | "done";
+
 // ── Reusable step shell ───────────────────────────────
+// `state` drives the indicator: a green check when done, the brand colour while
+// active/being filled, and muted grey when still untouched — so the user can
+// read progress at a glance.
 function Step({
   n,
   title,
   desc,
-  active,
+  state = "todo",
+  badge,
   children,
 }: {
   n: number;
   title: string;
   desc?: string;
-  active?: boolean;
+  state?: StepState;
+  badge?: string;
   children: React.ReactNode;
 }) {
+  const done = state === "done";
   return (
     <section className="rounded-xl border border-gray-100 bg-white p-7 shadow-sm">
       <header className="mb-5 flex items-start gap-4">
         <span
+          aria-hidden="true"
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-semibold",
-            active
-              ? "bg-brand-primary text-white"
-              : "bg-gray-100 text-gray-400",
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-semibold transition-colors",
+            done
+              ? "bg-emerald-500 text-white"
+              : state === "active"
+                ? "bg-brand-primary text-white"
+                : "bg-gray-100 text-gray-400",
           )}
         >
-          {n}
+          {done ? <Check className="h-5 w-5" /> : n}
         </span>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        <div className="flex-1">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+            {title}
+            {badge && (
+              <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-medium text-brand-primary">
+                {badge}
+              </span>
+            )}
+          </h2>
           {desc && <p className="mt-0.5 text-sm text-gray-400">{desc}</p>}
         </div>
       </header>
@@ -117,12 +136,53 @@ function Step({
   );
 }
 
+// Multi-select helper toolbar (เลือกทั้งหมด / ล้าง) shown above chip groups.
+function SelectAllBar({
+  total,
+  selected,
+  onAll,
+  onClear,
+}: {
+  total: number;
+  selected: number;
+  onAll: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <span className="text-sm text-gray-400" aria-live="polite">
+        เลือกแล้ว {selected} / {total}
+      </span>
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          onClick={onAll}
+          disabled={selected === total}
+          className="rounded-md px-2.5 py-1 text-sm font-medium text-brand-primary hover:bg-brand-primary/5 disabled:text-gray-300 disabled:hover:bg-transparent"
+        >
+          เลือกทั้งหมด
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={selected === 0}
+          className="rounded-md px-2.5 py-1 text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent"
+        >
+          ล้าง
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BroadcastComposer() {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [options, setOptions] = useState<AudienceOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const [templateKey, setTemplateKey] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -151,8 +211,10 @@ export default function BroadcastComposer() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    getEmailTemplates().then(setTemplates).catch(() => {});
-    getAudienceOptions().then(setOptions).catch(() => {});
+    Promise.all([
+      getEmailTemplates().then(setTemplates).catch(() => {}),
+      getAudienceOptions().then(setOptions).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   // Live recipient search: debounce keystrokes; store results tagged with their
@@ -245,6 +307,7 @@ export default function BroadcastComposer() {
   // Validate, then open the confirmation dialog (replaces the native confirm()).
   const openConfirm = () => {
     setError(null);
+    setSendError(null);
     if (!templateKey) {
       setError("กรุณาเลือกเทมเพลตก่อนส่ง");
       return;
@@ -258,6 +321,7 @@ export default function BroadcastComposer() {
 
   const confirmSend = async () => {
     setSending(true);
+    setSendError(null);
     try {
       const res = await sendBroadcast({
         template_key: templateKey,
@@ -266,298 +330,407 @@ export default function BroadcastComposer() {
       });
       router.push(`/admin/email-templates/broadcasts/${res.broadcast_id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ส่งไม่สำเร็จ");
+      // Keep the failure inside the dialog where the user is looking, instead of
+      // closing it and surfacing the error far away at the top of the page.
+      setSendError(e instanceof Error ? e.message : "ส่งไม่สำเร็จ กรุณาลองใหม่");
       setSending(false);
-      setConfirmOpen(false);
     }
   };
 
   const missingVars = variables.filter((v) => !data[v]?.trim());
   const canSend = !!templateKey && !!previewCount && !sending;
 
+  const step1State: StepState = templateKey ? "done" : "active";
+  const step2State: StepState = previewCount ? "done" : templateKey ? "active" : "todo";
+  const step3State: StepState = missingVars.length === 0 ? "done" : "active";
+
+  // Short human label for the chosen audience, reused in summary + sticky bar.
+  const audienceBadge =
+    audienceType === "roles" && roles.length
+      ? `${roles.length} role`
+      : audienceType === "requester_types" && typeIds.length
+        ? `${typeIds.length} ประเภท`
+        : audienceType === "users" && selectedUsers.length
+          ? `${selectedUsers.length} คน`
+          : undefined;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-8 pb-24 lg:grid-cols-[1fr_380px] lg:pb-0">
       {/* ── Main column ───────────────────────────── */}
       <div className="space-y-6">
         {error && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-600">
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-base text-red-600"
+          >
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Step 1 — Template */}
-        <Step n={1} title="เลือกเทมเพลต" desc="เนื้อหาอีเมลที่จะส่ง" active={!!templateKey}>
-          <Popover open={templateOpen} onOpenChange={setTemplateOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="flex h-12 w-full items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3.5 text-left text-base text-gray-800 transition-colors hover:border-gray-300 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-              >
-                <FileText className="h-5 w-5 shrink-0 text-gray-400" />
-                <span className={cn("flex-1 truncate", !selectedTemplate && "text-gray-400")}>
-                  {selectedTemplate ? selectedTemplate.name : "— เลือกเทมเพลต —"}
-                </span>
-                <ChevronsUpDown className="h-5 w-5 shrink-0 text-gray-400" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0">
-              <div className="border-b border-gray-100 p-2">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    value={templateQuery}
-                    onChange={(e) => setTemplateQuery(e.target.value)}
-                    placeholder="ค้นหาเทมเพลต..."
-                    className="h-10 pl-8"
-                  />
+        {loading ? (
+          <div className="space-y-6" aria-hidden="true">
+            {[0, 1].map((i) => (
+              <div key={i} className="rounded-xl border border-gray-100 bg-white p-7 shadow-sm">
+                <div className="mb-5 flex items-center gap-4">
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
                 </div>
+                <Skeleton className="h-12 w-full" />
               </div>
-              <ul className="max-h-72 overflow-y-auto p-1">
-                {filteredTemplates.length === 0 ? (
-                  <li className="px-3 py-6 text-center text-sm text-gray-400">ไม่พบเทมเพลต</li>
-                ) : (
-                  filteredTemplates.map((t) => {
-                    const active = t.key === templateKey;
-                    return (
-                      <li key={t.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTemplateKey(t.key);
-                            setData({});
-                            setTemplateOpen(false);
-                            setTemplateQuery("");
-                          }}
-                          className={cn(
-                            "flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-gray-50",
-                            active && "bg-brand-primary/5",
-                          )}
-                        >
-                          <Check
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              active ? "text-brand-primary" : "text-transparent",
-                            )}
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-gray-800">
-                              {t.name}
-                              {!t.is_active && (
-                                <span className="ml-1.5 text-xs text-gray-400">(ปิดอยู่)</span>
-                              )}
-                            </span>
-                            <span className="block truncate text-xs text-gray-400">{t.key}</span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
-            </PopoverContent>
-          </Popover>
-          {selectedTemplate && (
-            <p className="mt-3 truncate text-sm text-gray-500">
-              หัวข้อ: <span className="text-gray-700">{selectedTemplate.subject}</span>
-            </p>
-          )}
-        </Step>
-
-        {/* Step 2 — Audience */}
-        <Step n={2} title="กลุ่มผู้รับ" desc="เลือกว่าจะส่งหาใคร" active={!!previewCount}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {(Object.keys(AUDIENCE_META) as AudienceType[]).map((t) => {
-              const meta = AUDIENCE_META[t];
-              const Icon = meta.icon;
-              const selected = audienceType === t;
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setAudienceType(t)}
-                  className={cn(
-                    "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all",
-                    selected
-                      ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50",
-                  )}
-                >
-                  <Icon
-                    className={cn("h-6 w-6", selected ? "text-brand-primary" : "text-gray-400")}
-                  />
-                  <span
-                    className={cn(
-                      "text-base font-medium",
-                      selected ? "text-brand-primary" : "text-gray-700",
-                    )}
-                  >
-                    {meta.label}
-                  </span>
-                  <span className="text-xs leading-tight text-gray-400">{meta.desc}</span>
-                </button>
-              );
-            })}
+            ))}
           </div>
+        ) : (
+          <>
+            {/* Step 1 — Template */}
+            <Step
+              n={1}
+              title="เลือกเทมเพลต"
+              desc="เนื้อหาอีเมลที่จะส่ง"
+              state={step1State}
+            >
+              <Popover open={templateOpen} onOpenChange={setTemplateOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="เลือกเทมเพลตอีเมล"
+                    aria-haspopup="listbox"
+                    aria-expanded={templateOpen}
+                    className="flex h-12 w-full items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3.5 text-left text-base text-gray-800 transition-colors hover:border-gray-300 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  >
+                    <FileText className="h-5 w-5 shrink-0 text-gray-400" />
+                    <span className={cn("flex-1 truncate", !selectedTemplate && "text-gray-400")}>
+                      {selectedTemplate ? selectedTemplate.name : "— เลือกเทมเพลต —"}
+                    </span>
+                    <ChevronsUpDown className="h-5 w-5 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0">
+                  <div className="border-b border-gray-100 p-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        value={templateQuery}
+                        onChange={(e) => setTemplateQuery(e.target.value)}
+                        placeholder="ค้นหาเทมเพลต..."
+                        aria-label="ค้นหาเทมเพลต"
+                        className="h-10 pl-8"
+                      />
+                    </div>
+                  </div>
+                  <ul role="listbox" className="max-h-72 overflow-y-auto p-1">
+                    {filteredTemplates.length === 0 ? (
+                      <li className="px-3 py-6 text-center text-sm text-gray-400">ไม่พบเทมเพลต</li>
+                    ) : (
+                      filteredTemplates.map((t) => {
+                        const active = t.key === templateKey;
+                        return (
+                          <li key={t.id} role="option" aria-selected={active}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTemplateKey(t.key);
+                                setData({});
+                                setTemplateOpen(false);
+                                setTemplateQuery("");
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-gray-50",
+                                active && "bg-brand-primary/5",
+                              )}
+                            >
+                              <Check
+                                className={cn(
+                                  "h-4 w-4 shrink-0",
+                                  active ? "text-brand-primary" : "text-transparent",
+                                )}
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-gray-800">
+                                  {t.name}
+                                  {!t.is_active && (
+                                    <span className="ml-1.5 text-xs text-gray-400">(ปิดอยู่)</span>
+                                  )}
+                                </span>
+                                <span className="block truncate text-xs text-gray-400">{t.key}</span>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })
+                    )}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+              {selectedTemplate && (
+                <p className="mt-3 truncate text-sm text-gray-500">
+                  หัวข้อ: <span className="text-gray-700">{selectedTemplate.subject}</span>
+                </p>
+              )}
+            </Step>
 
-          {/* Sub-options */}
-          {audienceType === "roles" && (
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              {options?.roles.length ? (
-                options.roles.map((r) => {
-                  const on = roles.includes(r);
+            {/* Step 2 — Audience */}
+            <Step
+              n={2}
+              title="กลุ่มผู้รับ"
+              desc="เลือกว่าจะส่งหาใคร"
+              state={step2State}
+              badge={audienceBadge}
+            >
+              <div
+                role="radiogroup"
+                aria-label="ประเภทกลุ่มผู้รับ"
+                className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+              >
+                {(Object.keys(AUDIENCE_META) as AudienceType[]).map((t) => {
+                  const meta = AUDIENCE_META[t];
+                  const Icon = meta.icon;
+                  const selected = audienceType === t;
                   return (
                     <button
-                      key={r}
+                      key={t}
                       type="button"
-                      onClick={() => setRoles((prev) => toggle(prev, r))}
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`${meta.label} — ${meta.desc}`}
+                      onClick={() => setAudienceType(t)}
                       className={cn(
-                        "rounded-full border px-4 py-2 text-base transition-colors",
-                        on
-                          ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                          : "border-gray-200 text-gray-600 hover:bg-gray-50",
+                        "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40",
+                        selected
+                          ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50",
                       )}
                     >
-                      {r}
+                      <Icon
+                        className={cn("h-6 w-6", selected ? "text-brand-primary" : "text-gray-400")}
+                      />
+                      <span
+                        className={cn(
+                          "text-base font-medium",
+                          selected ? "text-brand-primary" : "text-gray-700",
+                        )}
+                      >
+                        {meta.label}
+                      </span>
+                      <span className="text-xs leading-tight text-gray-400">{meta.desc}</span>
                     </button>
                   );
-                })
-              ) : (
-                <p className="text-sm text-gray-400">กำลังโหลด role...</p>
-              )}
-            </div>
-          )}
-
-          {audienceType === "requester_types" && (
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              {options?.requester_types.length ? (
-                options.requester_types.map((rt) => {
-                  const on = typeIds.includes(rt.id);
-                  return (
-                    <button
-                      key={rt.id}
-                      type="button"
-                      onClick={() => setTypeIds((prev) => toggle(prev, rt.id))}
-                      className={cn(
-                        "rounded-full border px-4 py-2 text-base transition-colors",
-                        on
-                          ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                          : "border-gray-200 text-gray-600 hover:bg-gray-50",
-                      )}
-                    >
-                      {rt.type}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-gray-400">ไม่มีประเภทผู้ขอ</p>
-              )}
-            </div>
-          )}
-
-          {audienceType === "users" && (
-            <div className="mt-5 space-y-4">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="พิมพ์เพื่อค้นหาชื่อหรืออีเมล"
-                  className="h-12 pl-11 text-base"
-                />
-                {searching && (
-                  <Loader2 className="absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-gray-400" />
-                )}
+                })}
               </div>
 
-              {query.trim() && !searching && (
-                <ul className="max-h-72 divide-y divide-gray-50 overflow-y-auto rounded-lg border border-gray-100">
-                  {results.length === 0 ? (
-                    <li className="px-4 py-6 text-center text-base text-gray-400">
-                      ไม่พบผู้ใช้ที่ตรงกับ &quot;{query.trim()}&quot;
-                    </li>
+              {/* Sub-options */}
+              {audienceType === "roles" && (
+                <div className="mt-5">
+                  {options?.roles.length ? (
+                    <>
+                      <SelectAllBar
+                        total={options.roles.length}
+                        selected={roles.length}
+                        onAll={() => setRoles(options.roles)}
+                        onClear={() => setRoles([])}
+                      />
+                      <div className="flex flex-wrap gap-2.5">
+                        {options.roles.map((r) => {
+                          const on = roles.includes(r);
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() => setRoles((prev) => toggle(prev, r))}
+                              className={cn(
+                                "rounded-full border px-4 py-2 text-base transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40",
+                                on
+                                  ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
+                                  : "border-gray-200 text-gray-600 hover:bg-gray-50",
+                              )}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
-                    results.map((r) => {
-                      const added = selectedUsers.some((u) => u.user_id === r.user_id);
-                      return (
-                        <li key={r.user_id}>
+                    <p className="text-sm text-gray-400">กำลังโหลด role...</p>
+                  )}
+                </div>
+              )}
+
+              {audienceType === "requester_types" && (
+                <div className="mt-5">
+                  {options?.requester_types.length ? (
+                    <>
+                      <SelectAllBar
+                        total={options.requester_types.length}
+                        selected={typeIds.length}
+                        onAll={() => setTypeIds(options.requester_types.map((rt) => rt.id))}
+                        onClear={() => setTypeIds([])}
+                      />
+                      <div className="flex flex-wrap gap-2.5">
+                        {options.requester_types.map((rt) => {
+                          const on = typeIds.includes(rt.id);
+                          return (
+                            <button
+                              key={rt.id}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() => setTypeIds((prev) => toggle(prev, rt.id))}
+                              className={cn(
+                                "rounded-full border px-4 py-2 text-base transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40",
+                                on
+                                  ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
+                                  : "border-gray-200 text-gray-600 hover:bg-gray-50",
+                              )}
+                            >
+                              {rt.type}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400">ไม่มีประเภทผู้ขอ</p>
+                  )}
+                </div>
+              )}
+
+              {audienceType === "users" && (
+                <div className="mt-5 space-y-4">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="พิมพ์เพื่อค้นหาชื่อหรืออีเมล"
+                      aria-label="ค้นหาผู้รับรายคน"
+                      className="h-12 pl-11 text-base"
+                    />
+                    {searching && (
+                      <Loader2 className="absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-gray-400" />
+                    )}
+                  </div>
+
+                  {query.trim() && !searching && (
+                    <ul
+                      role="listbox"
+                      aria-label="ผลการค้นหาผู้รับ"
+                      className="max-h-72 divide-y divide-gray-50 overflow-y-auto rounded-lg border border-gray-100"
+                    >
+                      {results.length === 0 ? (
+                        <li className="px-4 py-6 text-center text-base text-gray-400">
+                          ไม่พบผู้ใช้ที่ตรงกับ &quot;{query.trim()}&quot;
+                        </li>
+                      ) : (
+                        results.map((r) => {
+                          const added = selectedUsers.some((u) => u.user_id === r.user_id);
+                          return (
+                            <li key={r.user_id} role="option" aria-selected={added}>
+                              <button
+                                type="button"
+                                disabled={added}
+                                onClick={() => addUser(r)}
+                                className="flex w-full items-center gap-3.5 px-4 py-3 text-left text-base transition-colors hover:bg-gray-50 disabled:opacity-50"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500"
+                                >
+                                  {initials(r.name)}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-gray-800">{r.name}</span>
+                                  <span className="block truncate text-sm text-gray-400">{r.email}</span>
+                                </span>
+                                {added && <span className="text-sm text-brand-primary">เลือกแล้ว</span>}
+                              </button>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  )}
+
+                  {selectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-2.5">
+                      {selectedUsers.map((u) => (
+                        <span
+                          key={u.user_id}
+                          className="flex items-center gap-2 rounded-full bg-brand-primary/10 py-1.5 pl-1.5 pr-3 text-sm text-brand-primary"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary/20 text-[11px] font-semibold"
+                          >
+                            {initials(u.name)}
+                          </span>
+                          {u.name}
                           <button
                             type="button"
-                            disabled={added}
-                            onClick={() => addUser(r)}
-                            className="flex w-full items-center gap-3.5 px-4 py-3 text-left text-base transition-colors hover:bg-gray-50 disabled:opacity-50"
+                            aria-label={`ลบ ${u.name} ออกจากรายการผู้รับ`}
+                            onClick={() =>
+                              setSelectedUsers((prev) => prev.filter((x) => x.user_id !== u.user_id))
+                            }
+                            className="rounded-full p-0.5 hover:bg-brand-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
                           >
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500">
-                              {initials(r.name)}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-gray-800">{r.name}</span>
-                              <span className="block truncate text-sm text-gray-400">{r.email}</span>
-                            </span>
-                            {added && <span className="text-sm text-brand-primary">เลือกแล้ว</span>}
+                            <X className="h-4 w-4" />
                           </button>
-                        </li>
-                      );
-                    })
+                        </span>
+                      ))}
+                    </div>
                   )}
-                </ul>
-              )}
-
-              {selectedUsers.length > 0 && (
-                <div className="flex flex-wrap gap-2.5">
-                  {selectedUsers.map((u) => (
-                    <span
-                      key={u.user_id}
-                      className="flex items-center gap-2 rounded-full bg-brand-primary/10 py-1.5 pl-1.5 pr-3 text-sm text-brand-primary"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary/20 text-[11px] font-semibold">
-                        {initials(u.name)}
-                      </span>
-                      {u.name}
-                      <button
-                        type="button"
-                        aria-label={`ลบ ${u.name}`}
-                        onClick={() =>
-                          setSelectedUsers((prev) => prev.filter((x) => x.user_id !== u.user_id))
-                        }
-                        className="rounded-full p-0.5 hover:bg-brand-primary/20"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </span>
-                  ))}
                 </div>
               )}
-            </div>
-          )}
-        </Step>
+            </Step>
 
-        {/* Step 3 — Variables */}
-        {variables.length > 0 && (
-          <Step n={3} title="กรอกค่าตัวแปร" desc="ใช้ค่าเดียวกันกับผู้รับทุกคน">
-            <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                <code className="font-mono">{"{{.userName}}"}</code>{" "}
-                ระบบจะเติมชื่อผู้รับให้อัตโนมัติ — กรอกเฉพาะตัวแปรด้านล่าง
-              </span>
-            </div>
-            <div className="space-y-4">
-              {variables.map((v) => (
-                <div key={v} className="space-y-1.5">
-                  <code className="rounded bg-gray-100 px-2 py-1 font-mono text-sm text-gray-600">
-                    {`{{.${v}}}`}
-                  </code>
-                  <Input
-                    value={data[v] ?? ""}
-                    onChange={(e) => setData((prev) => ({ ...prev, [v]: e.target.value }))}
-                    placeholder={`ค่าของ ${v}`}
-                    className="h-12 text-base"
-                  />
+            {/* Step 3 — Variables */}
+            {variables.length > 0 && (
+              <Step
+                n={3}
+                title="กรอกค่าตัวแปร"
+                desc="ใช้ค่าเดียวกันกับผู้รับทุกคน"
+                state={step3State}
+                badge={
+                  missingVars.length > 0 ? `เหลือ ${missingVars.length}` : "ครบแล้ว"
+                }
+              >
+                <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <code className="font-mono">{"{{.userName}}"}</code>{" "}
+                    ระบบจะเติมชื่อผู้รับให้อัตโนมัติ — กรอกเฉพาะตัวแปรด้านล่าง
+                  </span>
                 </div>
-              ))}
-            </div>
-          </Step>
+                <div className="space-y-4">
+                  {variables.map((v) => {
+                    const inputId = `var-${v}`;
+                    const filled = !!data[v]?.trim();
+                    return (
+                      <div key={v} className="space-y-1.5">
+                        <label
+                          htmlFor={inputId}
+                          className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-2 py-1 font-mono text-sm text-gray-600"
+                        >
+                          {`{{.${v}}}`}
+                          {filled && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                        </label>
+                        <Input
+                          id={inputId}
+                          value={data[v] ?? ""}
+                          onChange={(e) => setData((prev) => ({ ...prev, [v]: e.target.value }))}
+                          placeholder={`ค่าของ ${v}`}
+                          className="h-12 text-base"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Step>
+            )}
+          </>
         )}
       </div>
 
@@ -568,9 +741,16 @@ export default function BroadcastComposer() {
 
           <div className="mt-5 rounded-xl bg-gray-50 p-6 text-center">
             <p className="text-sm text-gray-400">จำนวนผู้รับ</p>
-            <p className="mt-1.5 flex items-center justify-center gap-2 text-5xl font-bold text-brand-primary">
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-1.5 flex items-center justify-center gap-2 text-5xl font-bold text-brand-primary"
+            >
               {previewing ? (
-                <Loader2 className="h-9 w-9 animate-spin text-gray-300" />
+                <>
+                  <Loader2 className="h-9 w-9 animate-spin text-gray-300" />
+                  <span className="sr-only">กำลังคำนวณจำนวนผู้รับ</span>
+                </>
               ) : (
                 (previewCount ?? 0).toLocaleString()
               )}
@@ -610,18 +790,41 @@ export default function BroadcastComposer() {
             size="lg"
             onClick={openConfirm}
             disabled={!canSend}
-            className="mt-6 h-14 w-full bg-brand-primary text-base text-white hover:bg-brand-primary/90 [&_svg]:size-5"
+            className="mt-6 hidden h-14 w-full bg-brand-primary text-base text-white hover:bg-brand-primary/90 lg:flex [&_svg]:size-5"
           >
             <Send /> ส่งอีเมล
             {previewCount ? ` (${previewCount.toLocaleString()})` : ""}
           </Button>
           {!templateKey && (
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm text-gray-400">
+            <p className="mt-3 hidden items-center justify-center gap-1.5 text-center text-sm text-gray-400 lg:flex">
               <Users className="h-4 w-4" /> เลือกเทมเพลตและกลุ่มผู้รับก่อน
             </p>
           )}
         </div>
       </aside>
+
+      {/* Mobile sticky action bar — keeps the primary action reachable without
+          scrolling to the summary card on small screens. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-gray-400">
+              {selectedTemplate?.name ?? "ยังไม่เลือกเทมเพลต"}
+            </p>
+            <p className="text-sm font-semibold text-gray-700">
+              {previewing ? "กำลังคำนวณ…" : `${(previewCount ?? 0).toLocaleString()} คน`}
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={openConfirm}
+            disabled={!canSend}
+            className="h-12 shrink-0 bg-brand-primary px-6 text-base text-white hover:bg-brand-primary/90 [&_svg]:size-5"
+          >
+            <Send /> ส่ง
+          </Button>
+        </div>
+      </div>
 
       {/* Confirm-before-send dialog */}
       <Dialog open={confirmOpen} onOpenChange={(o) => !sending && setConfirmOpen(o)}>
@@ -652,6 +855,16 @@ export default function BroadcastComposer() {
             </div>
           </div>
 
+          {sendError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{sendError}</span>
+            </div>
+          )}
+
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" disabled={sending}>
@@ -669,7 +882,7 @@ export default function BroadcastComposer() {
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4" /> ยืนยันส่ง
+                  <Send className="h-4 w-4" /> {sendError ? "ลองอีกครั้ง" : "ยืนยันส่ง"}
                 </>
               )}
             </Button>
