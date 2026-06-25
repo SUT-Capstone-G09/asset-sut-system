@@ -26,7 +26,7 @@ func (r *LocationRepository) FindStaffByLocationID(locationID uint) ([]models.St
 	var items []models.StaffLocations
 	err := r.db.
 		Where("location_id = ?", locationID).
-		Preload("User.Staff").
+		Preload("User.Profiles").
 		Find(&items).Error
 	return items, err
 }

@@ -152,9 +152,9 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 		}
 		if sl.User != nil {
 			res.Email = sl.User.Email
-			if sl.User.Staff != nil {
-				res.FirstName = sl.User.Staff.FirstName
-				res.LastName = sl.User.Staff.LastName
+			if sl.User.Profiles != nil {
+				res.FirstName = sl.User.Profiles.FirstName
+				res.LastName = sl.User.Profiles.LastName
 			}
 		}
 		result = append(result, res)
