@@ -16,7 +16,8 @@ import {
   User,
   LogOut,
   Settings,
-  AlertCircle
+  AlertCircle,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
@@ -32,15 +33,15 @@ export default function Navbar() {
   }, []);
 
   // ไม่แสดง Navbar ในหน้าที่มี Sidebar
-  const isDashboardPage = pathname?.startsWith("/admin") || 
-                          pathname?.startsWith("/operator") || 
+  const isDashboardPage = pathname?.startsWith("/admin") ||
+                          pathname?.startsWith("/operator") ||
                           pathname?.startsWith("/user");
 
   if (!mounted || isDashboardPage) return null;
 
   // เมนูนำทางหลัก
   const navItems = [
-    { label: "เกี่ยวกับเรา", href: "/about" ,
+    { label: "เกี่ยวกับเรา", href: "/about",
       subItems: [
         { label: "เกี่ยวกับเรา", href: "/about" },
       ],
@@ -72,6 +73,12 @@ export default function Navbar() {
       href: user.role === "operator" ? "/operator/profile" : "/user/profile",
       icon: User,
       show: user.role !== "admin",
+    },
+    {
+      label: "การจองของฉัน",
+      href: "/my-bookings",
+      icon: CalendarDays,
+      show: user.role === "requester",
     },
     {
       label: "แจ้งปัญหา",

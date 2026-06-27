@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, X, Clock, Calendar } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface RoomRateModalProps {
   open: boolean;
@@ -53,8 +52,7 @@ export default function RoomRateModal({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     onSave(rates);
     onClose();
   };
@@ -87,8 +85,8 @@ export default function RoomRateModal({
           </button>
         </DialogHeader>
 
-        {/* Content Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 text-left">
+        {/* Content */}
+        <div className="p-6 space-y-6 text-left">
           {/* Section: Hourly Rate */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 border-l-[3px] border-[#f26522] pl-2.5">
@@ -180,13 +178,14 @@ export default function RoomRateModal({
               ยกเลิก
             </Button>
             <Button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               className="flex-1 h-11 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold shadow-lg shadow-[#f26522]/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               ยืนยันการตั้งค่า
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -11,10 +11,11 @@ var AllSeeders = []Seeder{
 	seedPermissions,
 	seedRoles,
 	seedRequestTypes,
+	seedLookupTables,
 	seedAdmins,
 	seedStaffs,
 	seedRequesters,
-	seedInvoices,
+	seedLocations,
 }
 
 func RunSeeders(db *gorm.DB, cfg *config.Config) error {

@@ -39,19 +39,38 @@ func main() {
 	roleRepo := repositories.NewRoleRepository(db)
 	permissionRepo := repositories.NewPermissionRepository(db)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(db)
+	locationRepo := repositories.NewLocationRepository(db)
+	bookingRepo := repositories.NewBookingRepository(db)
+	timeslotRepo := repositories.NewTimeslotRepository(db)
 	invoiceRepo := repositories.NewInvoiceRepository(db)
-	paymentRepo := repositories.NewPaymentRepository(db)
+	documentRepo := repositories.NewDocumentRepository(db)
+	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
+	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
+	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
+	recipientRepo := repositories.NewRecipientRepository(db)
 
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
-	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, cfg.JWT.Secret)
+	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
 	adminService := services.NewAdminService(userRepo, adminRepo, roleRepo)
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	paymentQRService := services.NewPaymentQRService(invoiceRepo, paymentRepo, storageService, cfg.Payment)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
+	invoiceService := services.NewInvoiceService(invoiceRepo)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
+	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
+	documentService := services.NewDocumentService(documentRepo)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
+	if err != nil {
+		log.Fatalf("failed to init email service: %v", err)
+	}
+	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
+	emailBroadcastService := services.NewEmailBroadcastService(
+		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
+	)
 
 	// ----------------------------------------
 	// Controllers
@@ -61,8 +80,29 @@ func main() {
 	staffCtrl := controllers.NewStaffController(staffService)
 	requesterCtrl := controllers.NewRequesterController(requesterService)
 	roleCtrl := controllers.NewRoleController(roleService)
+	locationCtrl := controllers.NewLocationController(locationService)
+	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
-	uploadCtrl := controllers.NewUploadController(storageService)
+	documentCtrl := controllers.NewDocumentController(documentService)
+
+	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
+	var driveService *services.DriveService
+	if cfg.GDrive.ClientEmail != "" && cfg.GDrive.PrivateKey != "" {
+		var driveErr error
+		driveService, driveErr = services.NewDriveService(cfg.GDrive)
+		if driveErr != nil {
+			log.Printf("warning: Google Drive unavailable: %v", driveErr)
+			driveService = nil
+		} else {
+			log.Printf("Google Drive initialized (%d folder route(s))", len(cfg.GDrive.FolderRoutes))
+		}
+	}
+
+	uploadCtrl := controllers.NewUploadController(storageService, driveService, cfg.GDrive.FolderRoutes)
+	emailCtrl := controllers.NewEmailController(emailService)
+	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	emailBroadcastCtrl := controllers.NewEmailBroadcastController(emailBroadcastService)
+	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 
 	// ----------------------------------------
 	// Router
@@ -70,15 +110,21 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:              cfg,
-		AuthController:      authCtrl,
-		AdminController:     adminCtrl,
-		StaffController:     staffCtrl,
-		RequesterController: requesterCtrl,
-		RoleController:      roleCtrl,
-		PaymentController:   paymentCtrl,
-		UploadController:    uploadCtrl,
-		PermissionChecker:   permissionRepo,
+		Config:                   cfg,
+		AuthController:           authCtrl,
+		AdminController:          adminCtrl,
+		StaffController:          staffCtrl,
+		RequesterController:      requesterCtrl,
+		RoleController:           roleCtrl,
+		LocationController:       locationCtrl,
+		BookingController:        bookingCtrl,
+		PaymentController:        paymentCtrl,
+		DocumentController:       documentCtrl,
+		UploadController:         uploadCtrl,
+		EmailController:          emailCtrl,
+		EmailTemplateController:  emailTemplateCtrl,
+		EmailBroadcastController: emailBroadcastCtrl,
+		ImageController:          imageCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

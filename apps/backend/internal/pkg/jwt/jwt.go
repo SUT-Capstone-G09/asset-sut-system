@@ -13,10 +13,11 @@ const (
 )
 
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
-	Type   string `json:"type"`
+	UserID      uint     `json:"user_id"`
+	Email       string   `json:"email"`
+	Role        string   `json:"role"`
+	Permissions []string `json:"permissions"`
+	Type        string   `json:"type"`
 	jwt.RegisteredClaims
 }
 
@@ -25,14 +26,20 @@ type TokenPair struct {
 	RefreshToken string
 }
 
-func GenerateTokenPair(userID uint, email, role, secret string) (*TokenPair, error) {
+func GenerateTokenPair(userID uint, email, role string, permissions []string, secret string) (*TokenPair, error) {
+	if permissions == nil {
+		permissions = []string{}
+	}
 	accessClaims := Claims{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
-		Type:   TokenTypeAccess,
+		UserID:      userID,
+		Email:       email,
+		Role:        role,
+		Permissions: permissions,
+		Type:        TokenTypeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			// TODO: revert to 15 minutes before production. Extended during
+			// ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -42,10 +49,11 @@ func GenerateTokenPair(userID uint, email, role, secret string) (*TokenPair, err
 	}
 
 	refreshClaims := Claims{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
-		Type:   TokenTypeRefresh,
+		UserID:      userID,
+		Email:       email,
+		Role:        role,
+		Permissions: permissions,
+		Type:        TokenTypeRefresh,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

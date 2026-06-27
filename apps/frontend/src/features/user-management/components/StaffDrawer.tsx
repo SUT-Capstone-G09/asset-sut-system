@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Loader2, Eye, EyeOff } from "lucide-react";
+import { X, Loader2, Eye, EyeOff, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createStaff, updateStaff, assignStaffPermissions } from "../services/user-management.service";
+import { getLocations, getStaffLocations, setStaffLocations } from "@/features/booking/services/locationService";
+import type { AdminLocationDTO } from "@/features/booking/services/locationService";
 import type { StaffUser, Permission } from "../types";
 import PermissionCheckboxes from "./PermissionCheckboxes";
 
@@ -22,21 +24,41 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "", password: "", phone: "", line_id: "" });
   const [showPass, setShowPass] = useState(false);
   const [selectedPerms, setSelectedPerms] = useState<number[]>([]);
+  const [allLocations, setAllLocations] = useState<AdminLocationDTO[]>([]);
+  const [selectedLocationIds, setSelectedLocationIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locLoading, setLocLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
       setError("");
+      setLocLoading(true);
+      getLocations()
+        .then((locs) => setAllLocations(locs ?? []))
+        .catch(() => setAllLocations([]))
+        .finally(() => setLocLoading(false));
+
       if (staff) {
         setForm({ first_name: staff.first_name, last_name: staff.last_name, email: staff.email, password: "", phone: staff.phone ?? "", line_id: staff.line_id ?? "" });
         setSelectedPerms(staff.permissions?.map((p) => p.id) ?? []);
+        // Load currently assigned locations for this staff
+        getStaffLocations(staff.id)
+          .then((locs) => setSelectedLocationIds(locs.map((l) => l.id)))
+          .catch(() => setSelectedLocationIds([]));
       } else {
         setForm({ first_name: "", last_name: "", email: "", password: "", phone: "", line_id: "" });
         setSelectedPerms([]);
+        setSelectedLocationIds([]);
       }
     }
   }, [open, staff]);
+
+  const toggleLocation = (id: number) => {
+    setSelectedLocationIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -45,9 +67,11 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
       if (isEdit && staff) {
         await updateStaff(staff.id, { first_name: form.first_name, last_name: form.last_name, phone: form.phone, line_id: form.line_id });
         await assignStaffPermissions(staff.id, selectedPerms);
+        await setStaffLocations(staff.id, selectedLocationIds);
       } else {
         const created = await createStaff({ ...form });
         await assignStaffPermissions(created.id, selectedPerms);
+        await setStaffLocations(created.id, selectedLocationIds);
       }
       onSuccess();
       onClose();
@@ -138,6 +162,64 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
                 <span className="text-xs text-brand-primary font-medium">{selectedPerms.length} รายการที่เลือก</span>
               </div>
               <PermissionCheckboxes permissions={allPermissions} selected={selectedPerms} onChange={setSelectedPerms} />
+            </div>
+
+            {/* Location Assignment */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">สิทธิ์การจัดการสถานที่</h3>
+                <span className="text-xs text-brand-primary font-medium">{selectedLocationIds.length} สถานที่ที่เลือก</span>
+              </div>
+
+              {locLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : allLocations.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-gray-400">
+                  <MapPin className="w-7 h-7 mb-2 opacity-30" />
+                  <p className="text-xs">ยังไม่มีสถานที่ในระบบ</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                  {allLocations.map((loc) => {
+                    const checked = selectedLocationIds.includes(loc.id);
+                    return (
+                      <label
+                        key={loc.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          checked
+                            ? "border-brand-primary/30 bg-brand-primary/5"
+                            : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleLocation(loc.id)}
+                          className="accent-brand-primary w-3.5 h-3.5 shrink-0"
+                        />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin className={`w-3.5 h-3.5 shrink-0 ${checked ? "text-brand-primary" : "text-gray-400"}`} />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 truncate">{loc.name}</p>
+                            {loc.building && (
+                              <p className="text-[10px] text-gray-400 truncate">{loc.building}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`ml-auto text-[9px] font-bold uppercase tracking-wide shrink-0 px-1.5 py-0.5 rounded-md ${
+                          loc.status === "available" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+                        }`}>
+                          {loc.status === "available" ? "ใช้งาน" : "ปิด"}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

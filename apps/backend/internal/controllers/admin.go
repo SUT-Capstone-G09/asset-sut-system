@@ -100,3 +100,8 @@ func parseID(ctx *gin.Context) (uint, error) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	return uint(id), err
 }
+
+func parseSubID(ctx *gin.Context, param string) (uint, error) {
+	id, err := strconv.ParseUint(ctx.Param(param), 10, 64)
+	return uint(id), err
+}

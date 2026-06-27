@@ -108,12 +108,12 @@ func TestPromptPayValidation(t *testing.T) {
 
 func TestNormalizeAmount(t *testing.T) {
 	cases := map[string]string{
-		"":       "",
-		"150":    "150.00",
-		"150.5":  "150.50",
-		"0.99":   "0.99",
-		".5":     "0.50",
-		"007":    "7.00",
+		"":      "",
+		"150":   "150.00",
+		"150.5": "150.50",
+		"0.99":  "0.99",
+		".5":    "0.50",
+		"007":   "7.00",
 	}
 	for in, want := range cases {
 		got, err := normalizeAmount(in)

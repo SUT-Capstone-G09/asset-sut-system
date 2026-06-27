@@ -13,34 +13,47 @@ func NewRequesterRepository(db *gorm.DB) *RequesterRepository {
 	return &RequesterRepository{db: db}
 }
 
-func (r *RequesterRepository) FindAll() ([]models.Requesters, error) {
-	var requesters []models.Requesters
-	err := r.db.Preload("User").Preload("RequesterType").Find(&requesters).Error
+func (r *RequesterRepository) FindAll() ([]models.Profiles, error) {
+	var requesters []models.Profiles
+	err := r.db.Preload("User").Preload("RequesterType").Preload("User.Roles").
+		Joins("JOIN users ON users.id = profiles.user_id").
+		Joins("JOIN user_roles ON user_roles.users_id = users.id").
+		Joins("JOIN roles ON roles.id = user_roles.roles_id").
+		Where("roles.name = ?", "requester").Find(&requesters).Error
 	return requesters, err
 }
 
-func (r *RequesterRepository) FindByID(id uint) (*models.Requesters, error) {
-	var requester models.Requesters
-	err := r.db.Preload("User").Preload("RequesterType").First(&requester, id).Error
+func (r *RequesterRepository) FindByID(id uint) (*models.Profiles, error) {
+	var requester models.Profiles
+	err := r.db.
+		Preload("User").
+		Preload("RequesterType").
+		Preload("User.Roles").
+		Joins("JOIN users ON users.id = profiles.user_id").
+		Joins("JOIN user_roles ON user_roles.users_id = users.id").
+		Joins("JOIN roles ON roles.id = user_roles.roles_id").
+		Where("roles.name = ?", "requester").
+		Where("profiles.id = ?", id).
+		First(&requester).Error
 	return &requester, err
 }
 
-func (r *RequesterRepository) FindByUserID(userID uint) (*models.Requesters, error) {
-	var requester models.Requesters
+func (r *RequesterRepository) FindByUserID(userID uint) (*models.Profiles, error) {
+	var requester models.Profiles
 	err := r.db.Preload("RequesterType").Where("user_id = ?", userID).First(&requester).Error
 	return &requester, err
 }
 
-func (r *RequesterRepository) Create(requester *models.Requesters) error {
+func (r *RequesterRepository) Create(requester *models.Profiles) error {
 	return r.db.Create(requester).Error
 }
 
-func (r *RequesterRepository) Update(requester *models.Requesters) error {
+func (r *RequesterRepository) Update(requester *models.Profiles) error {
 	return r.db.Save(requester).Error
 }
 
 func (r *RequesterRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Requesters{}, id).Error
+	return r.db.Delete(&models.Profiles{}, id).Error
 }
 
 func (r *RequesterRepository) FindRequesterTypeByID(id uint) (*models.RequesterTypes, error) {

@@ -1,15 +1,19 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import BookingHeader from "@/features/booking/components/admin/BookingHeader";
-import BookingFilters from "@/features/booking/components/admin/BookingFilters";
-import BookingGrid from "@/features/booking/components/admin/BookingGrid";
-import BookingCreateDrawer from "@/features/booking/components/admin/BookingCreateDrawer";
+import BookingHeader from "@/features/booking/components/booking/BookingHeader";
+import BookingFilters from "@/features/booking/components/booking/BookingFilters";
+import BookingGrid from "@/features/booking/components/booking/BookingGrid";
+import BookingCreateDrawer from "@/features/booking/components/booking/BookingCreateDrawer";
+import PaymentVerificationModal from "@/features/booking/components/booking/PaymentVerificationModal";
 import { useBookingFilters } from "@/features/booking/hooks/useBookingFilters";
 import { mockClassroomBookings } from "@/features/booking/data/classroom-bookings";
+import { Button } from "@/components/ui/button";
+import { Banknote } from "lucide-react";
 
 export default function ClassroomBookingPage() {
   const {
+    bookings,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -25,10 +29,11 @@ export default function ClassroomBookingPage() {
     handleAddBooking,
     handleUpdateBookingStatus,
     handleEditBooking,
-    handleDeleteBooking
+    handleDeleteBooking,
   } = useBookingFilters(mockClassroomBookings);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPaymentVerifyOpen, setIsPaymentVerifyOpen] = useState(false);
 
   return (
     <div className="p-8 space-y-8">
@@ -38,14 +43,24 @@ export default function ClassroomBookingPage() {
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
           { label: "การจัดการขอใช้พื้นที่" },
-          { label: "ห้องเรียน" }
+          { label: "ห้องเรียน" },
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="ยื่นขอจองห้องเรียน"
+        extraAction={
+          <Button
+            onClick={() => setIsPaymentVerifyOpen(true)}
+            variant="outline"
+            className="h-11 px-5 rounded-[7px] font-bold text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 cursor-pointer bg-white"
+          >
+            <Banknote size={16} className="text-[#f26522]" />
+            <span>ตรวจสอบการชำระเงิน</span>
+          </Button>
+        }
       />
 
       {/* Filters Section */}
-      <BookingFilters 
+      <BookingFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         selectedCategory={selectedCategory}
@@ -60,7 +75,7 @@ export default function ClassroomBookingPage() {
       />
 
       {/* Content Section */}
-      <BookingGrid 
+      <BookingGrid
         filteredBookings={filteredBookings}
         buildings={buildings}
         onResetFilters={handleResetFilters}
@@ -75,6 +90,14 @@ export default function ClassroomBookingPage() {
         onClose={() => setIsCreateOpen(false)}
         onAdd={handleAddBooking}
         type="classroom"
+      />
+
+      {/* Payment Verification Modal */}
+      <PaymentVerificationModal
+        open={isPaymentVerifyOpen}
+        onClose={() => setIsPaymentVerifyOpen(false)}
+        bookings={bookings}
+        onUpdateBooking={handleEditBooking}
       />
     </div>
   );

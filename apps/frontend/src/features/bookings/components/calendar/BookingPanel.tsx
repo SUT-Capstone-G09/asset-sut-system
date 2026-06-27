@@ -91,12 +91,19 @@ interface BookingPanelProps {
   updateGlobalTime: (field: keyof DayBookingTime, value: string) => void;
   totalStats: { totalHours: number; totalPrice: number };
   onConfirm: () => void;
+  getTimeConflict: (dateStr: string, startTime: string, endTime: string) => [string, string] | null;
 }
 
 export default function BookingPanel({
   room, selectedDates, getEffectiveTime, updateDayTime, removeDate,
   sameTimeForAll, setSameTimeForAll, globalTime, updateGlobalTime, totalStats, onConfirm,
+  getTimeConflict,
 }: BookingPanelProps) {
+  const hasConflict = selectedDates.some((dateStr) => {
+    const t = getEffectiveTime(dateStr);
+    return getTimeConflict(dateStr, t.startTime, t.endTime) !== null;
+  });
+
   return (
     <div className="flex flex-col gap-4">
       {/* Room Info */}
@@ -144,27 +151,40 @@ export default function BookingPanel({
           <p className="text-sm text-gray-400 text-center py-4">เลือกวันในปฏิทินเพื่อจอง</p>
         ) : (
           <>
-            {/* Same time toggle */}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">ใช้เวลาเดียวกันทุกวัน</span>
-              <Toggle checked={sameTimeForAll} onChange={setSameTimeForAll} />
-            </div>
+            {/* Same time toggle — only relevant when 2+ days selected */}
+            {selectedDates.length >= 2 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">ใช้เวลาเดียวกันทุกวัน</span>
+                <Toggle checked={sameTimeForAll} onChange={setSameTimeForAll} />
+              </div>
+            )}
 
             {/* Global time input */}
             {sameTimeForAll && (
-              <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-xl">
-                <TimeDropdown
-                  label="เวลาเริ่ม"
-                  value={globalTime.startTime}
-                  onChange={(v) => updateGlobalTime("startTime", v)}
-                />
-                <span className="text-gray-400 mt-4">-</span>
-                <TimeDropdown
-                  label="เวลาสิ้นสุด"
-                  value={globalTime.endTime}
-                  onChange={(v) => updateGlobalTime("endTime", v)}
-                  minTime={globalTime.startTime}
-                />
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-xl">
+                  <TimeDropdown
+                    label="เวลาเริ่ม"
+                    value={globalTime.startTime}
+                    onChange={(v) => updateGlobalTime("startTime", v)}
+                  />
+                  <span className="text-gray-400 mt-4">-</span>
+                  <TimeDropdown
+                    label="เวลาสิ้นสุด"
+                    value={globalTime.endTime}
+                    onChange={(v) => updateGlobalTime("endTime", v)}
+                    minTime={globalTime.startTime}
+                  />
+                </div>
+                {selectedDates.map((dateStr) => {
+                  const conflict = getTimeConflict(dateStr, globalTime.startTime, globalTime.endTime);
+                  if (!conflict) return null;
+                  return (
+                    <p key={dateStr} className="text-xs text-red-500 flex items-center gap-1 px-1">
+                      ⚠️ {dateStr}: ช่วง {conflict[0]}–{conflict[1]} ถูกจองแล้ว
+                    </p>
+                  );
+                })}
               </div>
             )}
 
@@ -189,20 +209,30 @@ export default function BookingPanel({
                       </button>
                     </div>
 
-                    {!sameTimeForAll && (
-                      <div className="flex items-center gap-2">
-                        <TimeDropdown
-                          value={time.startTime}
-                          onChange={(v) => updateDayTime(dateStr, "startTime", v)}
-                        />
-                        <span className="text-gray-400">-</span>
-                        <TimeDropdown
-                          value={time.endTime}
-                          onChange={(v) => updateDayTime(dateStr, "endTime", v)}
-                          minTime={time.startTime}
-                        />
-                      </div>
-                    )}
+                    {!sameTimeForAll && (() => {
+                      const conflict = getTimeConflict(dateStr, time.startTime, time.endTime);
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <TimeDropdown
+                              value={time.startTime}
+                              onChange={(v) => updateDayTime(dateStr, "startTime", v)}
+                            />
+                            <span className="text-gray-400">-</span>
+                            <TimeDropdown
+                              value={time.endTime}
+                              onChange={(v) => updateDayTime(dateStr, "endTime", v)}
+                              minTime={time.startTime}
+                            />
+                          </div>
+                          {conflict && (
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                              ⚠️ ช่วง {conflict[0]}–{conflict[1]} ถูกจองแล้ว
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>{hours} ชม.</span>
@@ -227,10 +257,14 @@ export default function BookingPanel({
 
             <Button
               onClick={onConfirm}
-              className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl"
+              disabled={hasConflict}
+              className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ดำเนินการต่อ →
             </Button>
+            {hasConflict && (
+              <p className="text-xs text-red-500 text-center">กรุณาแก้ไขช่วงเวลาที่ซ้อนกับการจองที่มีอยู่ก่อน</p>
+            )}
           </>
         )}
       </div>

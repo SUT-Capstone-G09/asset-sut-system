@@ -21,11 +21,13 @@ type TokenResponse struct {
 }
 
 type UserSummary struct {
-	ID        uint   `json:"id"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	ID              uint     `json:"id"`
+	Email           string   `json:"email"`
+	Role            string   `json:"role"`
+	FirstName       string   `json:"first_name"`
+	LastName        string   `json:"last_name"`
+	RequesterTypeID uint     `json:"requester_type_id,omitempty"`
+	Permissions     []string `json:"permissions"`
 }
 
 type ChangePasswordRequest struct {

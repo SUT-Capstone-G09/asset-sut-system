@@ -17,13 +17,13 @@ type UpdateStaffRequest struct {
 }
 
 type StaffResponse struct {
-	ID          uint               `json:"id"`
-	FirstName   string             `json:"first_name"`
-	LastName    string             `json:"last_name"`
-	Email       string             `json:"email"`
-	Phone       string             `json:"phone"`
-	LineID      string             `json:"line_id"`
-	IsActive    bool               `json:"is_active"`
+	ID          uint                 `json:"id"`
+	FirstName   string               `json:"first_name"`
+	LastName    string               `json:"last_name"`
+	Email       string               `json:"email"`
+	Phone       string               `json:"phone"`
+	LineID      string               `json:"line_id"`
+	IsActive    bool                 `json:"is_active"`
 	Permissions []PermissionResponse `json:"permissions"`
 }
 
