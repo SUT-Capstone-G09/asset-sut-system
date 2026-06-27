@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import BroadcastStatus from "@/features/email-template/components/admin/BroadcastStatus";
+import EmailPageHeader from "@/features/email-template/components/admin/EmailPageHeader";
 
 export default function BroadcastStatusPage() {
   const params = useParams();
@@ -9,7 +10,15 @@ export default function BroadcastStatusPage() {
 
   return (
     <div className="space-y-6 p-8">
-      <h1 className="text-xl font-bold text-gray-900">สถานะการส่ง</h1>
+      <EmailPageHeader
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Email Templates", href: "/admin/email-templates" },
+          { label: "ประวัติการส่ง", href: "/admin/email-templates/broadcasts" },
+          { label: "สถานะการส่ง" },
+        ]}
+        title="สถานะการส่ง"
+      />
       <BroadcastStatus id={id} />
     </div>
   );
