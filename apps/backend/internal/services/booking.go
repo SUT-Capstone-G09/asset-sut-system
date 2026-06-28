@@ -111,8 +111,8 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 
 	// Determine requester type for pricing
 	var requesterTypeID uint
-	if requester, err := s.requesterRepo.FindByUserID(userID); err == nil {
-		requesterTypeID = requester.RequesterTypeID
+	if requester, err := s.requesterRepo.FindByUserID(userID); err == nil && requester.RequesterTypeID != nil {
+		requesterTypeID = *requester.RequesterTypeID
 	}
 
 	var basePrice, addonPrice int

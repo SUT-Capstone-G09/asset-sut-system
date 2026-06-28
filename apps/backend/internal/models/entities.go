@@ -3,10 +3,7 @@ package models
 var AllEntities = []any{
 	// User management
 	&Users{},
-	&Admins{},
-	&Staffs{},
 	&RequesterTypes{},
-	&Requesters{},
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
