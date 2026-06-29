@@ -15,10 +15,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+import { useAuthContext } from "@/lib/context/auth-context";
 
 
 const AssetSutUI = () => {
   const router = useRouter();
+  const { user } = useAuthContext();
+
+  const displayName = user ? `${user.first_name} ${user.last_name}` : "ผู้ใช้";
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
 
@@ -35,7 +40,7 @@ const AssetSutUI = () => {
         {/* Header Section */}
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-800">สวัสดี, User12345</h2>
+            <h2 className="text-2xl font-semibold text-gray-800">สวัสดี, คุณ {displayName}</h2>
             <p className="text-gray-500 mt-1">สร้างคำร้องและติดตามสถานะคำร้องของท่านได้ที่นี่</p>
           </div>
 
@@ -93,9 +98,11 @@ const AssetSutUI = () => {
               <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded text-xs font-bold uppercase">JD</span>
               <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded text-xs font-bold uppercase">SUT</span>
             </div>
-            <button className="text-orange-500 font-semibold flex items-center hover:underline">
-              ดูรายละเอียด <ChevronRight size={20} className="ml-1" />
-            </button>
+            <Link href="/user/requests/tracking">
+              <button className="text-orange-500 font-semibold flex items-center ">
+                ดูรายละเอียด <ChevronRight size={20} className="ml-1" />
+              </button>
+            </Link>
           </div>
         </div>
 
