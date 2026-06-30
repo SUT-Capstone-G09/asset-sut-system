@@ -1,18 +1,20 @@
 import { tenantAreaSummary } from "@/features/tenants/data/tenant-areas";
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+import { StatCard } from "@/components/ui/StatCard";
+import { MapPin, Store, Building2 } from "lucide-react";
 
 export default function AdminTenantAreaHeader() {
   return (
     <div className="flex flex-col gap-6 mb-8">
       {/* Title */}
       <div className="space-y-6">
-      <AssetBreadcrumb
-        items={[
-          { label: "Admin", href: "/admin" },
-          { label: "ผู้ประกอบการ", href: "/admin/tenants/lists" },
-          { label: "รายชื่อสถานที่" },
-        ]}
-      />
+        <AssetBreadcrumb
+          items={[
+            { label: "Admin", href: "/admin" },
+            { label: "ผู้ประกอบการ", href: "/admin/tenants/lists" },
+            { label: "รายชื่อสถานที่" },
+          ]}
+        />
 
         <div className="space-y-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
@@ -25,22 +27,29 @@ export default function AdminTenantAreaHeader() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex gap-4">
-        <div className="flex-1 rounded-md bg-white border border-slate-100 shadow-sm p-5 flex flex-col justify-end items-start gap-2">
-          <p className="text-[11px] font-bold text-slate-500 mb-3">สถานที่</p>
-          <p className="text-3xl font-black text-slate-900 leading-none">
-            {tenantAreaSummary.areaCount}
-            <span className="text-sm font-bold text-slate-500 ml-1">แห่ง</span>
-          </p>
-        </div>
-        <div className="flex-1 rounded-md bg-white border border-slate-100 shadow-sm p-5 flex flex-col justify-end items-start gap-2">
-          <p className="text-[11px] font-bold  text-slate-500 mb-3">ผู้ประกอบการทั้งหมด</p>
-          <p className="text-3xl font-black text-slate-900 leading-none">
-            {tenantAreaSummary.tenantCount}
-            <span className="text-sm font-bold text-slate-500 ml-1">ราย</span>
-          </p>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          icon={<MapPin size={20} />}
+          label="สถานที่หลัก"
+          value={tenantAreaSummary.areaCount}
+          unit="แห่ง"
+          description="จำนวนสถานที่ประกอบการหลักในระบบ"
+        />
+        <StatCard
+          icon={<Building2 size={20} />}
+          label="พื้นที่จัดสรรทั้งหมด"
+          value={tenantAreaSummary.subLocationCount}
+          unit="แห่ง"
+          description="จำนวนพื้นที่ประกอบการย่อยในระบบ"
+        />
+        <StatCard
+          icon={<Store size={20} />}
+          label="ผู้ประกอบการทั้งหมด"
+          value={tenantAreaSummary.tenantCount}
+          unit="ราย"
+          description="ผู้ประกอบการที่ทำสัญญาเช่าพื้นที่"
+        />
       </div>
     </div>
   );
