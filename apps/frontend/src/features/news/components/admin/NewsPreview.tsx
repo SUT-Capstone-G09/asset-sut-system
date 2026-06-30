@@ -4,9 +4,9 @@ interface NewsPreviewProps {
   data: {
     title: string;
     category: string;
-    details: string;
-    qualifications: string;
-    documents: string;
+    resultTimeline: string;
+    qualifications: { id: string; text: string }[];
+    documents: { id: string; name: string; isPreset: boolean; checked?: boolean }[];
     contractDuration: string;
     areaSize: string;
     entranceFee: string;
@@ -16,19 +16,20 @@ interface NewsPreviewProps {
 export function NewsPreview({ data }: NewsPreviewProps) {
   const displayTitle = data.title || "หัวข้อประกาศของคุณ (Preview)"
   const displayCategory = data.category || "พื้นที่เช่าร้านอาหาร"
-  const displayDetails = data.details || "รายละเอียดประกาศเพิ่มเติมของคุณจะแสดงที่นี่..."
+  const displayDetails = data.resultTimeline || "รายละเอียดประกาศเพิ่มเติมของคุณจะแสดงที่นี่..."
   
-  const displayContractDuration = data.contractDuration || "[ระบุ]"
-  const displayAreaSize = data.areaSize || "[ระบุ]"
-  const displayEntranceFee = data.entranceFee || "[ระบุ]"
+  const hasContractInfo = !!(data.contractDuration || data.areaSize || data.entranceFee)
+  const displayContractDuration = data.contractDuration
+  const displayAreaSize = data.areaSize
+  const displayEntranceFee = data.entranceFee
 
-  const qualsList = data.qualifications 
-    ? data.qualifications.split('\n').filter(q => q.trim() !== '')
-    : ['มีสัญชาติไทย', 'มีประสบการณ์ด้านโภชนาการไม่น้อยกว่า 3 ปี'];
+  const qualsList = data.qualifications.length > 0
+    ? data.qualifications.map((q) => q.text).filter((t) => t.trim() !== "")
+    : ["มีสัญชาติไทย", "มีประสบการณ์ด้านโภชนาการไม่น้อยกว่า 3 ปี"];
 
-  const docsList = data.documents 
-    ? data.documents.split('\n').filter(d => d.trim() !== '')
-    : ['สำเนาบัตรประชาชน', 'ทะเบียนบ้าน']; 
+  const docsList = data.documents.length > 0
+    ? data.documents.map((d) => d.name).filter((n) => n.trim() !== "")
+    : ["สำเนาบัตรประชาชน", "ทะเบียนบ้าน"]; 
 
 
   // จำลองวันที่ปัจจุบัน
@@ -116,26 +117,36 @@ export function NewsPreview({ data }: NewsPreviewProps) {
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">ระยะเวลาการเช่าและพื้นที่</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-                        <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
-                            <Calendar className="w-6 h-6 text-orange-500 mx-auto mb-3" />
-                            <p className="text-xs text-gray-400 font-bold uppercase mb-1">ระยะเวลาสัญญา</p>
-                            <p className="font-bold text-gray-900">{displayContractDuration} ปี</p>
+                    {hasContractInfo && (
+                      <>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">ระยะเวลาการเช่าและพื้นที่</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                            {displayContractDuration && (
+                              <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
+                                  <Calendar className="w-6 h-6 text-orange-500 mx-auto mb-3" />
+                                  <p className="text-xs text-gray-400 font-bold uppercase mb-1">ระยะเวลาสัญญา</p>
+                                  <p className="font-bold text-gray-900">{displayContractDuration} ปี</p>
+                              </div>
+                            )}
+                            {displayAreaSize && (
+                              <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
+                                  <div className="w-6 h-6 bg-orange-500/10 rounded flex items-center justify-center mx-auto mb-3">
+                                      <span className="text-orange-600 font-black text-xs">A</span>
+                                  </div>
+                                  <p className="text-xs text-gray-400 font-bold uppercase mb-1">ขนาดพื้นที่</p>
+                                  <p className="font-bold text-gray-900">{displayAreaSize} ตร.ม.</p>
+                              </div>
+                            )}
+                            {displayEntranceFee && (
+                              <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
+                                  <Download className="w-6 h-6 text-orange-500 mx-auto mb-3" />
+                                  <p className="text-xs text-gray-400 font-bold uppercase mb-1">ค่าธรรมเนียมแรกเข้า</p>
+                                  <p className="font-bold text-gray-900 text-sm">{displayEntranceFee} บาท</p>
+                              </div>
+                            )}
                         </div>
-                        <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
-                            <div className="w-6 h-6 bg-orange-500/10 rounded flex items-center justify-center mx-auto mb-3">
-                                <span className="text-orange-600 font-black text-xs">A</span>
-                            </div>
-                            <p className="text-xs text-gray-400 font-bold uppercase mb-1">ขนาดพื้นที่</p>
-                            <p className="font-bold text-gray-900">{displayAreaSize} ตร.ม.</p>
-                        </div>
-                        <div className="p-6 rounded-2xl bg-white border border-gray-100 text-center shadow-sm">
-                            <Download className="w-6 h-6 text-orange-500 mx-auto mb-3" />
-                            <p className="text-xs text-gray-400 font-bold uppercase mb-1">ค่าธรรมเนียมแรกเข้า</p>
-                            <p className="font-bold text-gray-900 text-sm">{displayEntranceFee} บาท</p>
-                        </div>
-                    </div>
+                      </>
+                    )}
 
                 </div>
             </div>

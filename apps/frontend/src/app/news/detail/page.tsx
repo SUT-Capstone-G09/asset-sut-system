@@ -130,16 +130,6 @@ export default function NewsDetailPage() {
 
                     {/* Sidebar Area */}
                     <div className="lg:col-span-4 space-y-6">
-                        {/* Download Document Card */}
-                        <div className="bg-gray-900 rounded-2xl p-8 text-white text-center shadow-lg border border-gray-800">
-                            <Download className="w-10 h-10 mx-auto mb-4 text-orange-400" />
-                            <h3 className="text-xl font-bold mb-2">สนใจร่วมสมัคร?</h3>
-                            <p className="text-sm text-gray-300 mb-6 leading-relaxed">ดาวน์โหลดแบบฟอร์มการสมัครและรายละเอียดเพิ่มเติมได้ที่นี่</p>
-                            <button className="w-full bg-white text-black py-3 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors shadow-sm">
-                                ดาวน์โหลดแบบฟอร์ม
-                            </button>
-                        </div>
-
                         {/* Related News Card */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <div className="flex justify-between items-center mb-6">

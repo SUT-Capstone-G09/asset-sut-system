@@ -26,9 +26,15 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
   const [basicData, setBasicData] = useState({
     title: "",
     category: "",
-    details: "",
-    qualifications: "",
-    documents: "",
+    referenceId: "",
+    selectedAsset: "",
+    scheduleEnabled: false,
+    isFeatured: false,
+    startDate: "",
+    endDate: "",
+    resultTimeline: "",
+    qualifications: [] as { id: string; text: string }[],
+    documents: [] as { id: string; name: string; isPreset: boolean; checked?: boolean }[],
   });
 
   const [contractData, setContractData] = useState({
@@ -42,9 +48,15 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
       setBasicData({
         title: selectedNews.title || "",
         category: selectedNews.category || "",
-        details: selectedNews.details || "",
-        qualifications: selectedNews.qualifications || "",
-        documents: selectedNews.documents || "",
+        referenceId: selectedNews.referenceId || "",
+        selectedAsset: selectedNews.selectedAsset || "",
+        scheduleEnabled: selectedNews.scheduleEnabled ?? false,
+        isFeatured: selectedNews.isFeatured ?? false,
+        startDate: selectedNews.startDate || "",
+        endDate: selectedNews.endDate || "",
+        resultTimeline: selectedNews.resultTimeline || "",
+        qualifications: selectedNews.qualifications || [],
+        documents: selectedNews.documents || [],
       });
       setContractData({
         contractDuration: selectedNews.contractDuration || "",
@@ -54,7 +66,7 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
     }
   }, [selectedNews]);
 
-  const handleBasicChange = (field: string, value: string) => {
+  const handleBasicChange = (field: string, value: unknown) => {
     setBasicData((prev) => ({ ...prev, [field]: value }));
   };
 
