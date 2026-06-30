@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   getBookingById,
   updateBookingExpenses,
@@ -17,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Calendar,
   Clock,
@@ -31,6 +33,7 @@ import {
   X,
   Search,
   ChevronLeft,
+  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -90,10 +93,30 @@ export default function BookingExpensesPage() {
       .then((data) => {
         setBooking(data);
 
-        // Set room cost from base_price
-        setRoomCostPrice(data.base_price || 0);
+        // Set room cost from base_price or fallback to sum of price_snapshot
+        let computedBasePrice = data.base_price || 0;
+        if (computedBasePrice === 0 && data.timeslots) {
+          computedBasePrice = data.timeslots.reduce((sum, ts) => sum + (ts.price_snapshot || 0), 0);
+        }
+        setRoomCostPrice(computedBasePrice);
+
+        // Calculate old discounts from addons if discount_price is 0
+        let oldAddonDiscounts = 0;
+        if (data.timeslots) {
+          data.timeslots.forEach((ts) => {
+            if (ts.addons) {
+              ts.addons.forEach((a) => {
+                const name = a.addon_name.toLowerCase();
+                if (name.includes("ส่วนลด") || name.includes("discount")) {
+                  oldAddonDiscounts += Math.abs(a.applied_price * a.quantity);
+                }
+              });
+            }
+          });
+        }
+        
         // Set global discount
-        setGlobalDiscount(data.discount_price || 0);
+        setGlobalDiscount(data.discount_price || oldAddonDiscounts || 0);
 
         // Parse payment slip
         if ((data as any).receipt_image) {
@@ -177,7 +200,7 @@ export default function BookingExpensesPage() {
     }
   }, [addonModalOpen]);
 
-  const handleSave = async (isSent?: boolean) => {
+  const handleSave = async () => {
     setSaving(true);
     try {
       const timeslotPayloads = timeslotsData.map(ts => {
@@ -199,15 +222,15 @@ export default function BookingExpensesPage() {
         timeslots: timeslotPayloads 
       });
 
-      if (isSent) {
-        await updateBookingStatus(bookingId, { status: "approved" });
-      }
-
-      alert("บันทึกการเปลี่ยนแปลงสำเร็จ");
+      toast.success("บันทึกการเปลี่ยนแปลงสำเร็จ", {
+        description: "ข้อมูลค่าใช้จ่ายถูกบันทึกเรียบร้อยแล้ว",
+      });
       router.back();
     } catch (error) {
       console.error("Failed to update expenses", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      toast.error("เกิดข้อผิดพลาดในการบันทึก", {
+        description: "ไม่สามารถบันทึกค่าใช้จ่ายได้ กรุณาลองใหม่อีกครั้ง",
+      });
     } finally {
       setSaving(false);
     }
@@ -303,13 +326,12 @@ export default function BookingExpensesPage() {
   // roomTotal is no longer used globally since it's computed per timeslot
   
   let otherTotal = 0;
-  let roomTotal = 0;
   timeslotsData.forEach(ts => {
-    roomTotal += ts.priceSnapshot;
     otherTotal += ts.otherExpenses.reduce((s, e) => s + e.price * e.quantity, 0);
   });
 
-  const subtotal = roomTotal + otherTotal;
+  const subtotal = roomCostPrice + otherTotal;
+  const isWaived = subtotal > 0 && globalDiscount === subtotal;
   const grandTotal = subtotal - globalDiscount;
 
   const filteredAddons = addons.filter((a: any) => {
@@ -400,43 +422,6 @@ export default function BookingExpensesPage() {
               </div>
             </Card>
 
-            {/* Payment status */}
-            <Card className="p-5 border-slate-100 shadow-sm rounded-2xl">
-              <h2 className="text-sm font-bold text-slate-900 mb-4">
-                สถานะค่าใช้จ่าย
-              </h2>
-              <div className="flex justify-between items-center mb-5">
-                {booking?.status === "approved" || booking?.status === "completed" ? (
-                  <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold flex items-center gap-1.5">
-                    <div className="size-1.5 rounded-full bg-emerald-500" />
-                    ส่งค่าใช้จ่ายแล้ว
-                  </div>
-                ) : (
-                  <div className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold flex items-center gap-1.5">
-                    <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    รอดำเนินการ
-                  </div>
-                )}
-                <span className="text-lg font-black text-slate-900">
-                  {grandTotal.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                  })}{" "}
-                  บาท
-                </span>
-              </div>
-              <div className="space-y-3">
-                <Button 
-                  onClick={() => handleSave(true)}
-                  disabled={saving || booking?.status === "approved" || booking?.status === "completed"}
-                  className="w-full bg-[#f26522] hover:bg-[#dc521a] text-white rounded-[7px] font-bold h-11 cursor-pointer disabled:opacity-50"
-                >
-                  {saving ? (
-                    <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2" />
-                  ) : null}
-                  {booking?.status === "approved" || booking?.status === "completed" ? "ส่งค่าใช้จ่ายแล้ว" : "ส่งค่าใช้จ่าย"}
-                </Button>
-              </div>
-            </Card>
           </div>
 
           {/* ───── Right column ───── */}
@@ -627,13 +612,35 @@ export default function BookingExpensesPage() {
                       value={globalDiscount || ""}
                       onChange={(e) => setGlobalDiscount(parseFloat(e.target.value) || 0)}
                       placeholder="0"
-                      className="h-8 w-24 border-slate-200 focus:border-emerald-500 rounded-[5px] text-right font-bold text-emerald-600 shadow-sm"
+                      disabled={isWaived}
+                      className={cn(
+                        "h-8 w-24 border-slate-200 focus:border-emerald-500 rounded-[5px] text-right font-bold text-emerald-600 shadow-sm transition-opacity",
+                        isWaived && "opacity-50 bg-slate-100"
+                      )}
                     />
                     <span className="text-emerald-600 font-bold text-xs">บาท</span>
                   </div>
                 </div>
 
-                <div className="flex justify-between w-72 text-base pt-2.5 border-t border-slate-200 mt-1">
+                <div className="flex justify-end w-72 mt-2 mb-1">
+                  <div className="flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setGlobalDiscount(isWaived ? 0 : subtotal)}>
+                    <Checkbox 
+                      id="waive-fee" 
+                      checked={isWaived} 
+                      onCheckedChange={(checked) => setGlobalDiscount(checked ? subtotal : 0)}
+                      className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                    />
+                    <label
+                      htmlFor="waive-fee"
+                      className="text-sm font-bold text-slate-700 cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      ยกเว้นค่าบริการทั้งหมด (ฟรี)
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-between w-72 text-base pt-3 border-t border-slate-200 mt-1">
                   <span className="text-slate-900 font-black">
                     ยอดชำระทั้งหมด:
                   </span>

@@ -6,11 +6,10 @@ import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import BookingFilters from "@/features/booking/components/booking/BookingFilters";
 import BookingGrid from "@/features/booking/components/booking/BookingGrid";
 import BookingCreateDrawer from "@/features/booking/components/booking/BookingCreateDrawer";
-import PaymentVerificationModal from "@/features/booking/components/booking/PaymentVerificationModal";
 import { useBookingFilters, BookingTypeFilter } from "@/features/booking/hooks/useBookingFilters";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Banknote, GraduationCap, Building2, ArrowRight, Calendar, ClipboardList, Trophy, DoorOpen } from "lucide-react";
+import { GraduationCap, Building2, ArrowRight, Calendar, ClipboardList, Trophy, DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 
@@ -46,7 +45,6 @@ function AdminBookingPageContent() {
   } = useBookingFilters(currentType);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isPaymentVerifyOpen, setIsPaymentVerifyOpen] = useState(false);
 
   const handleSelectType = (type: BookingTypeFilter) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -325,16 +323,6 @@ function AdminBookingPageContent() {
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel={`ยื่นขอจอง${typeLabel}`}
-        extraAction={
-          <Button
-            onClick={() => setIsPaymentVerifyOpen(true)}
-            variant="outline"
-            className="h-11 px-5 rounded-[7px] font-bold text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 cursor-pointer bg-white"
-          >
-            <Banknote size={16} className="text-[#f26522]" />
-            <span>ตรวจสอบการชำระเงิน</span>
-          </Button>
-        }
       />
 
       {/* Status Tabs Section */}
@@ -389,20 +377,11 @@ function AdminBookingPageContent() {
         isLoading={loading}
       />
 
-      {/* Create Drawer */}
       <BookingCreateDrawer
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onAdd={handleAddBooking}
         type={currentType}
-      />
-
-      {/* Payment Verification Modal */}
-      <PaymentVerificationModal
-        open={isPaymentVerifyOpen}
-        onClose={() => setIsPaymentVerifyOpen(false)}
-        bookings={bookings}
-        onUpdateBooking={handleEditBooking}
       />
     </div>
   );

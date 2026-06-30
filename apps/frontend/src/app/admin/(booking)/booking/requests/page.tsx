@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, Clock, Eye, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, XCircle, Clock, Eye, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAdminBookings } from "@/features/bookings/hooks/useAdminBookings";
 import { updateBookingStatus } from "@/features/bookings/services/booking.service";
@@ -29,6 +37,9 @@ export default function BookingRequestsPage() {
   const { bookings, loading, error, reload } = useAdminBookings();
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selected, setSelected] = useState<BookingResponseDTO | null>(null);
+  
+  const router = useRouter();
+  const [approveModalBooking, setApproveModalBooking] = useState<BookingResponseDTO | null>(null);
 
   const handleAction = async (id: number, status: string) => {
     setActionLoading(id);
@@ -37,6 +48,9 @@ export default function BookingRequestsPage() {
       reload();
     } finally {
       setActionLoading(null);
+      if (status === "approved") {
+        setApproveModalBooking(null);
+      }
     }
   };
 
@@ -128,7 +142,7 @@ export default function BookingRequestsPage() {
                               size="sm"
                               className="h-7 px-2.5 text-xs bg-green-500 hover:bg-green-600 text-white gap-1"
                               disabled={actionLoading === b.id}
-                              onClick={() => handleAction(b.id, "approved")}
+                              onClick={() => setApproveModalBooking(b)}
                             >
                               <CheckCircle size={12} /> อนุมัติ
                             </Button>
@@ -173,6 +187,9 @@ export default function BookingRequestsPage() {
             <div><span className="text-gray-400">วัตถุประสงค์:</span> <span className="font-medium">{selected.purpose}</span></div>
             <div><span className="text-gray-400">ราคาพื้นที่:</span> <span className="font-medium">฿{selected.base_price.toLocaleString()}</span></div>
             <div><span className="text-gray-400">ราคาบริการเสริม:</span> <span className="font-medium">฿{selected.addon_price.toLocaleString()}</span></div>
+            {selected.discount_price > 0 && (
+              <div><span className="text-gray-400">ส่วนลด:</span> <span className="font-medium text-emerald-500">-฿{selected.discount_price.toLocaleString()}</span></div>
+            )}
             <div><span className="text-gray-400">ราคารวม:</span> <span className="font-bold text-brand-primary">฿{selected.total_price.toLocaleString()}</span></div>
             <div><span className="text-gray-400">วันที่ขอ:</span> <span className="font-medium">{formatThaiDate(selected.created_at)}</span></div>
           </div>
@@ -192,6 +209,69 @@ export default function BookingRequestsPage() {
           )}
         </div>
       )}
+
+      {/* Approve Confirmation Modal */}
+      <Dialog open={!!approveModalBooking} onOpenChange={(open) => !open && setApproveModalBooking(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-0 border-b-0">
+            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <CheckCircle className="text-green-500" size={24} />
+              ยืนยันการอนุมัติการจอง
+            </DialogTitle>
+          </DialogHeader>
+          
+          {approveModalBooking && (
+            <div className="p-6 pt-4 space-y-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center space-y-2">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">ยอดชำระทั้งหมด</span>
+                <span className="text-3xl font-black text-[#f26522]">
+                  {approveModalBooking.total_price === 0 
+                    ? "ไม่มีค่าใช้จ่าย" 
+                    : `฿${approveModalBooking.total_price.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                </span>
+              </div>
+
+              <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+            <Button
+              variant="outline"
+              onClick={() => approveModalBooking && router.push(`/admin/booking/${approveModalBooking.id}/expenses`)}
+              className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+            >
+              จัดการค่าใช้จ่าย
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setApproveModalBooking(null)}
+                className="h-11 rounded-[7px] font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={() => approveModalBooking && handleAction(approveModalBooking.id, "approved")}
+                disabled={actionLoading === approveModalBooking?.id}
+                className="h-11 rounded-[7px] font-bold bg-green-500 hover:bg-green-600 text-white min-w-[120px]"
+              >
+                {actionLoading === approveModalBooking?.id ? (
+                  <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  "ยืนยันการอนุมัติ"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

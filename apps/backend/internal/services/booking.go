@@ -278,12 +278,17 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 		}
 	}
 
-	// Omit base price from total calculation since room fee is already in the expenses array
-	// Wait, the user said room price should be combined and saved to base price.
-	// We don't touch the basePrice here because it was calculated during Create.
-	totalPrice := booking.BasePrice + addonPrice - req.DiscountPrice
+	// Recalculate base price in case it was 0
+	basePrice := booking.BasePrice
+	if basePrice == 0 && len(booking.Timeslots) > 0 {
+		for _, ts := range booking.Timeslots {
+			basePrice += ts.PriceSnapshot
+		}
+	}
 
-	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, addonPrice, req.DiscountPrice, totalPrice); err != nil {
+	totalPrice := basePrice + addonPrice - req.DiscountPrice
+
+	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, basePrice, addonPrice, req.DiscountPrice, totalPrice); err != nil {
 		return nil, err
 	}
 
@@ -361,24 +366,33 @@ func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingRespons
 		res.UserName = b.User.Email
 		res.ContactEmail = b.User.Email
 
-		if b.User.Admin != nil {
-			res.RequesterName = b.User.Admin.FirstName + " " + b.User.Admin.LastName
-			res.ContactPhone = b.User.Admin.Phone
-			res.RequesterType = "admin"
-			res.RequesterID = fmt.Sprintf("A-%d", b.User.Admin.ID)
-		} else if b.User.Staff != nil {
-			res.RequesterName = b.User.Staff.FirstName + " " + b.User.Staff.LastName
-			res.ContactPhone = b.User.Staff.Phone
-			res.RequesterType = "staff"
-			res.RequesterID = fmt.Sprintf("S-%d", b.User.Staff.ID)
-		} else if b.User.Requester != nil {
-			res.RequesterName = b.User.Requester.FirstName + " " + b.User.Requester.LastName
-			res.ContactPhone = b.User.Requester.Phone
-			res.RequesterID = fmt.Sprintf("R-%d", b.User.Requester.ID)
-			if b.User.Requester.RequesterType.Type != "" {
-				res.RequesterType = b.User.Requester.RequesterType.Type
+		if b.User.Profiles != nil {
+			res.RequesterName = b.User.Profiles.FirstName + " " + b.User.Profiles.LastName
+			res.ContactPhone = b.User.Profiles.Phone
+
+			isAdmin := false
+			isStaff := false
+			for _, role := range b.User.Roles {
+				if role.Name == "admin" {
+					isAdmin = true
+				} else if role.Name == "staff" {
+					isStaff = true
+				}
+			}
+
+			if isAdmin {
+				res.RequesterType = "admin"
+				res.RequesterID = fmt.Sprintf("A-%d", b.User.Profiles.ID)
+			} else if isStaff {
+				res.RequesterType = "staff"
+				res.RequesterID = fmt.Sprintf("S-%d", b.User.Profiles.ID)
 			} else {
-				res.RequesterType = "student"
+				res.RequesterID = fmt.Sprintf("R-%d", b.User.Profiles.ID)
+				if b.User.Profiles.RequesterType != nil && b.User.Profiles.RequesterType.Type != "" {
+					res.RequesterType = b.User.Profiles.RequesterType.Type
+				} else {
+					res.RequesterType = "student"
+				}
 			}
 		} else {
 			res.RequesterName = b.User.Email

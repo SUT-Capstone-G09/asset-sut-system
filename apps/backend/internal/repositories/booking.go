@@ -19,9 +19,8 @@ func NewBookingRepository(db *gorm.DB) *BookingRepository {
 func (r *BookingRepository) FindAll() ([]models.Bookings, error) {
 	var bookings []models.Bookings
 	err := r.db.
-		Preload("User.Admin").
-		Preload("User.Staff").
-		Preload("User.Requester.RequesterType").
+		Preload("User.Profiles.RequesterType").
+		Preload("User.Roles").
 		Preload("Status").
 		Preload("Timeslots.Location").
 		Preload("Timeslots.Status").
@@ -37,9 +36,8 @@ func (r *BookingRepository) FindByUserID(userID uint) ([]models.Bookings, error)
 	var bookings []models.Bookings
 	err := r.db.
 		Where("user_id = ?", userID).
-		Preload("User.Admin").
-		Preload("User.Staff").
-		Preload("User.Requester.RequesterType").
+		Preload("User.Profiles.RequesterType").
+		Preload("User.Roles").
 		Preload("Status").
 		Preload("Timeslots.Location").
 		Preload("Timeslots.Status").
@@ -54,9 +52,8 @@ func (r *BookingRepository) FindByUserID(userID uint) ([]models.Bookings, error)
 func (r *BookingRepository) FindByID(id uint) (*models.Bookings, error) {
 	var booking models.Bookings
 	err := r.db.
-		Preload("User.Admin").
-		Preload("User.Staff").
-		Preload("User.Requester.RequesterType").
+		Preload("User.Profiles.RequesterType").
+		Preload("User.Roles").
 		Preload("Status").
 		Preload("Timeslots.Location").
 		Preload("Timeslots.Status").
@@ -90,7 +87,7 @@ func (r *BookingRepository) FindStatusByName(name string) (*models.BookingStatus
 	return &status, err
 }
 
-func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, addonPrice int, discountPrice int, totalPrice int) error {
+func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, basePrice int, addonPrice int, discountPrice int, totalPrice int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Get timeslot IDs for this booking
 		var timeslotIDs []uint
@@ -146,6 +143,7 @@ func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []model
 
 		// 4. Update the booking prices
 		if err := tx.Model(&models.Bookings{}).Where("id = ?", bookingID).Updates(map[string]interface{}{
+			"base_price":     basePrice,
 			"addon_price":    addonPrice,
 			"discount_price": discountPrice,
 			"total_price":    totalPrice,

@@ -50,22 +50,32 @@ export default function AdminBookingCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
 
-  // Unique list of buildings from real locations
-  const buildingsList = useMemo(() => {
-    return Array.from(new Set(locations.map((loc) => loc.building).filter(Boolean))) as string[];
+  // Filter States
+  const [selectedLocationType, setSelectedLocationType] = useState<string>("all");
+  const [selectedBuilding, setSelectedBuilding] = useState<string>("all");
+  const [selectedRoomNumber, setSelectedRoomNumber] = useState<string>("all");
+
+  // Unique list of location types
+  const locationTypesList = useMemo(() => {
+    return Array.from(new Set(locations.map((loc) => loc.type).filter(Boolean))) as string[];
   }, [locations]);
 
-  // Filter States
-  const [selectedBuilding, setSelectedBuilding] = useState<string>("อาคารเรียนรวม 1");
-  const [selectedRoomNumber, setSelectedRoomNumber] = useState<string>("B1101");
-
-  // Rooms filtered by the selected building
-  const filteredRooms = useMemo(() => {
-    if (selectedBuilding === "all") {
-      return locations;
+  // Unique list of buildings from real locations (filtered by type)
+  const buildingsList = useMemo(() => {
+    let filteredLocs = locations;
+    if (selectedLocationType !== "all") {
+      filteredLocs = filteredLocs.filter(loc => loc.type === selectedLocationType);
     }
-    return locations.filter((loc) => loc.building === selectedBuilding);
-  }, [selectedBuilding, locations]);
+    return Array.from(new Set(filteredLocs.map((loc) => loc.building).filter(Boolean))) as string[];
+  }, [locations, selectedLocationType]);
+
+  // Rooms filtered by the selected building and type
+  const filteredRooms = useMemo(() => {
+    let locs = locations;
+    if (selectedLocationType !== "all") locs = locs.filter(l => l.type === selectedLocationType);
+    if (selectedBuilding !== "all") locs = locs.filter(l => l.building === selectedBuilding);
+    return locs;
+  }, [selectedBuilding, selectedLocationType, locations]);
 
   // Selected Room Object
   const selectedRoom = useMemo(() => {
@@ -119,11 +129,12 @@ export default function AdminBookingCalendar() {
       const loc = locations.find((l) => String(l.room_number) === b.roomNumber && l.building === b.building);
       if (loc?.status?.toLowerCase() === "maintenance") return false;
 
+      const matchesType = selectedLocationType === "all" || (loc && loc.type === selectedLocationType);
       const matchesBuilding = selectedBuilding === "all" || b.building === selectedBuilding;
       const matchesRoom = selectedRoomNumber === "all" || b.roomNumber === selectedRoomNumber;
-      return matchesBuilding && matchesRoom;
+      return matchesType && matchesBuilding && matchesRoom;
     });
-  }, [bookings, selectedBuilding, selectedRoomNumber, locations]);
+  }, [bookings, selectedLocationType, selectedBuilding, selectedRoomNumber, locations]);
 
   // Statistics
   const todayBookingsCount = useMemo(() => {
@@ -322,10 +333,37 @@ export default function AdminBookingCalendar() {
           </div>
         </div>
 
-        {/* Building & Room Selector Filters */}
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          {/* Location Type Selector */}
+          <div className="w-full sm:w-48 space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pl-1">
+              ประเภทพื้นที่
+            </span>
+            <Select 
+              value={selectedLocationType} 
+              onValueChange={(val) => {
+                setSelectedLocationType(val);
+                setSelectedBuilding("all");
+                setSelectedRoomNumber("all");
+              }}
+            >
+              <SelectTrigger className="h-11 bg-slate-50 border-none rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 w-full text-slate-700 font-bold text-xs">
+                <SelectValue placeholder="เลือกประเภทพื้นที่" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs font-medium">ทุกประเภท</SelectItem>
+                {locationTypesList.map((type) => (
+                  <SelectItem key={type} value={type} className="text-xs font-medium">
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Building Selector */}
-          <div className="w-full sm:w-56 space-y-1">
+          <div className="w-full sm:w-48 space-y-1">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pl-1">
               ตึก / อาคาร
             </span>
@@ -333,9 +371,8 @@ export default function AdminBookingCalendar() {
               value={selectedBuilding} 
               onValueChange={(val) => {
                 setSelectedBuilding(val);
-                // Reset selected room to the first room of this new building or "all"
-                const firstRoom = locations.find((r) => r.building === val);
-                setSelectedRoomNumber(firstRoom ? String(firstRoom.room_number) : "all");
+                // Reset selected room to "all"
+                setSelectedRoomNumber("all");
               }}
             >
               <SelectTrigger className="h-11 bg-slate-50 border-none rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 w-full text-slate-700 font-bold text-xs">
@@ -353,14 +390,13 @@ export default function AdminBookingCalendar() {
           </div>
 
           {/* Room Selector */}
-          <div className="w-full sm:w-56 space-y-1">
+          <div className="w-full sm:w-48 space-y-1">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pl-1">
               ห้อง
             </span>
             <Select 
               value={selectedRoomNumber} 
               onValueChange={setSelectedRoomNumber}
-              disabled={selectedBuilding === "all"}
             >
               <SelectTrigger className="h-11 bg-slate-50 border-none rounded-[7px] focus:ring-1 focus:ring-[#f26522]/30 w-full text-slate-700 font-bold text-xs disabled:opacity-50">
                 <SelectValue placeholder="เลือกห้อง" />
@@ -421,21 +457,7 @@ export default function AdminBookingCalendar() {
 
           {/* Sub Navigation Tabs & Legend */}
           <div className="flex flex-col items-end gap-3">
-            {/* Navigation Tabs */}
-            <div className="bg-slate-50 p-1 rounded-xl flex items-center border border-slate-100 shadow-inner print-hide">
-              <Link 
-                href="/admin/calendar"
-                className="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[#f26522] text-white shadow-sm"
-              >
-                ปฏิทิน
-              </Link>
-              <Link 
-                href="/admin/booking/classroom"
-                className="px-4 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 transition-all"
-              >
-                รายการขอใช้พื้นที่
-              </Link>
-            </div>
+            {/* Removed Navigation Tabs per request */}
           </div>
         </div>
 
@@ -500,8 +522,8 @@ export default function AdminBookingCalendar() {
                     // Decide background styles based on status
                     let badgeClass = "";
                     if (booking.status === "approved") {
-                      // Emerald Style for Approved
-                      badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200/60 hover:bg-emerald-100/80 shadow-sm";
+                      // Blue Style for Approved
+                      badgeClass = "bg-blue-50 text-blue-700 border-blue-200/60 hover:bg-blue-100/80 shadow-sm";
                     } else if (booking.status === "pending") {
                       // Amber Style for Pending
                       badgeClass = "bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100/80 shadow-sm";
@@ -543,7 +565,7 @@ export default function AdminBookingCalendar() {
         {/* Legends bar */}
         <div className="bg-slate-50/30 p-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-bold text-slate-500 select-none">
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-emerald-500 border border-emerald-600/10 shadow-sm" />
+            <span className="size-3 rounded-full bg-blue-500 border border-blue-600/10 shadow-sm" />
             <span>อนุมัติแล้ว (Approved)</span>
           </div>
           <div className="flex items-center gap-2">
