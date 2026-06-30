@@ -3,23 +3,52 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { NewsCreateHeader } from "@/features/news/components/admin/NewsCreateHeader"
 import { NewsBasicInfo } from "@/features/news/components/admin/NewsBasicInfo"
+import { NewsQualificationsInfo } from "@/features/news/components/admin/NewsQualificationsInfo"
 import { NewsContractInfo } from "@/features/news/components/admin/NewsContractInfo"
 import { NewsUploads } from "@/features/news/components/admin/NewsUploads"
 import { NewsPreview } from "@/features/news/components/admin/NewsPreview"
 
 export default function NewsManagementPage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string
+    category: string
+    referenceId: string
+    selectedAsset: string
+    scheduleEnabled: boolean
+    isFeatured: boolean
+    startDate: string
+    endDate: string
+    resultTimeline: string
+    qualifications: { id: string; text: string }[]
+    documents: { id: string; name: string; isPreset: boolean; checked?: boolean }[]
+    contractDuration: string
+    areaSize: string
+    entranceFee: string
+  }>({
     title: "",
-    category: "พื้นที่เช่าร้านอาหาร",
-    details: "",
-    qualifications: "",
-    documents: "",
+    category: "shop-rental",
+    referenceId: "",
+    selectedAsset: "",
+    scheduleEnabled: true,
+    isFeatured: false,
+    startDate: "",
+    endDate: "",
+    resultTimeline: "",
+    qualifications: [
+      { id: "q1", text: "ระบุคุณสมบัติ เช่น มีสัญชาติไทย" },
+      { id: "q2", text: "ระบุประสบการณ์ เช่น มีประสบการณ์ด้านโภชนาการไม่น้อยกว่า 3 ปี" },
+    ],
+    documents: [
+      { id: "id-card", name: "สำเนาบัตรประชาชน", isPreset: true, checked: true },
+      { id: "house-reg", name: "ทะเบียนบ้าน", isPreset: true, checked: true },
+      { id: "company-cert-extra", name: "หนังสือรับรองบริษัท (กรณี)", isPreset: false },
+    ],
     contractDuration: "",
     areaSize: "",
     entranceFee: "",
   })
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -29,6 +58,11 @@ export default function NewsManagementPage() {
       
       <div className="space-y-8">
         <NewsBasicInfo data={formData} onChange={handleChange} />
+        <NewsQualificationsInfo
+          qualifications={formData.qualifications}
+          documents={formData.documents}
+          onChange={handleChange}
+        />
         <NewsContractInfo data={formData} onChange={handleChange} />
         <NewsUploads />
 

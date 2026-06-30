@@ -6,6 +6,7 @@ export const MOCK_NEWS = [
     category: "Asset",
     date: "24 ต.ค. 2567",
     status: "Published",
+    views: 1284,
   },
   {
     id: "SHOP-2024-042",
@@ -14,6 +15,7 @@ export const MOCK_NEWS = [
     category: "Shop",
     date: "22 ต.ค. 2567",
     status: "Draft",
+    views: 47,
   },
   {
     id: "ASSET-2023-115",
@@ -22,5 +24,6 @@ export const MOCK_NEWS = [
     category: "Asset",
     date: "15 ก.ย. 2567",
     status: "Archived",
+    views: 3021,
   },
 ];
