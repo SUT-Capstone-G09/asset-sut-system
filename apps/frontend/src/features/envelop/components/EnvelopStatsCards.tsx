@@ -4,7 +4,7 @@ import { CreditCard, DoorOpen, ClipboardCheck } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
 import { envelopStats } from "../data/envelop";
 
-export default function EnvelopStatsCards() {
+export function EnvelopStatsCards() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <StatCard
