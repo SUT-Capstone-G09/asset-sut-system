@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/services/api-client";
 import type {
   AudienceOptions,
   AudienceSpec,
+  BroadcastRecipient,
   BroadcastSummary,
   CreateBroadcastResponse,
   PreviewAudienceResponse,
@@ -22,6 +23,13 @@ export const listBroadcasts = () =>
 
 export const getBroadcast = (id: number) =>
   apiClient.get<BroadcastSummary>(`/email/broadcasts/${id}`);
+
+// Per-recipient delivery status. Pass a status (e.g. "failed") to narrow down to
+// the recipients who did not receive the email.
+export const getBroadcastRecipients = (id: number, status?: string) =>
+  apiClient.get<BroadcastRecipient[]>(
+    `/email/broadcasts/${id}/recipients${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+  );
 
 export const getAudienceOptions = () =>
   apiClient.get<AudienceOptions>("/email/audiences/options");

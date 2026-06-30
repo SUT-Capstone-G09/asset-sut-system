@@ -25,11 +25,9 @@ type recipientRow struct {
 func (r *RecipientRepository) baseQuery() *gorm.DB {
 	return r.db.Table("users AS u").
 		Select(`u.id AS id, u.email AS email,
-			TRIM(COALESCE(a.first_name, s.first_name, r.first_name, '') || ' ' ||
-			     COALESCE(a.last_name,  s.last_name,  r.last_name,  '')) AS name`).
-		Joins("LEFT JOIN admins a ON a.user_id = u.id AND a.deleted_at IS NULL").
-		Joins("LEFT JOIN staffs s ON s.user_id = u.id AND s.deleted_at IS NULL").
-		Joins("LEFT JOIN requesters r ON r.user_id = u.id AND r.deleted_at IS NULL").
+			TRIM(COALESCE(p.first_name, '') || ' ' ||
+			     COALESCE(p.last_name,  '')) AS name`).
+		Joins("LEFT JOIN profiles p ON p.user_id = u.id AND p.deleted_at IS NULL").
 		Where("u.is_active = ? AND u.deleted_at IS NULL", true)
 }
 
@@ -66,7 +64,7 @@ func (r *RecipientRepository) Resolve(spec dto.AudienceSpec) ([]dto.Recipient, e
 		if len(spec.RequesterTypeIDs) == 0 {
 			return []dto.Recipient{}, nil
 		}
-		q = q.Where("r.requester_type_id IN ?", spec.RequesterTypeIDs)
+		q = q.Where("p.requester_type_id IN ?", spec.RequesterTypeIDs)
 	case "users":
 		if len(spec.UserIDs) == 0 {
 			return []dto.Recipient{}, nil
@@ -111,8 +109,8 @@ func (r *RecipientRepository) Search(q string, limit int) ([]dto.Recipient, erro
 		like := "%" + strings.ToLower(q) + "%"
 		query = query.Where(
 			`LOWER(u.email) LIKE ? OR
-			 LOWER(COALESCE(a.first_name, s.first_name, r.first_name, '')) LIKE ? OR
-			 LOWER(COALESCE(a.last_name,  s.last_name,  r.last_name,  '')) LIKE ?`,
+			 LOWER(COALESCE(p.first_name, '')) LIKE ? OR
+			 LOWER(COALESCE(p.last_name,  '')) LIKE ?`,
 			like, like, like,
 		)
 	}

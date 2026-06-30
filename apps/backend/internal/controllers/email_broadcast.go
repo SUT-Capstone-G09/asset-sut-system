@@ -66,6 +66,20 @@ func (c *EmailBroadcastController) Get(ctx *gin.Context) {
 	response.OK(ctx, res)
 }
 
+func (c *EmailBroadcastController) Recipients(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	res, err := c.service.Recipients(id, ctx.Query("status"))
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, res)
+}
+
 func (c *EmailBroadcastController) Options(ctx *gin.Context) {
 	res, err := c.service.Options()
 	if err != nil {

@@ -243,7 +243,9 @@ func (s *EmailService) deliverOutbox(row models.EmailOutbox) {
 }
 
 func renderTextString(name, tmplStr string, data map[string]any) (string, error) {
-	t, err := texttemplate.New(name).Parse(tmplStr)
+	// missingkey=error makes a referenced-but-unprovided variable fail the render
+	// instead of silently emitting "<no value>" into the email sent to the user.
+	t, err := texttemplate.New(name).Option("missingkey=error").Parse(tmplStr)
 	if err != nil {
 		return "", err
 	}
@@ -275,7 +277,9 @@ func htmlToText(htmlBody string) string {
 }
 
 func renderHTMLString(name, tmplStr string, data map[string]any) (string, error) {
-	t, err := template.New(name).Parse(tmplStr)
+	// See renderTextString: fail loud on missing variables rather than shipping
+	// "<no value>" to recipients.
+	t, err := template.New(name).Option("missingkey=error").Parse(tmplStr)
 	if err != nil {
 		return "", err
 	}

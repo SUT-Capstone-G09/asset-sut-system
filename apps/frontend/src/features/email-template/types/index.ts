@@ -74,6 +74,16 @@ export interface BroadcastSummary {
   counts: BroadcastCounts;
 }
 
+export type OutboxStatus = "pending" | "sending" | "sent" | "failed";
+
+export interface BroadcastRecipient {
+  id: number;
+  to_email: string;
+  status: OutboxStatus;
+  attempts: number;
+  last_error: string;
+}
+
 export interface RequesterTypeOption {
   id: number;
   type: string;
