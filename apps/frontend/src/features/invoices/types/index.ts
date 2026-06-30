@@ -1,6 +1,7 @@
 export interface Location {
   id: string;
   name: string;
+  zoneId: string; // maps to tenantAreaOptions id
 }
 
 export interface Tenant {
