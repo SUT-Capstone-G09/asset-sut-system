@@ -17,12 +17,12 @@ const customIcon = L.divIcon({
 })
 
 export default function ContactMap() {
-  const position: [number, number] = [14.8817715, 102.0206962] // SUT Administration Building / Center
+  const position: [number, number] = [14.8808124, 102.0209532] // SUT Administration Building
 
   return (
     <LeafletMap
       center={position}
-      zoom={16}
+      zoom={17}
       className="h-full w-full"
       zoomControl={false}
       scrollWheelZoom={false}
@@ -46,7 +46,7 @@ export default function ContactMap() {
             <h3 className="font-bold text-slate-800 text-xs leading-tight">ส่วนบริหารสินทรัพย์ SUT</h3>
             <p className="text-[10px] text-slate-400 mt-1">อาคารบริหาร ชั้น 1 มหาวิทยาลัยเทคโนโลยีสุรนารี</p>
             <a 
-              href="https://maps.google.com/?q=14.8817715,102.0206962" 
+              href="https://www.google.com/maps/place/%E0%B8%AD%E0%B8%B2%E0%B8%84%E0%B8%B2%E0%B8%A3%E0%B8%9A%E0%B8%A3%E0%B8%B4%E0%B8%AB%E0%B8%B2%E0%B8%A3+%E0%B8%A1%E0%B8%AB%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B8%B2%E0%B8%A5%E0%B8%B1%E0%B8%A2%E0%B9%80%E0%B8%97%E0%B8%84%E0%B9%82%E0%B8%99%E0%B9%82%E0%B8%A5%E0%B8%A2%E0%B8%B5%E0%B8%AA%E0%B8%B8%E0%B8%A3%E0%B8%99%E0%B8%B2%E0%B8%A3%E0%B8%B5/@14.8808124,102.0209532,17.89z" 
               target="_blank" 
               rel="noreferrer"
               className="inline-block mt-2 text-[9px] font-bold text-white bg-orange-500 hover:bg-orange-600 px-2 py-1 rounded transition-colors"
