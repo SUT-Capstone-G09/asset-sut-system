@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import EmailPageHeader from "@/features/email-template/components/admin/EmailPageHeader";
 import EmailTemplateForm, {
   type EmailTemplateFormValues,
 } from "@/features/email-template/components/admin/EmailTemplateForm";
+import EmailTemplateFormSkeleton from "@/features/email-template/components/admin/EmailTemplateFormSkeleton";
 import {
   getEmailTemplate,
   updateEmailTemplate,
@@ -50,31 +50,29 @@ export default function EditEmailTemplatePage() {
 
   return (
     <div className="space-y-6 p-8">
-      <Link
-        href="/admin/email-templates"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        กลับไปรายการ
-      </Link>
+      <EmailPageHeader
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Email Templates", href: "/admin/email-templates" },
+          { label: "แก้ไข" },
+        ]}
+        title={template ? `แก้ไข: ${template.name}` : "แก้ไข"}
+      />
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-gray-400">กำลังโหลด...</div>
+        <EmailTemplateFormSkeleton />
       ) : !template ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {error ?? "ไม่พบ template"}
         </div>
       ) : (
-        <>
-          <h1 className="text-xl font-bold text-gray-900">แก้ไข: {template.name}</h1>
-          <EmailTemplateForm
-            mode="edit"
-            initial={template}
-            submitting={submitting}
-            error={error}
-            onSubmit={handleSubmit}
-          />
-        </>
+        <EmailTemplateForm
+          mode="edit"
+          initial={template}
+          submitting={submitting}
+          error={error}
+          onSubmit={handleSubmit}
+        />
       )}
     </div>
   );

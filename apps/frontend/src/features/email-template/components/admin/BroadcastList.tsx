@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { listBroadcasts } from "../../services/email-broadcast.service";
 import type { BroadcastSummary } from "../../types";
@@ -100,9 +101,23 @@ export default function BroadcastList() {
           <tbody className="divide-y divide-gray-50">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <tr key={i}>
-                  <td colSpan={5} className="px-4 py-3.5">
-                    <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
+                <tr key={i} aria-hidden="true">
+                  <td className="px-4 py-3.5">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="mt-1.5 h-3 w-28" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Skeleton className="h-4 w-10" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="mt-1.5 h-1.5 w-24 rounded-full" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Skeleton className="h-4 w-32" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Skeleton className="ml-auto h-4 w-4" />
                   </td>
                 </tr>
               ))
