@@ -15,6 +15,7 @@ type NewsAnnouncements struct {
 	PublishDate      *time.Time        `gorm:"type:timestamp" json:"publish_date"` // ใช้ Pointer timestamp เพื่อรองรับวันที่+เวลาและเป็นค่าว่างได้
 	ExpireDate       *time.Time        `gorm:"type:timestamp" json:"expire_date"`  // ใช้ Pointer timestamp
 	Status           string            `gorm:"type:varchar(50);not null;default:'Draft'" json:"status"`
+	IsFeatured       bool              `gorm:"default:false" json:"is_featured"`
 	LeaseOffer       *NewsLeaseOffers  `gorm:"foreignKey:NewsID" json:"lease_offer,omitempty"` // เชื่อมความสัมพันธ์ในโค้ดให้จอยตารางง่ายขึ้น
 	NewsLogs         []NewsLogs        `gorm:"foreignKey:NewsID" json:"news_logs,omitempty"`
 	NewsViews        []NewsViews       `gorm:"foreignKey:NewsID" json:"news_views,omitempty"`

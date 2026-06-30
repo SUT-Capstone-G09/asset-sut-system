@@ -68,7 +68,7 @@ const services = [
     },
 ]
 
-const filterTags = ["ทั้งหมด", "ประกาศด่วน", "สุขอนามัย", "ความสะอาด", "จราจร", "กิจกรรม"]
+const filterTags = ["ทั้งหมด", "ข่าวกิจกรรม", "ข่าวทั่วไป", "ข่าวรับสมัคร", "ข่าวสารร้านค้า"]
 
 export default function NewsPage() {
     return (
