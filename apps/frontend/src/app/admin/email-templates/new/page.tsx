@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import EmailPageHeader from "@/features/email-template/components/admin/EmailPageHeader";
 import EmailTemplateForm, {
   type EmailTemplateFormValues,
 } from "@/features/email-template/components/admin/EmailTemplateForm";
@@ -28,14 +27,14 @@ export default function NewEmailTemplatePage() {
 
   return (
     <div className="space-y-6 p-8">
-      <Link
-        href="/admin/email-templates"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        กลับไปรายการ
-      </Link>
-      <h1 className="text-xl font-bold text-gray-900">สร้าง Email Template</h1>
+      <EmailPageHeader
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Email Templates", href: "/admin/email-templates" },
+          { label: "สร้าง Email Template" },
+        ]}
+        title="สร้าง Email Template"
+      />
       <EmailTemplateForm
         mode="create"
         submitting={submitting}

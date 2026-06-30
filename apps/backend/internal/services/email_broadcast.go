@@ -63,17 +63,10 @@ func (s *EmailBroadcastService) Create(req dto.SendBroadcastRequest, adminUserID
 		return nil, fmt.Errorf("no recipients matched the selected audience")
 	}
 
-	broadcast := &models.EmailBroadcast{
-		TemplateKey:     req.TemplateKey,
-		AudienceType:    req.Audience.Type,
-		AudienceDesc:    describeAudience(req.Audience),
-		TotalRecipients: len(recipients),
-		CreatedByUserID: adminUserID,
-	}
-	if err := s.broadcastRepo.Create(broadcast); err != nil {
-		return nil, err
-	}
-
+	// Render every message up-front. A bad template or a missing variable fails
+	// the whole request here, before any broadcast row is persisted — so we never
+	// leave behind an orphaned broadcast with zero outbox rows. BroadcastID is
+	// assigned later, inside the transaction.
 	rows := make([]*models.EmailOutbox, 0, len(recipients))
 	for _, r := range recipients {
 		data := map[string]any{}
@@ -85,15 +78,24 @@ func (s *EmailBroadcastService) Create(req dto.SendBroadcastRequest, adminUserID
 			return nil, fmt.Errorf("render template %q for %s: %w", req.TemplateKey, r.Email, err)
 		}
 		rows = append(rows, &models.EmailOutbox{
-			BroadcastID: &broadcast.ID,
-			ToEmail:     r.Email,
-			Subject:     subject,
-			HTML:        html,
-			Text:        text,
-			Status:      models.OutboxPending,
+			ToEmail: r.Email,
+			Subject: subject,
+			HTML:    html,
+			Text:    text,
+			Status:  models.OutboxPending,
 		})
 	}
-	if err := s.outboxRepo.CreateBatch(rows); err != nil {
+
+	broadcast := &models.EmailBroadcast{
+		TemplateKey:     req.TemplateKey,
+		AudienceType:    req.Audience.Type,
+		AudienceDesc:    describeAudience(req.Audience),
+		TotalRecipients: len(recipients),
+		CreatedByUserID: adminUserID,
+	}
+
+	// Persist broadcast + outbox atomically (see CreateWithOutbox).
+	if err := s.broadcastRepo.CreateWithOutbox(broadcast, rows); err != nil {
 		return nil, err
 	}
 
@@ -118,13 +120,39 @@ func (s *EmailBroadcastService) List() ([]dto.BroadcastResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]uint, len(list))
+	for i, b := range list {
+		ids[i] = b.ID
+	}
+	// One grouped query for all broadcasts instead of one COUNT per row.
+	countsByID, err := s.outboxRepo.CountByStatusForBroadcasts(ids)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]dto.BroadcastResponse, 0, len(list))
 	for _, b := range list {
-		counts, err := s.outboxRepo.CountByStatus(b.ID)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, toBroadcastResponse(b, counts))
+		result = append(result, toBroadcastResponse(b, countsByID[b.ID]))
+	}
+	return result, nil
+}
+
+// Recipients lists the per-recipient delivery status of a broadcast so an admin
+// can see exactly who did (or did not) receive the email. An empty status
+// returns every recipient; "failed" narrows it to the ones that bounced.
+func (s *EmailBroadcastService) Recipients(id uint, status string) ([]dto.BroadcastRecipientResponse, error) {
+	rows, err := s.outboxRepo.ListByBroadcast(id, status)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.BroadcastRecipientResponse, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, dto.BroadcastRecipientResponse{
+			ID:        row.ID,
+			ToEmail:   row.ToEmail,
+			Status:    row.Status,
+			Attempts:  row.Attempts,
+			LastError: row.LastError,
+		})
 	}
 	return result, nil
 }
