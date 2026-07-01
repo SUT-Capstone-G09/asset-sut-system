@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { mockEnvelopDocuments } from "../data/envelop";
 import { DocumentStatus, EnvelopDocument } from "../types/envelop";
+import { AddEnvelopDocumentModal } from "./AddEnvelopDocumentModal";
+import { EditEnvelopDocumentModal } from "./EditEnvelopDocumentModal";
 
 // ---- Status Badge ----
 const statusConfig: Record<DocumentStatus, { label: string; className: string }> = {
@@ -37,7 +40,13 @@ function StatusBadge({ status }: { status: DocumentStatus }) {
 }
 
 // ---- Table Row ----
-function EnvelopDocumentRow({ document }: { document: EnvelopDocument }) {
+function EnvelopDocumentRow({
+  document,
+  onEdit,
+}: {
+  document: EnvelopDocument;
+  onEdit: (doc: EnvelopDocument) => void;
+}) {
   return (
     <tr className="border-b border-slate-100 transition-colors hover:bg-slate-50/60">
       {/* ชื่อเอกสาร */}
@@ -65,6 +74,7 @@ function EnvelopDocumentRow({ document }: { document: EnvelopDocument }) {
         <div className="flex items-center gap-1">
           <button
             aria-label="แก้ไข"
+            onClick={() => onEdit(document)}
             className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
             <Pencil size={14} />
@@ -83,49 +93,80 @@ function EnvelopDocumentRow({ document }: { document: EnvelopDocument }) {
 
 // ---- Main Component ----
 export default function EnvelopDocumentList() {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<EnvelopDocument | null>(null);
+
   return (
-    <div className="rounded-sm border border-slate-100 bg-white shadow-sm">
-      {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-        <h2 className="text-base font-bold text-slate-900">คลังซองเอกสาร</h2>
-        <Button
-          size="sm"
-          className="gap-1.5 bg-slate-900 text-xs font-semibold text-white hover:bg-slate-700"
-        >
-          <Plus size={14} strokeWidth={2.5} />
-          เพิ่มเอกสารใหม่
-        </Button>
+    <>
+      <div className="rounded-sm border border-slate-100 bg-white shadow-sm">
+        {/* Section Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-bold text-slate-900">คลังซองเอกสาร</h2>
+          <Button
+            size="sm"
+            onClick={() => setIsAddModalOpen(true)}
+            className="gap-1.5 bg-[#EA580C] text-xs font-semibold text-white hover:bg-[#C2410C]"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            เพิ่มเอกสารใหม่
+          </Button>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="py-3 pl-4 pr-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  ชื่อเอกสาร
+                </th>
+                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  สถานที่
+                </th>
+                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  สถานะ
+                </th>
+                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  วันที่
+                </th>
+                <th className="py-3 pl-3 pr-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  การจัดการ
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockEnvelopDocuments.map((doc) => (
+                <EnvelopDocumentRow
+                  key={doc.id}
+                  document={doc}
+                  onEdit={setEditingDocument}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="py-3 pl-4 pr-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                ชื่อเอกสาร
-              </th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                สถานที่
-              </th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                สถานะ
-              </th>
-              <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                วันที่
-              </th>
-              <th className="py-3 pl-3 pr-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                การจัดการ
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockEnvelopDocuments.map((doc) => (
-              <EnvelopDocumentRow key={doc.id} document={doc} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      {/* Add Document Modal */}
+      <AddEnvelopDocumentModal
+        isOpen={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSubmit={(data) => {
+          console.log("New envelop document:", data);
+          // TODO: integrate with API
+        }}
+      />
+
+      {/* Edit Document Modal */}
+      <EditEnvelopDocumentModal
+        isOpen={!!editingDocument}
+        onOpenChange={(open) => { if (!open) setEditingDocument(null); }}
+        document={editingDocument}
+        onSubmit={(id, data) => {
+          console.log("Edit envelop document:", id, data);
+          // TODO: integrate with API
+        }}
+      />
+    </>
   );
 }

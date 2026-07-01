@@ -13,7 +13,7 @@ const tabs: { value: TabValue; label: string; badge?: number }[] = [
   { value: "payments", label: "ตรวจสอบการชำระเงิน", badge: envelopStats.pendingVerification },
 ];
 
-export default function EnvelopTabs() {
+export function EnvelopTabs() {
   const [active, setActive] = useState<TabValue>("documents");
 
   return (

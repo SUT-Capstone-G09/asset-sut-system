@@ -11,7 +11,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { AREA_CATEGORIES } from "../../data/constants";
+import { AREA_CATEGORIES } from "../../constants";
 
 interface AdminAreaFiltersProps {
   searchQuery: string;

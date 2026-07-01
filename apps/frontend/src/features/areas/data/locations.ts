@@ -60,7 +60,7 @@ export const mockLocations: Location[] = [
     coordinates: [14.8965678, 102.0128397],
     address: 'มหาวิทยาลัยเทคโนโลยีสุรนารี',
     image: 'https://lh3.googleusercontent.com/gps-cs-s/APNQkAH7J_G_-DbP9rs93hMXsA2-j3WRWt-UjKfbfHb9_v59lphP7cwAQ9B-OYI2b7df6RqtFJbNwTYi0eJfcAtaM0c5cOfb32fsrcsVAkFc5TL8o6cIislQC27l0Ps4u3ZyMW4zFFYu=s2048-v1',
-    category: 'โรงอาหาร',
+    category: 'อื่นๆ',
     locationCategory: ['retail_services'],
     status: 'active',
     price: 25000,
