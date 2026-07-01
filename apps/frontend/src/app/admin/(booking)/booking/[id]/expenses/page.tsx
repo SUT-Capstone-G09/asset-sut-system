@@ -525,14 +525,9 @@ export default function BookingExpensesPage() {
                             className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
                           >
                             <td className="py-3 px-5 pl-8">
-                              <Input
-                                value={exp.name}
-                                onChange={(e) =>
-                                  updateOtherExpense(ts.id, idx, "name", e.target.value)
-                                }
-                                placeholder="ชื่อรายการ"
-                                className="h-9 border-transparent bg-transparent hover:border-slate-200 focus:bg-white focus:border-[#f26522] shadow-none rounded-[7px] font-bold text-slate-900 text-sm"
-                              />
+                              <div className="px-3 py-1.5 text-sm font-bold text-slate-800">
+                                {exp.name}
+                              </div>
                             </td>
                             <td className="py-3 px-5">
                               <div className="flex justify-center">
@@ -635,7 +630,7 @@ export default function BookingExpensesPage() {
                       className="text-sm font-bold text-slate-700 cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      ยกเว้นค่าบริการทั้งหมด (ฟรี)
+                      ยกเว้นค่าบริการทั้งหมด
                     </label>
                   </div>
                 </div>

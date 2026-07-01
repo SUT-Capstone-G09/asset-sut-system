@@ -104,8 +104,12 @@ export default function PaymentPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const firstSlot = booking?.timeslots?.[0];
+      const bDateStr = firstSlot?.date ? firstSlot.date.slice(0, 10) : undefined;
+      const locName = firstSlot?.location_name;
+
       // 1. Upload file to storage
-      const uploadResult = await uploadFile(selectedFile, UPLOAD_FOLDERS.PAYMENT_SLIP);
+      const uploadResult = await uploadFile(selectedFile, UPLOAD_FOLDERS.PAYMENT_SLIP, bDateStr, locName, bookingId);
 
       // 2. Create document record
       const doc = await createDocument({

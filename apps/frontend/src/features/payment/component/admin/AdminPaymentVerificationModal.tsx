@@ -108,7 +108,6 @@ export default function AdminPaymentVerificationModal({
       }
     } catch (error) {
       console.error("Failed to verify payment", error);
-      alert("Failed to verify payment");
     } finally {
       setActioning(false);
     }
@@ -118,8 +117,12 @@ export default function AdminPaymentVerificationModal({
     if (!booking || !selectedReceiptFile) return;
     setUploadingReceipt(true);
     try {
+      const firstSlot = booking?.timeslots?.[0];
+      const bDateStr = firstSlot?.date ? firstSlot.date.slice(0, 10) : undefined;
+      const locName = firstSlot?.location_name;
+
       // 1. Upload to MinIO
-      const uploadRes = await uploadFile(selectedReceiptFile, UPLOAD_FOLDERS.PAYMENT_RECEIPT);
+      const uploadRes = await uploadFile(selectedReceiptFile, UPLOAD_FOLDERS.PAYMENT_RECEIPT, bDateStr, locName, booking.id);
 
       // 2. Create Document in DB
       await createDocument({
@@ -136,10 +139,8 @@ export default function AdminPaymentVerificationModal({
       setReceiptImage(uploadRes.url);
       setSelectedReceiptFile(null);
       setLocalPreview(null);
-      alert("อัปโหลดใบเสร็จรับเงินสำเร็จ!");
     } catch (error) {
       console.error("Failed to upload receipt", error);
-      alert("อัปโหลดใบเสร็จรับเงินล้มเหลว");
     } finally {
       setUploadingReceipt(false);
     }
