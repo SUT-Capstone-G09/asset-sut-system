@@ -49,6 +49,7 @@ func main() {
 	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
 	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
 	recipientRepo := repositories.NewRecipientRepository(db)
+	signatureRepo := repositories.NewSignatureRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -73,6 +74,7 @@ func main() {
 	emailBroadcastService := services.NewEmailBroadcastService(
 		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
 	)
+	signatureService := services.NewSignatureService(signatureRepo, storageService)
 
 	// ----------------------------------------
 	// Controllers
@@ -128,6 +130,7 @@ func main() {
 		EmailTemplateController:  emailTemplateCtrl,
 		EmailBroadcastController: emailBroadcastCtrl,
 		ImageController:          imageCtrl,
+		SignatureController:      signatureCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

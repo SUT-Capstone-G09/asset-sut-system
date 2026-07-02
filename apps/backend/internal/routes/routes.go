@@ -26,6 +26,7 @@ type Dependencies struct {
 	EmailTemplateController  *controllers.EmailTemplateController
 	EmailBroadcastController *controllers.EmailBroadcastController
 	ImageController          *controllers.ImageController
+	SignatureController      *controllers.SignatureController
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
