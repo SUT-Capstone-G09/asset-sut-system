@@ -40,3 +40,10 @@ export async function refreshTokenApi() {
   const data = await apiClient.post<LoginResponse>(`/auth/refresh${AUTH_SUFFIX()}`);
   return { token: data.access_token, user: data.user };
 }
+
+// Re-confirms the current user's password — used as a step-up check before
+// sensitive actions (e.g. signing a document) without re-logging in.
+export async function verifyPasswordApi(password: string): Promise<boolean> {
+  const data = await apiClient.post<{ verified: boolean }>("/me/verify-password", { password });
+  return data.verified;
+}

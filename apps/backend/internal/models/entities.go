@@ -10,6 +10,7 @@ var AllEntities = []any{
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
+	&UserSignatures{},
 
 	// Location
 	&LocationTypes{},

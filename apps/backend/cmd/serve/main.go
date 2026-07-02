@@ -46,6 +46,7 @@ func main() {
 	paymentRepo := repositories.NewPaymentRepository(db)
 	documentRepo := repositories.NewDocumentRepository(db)
 	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
+	signatureRepo := repositories.NewSignatureRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -67,6 +68,7 @@ func main() {
 		log.Fatalf("failed to init email service: %v", err)
 	}
 	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
+	signatureService := services.NewSignatureService(signatureRepo, storageService)
 
 	// ----------------------------------------
 	// Controllers
@@ -98,6 +100,7 @@ func main() {
 	emailCtrl := controllers.NewEmailController(emailService)
 	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
 	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
+	signatureCtrl := controllers.NewSignatureController(signatureService)
 
 	// ----------------------------------------
 	// Router
@@ -119,6 +122,7 @@ func main() {
 		EmailController:         emailCtrl,
 		EmailTemplateController: emailTemplateCtrl,
 		ImageController:         imageCtrl,
+		SignatureController:     signatureCtrl,
 		PermissionChecker:       permissionRepo,
 	})
 

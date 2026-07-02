@@ -227,6 +227,19 @@ func (s *AuthService) ChangePassword(userID uint, req dto.ChangePasswordRequest)
 	return s.userRepo.UpdatePassword(userID, hashed)
 }
 
+// VerifyPassword re-checks the current user's password without changing it —
+// used as a step-up confirmation before sensitive actions (e.g. signing a document).
+func (s *AuthService) VerifyPassword(userID uint, password string) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	if !hash.CheckPassword(password, user.Password) {
+		return errors.New("incorrect password")
+	}
+	return nil
+}
+
 func (s *AuthService) detectRequesterType(email string) uint {
 	if strings.HasSuffix(email, "@g.sut.ac.th") {
 		return 1 // ภายใน

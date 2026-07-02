@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { X, Download, Loader2, Eraser, CheckCircle2 } from "lucide-react";
+import { X, Download, Loader2, Eraser, CheckCircle2, Upload, Save, Trash2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
+import { verifyPasswordApi } from "@/lib/services/auth.service";
+import { getSavedSignature, saveSignature, deleteSavedSignature, SignatureResult } from "@/lib/services/signature.service";
 
 interface Timeslot {
   date: string;
@@ -44,11 +46,77 @@ function todayParts() {
 
 // ── Signature pad ─────────────────────────────────────────────────────────────
 
-function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) {
+// Keeps uploaded signatures crisp without bloating the generated PDF.
+const MAX_SIGNATURE_KB = 500;
+const MIN_SIGNATURE_KB = 2;
+
+async function dataUrlToFile(dataUrl: string, filename = "signature.png"): Promise<File> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: "image/png" });
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Signature must be a transparent PNG, not a flat-colored background — check
+// the decoded pixels for any non-opaque alpha value.
+function hasTransparentPixel(dataUrl: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(true); return; }
+      ctx.drawImage(img, 0, 0);
+      try {
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] < 255) { resolve(true); return; }
+        }
+        resolve(false);
+      } catch {
+        resolve(true); // can't read pixels (e.g. CORS) — don't block the user
+      }
+    };
+    img.onerror = () => resolve(false);
+    img.src = dataUrl;
+  });
+}
+
+function SignaturePad({ onChange, onModeChange }: { onChange: (url: string | null) => void; onModeChange?: (mode: "draw" | "upload" | "saved") => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [mode, setMode] = useState<"draw" | "upload" | "saved">("draw");
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SignatureResult | null>(null);
+  const [savingSig, setSavingSig] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [deletingSaved, setDeletingSaved] = useState(false);
+
+  useEffect(() => {
+    getSavedSignature().then((result) => {
+      if (result) {
+        setSaved(result);
+        setMode("saved");
+        onChange(result.url);
+        onModeChange?.("saved");
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pos = (e: MouseEvent | TouchEvent, c: HTMLCanvasElement) => {
     const r = c.getBoundingClientRect();
@@ -60,6 +128,10 @@ function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) 
   useEffect(() => {
     const c = canvasRef.current;
     if (!c) return;
+    // The canvas unmounts when switching to upload mode, so a fresh blank
+    // canvas is mounted each time draw mode is re-entered — re-attach
+    // listeners to it and reset the empty state to match.
+    setIsEmpty(true);
     const ctx = c.getContext("2d")!;
 
     const down = (e: MouseEvent | TouchEvent) => { e.preventDefault(); drawing.current = true; last.current = pos(e, c); };
@@ -83,7 +155,7 @@ function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) 
       c.removeEventListener("touchstart", down); c.removeEventListener("touchmove", move);
       c.removeEventListener("touchend", up);
     };
-  }, [onChange]);
+  }, [onChange, mode]);
 
   const clear = () => {
     const c = canvasRef.current;
@@ -92,18 +164,203 @@ function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) 
     setIsEmpty(true); onChange(null);
   };
 
+  const switchMode = (m: "draw" | "upload" | "saved") => {
+    setMode(m);
+    onModeChange?.(m);
+    setUploadError(null);
+    setJustSaved(false);
+    if (m === "draw") {
+      onChange(isEmpty ? null : canvasRef.current?.toDataURL("image/png") ?? null);
+    } else if (m === "upload") {
+      onChange(uploadPreview);
+    } else {
+      onChange(saved?.url ?? null);
+    }
+  };
+
+  const handleSaveForNextTime = async () => {
+    const dataUrl = mode === "draw"
+      ? (isEmpty ? null : canvasRef.current?.toDataURL("image/png") ?? null)
+      : uploadPreview;
+    if (!dataUrl) return;
+    setSavingSig(true);
+    try {
+      const file = await dataUrlToFile(dataUrl);
+      const result = await saveSignature(file);
+      setSaved(result);
+      setJustSaved(true);
+    } catch {
+      setUploadError("บันทึกลายเซ็นไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSavingSig(false);
+    }
+  };
+
+  const handleDeleteSaved = async () => {
+    setDeletingSaved(true);
+    try {
+      await deleteSavedSignature();
+      setSaved(null);
+      switchMode("draw");
+    } finally {
+      setDeletingSaved(false);
+    }
+  };
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadError(null);
+
+    if (file.type !== "image/png") {
+      setUploadError("รองรับเฉพาะไฟล์ PNG เท่านั้น");
+      return;
+    }
+    const sizeKB = file.size / 1024;
+    if (sizeKB > MAX_SIGNATURE_KB) {
+      setUploadError(`ไฟล์ใหญ่เกินไป (ไม่เกิน ${MAX_SIGNATURE_KB} KB)`);
+      return;
+    }
+    if (sizeKB < MIN_SIGNATURE_KB) {
+      setUploadError(`ไฟล์เล็กเกินไป ภาพอาจไม่คมชัด (อย่างน้อย ${MIN_SIGNATURE_KB} KB)`);
+      return;
+    }
+
+    const dataUrl = await fileToDataUrl(file);
+    const transparent = await hasTransparentPixel(dataUrl);
+    if (!transparent) {
+      setUploadError("กรุณาใช้ไฟล์ PNG ที่มีพื้นหลังโปร่งใส (ไม่มีพื้นหลังสีทึบ)");
+      return;
+    }
+
+    setUploadPreview(dataUrl);
+    onChange(dataUrl);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs font-medium text-gray-600">ลายเซ็น <span className="text-red-400">*</span></label>
-        <button onClick={clear} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400">
-          <Eraser size={12} /> ลบ
+        {mode === "draw" && (
+          <button onClick={clear} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400">
+            <Eraser size={12} /> ลบ
+          </button>
+        )}
+      </div>
+
+      {/* Mode tabs */}
+      <div className="flex gap-1.5 mb-1.5">
+        {saved && (
+          <button
+            type="button"
+            onClick={() => switchMode("saved")}
+            className={cn(
+              "flex-1 text-xs py-1 rounded-md border transition-colors",
+              mode === "saved" ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
+            )}
+          >
+            ลายเซ็นที่บันทึกไว้
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => switchMode("draw")}
+          className={cn(
+            "flex-1 text-xs py-1 rounded-md border transition-colors",
+            mode === "draw" ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
+          )}
+        >
+          วาดลายเซ็น
+        </button>
+        <button
+          type="button"
+          onClick={() => switchMode("upload")}
+          className={cn(
+            "flex-1 text-xs py-1 rounded-md border transition-colors",
+            mode === "upload" ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
+          )}
+        >
+          อัปโหลดไฟล์
         </button>
       </div>
-      <div className={cn("rounded-xl border-2 border-dashed overflow-hidden bg-gray-50", isEmpty ? "border-red-200" : "border-gray-200")}>
-        <canvas ref={canvasRef} width={600} height={100} className="w-full h-[75px] cursor-crosshair touch-none" />
-      </div>
-      <p className="text-xs text-gray-400 mt-1">วาดลายเซ็นในกรอบด้านบน</p>
+
+      {mode === "saved" ? (
+        <>
+          <div className="rounded-xl border-2 border-dashed border-gray-200 overflow-hidden bg-gray-50 h-[75px] flex items-center justify-center">
+            {saved && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={saved.url} alt="ลายเซ็นที่บันทึกไว้" className="h-full max-h-[70px] object-contain" />
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleDeleteSaved}
+            disabled={deletingSaved}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400 mt-1 disabled:opacity-50"
+          >
+            {deletingSaved ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} ลบลายเซ็นที่บันทึกไว้
+          </button>
+        </>
+      ) : mode === "draw" ? (
+        <>
+          <div className={cn("rounded-xl border-2 border-dashed overflow-hidden bg-gray-50", isEmpty ? "border-red-200" : "border-gray-200")}>
+            <canvas ref={canvasRef} width={600} height={100} className="w-full h-[75px] cursor-crosshair touch-none" />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">วาดลายเซ็นในกรอบด้านบน</p>
+          {!isEmpty && (
+            <button
+              type="button"
+              onClick={handleSaveForNextTime}
+              disabled={savingSig}
+              className="flex items-center gap-1 text-xs text-brand-primary hover:underline mt-1 disabled:opacity-50"
+            >
+              {savingSig ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              {justSaved ? "บันทึกแล้ว" : "บันทึกลายเซ็นนี้ไว้ใช้ครั้งหน้า"}
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png"
+            className="hidden"
+            onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 h-[75px] transition-colors overflow-hidden",
+              uploadError ? "border-red-200 bg-red-50/30" : "border-gray-200 bg-gray-50 hover:bg-white"
+            )}
+          >
+            {uploadPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={uploadPreview} alt="ลายเซ็น" className="h-full max-h-[70px] object-contain" />
+            ) : (
+              <>
+                <Upload size={16} className="text-gray-400" />
+                <span className="text-xs text-gray-400">คลิกเพื่ออัปโหลดลายเซ็น</span>
+              </>
+            )}
+          </button>
+          <p className={cn("text-xs mt-1", uploadError ? "text-red-500" : "text-gray-400")}>
+            {uploadError ?? `เฉพาะ PNG พื้นหลังโปร่งใส ขนาด ${MIN_SIGNATURE_KB}–${MAX_SIGNATURE_KB} KB`}
+          </p>
+          {uploadPreview && !uploadError && (
+            <button
+              type="button"
+              onClick={handleSaveForNextTime}
+              disabled={savingSig}
+              className="flex items-center gap-1 text-xs text-brand-primary hover:underline mt-1 disabled:opacity-50"
+            >
+              {savingSig ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              {justSaved ? "บันทึกแล้ว" : "บันทึกลายเซ็นนี้ไว้ใช้ครั้งหน้า"}
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -112,10 +369,16 @@ function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) 
 
 interface FormData {
   prefix: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   position: string;
   department: string;
-  address: string;
+  houseNo: string;
+  road: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postalCode: string;
   phone: string;
   attendees: string;
   purposeText: string;
@@ -123,23 +386,34 @@ interface FormData {
   otherBuilding: string;
 }
 
-const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่นๆ"];
+const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่น ๆ"];
 
 export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated, onPurposeChange }: DocumentFormModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [generatedFile, setGeneratedFile] = useState<File | null>(null);
   const [sig, setSig] = useState<string | null>(null);
+  const [sigMode, setSigMode] = useState<"draw" | "upload" | "saved">("draw");
+  const [showPwPrompt, setShowPwPrompt] = useState(false);
+  const [pwValue, setPwValue] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [form, setForm] = useState<FormData>({
-    prefix: "นาย",
-    fullName: "",
+    prefix: "",
+    firstName: "",
+    lastName: "",
     position: "",
     department: "",
-    address: "",
+    houseNo: "",
+    road: "",
+    subdistrict: "",
+    district: "",
+    province: "",
+    postalCode: "",
     phone: "",
     attendees: "",
     purposeText: purpose,
-    buildingType: "อื่นๆ",
+    buildingType: "อื่น ๆ",
     otherBuilding: room.name,
   });
 
@@ -190,10 +464,43 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
     onClose();
   };
 
-  const isValid = form.fullName.trim() && form.department.trim() && form.phone.trim() && form.purposeText.trim() && sig !== null;
+  // Step-up auth: re-confirm the account password before applying a reused
+  // signature (uploaded file or saved-from-before) to a new document. Not
+  // required when freshly drawn — drawing it live each time is itself proof
+  // of present intent.
+  const requestSign = () => {
+    if (sigMode === "draw") {
+      handleGenerate();
+      return;
+    }
+    setPwValue("");
+    setPwError(null);
+    setShowPwPrompt(true);
+  };
+
+  const confirmPasswordAndSign = async () => {
+    if (!pwValue) return;
+    setVerifying(true);
+    setPwError(null);
+    try {
+      await verifyPasswordApi(pwValue);
+      setShowPwPrompt(false);
+      await handleGenerate();
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "รหัสผ่านไม่ถูกต้อง");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const phoneValid = form.phone ? /^0\d{8,9}$/.test(form.phone.replace(/[-\s]/g, "")) : false;
+  const attendeesNum = parseInt(form.attendees);
+  const attendeesValid = !form.attendees || (!isNaN(attendeesNum) && attendeesNum > 0 && attendeesNum <= room.capacityMax);
+
+  const isValid = !!(form.prefix && form.firstName.trim() && form.lastName.trim() && form.position.trim() && form.department.trim() && phoneValid && attendeesValid && form.purposeText.trim() && sig !== null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm py-8 px-4">
+    <div className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm py-8 px-4">
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl">
 
         {/* Header */}
@@ -225,12 +532,14 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <div className="text-right text-[12px] mb-3">
                 <p>
                   ชื่อบริษัท/หน่วยงาน
-                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[140px] mx-1 align-bottom">
+                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[200px] mx-1 align-bottom">
                     {form.department}
                   </span>
+                </p>
+                <p>
                   ที่อยู่
-                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[150px] mx-1 align-bottom">
-                    {form.address}
+                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[300px] mx-1 align-bottom">
+                    {[form.houseNo, form.road, form.subdistrict, form.district, form.province, form.postalCode].filter(Boolean).join(" ")}
                   </span>
                 </p>
                 <p>
@@ -260,7 +569,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <div className="flex items-baseline pl-8">
                 <span className="shrink-0">ด้วยข้าพเจ้า </span>
                 <span className="flex-1 border-b border-dotted border-gray-700 ml-1 text-left">
-                  {form.prefix}{form.fullName}
+                  {form.prefix}{form.firstName} {form.lastName}
                 </span>
               </div>
               <p>
@@ -284,10 +593,10 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 {BUILDING_OPTIONS.map((opt) => (
                   <span key={opt} className="flex items-center gap-1">
                     <span className="text-base">{form.buildingType === opt ? "☑" : "□"}</span>
-                    {opt === "อื่นๆ"
-                      ? <>อื่นๆ
+                    {opt === "อื่น ๆ"
+                      ? <>อื่น ๆ
                           <span className="border-b border-dotted border-gray-700 inline-block min-w-[80px] mx-1 align-bottom text-center text-[11px]">
-                            {form.buildingType === "อื่นๆ" ? form.otherBuilding : ""}
+                            {form.buildingType === "อื่น ๆ" ? form.otherBuilding : ""}
                           </span>
                         </>
                       : opt}
@@ -368,7 +677,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                   </div>
                   {/* Name below the line */}
                   <p className="text-center mt-1">
-                    ({form.prefix}{form.fullName || "…………………………………"})
+                    ({form.firstName || form.lastName ? `${form.prefix}${form.firstName} ${form.lastName}` : "…………………………………"})
                   </p>
                 </div>
               </div>
@@ -383,22 +692,84 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               {/* Name */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  ชื่อ-นามสกุล <span className="text-red-400">*</span>
+                  คำนำหน้า <span className="text-red-400">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <select value={form.prefix} onChange={set("prefix")} className="border border-gray-200 rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                    {["นาย","นาง","นางสาว","ดร.","รศ.ดร.","ผศ.ดร.","ศ.ดร."].map((p) => <option key={p}>{p}</option>)}
-                  </select>
-                  <input type="text" value={form.fullName} onChange={set("fullName")} placeholder="ชื่อ นามสกุล"
-                    className={cn("flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30", form.fullName ? "border-gray-200" : "border-red-200")} />
-                </div>
+                <select
+                  value={form.prefix}
+                  onChange={set("prefix")}
+                  className={cn(
+                    "w-full border rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.prefix ? "border-gray-200" : "border-red-200"
+                  )}
+                >
+                  <option value="" disabled>เลือกคำนำหน้า</option>
+                  {["นาย","นาง","นางสาว","ดร.","รศ.ดร.","ผศ.ดร.","ศ.ดร."].map((p) => <option key={p}>{p}</option>)}
+                </select>
               </div>
 
-              <FField label="ตำแหน่ง" placeholder="เช่น นักศึกษา, อาจารย์" value={form.position} onChange={set("position")} />
+              <div className="flex gap-2">
+                <FField label="ชื่อ" placeholder="ชื่อจริง" value={form.firstName} onChange={set("firstName")} required className="flex-1" />
+                <FField label="นามสกุล" placeholder="นามสกุล" value={form.lastName} onChange={set("lastName")} required className="flex-1" />
+              </div>
+
+              <FField label="ตำแหน่ง" placeholder="เช่น นักศึกษา, อาจารย์" value={form.position} onChange={set("position")} required />
               <FField label="หน่วยงาน / บริษัท" placeholder="เช่น สำนักวิชาวิศวกรรมศาสตร์" value={form.department} onChange={set("department")} required />
-              <FField label="ที่อยู่" placeholder="ที่อยู่หน่วยงาน" value={form.address} onChange={set("address")} />
-              <FField label="เบอร์โทรศัพท์" placeholder="0XX-XXX-XXXX" value={form.phone} onChange={set("phone")} required type="tel" />
-              <FField label="จำนวนผู้เข้าร่วม (คน)" placeholder={`สูงสุด ${room.capacityMax} คน`} value={form.attendees} onChange={set("attendees")} type="number" />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ที่อยู่</label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <FField label="บ้านเลขที่" placeholder="123/4" value={form.houseNo} onChange={set("houseNo")} className="flex-1" />
+                    <FField label="ถนน" placeholder="ถนนมิตรภาพ" value={form.road} onChange={set("road")} className="flex-1" />
+                  </div>
+                  <div className="flex gap-2">
+                    <FField label="ตำบล / แขวง" placeholder="ตำบลสุรนารี" value={form.subdistrict} onChange={set("subdistrict")} className="flex-1" />
+                    <FField label="อำเภอ / เขต" placeholder="อำเภอเมือง" value={form.district} onChange={set("district")} className="flex-1" />
+                  </div>
+                  <div className="flex gap-2">
+                    <FField label="จังหวัด" placeholder="นครราชสีมา" value={form.province} onChange={set("province")} className="flex-1" />
+                    <FField label="รหัสไปรษณีย์" placeholder="30000" value={form.postalCode} onChange={set("postalCode")} className="w-28" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  เบอร์โทรศัพท์ <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={set("phone")}
+                  placeholder="0XX-XXX-XXXX"
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.phone && !phoneValid ? "border-red-200" : "border-gray-200"
+                  )}
+                />
+                {form.phone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-1">รูปแบบไม่ถูกต้อง — กรอกตัวเลข 10 หลัก เช่น 0812345678</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  จำนวนผู้เข้าร่วม (คน)
+                </label>
+                <input
+                  type="number"
+                  value={form.attendees}
+                  onChange={set("attendees")}
+                  placeholder={`สูงสุด ${room.capacityMax} คน`}
+                  min={1}
+                  max={room.capacityMax}
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.attendees && !attendeesValid ? "border-red-200" : "border-gray-200"
+                  )}
+                />
+                {form.attendees && !attendeesValid && (
+                  <p className="text-xs text-red-500 mt-1">เกินความจุสูงสุดของห้อง ({room.capacityMax} คน)</p>
+                )}
+              </div>
 
               {/* Building type */}
               <div>
@@ -418,7 +789,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                     </button>
                   ))}
                 </div>
-                {form.buildingType === "อื่นๆ" && (
+                {form.buildingType === "อื่น ๆ" && (
                   <input type="text" value={form.otherBuilding} onChange={set("otherBuilding")} placeholder="ระบุสถานที่"
                     className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
                 )}
@@ -443,7 +814,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               </div>
 
               {/* Signature */}
-              <SignaturePad onChange={setSig} />
+              <SignaturePad onChange={setSig} onModeChange={setSigMode} />
 
               {/* Submit */}
               {generatedFile ? (
@@ -471,7 +842,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 </div>
               ) : (
                 <>
-                  <Button onClick={handleGenerate} disabled={!isValid || generating}
+                  <Button onClick={requestSign} disabled={!isValid || generating}
                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
                     {generating
                       ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้าง PDF...</>
@@ -486,17 +857,60 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
           </div>
         </div>
       </div>
+
+      {/* Password re-confirmation before signing */}
+      {showPwPrompt && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={16} className="text-brand-primary" />
+              <h3 className="font-bold text-gray-900">ยืนยันรหัสผ่านก่อนเซ็นเอกสาร</h3>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">กรอกรหัสผ่านบัญชีของคุณเพื่อยืนยันการเซ็นเอกสารนี้</p>
+            <input
+              type="password"
+              autoFocus
+              value={pwValue}
+              onChange={(e) => setPwValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmPasswordAndSign(); }}
+              placeholder="รหัสผ่าน"
+              className={cn(
+                "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                pwError ? "border-red-300" : "border-gray-200"
+              )}
+            />
+            {pwError && <p className="text-xs text-red-500 mt-1.5">{pwError}</p>}
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setShowPwPrompt(false)}
+                className="flex-1 h-10 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                ยกเลิก
+              </button>
+              <Button
+                onClick={confirmPasswordAndSign}
+                disabled={!pwValue || verifying}
+                className="flex-1 h-10 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {verifying ? <Loader2 size={14} className="animate-spin" /> : null}
+                ยืนยันและเซ็น
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function FField({ label, placeholder, value, onChange, required, type = "text" }: {
+function FField({ label, placeholder, value, onChange, required, type = "text", className }: {
   label: string; placeholder?: string; value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean; type?: string;
+  required?: boolean; type?: string; className?: string;
 }) {
   return (
-    <div>
+    <div className={className}>
       <label className="block text-xs font-medium text-gray-600 mb-1">
         {label} {required && <span className="text-red-400">*</span>}
       </label>

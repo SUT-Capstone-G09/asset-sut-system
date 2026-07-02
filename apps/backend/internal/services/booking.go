@@ -2,12 +2,15 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
+
+const MinBookingLeadDays = 7
 
 type BookingService struct {
 	bookingRepo    *repositories.BookingRepository
@@ -67,6 +70,15 @@ func (s *BookingService) GetByID(id uint) (*dto.BookingResponse, error) {
 }
 
 func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto.BookingResponse, error) {
+	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	minBookableDate := startOfToday.AddDate(0, 0, MinBookingLeadDays)
+	for _, ts := range req.Timeslots {
+		if ts.Date.Before(minBookableDate) {
+			return nil, fmt.Errorf("ต้องจองล่วงหน้าอย่างน้อย %d วัน", MinBookingLeadDays)
+		}
+	}
+
 	pendingStatus, err := s.bookingRepo.FindStatusByName("pending")
 	if err != nil {
 		return nil, errors.New("booking status not configured")
@@ -126,6 +138,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			Date:          tsInput.Date,
 			StartTime:     tsInput.StartTime,
 			EndTime:       tsInput.EndTime,
+			IsFullDay:     tsInput.IsFullDay,
 			PriceSnapshot: priceSnapshot,
 			StatusID:      availableStatus.ID,
 		}
@@ -199,6 +212,16 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 		return 0
 	}
 
+	// Full-day booking: use the flat daily tier if the location has one configured.
+	if ts.IsFullDay {
+		for _, tier := range location.PricingTiers {
+			if tier.RequesterTypeID == requesterTypeID &&
+				tier.RateType != nil && tier.RateType.Type == "daily" {
+				return tier.Price
+			}
+		}
+	}
+
 	hours := ts.EndTime.Sub(ts.StartTime).Hours()
 	if hours <= 0 {
 		hours = 1
@@ -240,6 +263,7 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 			Date:          ts.Date,
 			StartTime:     ts.StartTime,
 			EndTime:       ts.EndTime,
+			IsFullDay:     ts.IsFullDay,
 			PriceSnapshot: ts.PriceSnapshot,
 		}
 		if ts.Location != nil {

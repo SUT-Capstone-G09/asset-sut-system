@@ -104,6 +104,12 @@ func (s *StorageService) Stream(ctx context.Context, objectKey string) (*minio.O
 	return obj, info, nil
 }
 
+// Delete removes an object from storage (used e.g. when replacing or removing
+// a user's saved signature).
+func (s *StorageService) Delete(ctx context.Context, objectKey string) error {
+	return s.client.RemoveObject(ctx, s.bucket, objectKey, minio.RemoveObjectOptions{})
+}
+
 // PresignedURL returns a temporary download URL for an object.
 func (s *StorageService) PresignedURL(ctx context.Context, objectKey string) (string, error) {
 	u, err := s.client.PresignedGetObject(ctx, s.bucket, objectKey, s.urlExpiry, nil)

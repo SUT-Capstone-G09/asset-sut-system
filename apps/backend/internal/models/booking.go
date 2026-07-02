@@ -53,6 +53,7 @@ type Timeslots struct {
 	Date          time.Time               `gorm:"type:date;not null;uniqueIndex:idx_timeslot_slot" json:"date"`
 	StartTime     time.Time               `gorm:"type:time;not null;uniqueIndex:idx_timeslot_slot" json:"start_time"`
 	EndTime       time.Time               `gorm:"type:time;not null" json:"end_time"`
+	IsFullDay     bool                    `gorm:"not null;default:false" json:"is_full_day"`
 	PriceSnapshot int                     `gorm:"not null;default:0" json:"price_snapshot"`
 	StatusID      uint                    `gorm:"not null" json:"status_id"`
 	Status        *TimeslotStatuses       `gorm:"foreignKey:StatusID" json:"status,omitempty"`

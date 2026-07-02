@@ -52,7 +52,7 @@ const STEPS = [
 
 interface BookingDraft {
   locationId: string;
-  timeslots: { date: string; startTime: string; endTime: string }[];
+  timeslots: { date: string; startTime: string; endTime: string; isFullDay?: boolean }[];
 }
 
 interface BookingConfirmViewProps {
@@ -130,6 +130,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
         date: new Date(`${ts.date}T00:00:00`).toISOString(),
         start_time: new Date(`${ts.date}T${ts.startTime}:00`).toISOString(),
         end_time: new Date(`${ts.date}T${ts.endTime}:00`).toISOString(),
+        is_full_day: !!ts.isFullDay,
       }));
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);

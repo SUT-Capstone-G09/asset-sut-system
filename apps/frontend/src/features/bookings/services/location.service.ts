@@ -84,6 +84,13 @@ function pickHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: 
   );
 }
 
+// Returns undefined when the location has no daily-rate tier configured.
+function pickDailyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number | undefined {
+  const isExternal = requesterTypeId === 2;
+  const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";
+  return tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "daily")?.price;
+}
+
 export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room {
   return {
     id: String(loc.id),
@@ -93,6 +100,7 @@ export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: [],
     image: loc.image_url ?? DEFAULT_IMAGE,
     availability: loc.status === "available" ? "ว่างทุกวัน" : "ว่างบางวัน",
@@ -108,6 +116,7 @@ export function locationDetailToRoom(loc: LocationDetailDTO, requesterTypeId?: n
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: loc.equipments?.map((e) => e.name) ?? [],
     image: loc.image_url ?? DEFAULT_IMAGE,
     availability: loc.status === "available" ? "ว่างทุกวัน" : "ว่างบางวัน",

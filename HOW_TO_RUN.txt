@@ -1,0 +1,121 @@
+============================================================
+ คู่มือการรันโปรเจกต์ Asset SUT System
+============================================================
+
+สิ่งที่ต้องมีในเครื่องก่อน:
+  - Docker Desktop (เปิดไว้ก่อนเริ่ม)
+  - Go 1.21+
+  - Node.js 20+
+
+------------------------------------------------------------
+ ขั้นตอนที่ 0: เตรียม Environment Variables (ทำครั้งแรกครั้งเดียว)
+------------------------------------------------------------
+
+cp .env.example .env
+
+แล้วเปิดไฟล์ .env แก้ค่าตามต้องการ (ค่า default ใช้รันแบบ local ได้เลย
+ไม่ต้องแก้อะไรถ้าแค่อยากรันทดสอบในเครื่องตัวเอง)
+
+------------------------------------------------------------
+ ขั้นตอนที่ 1: รัน Database + MinIO ด้วย Docker
+------------------------------------------------------------
+
+อยู่ที่ root ของโปรเจกต์ แล้วรัน:
+
+    docker-compose up -d
+
+จะได้ 2 services:
+  - postgres   -> PostgreSQL  (พอร์ต 5432)
+  - minio      -> เก็บไฟล์/รูปภาพ (พอร์ต 9000 = API, 9001 = Web Console)
+
+เช็คว่ารันแล้ว:
+    docker-compose ps
+
+ดู MinIO Web Console ได้ที่ http://localhost:9001
+  (login: minioadmin / minioadmin ตาม default ใน .env)
+
+หยุด services:
+    docker-compose down
+
+หยุดและลบข้อมูลทั้งหมด (ระวัง - ข้อมูลหายหมด):
+    docker-compose down -v
+
+------------------------------------------------------------
+ ขั้นตอนที่ 2: รัน Backend (Go)
+------------------------------------------------------------
+
+cd apps/backend
+
+# ครั้งแรกเท่านั้น: สร้างตาราง + seed ข้อมูลเริ่มต้น
+go run ./cmd/init-db
+
+# รัน API server
+go run ./cmd/serve
+
+Backend จะรันที่ http://localhost:8080
+
+ทดสอบว่า backend ทำงาน:
+    curl http://localhost:8080/health
+    -> ควรได้ {"status":"ok"}
+
+คำสั่งอื่นที่มีให้ใช้ในโฟลเดอร์ apps/backend/cmd:
+  - go run ./cmd/init-db    -> migrate ตาราง + seed ข้อมูลเริ่มต้น
+  - go run ./cmd/reset-db   -> ล้างฐานข้อมูลแล้ว seed ใหม่ทั้งหมด
+  - go run ./cmd/serve      -> รัน API server (ใช้งานจริง)
+
+------------------------------------------------------------
+ ขั้นตอนที่ 3: รัน Frontend (Next.js)
+------------------------------------------------------------
+
+เปิด terminal ใหม่อีกหน้าต่าง (ให้ backend รันค้างไว้):
+
+cd apps/frontend
+npm install      (ทำครั้งแรก หรือเมื่อ package.json เปลี่ยน)
+npm run dev
+
+Frontend จะรันที่ http://localhost:3001 (หรือ 3000 ถ้าพอร์ตว่าง)
+
+คำสั่งอื่นที่มีให้ใช้ในโฟลเดอร์ apps/frontend:
+  - npm run dev      -> รันโหมด dev (มี hot reload)
+  - npm run build    -> build โปรเจกต์สำหรับ production
+  - npm run start    -> รันโปรเจกต์ที่ build แล้ว
+  - npm run lint     -> ตรวจสอบ code style ด้วย eslint
+
+------------------------------------------------------------
+ ลำดับการรันทั้งหมด (สรุปสั้นๆ)
+------------------------------------------------------------
+
+1. cp .env.example .env              (ทำครั้งแรกเท่านั้น)
+2. docker-compose up -d              (เปิด DB + MinIO)
+3. cd apps/backend && go run ./cmd/init-db   (ทำครั้งแรกเท่านั้น)
+4. cd apps/backend && go run ./cmd/serve     (รัน backend)
+5. cd apps/frontend && npm run dev           (รัน frontend คนละ terminal)
+
+------------------------------------------------------------
+ ผู้ใช้งานเริ่มต้น (หลังรัน init-db แล้ว)
+------------------------------------------------------------
+
+  Role       Email                 Password
+  ---------  --------------------  -----------
+  Admin      admin@example.com     admin
+  Staff      staff@example.com     12345678
+  Requester  user@gmail.com        12345678
+
+------------------------------------------------------------
+ ปัญหาที่พบบ่อย
+------------------------------------------------------------
+
+- เปิด frontend แล้วเรียก backend ไม่ได้
+  -> เช็คว่า backend รันอยู่ที่ port 8080 และค่า NEXT_PUBLIC_API_URL ใน .env
+     ตรงกับ http://localhost:8080/api/v1
+
+- อัปโหลดรูป/ไฟล์ไม่ได้
+  -> เช็คว่า MinIO รันอยู่ (docker-compose ps) และ container ชื่อ "minio"
+     status เป็น healthy
+
+- รัน go run ./cmd/serve แล้ว error ต่อ database ไม่ได้
+  -> เช็คว่า docker-compose up -d รันแล้ว และ container "postgres_db"
+     status เป็น healthy (รอสักพักหลัง docker-compose up)
+
+- อยากล้างข้อมูลแล้วเริ่มใหม่
+  -> cd apps/backend && go run ./cmd/reset-db

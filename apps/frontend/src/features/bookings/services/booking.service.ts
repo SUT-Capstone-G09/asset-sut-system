@@ -6,6 +6,7 @@ export interface TimeslotInput {
   date: string; // ISO string
   start_time: string; // ISO string
   end_time: string; // ISO string
+  is_full_day?: boolean;
   addon_ids?: number[];
 }
 
@@ -27,6 +28,7 @@ export interface TimeslotResponseDTO {
   date: string;
   start_time: string;
   end_time: string;
+  is_full_day: boolean;
   price_snapshot: number;
   status: string;
   addons: { id: number; addon_name: string; applied_price: number; quantity: number; total_price: number }[];

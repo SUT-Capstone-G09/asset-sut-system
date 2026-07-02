@@ -26,6 +26,7 @@ type Dependencies struct {
 	EmailController         *controllers.EmailController
 	EmailTemplateController *controllers.EmailTemplateController
 	ImageController         *controllers.ImageController
+	SignatureController     *controllers.SignatureController
 	PermissionChecker       middleware.PermissionChecker
 }
 
@@ -55,5 +56,6 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupLocationRoutes(v1, deps)
 		SetupBookingRoutes(v1, deps)
 		SetupDocumentRoutes(v1, deps)
+		SetupSignatureRoutes(v1, deps)
 	}
 }
