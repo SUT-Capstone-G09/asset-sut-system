@@ -78,7 +78,7 @@ func (s *AdminService) Create(req dto.CreateAdminRequest) (*dto.AdminResponse, e
 		return nil, err
 	}
 
-	admin := &models.Admins{
+	admin := &models.Profiles{
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Phone:     req.Phone,
@@ -143,7 +143,7 @@ func (s *AdminService) GetProfile(userID uint) (*dto.AdminResponse, error) {
 	return &res, nil
 }
 
-func toAdminResponse(a models.Admins) dto.AdminResponse {
+func toAdminResponse(a models.Profiles) dto.AdminResponse {
 	res := dto.AdminResponse{
 		ID:        a.ID,
 		FirstName: a.FirstName,

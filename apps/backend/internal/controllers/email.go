@@ -15,23 +15,22 @@ func NewEmailController(emailService *services.EmailService) *EmailController {
 	return &EmailController{emailService: emailService}
 }
 
-func (c *EmailController) SendTest(ctx *gin.Context) {
+func (c *EmailController) SendEmail(ctx *gin.Context) {
 	var req dto.SendTestEmailRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	err := c.emailService.Send(req.To, "booking.approved", map[string]any{
-		"userName":   req.UserName,
-		"assetName":  req.AssetName,
-		"amount":     req.Amount,
-		"paymentUrl": req.PaymentURL,
-	})
-	if err != nil {
-		response.InternalError(ctx, err.Error())
+	key := req.Key
+	if key == "" {
+		key = "booking.approved"
+	}
+
+	if err := c.emailService.Send(req.To, key, req.Data); err != nil {
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	response.OK(ctx, gin.H{"message": "email queued for delivery", "to": req.To})
+	response.OK(ctx, gin.H{"message": "email queued for delivery", "to": req.To, "key": key})
 }

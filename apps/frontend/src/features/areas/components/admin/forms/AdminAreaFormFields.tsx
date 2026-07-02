@@ -17,7 +17,7 @@ import {
   User,
   UploadCloud
 } from "lucide-react";
-import { AREA_CATEGORIES, BUILDINGS } from "../../../data/constants";
+import { AREA_CATEGORIES, BUILDINGS } from "../../../constants";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AreaFormValues } from "../../../schemas/area-schema";

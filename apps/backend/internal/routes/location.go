@@ -23,32 +23,32 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		mgmt := locations.Group("")
 		mgmt.Use(auth, middleware.RequireRole("staff", "admin"))
 		{
-			mgmt.POST("", lc.Create)
-			mgmt.PUT("/:id", lc.Update)
+			mgmt.POST("", middleware.RequirePermission("location_mgmt", "create"), lc.Create)
+			mgmt.PUT("/:id", middleware.RequirePermission("location_mgmt", "update"), lc.Update)
 
-			mgmt.GET("/:id/unavailabilities", lc.GetUnavailabilities)
-			mgmt.POST("/:id/unavailabilities", lc.CreateUnavailability)
-			mgmt.DELETE("/:id/unavailabilities/:uid", lc.DeleteUnavailability)
+			mgmt.GET("/:id/unavailabilities", middleware.RequirePermission("location_mgmt", "read"), lc.GetUnavailabilities)
+			mgmt.POST("/:id/unavailabilities", middleware.RequirePermission("location_mgmt", "update"), lc.CreateUnavailability)
+			mgmt.DELETE("/:id/unavailabilities/:uid", middleware.RequirePermission("location_mgmt", "update"), lc.DeleteUnavailability)
 
-			mgmt.POST("/:id/equipments", lc.AddEquipment)
-			mgmt.DELETE("/:id/equipments/:eid", lc.RemoveEquipment)
+			mgmt.POST("/:id/equipments", middleware.RequirePermission("location_mgmt", "update"), lc.AddEquipment)
+			mgmt.DELETE("/:id/equipments/:eid", middleware.RequirePermission("location_mgmt", "update"), lc.RemoveEquipment)
 
-			mgmt.POST("/:id/addons", lc.CreateAddon)
-			mgmt.PUT("/:id/addons/:aid", lc.UpdateAddon)
-			mgmt.DELETE("/:id/addons/:aid", lc.DeleteAddon)
+			mgmt.POST("/:id/addons", middleware.RequirePermission("location_mgmt", "update"), lc.CreateAddon)
+			mgmt.PUT("/:id/addons/:aid", middleware.RequirePermission("location_mgmt", "update"), lc.UpdateAddon)
+			mgmt.DELETE("/:id/addons/:aid", middleware.RequirePermission("location_mgmt", "update"), lc.DeleteAddon)
 
-			mgmt.POST("/:id/pricing-tiers", lc.CreatePricingTier)
-			mgmt.DELETE("/:id/pricing-tiers/:tid", lc.DeletePricingTier)
+			mgmt.POST("/:id/pricing-tiers", middleware.RequirePermission("location_mgmt", "update"), lc.CreatePricingTier)
+			mgmt.DELETE("/:id/pricing-tiers/:tid", middleware.RequirePermission("location_mgmt", "update"), lc.DeletePricingTier)
 		}
 
 		// Admin-only: delete location, manage staff assignments per location
 		adminOnly := locations.Group("")
 		adminOnly.Use(auth, middleware.RequireRole("admin"))
 		{
-			adminOnly.DELETE("/:id", lc.Delete)
-			adminOnly.GET("/:id/staff", lc.GetLocationStaff)
-			adminOnly.POST("/:id/staff", lc.AssignStaff)
-			adminOnly.DELETE("/:id/staff/:uid", lc.UnassignStaff)
+			adminOnly.DELETE("/:id", middleware.RequirePermission("location_mgmt", "delete"), lc.Delete)
+			adminOnly.GET("/:id/staff", middleware.RequirePermission("location_mgmt", "read"), lc.GetLocationStaff)
+			adminOnly.POST("/:id/staff", middleware.RequirePermission("location_mgmt", "update"), lc.AssignStaff)
+			adminOnly.DELETE("/:id/staff/:uid", middleware.RequirePermission("location_mgmt", "update"), lc.UnassignStaff)
 		}
 	}
 }

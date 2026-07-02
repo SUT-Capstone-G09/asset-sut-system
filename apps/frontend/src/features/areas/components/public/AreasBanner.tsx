@@ -1,90 +1,37 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 
 export default function AreasBanner() {
   return (
-    <section
-      className="
-        relative w-full h-[85vh] min-h-[700px] 
-        flex items-center overflow-hidden 
-        bg-[#fcfcfc]
-      "
-    >
+    <section className="relative w-full h-[85vh] min-h-[700px] flex items-center overflow-hidden bg-[#fcfcfc]">
       {/* Background Image */}
-      <div
-        className="
-          absolute inset-0 z-0
-          [mask-image:linear-gradient(to_bottom,black_84%,transparent_100%)]
-        "
-      >
+      <div className="absolute inset-0 z-0 [mask-image:linear-gradient(to_bottom,black_84%,transparent_100%)]">
         <div
-          className="
-            absolute inset-0 
-            bg-cover bg-center 
-            transition-transform duration-[20s] hover:scale-105
-          "
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] hover:scale-105"
           style={{ backgroundImage: "url('/Banner-Space.png')" }}
         />
         {/* gradient for text box */}
-        <div
-          className="
-            absolute inset-0 z-10
-            bg-gradient-to-r from-black/80 via-black/20 to-transparent 
-          "
-        />
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
       </div>
 
       {/* Content Container */}
-      <div
-        className="
-          container mx-auto px-8 md:px-20 
-          relative z-20 
-          flex justify-start items-center
-        "
-      >
-        <div
-          className="
-            max-w-xl space-y-8 
-            flex flex-col items-start text-left
-          "
-        >
-          <div
-            className="
-              text-[9px] font-black uppercase tracking-[0.6em] 
-              text-[#f26522] opacity-80 mb-2
-            "
-          >
+      <div className="container mx-auto px-8 md:px-20 relative z-20 flex justify-start items-center">
+        <div className="max-w-xl space-y-8 flex flex-col items-start text-left">
+          <div className="text-[9px] font-black uppercase tracking-[0.6em] text-[#f26522] opacity-80 mb-2">
             SUT Asset Management
           </div>
 
-          <h1
-            className="
-              text-6xl md:text-7xl font-black uppercase 
-              text-white leading-[0.9] tracking-tighter
-            "
-          >
+          <h1 className="text-6xl md:text-7xl font-black uppercase text-white leading-[0.9] tracking-tighter">
             YOUR NEXT <br />
             <span className="text-[#f26522]">BUSINESS</span> <br />
             SPACE
           </h1>
 
-          <p
-            className="
-              max-w-sm text-lg font-medium italic leading-relaxed tracking-wide 
-              text-white/60
-            "
-          >
+          <p className="max-w-sm text-lg font-medium italic leading-relaxed tracking-wide text-white/60">
             พื้นที่สร้างสรรค์เพื่อโอกาสใหม่ทางธุรกิจและการเติบโตร่วมกับมหาวิทยาลัย
           </p>
 
           <div className="pt-4">
-            <Button
-              className="
-                h-14 px-10 
-                bg-[#f26522] hover:bg-[#dd5b1c] text-white 
-                rounded-[7px] font-bold text-sm tracking-wide 
-                transition-all
-              "
-            >
+            <Button className="h-14 px-10 bg-[#f26522] hover:bg-[#dd5b1c] text-white rounded-[7px] font-bold text-sm tracking-wide transition-all">
               ค้นหาพื้นที่ธุรกิจ
             </Button>
           </div>

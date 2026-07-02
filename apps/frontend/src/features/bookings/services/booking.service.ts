@@ -58,11 +58,13 @@ export interface BookingResponseDTO {
 }
 
 export async function getMyBookings(): Promise<BookingResponseDTO[]> {
-  return apiClient.get<BookingResponseDTO[]>("/bookings/my");
+  const data = await apiClient.get<BookingResponseDTO[] | null>("/bookings/my");
+  return data ?? [];
 }
 
 export async function getAllBookings(): Promise<BookingResponseDTO[]> {
-  return apiClient.get<BookingResponseDTO[]>("/bookings");
+  const data = await apiClient.get<BookingResponseDTO[] | null>("/bookings");
+  return data ?? [];
 }
 
 export async function getBookingById(id: number): Promise<BookingResponseDTO> {

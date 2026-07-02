@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Building2 } from "lucide-react";
-import BookingHeader from "@/features/booking/components/admin/BookingHeader";
+import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";
 import { useRoomFilters } from "@/features/booking/hooks/useRoomFilters";
+import { usePermission } from "@/hooks/usePermission";
 
 const BREADCRUMBS = [
   { label: "Staff", href: "/staff" },
@@ -36,6 +37,7 @@ export default function StaffManageRoomsPage() {
   } = useRoomFilters();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const canCreate = usePermission("location_mgmt:create");
 
   // Staff with no assigned locations
   if (!loading && filteredRooms.length === 0 && searchQuery === "" &&
@@ -45,8 +47,8 @@ export default function StaffManageRoomsPage() {
         <BookingHeader
           title="จัดการข้อมูลห้องเรียนและห้องประชุม"
           breadcrumbs={BREADCRUMBS}
-          onCreateClick={() => setIsCreateOpen(true)}
-          buttonLabel="เพิ่มข้อมูลห้อง"
+          onCreateClick={canCreate ? () => setIsCreateOpen(true) : undefined}
+          buttonLabel={canCreate ? "เพิ่มข้อมูลห้อง" : undefined}
         />
         <div className="mt-16 flex flex-col items-center justify-center py-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
           <div className="p-6 bg-white rounded-xl shadow-lg shadow-slate-100 mb-5">
@@ -56,12 +58,14 @@ export default function StaffManageRoomsPage() {
           <p className="text-sm text-slate-400 mt-1 text-center max-w-xs">
             คุณยังไม่ได้รับมอบหมายให้ดูแลสถานที่ใด กรุณาติดต่อผู้ดูแลระบบ (Admin) เพื่อ assign สถานที่ให้กับบัญชีของคุณ
           </p>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="mt-6 px-5 py-2.5 bg-[#f26522] hover:bg-[#f26522]/90 text-white text-sm font-bold rounded-xl transition-colors"
-          >
-            สร้างสถานที่ใหม่
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="mt-6 px-5 py-2.5 bg-[#f26522] hover:bg-[#f26522]/90 text-white text-sm font-bold rounded-xl transition-colors"
+            >
+              สร้างสถานที่ใหม่
+            </button>
+          )}
         </div>
 
         <RoomCreateDrawer
@@ -78,8 +82,8 @@ export default function StaffManageRoomsPage() {
       <BookingHeader
         title="จัดการข้อมูลห้องเรียนและห้องประชุม"
         breadcrumbs={BREADCRUMBS}
-        onCreateClick={() => setIsCreateOpen(true)}
-        buttonLabel="เพิ่มข้อมูลห้อง"
+        onCreateClick={canCreate ? () => setIsCreateOpen(true) : undefined}
+        buttonLabel={canCreate ? "เพิ่มข้อมูลห้อง" : undefined}
       />
 
       <RoomFilters

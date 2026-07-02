@@ -3,10 +3,7 @@ package models
 var AllEntities = []any{
 	// User management
 	&Users{},
-	&Admins{},
-	&Staffs{},
 	&RequesterTypes{},
-	&Requesters{},
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
@@ -24,6 +21,15 @@ var AllEntities = []any{
 	&LocationAddons{},
 	&RateTypes{},
 	&LocationPricingTiers{},
+
+	// Area
+	&Buildings{},
+	&Areas{},
+	&AreaImages{},
+	&AreaTags{},
+	&FloorPlans{},
+	&MapLayers{},
+	&MapElements{},
 
 	// Booking
 	&BookingStatuses{},
@@ -47,4 +53,35 @@ var AllEntities = []any{
 
 	// Email
 	&EmailTemplate{},
+	&EmailBroadcast{},
+	&EmailOutbox{},
+
+	// Tenant
+	&TenantProfiles{},
+	&TenantContacts{},
+	&TenantKYC{},
+
+	// Contract
+	&BusinessTypes{},
+	&Contracts{},
+	&ContractHistory{},
+	&ContractInvoices{},
+	//Envelope
+	&DocumentEnvelopes{},
+	&EnvelopeOrders{},
+	&EnvelopePayments{},
+	&OrderDeliveries{},
+	&Receipts{},
+	// Evaluation
+	&GradeSettings{},
+	&EvaluationCriteria{},
+	&Evaluations{},
+	&EvaluationsDetail{},
+
+	// News
+	&NewsCategories{},
+	&NewsAnnouncements{},
+	&NewsLeaseOffers{},
+	&NewsLogs{},
+	&NewsViews{},
 }

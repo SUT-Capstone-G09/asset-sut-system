@@ -57,7 +57,7 @@ export default function Navbar() {
     },
     { label: "พื้นที่ในการดูแล", href: "/areas" },
     { label: "ประชาสัมพันธ์", href: "/news" },
-    { label: "ติดต่อเรา", href: "/requests" },
+    { label: "ติดต่อเรา", href: "/contact-us" },
   ];
 
   // เมนูสำหรับผู้ใช้งานที่ Login แล้ว (แยกตาม Role)
@@ -82,7 +82,7 @@ export default function Navbar() {
     },
     {
       label: "แจ้งปัญหา",
-      href: user.role === "operator" ? "/operator/report" : "/user/report",
+      href: user.role === "operator" ? "/operator/report" : "/user/requests",
       icon: AlertCircle,
       show: user.role !== "admin",
     },

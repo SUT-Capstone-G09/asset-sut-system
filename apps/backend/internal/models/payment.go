@@ -42,6 +42,6 @@ type PaymentTransactions struct {
 	StatusID       uint             `gorm:"not null" json:"status_id"`
 	Status         *PaymentStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	VerifyBy       *uint            `json:"verify_by"`
-	Verifier       *Staffs          `gorm:"foreignKey:VerifyBy;references:ID" json:"verifier,omitempty"`
+	Verifier       *Profiles        `gorm:"foreignKey:VerifyBy;references:ID" json:"verifier,omitempty"`
 	PaidAt         *time.Time       `json:"paid_at"`
 }

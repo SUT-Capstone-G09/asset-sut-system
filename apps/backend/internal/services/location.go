@@ -13,11 +13,12 @@ import (
 type LocationService struct {
 	locationRepo *repositories.LocationRepository
 	timeslotRepo *repositories.TimeslotRepository
+	staffRepo    *repositories.StaffRepository
 	storage      *StorageService
 }
 
-func NewLocationService(locationRepo *repositories.LocationRepository, timeslotRepo *repositories.TimeslotRepository, storage *StorageService) *LocationService {
-	return &LocationService{locationRepo: locationRepo, timeslotRepo: timeslotRepo, storage: storage}
+func NewLocationService(locationRepo *repositories.LocationRepository, timeslotRepo *repositories.TimeslotRepository, staffRepo *repositories.StaffRepository, storage *StorageService) *LocationService {
+	return &LocationService{locationRepo: locationRepo, timeslotRepo: timeslotRepo, staffRepo: staffRepo, storage: storage}
 }
 
 func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
@@ -151,9 +152,9 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 		}
 		if sl.User != nil {
 			res.Email = sl.User.Email
-			if sl.User.Staff != nil {
-				res.FirstName = sl.User.Staff.FirstName
-				res.LastName = sl.User.Staff.LastName
+			if sl.User.Profiles != nil {
+				res.FirstName = sl.User.Profiles.FirstName
+				res.LastName = sl.User.Profiles.LastName
 			}
 		}
 		result = append(result, res)
@@ -170,8 +171,12 @@ func (s *LocationService) UnassignStaff(locationID, staffUserID uint) error {
 	return s.locationRepo.UnassignStaff(staffUserID, locationID)
 }
 
-func (s *LocationService) GetStaffLocations(staffUserID uint) ([]dto.LocationResponse, error) {
-	locations, err := s.locationRepo.FindByStaffID(staffUserID)
+func (s *LocationService) GetStaffLocations(staffID uint) ([]dto.LocationResponse, error) {
+	staff, err := s.staffRepo.FindByID(staffID)
+	if err != nil {
+		return nil, err
+	}
+	locations, err := s.locationRepo.FindByStaffID(staff.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +187,12 @@ func (s *LocationService) GetStaffLocations(staffUserID uint) ([]dto.LocationRes
 	return result, nil
 }
 
-func (s *LocationService) SetStaffLocations(staffUserID uint, locationIDs []uint) error {
-	return s.locationRepo.SetStaffLocations(staffUserID, locationIDs)
+func (s *LocationService) SetStaffLocations(staffID uint, locationIDs []uint) error {
+	staff, err := s.staffRepo.FindByID(staffID)
+	if err != nil {
+		return err
+	}
+	return s.locationRepo.SetStaffLocations(staff.UserID, locationIDs)
 }
 
 // ── Unavailabilities ─────────────────────────────────────────────────────────

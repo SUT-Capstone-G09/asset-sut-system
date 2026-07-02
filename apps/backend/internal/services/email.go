@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"log"
+	"regexp"
+	"strings"
 	texttemplate "text/template"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 	"gopkg.in/gomail.v2"
 )
@@ -18,8 +22,11 @@ import (
 var emailTemplateFS embed.FS
 
 const (
-	emailQueueSize   = 100
-	emailMaxAttempts = 3
+	emailQueueSize     = 100
+	emailMaxAttempts   = 3
+	emailSendTimeout   = 30 * time.Second
+	outboxPollInterval = 3 * time.Second
+	outboxBatchSize    = 20
 )
 
 type emailTemplate struct {
@@ -44,15 +51,16 @@ type emailJob struct {
 }
 
 type EmailService struct {
-	cfg      config.SMTPConfig
-	dialer   *gomail.Dialer
-	htmlTmpl *template.Template
-	textTmpl *texttemplate.Template
-	repo     *repositories.EmailTemplateRepository
-	queue    chan emailJob
+	cfg        config.SMTPConfig
+	dialer     *gomail.Dialer
+	htmlTmpl   *template.Template
+	textTmpl   *texttemplate.Template
+	repo       *repositories.EmailTemplateRepository
+	outboxRepo *repositories.EmailOutboxRepository
+	queue      chan emailJob
 }
 
-func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepository) (*EmailService, error) {
+func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepository, outboxRepo *repositories.EmailOutboxRepository) (*EmailService, error) {
 	htmlTmpl, err := template.ParseFS(emailTemplateFS, "templates/email/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse html email templates: %w", err)
@@ -63,17 +71,31 @@ func NewEmailService(cfg config.SMTPConfig, repo *repositories.EmailTemplateRepo
 	}
 
 	s := &EmailService{
-		cfg:      cfg,
-		dialer:   gomail.NewDialer(cfg.Host, cfg.Port, cfg.Username, cfg.Password),
-		htmlTmpl: htmlTmpl,
-		textTmpl: textTmpl,
-		repo:     repo,
-		queue:    make(chan emailJob, emailQueueSize),
+		cfg:        cfg,
+		dialer:     gomail.NewDialer(cfg.Host, cfg.Port, cfg.Username, cfg.Password),
+		htmlTmpl:   htmlTmpl,
+		textTmpl:   textTmpl,
+		repo:       repo,
+		outboxRepo: outboxRepo,
+		queue:      make(chan emailJob, emailQueueSize),
 	}
 
 	go s.worker()
 
+	if outboxRepo != nil {
+		if n, err := outboxRepo.RequeueStuckSending(); err != nil {
+			log.Printf("outbox: failed to requeue stuck rows on startup: %v", err)
+		} else if n > 0 {
+			log.Printf("outbox: requeued %d stuck 'sending' rows on startup", n)
+		}
+		go s.outboxWorker()
+	}
+
 	return s, nil
+}
+
+func (s *EmailService) Render(key string, data map[string]any) (subject, html, text string, err error) {
+	return s.render(key, data)
 }
 
 func (s *EmailService) Send(to, key string, data map[string]any) error {
@@ -102,7 +124,7 @@ func (s *EmailService) render(key string, data map[string]any) (subject, html, t
 			if err != nil {
 				return "", "", "", fmt.Errorf("render db body for %q: %w", key, err)
 			}
-			return subject, html, "", nil
+			return subject, html, htmlToText(html), nil
 		}
 	}
 
@@ -139,19 +161,8 @@ func (s *EmailService) worker() {
 }
 
 func (s *EmailService) deliver(job emailJob) {
-	m := gomail.NewMessage()
-	m.SetHeader("From", m.FormatAddress(s.cfg.From, s.cfg.FromName))
-	m.SetHeader("To", job.to)
-	m.SetHeader("Subject", job.subject)
-	if job.text != "" {
-		m.SetBody("text/plain", job.text)
-		m.AddAlternative("text/html", job.html)
-	} else {
-		m.SetBody("text/html", job.html)
-	}
-
 	for attempt := 1; attempt <= emailMaxAttempts; attempt++ {
-		if err := s.dialer.DialAndSend(m); err == nil {
+		if err := s.sendWithTimeout(s.buildMessage(job)); err == nil {
 			log.Printf("email sent to %s (subject=%q)", job.to, job.subject)
 			return
 		} else {
@@ -164,8 +175,77 @@ func (s *EmailService) deliver(job emailJob) {
 	log.Printf("email permanently failed to %s after %d attempts (subject=%q)", job.to, emailMaxAttempts, job.subject)
 }
 
+func (s *EmailService) buildMessage(job emailJob) *gomail.Message {
+	m := gomail.NewMessage()
+	m.SetHeader("From", m.FormatAddress(s.cfg.From, s.cfg.FromName))
+	m.SetHeader("To", job.to)
+	m.SetHeader("Subject", job.subject)
+	if job.text != "" {
+		m.SetBody("text/plain", job.text)
+		m.AddAlternative("text/html", job.html)
+	} else {
+		m.SetBody("text/html", job.html)
+	}
+	return m
+}
+
+func (s *EmailService) sendWithTimeout(m *gomail.Message) error {
+	done := make(chan error, 1)
+	go func() {
+		done <- s.dialer.DialAndSend(m)
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(emailSendTimeout):
+		return fmt.Errorf("smtp send timed out after %s", emailSendTimeout)
+	}
+}
+
+func (s *EmailService) outboxWorker() {
+	ticker := time.NewTicker(outboxPollInterval)
+	defer ticker.Stop()
+	for range ticker.C {
+		rows, err := s.outboxRepo.ClaimPending(outboxBatchSize)
+		if err != nil {
+			log.Printf("outbox: claim pending failed: %v", err)
+			continue
+		}
+		for _, row := range rows {
+			s.deliverOutbox(row)
+		}
+	}
+}
+
+func (s *EmailService) deliverOutbox(row models.EmailOutbox) {
+	attempts := row.Attempts + 1
+	m := s.buildMessage(emailJob{to: row.ToEmail, subject: row.Subject, html: row.HTML, text: row.Text})
+
+	if err := s.sendWithTimeout(m); err != nil {
+		if attempts >= emailMaxAttempts {
+			log.Printf("outbox: permanently failed id=%d to=%s after %d attempts: %v", row.ID, row.ToEmail, attempts, err)
+			if e := s.outboxRepo.MarkFailed(row.ID, attempts, err.Error()); e != nil {
+				log.Printf("outbox: mark failed id=%d error: %v", row.ID, e)
+			}
+			return
+		}
+		log.Printf("outbox: attempt %d/%d failed id=%d to=%s: %v", attempts, emailMaxAttempts, row.ID, row.ToEmail, err)
+		if e := s.outboxRepo.MarkRetry(row.ID, attempts, err.Error()); e != nil {
+			log.Printf("outbox: mark retry id=%d error: %v", row.ID, e)
+		}
+		return
+	}
+
+	if e := s.outboxRepo.MarkSent(row.ID); e != nil {
+		log.Printf("outbox: mark sent id=%d error: %v", row.ID, e)
+	}
+	log.Printf("outbox: sent id=%d to=%s", row.ID, row.ToEmail)
+}
+
 func renderTextString(name, tmplStr string, data map[string]any) (string, error) {
-	t, err := texttemplate.New(name).Parse(tmplStr)
+	// missingkey=error makes a referenced-but-unprovided variable fail the render
+	// instead of silently emitting "<no value>" into the email sent to the user.
+	t, err := texttemplate.New(name).Option("missingkey=error").Parse(tmplStr)
 	if err != nil {
 		return "", err
 	}
@@ -176,8 +256,30 @@ func renderTextString(name, tmplStr string, data map[string]any) (string, error)
 	return b.String(), nil
 }
 
+var (
+	reScriptStyle = regexp.MustCompile(`(?is)<(script|style)[^>]*>.*?</(script|style)>`)
+	reBlockBreak  = regexp.MustCompile(`(?i)<(br|/p|/div|/tr|/h[1-6]|/li)\s*/?>`)
+	reTag         = regexp.MustCompile(`<[^>]+>`)
+	reLeadWS      = regexp.MustCompile(`(?m)^[ \t]+`)
+	reTrailWS     = regexp.MustCompile(`[ \t]+\n`)
+	reBlankLines  = regexp.MustCompile(`\n{3,}`)
+)
+
+func htmlToText(htmlBody string) string {
+	s := reScriptStyle.ReplaceAllString(htmlBody, "")
+	s = reBlockBreak.ReplaceAllString(s, "\n")
+	s = reTag.ReplaceAllString(s, "")
+	s = html.UnescapeString(s)
+	s = reLeadWS.ReplaceAllString(s, "")
+	s = reTrailWS.ReplaceAllString(s, "\n")
+	s = reBlankLines.ReplaceAllString(s, "\n\n")
+	return strings.TrimSpace(s)
+}
+
 func renderHTMLString(name, tmplStr string, data map[string]any) (string, error) {
-	t, err := template.New(name).Parse(tmplStr)
+	// See renderTextString: fail loud on missing variables rather than shipping
+	// "<no value>" to recipients.
+	t, err := template.New(name).Option("missingkey=error").Parse(tmplStr)
 	if err != nil {
 		return "", err
 	}

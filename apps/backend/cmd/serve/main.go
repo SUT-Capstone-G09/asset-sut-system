@@ -46,29 +46,33 @@ func main() {
 	paymentRepo := repositories.NewPaymentRepository(db)
 	documentRepo := repositories.NewDocumentRepository(db)
 	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
-	signatureRepo := repositories.NewSignatureRepository(db)
+	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
+	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
+	recipientRepo := repositories.NewRecipientRepository(db)
 
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
-	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, cfg.JWT.Secret)
+	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
 	adminService := services.NewAdminService(userRepo, adminRepo, roleRepo)
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
 	roleService := services.NewRoleService(roleRepo, permissionRepo)
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
-	locationService := services.NewLocationService(locationRepo, timeslotRepo, storageService)
+	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo)
 	documentService := services.NewDocumentService(documentRepo)
-	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo)
+	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {
 		log.Fatalf("failed to init email service: %v", err)
 	}
 	emailTemplateService := services.NewEmailTemplateService(emailTemplateRepo)
-	signatureService := services.NewSignatureService(signatureRepo, storageService)
+	emailBroadcastService := services.NewEmailBroadcastService(
+		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
+	)
 
 	// ----------------------------------------
 	// Controllers
@@ -99,6 +103,7 @@ func main() {
 	uploadCtrl := controllers.NewUploadController(storageService, driveService, cfg.GDrive.FolderRoutes)
 	emailCtrl := controllers.NewEmailController(emailService)
 	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
+	emailBroadcastCtrl := controllers.NewEmailBroadcastController(emailBroadcastService)
 	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
 	signatureCtrl := controllers.NewSignatureController(signatureService)
 
@@ -108,22 +113,21 @@ func main() {
 	r := gin.Default()
 
 	routes.SetupRoutes(r, &routes.Dependencies{
-		Config:                  cfg,
-		AuthController:          authCtrl,
-		AdminController:         adminCtrl,
-		StaffController:         staffCtrl,
-		RequesterController:     requesterCtrl,
-		RoleController:          roleCtrl,
-		LocationController:      locationCtrl,
-		BookingController:       bookingCtrl,
-		PaymentController:       paymentCtrl,
-		DocumentController:      documentCtrl,
-		UploadController:        uploadCtrl,
-		EmailController:         emailCtrl,
-		EmailTemplateController: emailTemplateCtrl,
-		ImageController:         imageCtrl,
-		SignatureController:     signatureCtrl,
-		PermissionChecker:       permissionRepo,
+		Config:                   cfg,
+		AuthController:           authCtrl,
+		AdminController:          adminCtrl,
+		StaffController:          staffCtrl,
+		RequesterController:      requesterCtrl,
+		RoleController:           roleCtrl,
+		LocationController:       locationCtrl,
+		BookingController:        bookingCtrl,
+		PaymentController:        paymentCtrl,
+		DocumentController:       documentCtrl,
+		UploadController:         uploadCtrl,
+		EmailController:          emailCtrl,
+		EmailTemplateController:  emailTemplateCtrl,
+		EmailBroadcastController: emailBroadcastCtrl,
+		ImageController:          imageCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

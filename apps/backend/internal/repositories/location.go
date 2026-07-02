@@ -12,7 +12,7 @@ import (
 func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, error) {
 	var locs []models.Locations
 	err := r.db.
-		Joins("JOIN staff_locations sl ON sl.location_id = locations.id AND sl.deleted_at IS NULL").
+		Joins("JOIN staff_locations sl ON sl.location_id = locations.id").
 		Where("sl.user_id = ?", staffID).
 		Preload("Type").
 		Preload("Status").
@@ -26,7 +26,7 @@ func (r *LocationRepository) FindStaffByLocationID(locationID uint) ([]models.St
 	var items []models.StaffLocations
 	err := r.db.
 		Where("location_id = ?", locationID).
-		Preload("User.Staff").
+		Preload("User.Profiles").
 		Find(&items).Error
 	return items, err
 }

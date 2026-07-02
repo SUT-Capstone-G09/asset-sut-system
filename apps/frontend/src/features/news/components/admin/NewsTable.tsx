@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { History, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Pencil, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,10 +35,11 @@ export const NewsTable = () => {
         <Table>
           <TableHeader className="bg-gray-50/50">
             <TableRow>
-              <TableHead className="w-[45%] text-gray-600 font-semibold py-4">หัวข้อข่าว</TableHead>
-              <TableHead className="w-[15%] text-gray-600 font-semibold py-4">หมวดหมู่</TableHead>
-              <TableHead className="w-[15%] text-gray-600 font-semibold py-4">วันที่อัปเดต</TableHead>
-              <TableHead className="w-[15%] text-gray-600 font-semibold py-4">สถานะ</TableHead>
+              <TableHead className="w-[40%] text-gray-600 font-semibold py-4">หัวข้อข่าว</TableHead>
+              <TableHead className="w-[13%] text-gray-600 font-semibold py-4">หมวดหมู่</TableHead>
+              <TableHead className="w-[13%] text-gray-600 font-semibold py-4">วันที่อัปเดต</TableHead>
+              <TableHead className="w-[12%] text-gray-600 font-semibold py-4">ยอดเข้าชม</TableHead>
+              <TableHead className="w-[12%] text-gray-600 font-semibold py-4">สถานะ</TableHead>
               <TableHead className="text-right text-gray-600 font-semibold py-4 pr-6">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
@@ -75,6 +76,12 @@ export const NewsTable = () => {
                 </TableCell>
                 <TableCell className="py-4 text-gray-600 text-sm">
                   {news.date}
+                </TableCell>
+                <TableCell className="py-4">
+                  <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                    <Eye className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{news.views.toLocaleString()}</span>
+                  </div>
                 </TableCell>
                 <TableCell className="py-4">
                   <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium ${

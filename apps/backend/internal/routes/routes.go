@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
-	"github.com/SUT-Capstone-G09/asset-sut-system/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -12,22 +11,21 @@ import (
 // cmd/serve/main.go (config, controllers) and passed down to each domain's
 // route registration function.
 type Dependencies struct {
-	Config                  *config.Config
-	AuthController          *controllers.AuthController
-	AdminController         *controllers.AdminController
-	StaffController         *controllers.StaffController
-	RequesterController     *controllers.RequesterController
-	RoleController          *controllers.RoleController
-	LocationController      *controllers.LocationController
-	BookingController       *controllers.BookingController
-	PaymentController       *controllers.PaymentController
-	DocumentController      *controllers.DocumentController
-	UploadController        *controllers.UploadController
-	EmailController         *controllers.EmailController
-	EmailTemplateController *controllers.EmailTemplateController
-	ImageController         *controllers.ImageController
-	SignatureController     *controllers.SignatureController
-	PermissionChecker       middleware.PermissionChecker
+	Config                   *config.Config
+	AuthController           *controllers.AuthController
+	AdminController          *controllers.AdminController
+	StaffController          *controllers.StaffController
+	RequesterController      *controllers.RequesterController
+	RoleController           *controllers.RoleController
+	LocationController       *controllers.LocationController
+	BookingController        *controllers.BookingController
+	PaymentController        *controllers.PaymentController
+	DocumentController       *controllers.DocumentController
+	UploadController         *controllers.UploadController
+	EmailController          *controllers.EmailController
+	EmailTemplateController  *controllers.EmailTemplateController
+	EmailBroadcastController *controllers.EmailBroadcastController
+	ImageController          *controllers.ImageController
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto

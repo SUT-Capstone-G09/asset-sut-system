@@ -5,7 +5,7 @@ import { Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloorPlanData, FloorPlanStall } from "@/features/areas/types/floor-plan";
 
-// ─── Design Tokens (ยึดตาม Design System) ────────────────────────
+// Design Tokens (อนาคตเปลี่ยนไปไว้ Globals)
 const CELL_COLORS = {
   empty: "bg-slate-50",
   wall: "bg-slate-700",

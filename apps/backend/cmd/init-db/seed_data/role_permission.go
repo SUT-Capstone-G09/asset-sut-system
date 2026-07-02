@@ -25,6 +25,10 @@ var allPermissions = []models.Permissions{
 	{Module: "upload_doc", Action: "read"},
 	{Module: "upload_doc", Action: "update"},
 	{Module: "upload_doc", Action: "delete"},
+	{Module: "location_mgmt", Action: "create"},
+	{Module: "location_mgmt", Action: "read"},
+	{Module: "location_mgmt", Action: "update"},
+	{Module: "location_mgmt", Action: "delete"},
 }
 
 func seedPermissions(db *gorm.DB, cfg *config.Config) error {
@@ -38,7 +42,7 @@ func seedPermissions(db *gorm.DB, cfg *config.Config) error {
 }
 
 func seedRoles(db *gorm.DB, cfg *config.Config) error {
-	roles := []string{"admin", "staff", "requester"}
+	roles := []string{"admin", "staff", "requester", "user"}
 	for _, name := range roles {
 		role := models.Roles{Name: name}
 		if err := db.FirstOrCreate(&role, models.Roles{Name: name}).Error; err != nil {

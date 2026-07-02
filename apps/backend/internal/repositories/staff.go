@@ -13,34 +13,47 @@ func NewStaffRepository(db *gorm.DB) *StaffRepository {
 	return &StaffRepository{db: db}
 }
 
-func (r *StaffRepository) FindAll() ([]models.Staffs, error) {
-	var staffs []models.Staffs
-	err := r.db.Preload("User").Preload("User.Permissions").Find(&staffs).Error
+func (r *StaffRepository) FindAll() ([]models.Profiles, error) {
+	var staffs []models.Profiles
+	err := r.db.Preload("User").Preload("User.Permissions").Preload("User.Roles").
+		Joins("JOIN users ON users.id = profiles.user_id").
+		Joins("JOIN user_roles ON user_roles.users_id = users.id").
+		Joins("JOIN roles ON roles.id = user_roles.roles_id").
+		Where("roles.name = ?", "staff").Find(&staffs).Error
 	return staffs, err
 }
 
-func (r *StaffRepository) FindByID(id uint) (*models.Staffs, error) {
-	var staff models.Staffs
-	err := r.db.Preload("User").Preload("User.Permissions").First(&staff, id).Error
+func (r *StaffRepository) FindByID(id uint) (*models.Profiles, error) {
+	var staff models.Profiles
+	err := r.db.
+		Preload("User").
+		Preload("User.Permissions").
+		Preload("User.Roles").
+		Joins("JOIN users ON users.id = profiles.user_id").
+		Joins("JOIN user_roles ON user_roles.users_id = users.id").
+		Joins("JOIN roles ON roles.id = user_roles.roles_id").
+		Where("roles.name = ?", "staff").
+		Where("profiles.id = ?", id).
+		First(&staff).Error
 	return &staff, err
 }
 
-func (r *StaffRepository) FindByUserID(userID uint) (*models.Staffs, error) {
-	var staff models.Staffs
+func (r *StaffRepository) FindByUserID(userID uint) (*models.Profiles, error) {
+	var staff models.Profiles
 	err := r.db.Where("user_id = ?", userID).First(&staff).Error
 	return &staff, err
 }
 
-func (r *StaffRepository) Create(staff *models.Staffs) error {
+func (r *StaffRepository) Create(staff *models.Profiles) error {
 	return r.db.Create(staff).Error
 }
 
-func (r *StaffRepository) Update(staff *models.Staffs) error {
+func (r *StaffRepository) Update(staff *models.Profiles) error {
 	return r.db.Save(staff).Error
 }
 
 func (r *StaffRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Staffs{}, id).Error
+	return r.db.Delete(&models.Profiles{}, id).Error
 }
 
 func (r *StaffRepository) AssignPermissions(userID uint, permissions []models.Permissions) error {

@@ -5,7 +5,7 @@ import { Location } from "../types/location";
 import { mockLocations } from "../data/locations";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
-export function useAreaFilters() {
+export function useAreaFilters(locations: Location[] = mockLocations) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -31,21 +31,23 @@ export function useAreaFilters() {
   };
 
   const filteredLocations = useMemo(() => {
-    return mockLocations.filter((item) => {
+    return locations.filter((item) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch = 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.roomNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        item.name.toLowerCase().includes(q) ||
+        (item.building ?? "").toLowerCase().includes(q) ||
+        (item.description ?? "").toLowerCase().includes(q);
       
       const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [locations, searchQuery, selectedCategory]);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(filteredLocations.map((loc) => loc.category)));
-  }, [filteredLocations]);
+    return Array.from(new Set(locations.map((loc) => loc.category)));
+  }, [locations]);
 
   const totalResults = filteredLocations.length;
 
@@ -60,4 +62,3 @@ export function useAreaFilters() {
     totalResults
   };
 }
-

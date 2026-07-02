@@ -1,10 +1,17 @@
 package services
 
 import (
+	"errors"
+	"fmt"
+	htmltemplate "html/template"
+	texttemplate "text/template"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
+
+var ErrInvalidTemplateSyntax = errors.New("invalid template syntax")
 
 type EmailTemplateService struct {
 	repo *repositories.EmailTemplateRepository
@@ -14,8 +21,8 @@ func NewEmailTemplateService(repo *repositories.EmailTemplateRepository) *EmailT
 	return &EmailTemplateService{repo: repo}
 }
 
-func (s *EmailTemplateService) GetAll() ([]dto.EmailTemplateResponse, error) {
-	templates, err := s.repo.FindAll()
+func (s *EmailTemplateService) GetAll(search string) ([]dto.EmailTemplateResponse, error) {
+	templates, err := s.repo.FindAll(search)
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +43,9 @@ func (s *EmailTemplateService) GetByID(id uint) (*dto.EmailTemplateResponse, err
 }
 
 func (s *EmailTemplateService) Create(req dto.CreateEmailTemplateRequest) (*dto.EmailTemplateResponse, error) {
+	if err := validateTemplateSyntax(req.Subject, req.CompiledHTML); err != nil {
+		return nil, err
+	}
 	active := true
 	if req.IsActive != nil {
 		active = *req.IsActive
@@ -75,6 +85,9 @@ func (s *EmailTemplateService) Update(id uint, req dto.UpdateEmailTemplateReques
 	if req.IsActive != nil {
 		t.IsActive = *req.IsActive
 	}
+	if err := validateTemplateSyntax(t.Subject, t.CompiledHTML); err != nil {
+		return nil, err
+	}
 	if err := s.repo.Update(t); err != nil {
 		return nil, err
 	}
@@ -84,6 +97,16 @@ func (s *EmailTemplateService) Update(id uint, req dto.UpdateEmailTemplateReques
 
 func (s *EmailTemplateService) Delete(id uint) error {
 	return s.repo.Delete(id)
+}
+
+func validateTemplateSyntax(subject, compiledHTML string) error {
+	if _, err := texttemplate.New("subject").Parse(subject); err != nil {
+		return fmt.Errorf("%w: subject: %v", ErrInvalidTemplateSyntax, err)
+	}
+	if _, err := htmltemplate.New("body").Parse(compiledHTML); err != nil {
+		return fmt.Errorf("%w: body: %v", ErrInvalidTemplateSyntax, err)
+	}
+	return nil
 }
 
 func toEmailTemplateResponse(t models.EmailTemplate) dto.EmailTemplateResponse {

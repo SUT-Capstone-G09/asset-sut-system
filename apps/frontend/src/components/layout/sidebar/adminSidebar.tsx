@@ -137,7 +137,11 @@ const menuGroups: MenuGroup[] = [
         id: "email-templates",
         label: "เทมเพลตอีเมล",
         icon: Mail,
-        href: "/admin/email-templates",
+        subItems: [
+          { label: "จัดการเทมเพลต", href: "/admin/email-templates" },
+          { label: "ส่งอีเมล", href: "/admin/email-templates/send" },
+          { label: "ประวัติการส่ง", href: "/admin/email-templates/broadcasts" },
+        ],
       },
       {
         id: "access-setting",
