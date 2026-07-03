@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Location } from "@/features/areas/types/location";
 import {
   MapPin,
@@ -37,6 +38,7 @@ export default function AreasMapSection({
   locations,
   categories: allCategories,
 }: AreasMapSectionProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -142,7 +144,11 @@ export default function AreasMapSection({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px]">
           {/* Map Area */}
           <div className="relative h-[500px] lg:h-[640px] bg-gray-100">
-            <MapContainer locations={filteredLocations} />
+            <MapContainer
+              locations={filteredLocations}
+              hoveredId={hoveredId}
+              onHoveredIdChange={setHoveredId}
+            />
 
             {/* Floating controls — all at top */}
             <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col sm:flex-row sm:items-center gap-2.5">
@@ -272,6 +278,7 @@ export default function AreasMapSection({
                       isHovered={hoveredId === loc.id}
                       onMouseEnter={() => setHoveredId(loc.id)}
                       onMouseLeave={() => setHoveredId(null)}
+                      onClick={() => router.push(`/areas/${loc.id}`)}
                     />
                   ))}
                 </div>
