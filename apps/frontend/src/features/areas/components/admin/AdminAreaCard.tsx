@@ -197,9 +197,10 @@ function SubStallPreview({
   let vacant = stallCount - occupied;
 
   if (floorPlan) {
-    total = floorPlan.stalls.length;
-    occupied = floorPlan.stalls.filter((s) => s.status === "occupied").length;
-    vacant = floorPlan.stalls.filter((s) => s.status === "vacant").length;
+    const shops = floorPlan.elements.filter((el) => el.type === "area" && el.areaType === "shop");
+    total = shops.length;
+    occupied = shops.filter((s) => s.status === "occupied").length;
+    vacant = shops.filter((s) => s.status === "open").length;
   }
 
   return (

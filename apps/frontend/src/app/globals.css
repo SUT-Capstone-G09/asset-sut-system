@@ -114,15 +114,35 @@
 }
 
 .leaflet-popup-content-wrapper {
-  border-radius: 6px !important;
+  background: transparent !important;
+  box-shadow: none !important;
   padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
   overflow: hidden;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
 }
 
 .leaflet-popup-content {
   margin: 0 !important;
   width: auto !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+.leaflet-popup-content p,
+.leaflet-popup-content h1,
+.leaflet-popup-content h2,
+.leaflet-popup-content h3,
+.leaflet-popup-content h4,
+.leaflet-popup-content h5,
+.leaflet-popup-content h6 {
+  margin: 0 !important;
+}
+
+.leaflet-popup-tip {
+  background: white !important;
+  box-shadow: 0 3px 5px rgb(0 0 0 / 0.05) !important;
 }
 
 .custom-div-icon {

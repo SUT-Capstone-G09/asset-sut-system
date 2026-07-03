@@ -16,9 +16,10 @@ import {
 import { Location } from "@/features/areas/types/location";
 import { cn } from "@/lib/utils";
 import AdminAreaEditDrawer from "./AdminAreaEditDrawer";
-import FloorPlanEditorModal from "./floor-plan/FloorPlanEditorModal";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { mockFloorPlans } from "@/features/areas/data/floor-plans";
+import { MapElement } from "@/features/areas/types/floor-plan";
 
 interface Props {
   location: Location | null;
@@ -27,17 +28,17 @@ interface Props {
 }
 
 export default function AdminAreaDrawer({ location, open, onClose }: Props) {
+  const router = useRouter();
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false);
   const [expandedStallId, setExpandedStallId] = useState<string | null>(null);
 
   if (!location) return null;
 
   const floorPlan = mockFloorPlans.find(fp => fp.locationId === location.id);
-  const stalls = floorPlan?.stalls || [];
+  const stalls: MapElement[] = floorPlan ? floorPlan.elements.filter(el => el.type === "area" && el.areaType === "shop") : [];
   const occupiedStallsCount = stalls.filter(s => s.status === "occupied").length;
-  const vacantStallsCount = stalls.filter(s => s.status === "vacant").length;
-  const inactiveStallsCount = stalls.filter(s => s.status === "inactive").length;
+  const vacantStallsCount = stalls.filter(s => s.status === "open").length;
+  const inactiveStallsCount = stalls.filter(s => s.status === "maintenance").length;
   const totalStallsCount = stalls.length;
   const occupancyPercent = totalStallsCount > 0 ? Math.round((occupiedStallsCount / totalStallsCount) * 100) : 0;
 
@@ -334,7 +335,7 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
                     <div className="flex flex-col gap-2">
                       {stalls.map((stall) => {
                         const isExpanded = expandedStallId === stall.id;
-                        const contract = mockStallContracts[stall.label];
+                        const contract = stall.label ? mockStallContracts[stall.label] : undefined;
 
                         return (
                           <div key={stall.id} className="transition-all duration-300">
@@ -353,11 +354,11 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
                                   "size-8 rounded-[5px] border flex items-center justify-center font-black text-xs shrink-0 transition-all shadow-sm",
                                   stall.status === "occupied" 
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                                    : stall.status === "vacant"
+                                    : stall.status === "open"
                                       ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse"
                                       : "bg-slate-100 text-slate-500 border-slate-200"
                                 )}>
-                                  {stall.label}
+                                  {stall.label || stall.id}
                                 </div>
                                 
                                 {/* Shop Name */}
@@ -378,12 +379,12 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
                                     มีผู้เช่า
                                   </span>
                                 )}
-                                {stall.status === "vacant" && (
+                                {stall.status === "open" && (
                                   <span className="bg-amber-50 text-amber-500 border border-amber-100/70 px-2.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase tracking-wider shrink-0">
                                     ว่าง
                                   </span>
                                 )}
-                                {stall.status === "inactive" && (
+                                {stall.status === "maintenance" && (
                                   <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-0.5 rounded-[4px] text-[9px] font-black uppercase tracking-wider shrink-0">
                                     ปิดปรับปรุง
                                   </span>
@@ -455,13 +456,13 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
                                       </button>
                                     </div>
                                   </>
-                                ) : stall.status === "vacant" ? (
+                                ) : stall.status === "open" ? (
                                   <div className="text-center py-2 space-y-3">
                                     <div className="inline-flex items-center justify-center size-10 rounded-full bg-amber-50 text-amber-500 border border-amber-100">
                                       <Store size={18} />
                                     </div>
                                     <div className="space-y-1">
-                                      <p className="text-[12px] font-bold text-slate-700">แผงว่าง `{stall.label}` พร้อมเปิดรับผู้สมัคร</p>
+                                      <p className="text-[12px] font-bold text-slate-700">แผงว่าง `{stall.label || stall.id}` พร้อมเปิดรับผู้สมัคร</p>
                                       <p className="text-[10px] text-slate-400 leading-relaxed max-w-xs mx-auto text-center">
                                         แผงนี้ว่างอยู่ คุณสามารถลงทะเบียนผู้ประกอบการใหม่ ทำสัญญารายแผง หรือเปิดรับสมัครร้านค้าทางออนไลน์ได้ทันที
                                       </p>
@@ -625,7 +626,7 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
                   icon={LayoutGrid}
                   variant="primary"
                   className="w-full"
-                  onClick={() => setIsFloorPlanOpen(true)}
+                  onClick={() => router.push(`/admin/areas/floor-plan/${location.id}`)}
                 />
               )}
 
@@ -655,13 +656,6 @@ export default function AdminAreaDrawer({ location, open, onClose }: Props) {
       location={location}
       open={isEditOpen}
       onClose={() => setIsEditOpen(false)}
-    />
-
-    <FloorPlanEditorModal
-      locationId={location.id}
-      locationName={location.name}
-      open={isFloorPlanOpen}
-      onClose={() => setIsFloorPlanOpen(false)}
     />
 
   </>
