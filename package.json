@@ -2,14 +2,10 @@
   "name": "asset-sut-system",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/frontend",
-    "apps/backend"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/frontend",
-    "build": "npm run build --workspace=apps/frontend",
-    "start": "npm run start --workspace=apps/frontend",
-    "lint": "npm run lint --workspace=apps/frontend"
+    "dev": "npm run dev --prefix apps/frontend",
+    "build": "npm run build --prefix apps/frontend",
+    "start": "npm run start --prefix apps/frontend",
+    "lint": "npm run lint --prefix apps/frontend"
   }
 }
