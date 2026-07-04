@@ -31,6 +31,10 @@ const DEFAULT_TIME: DayBookingTime = { startTime: "09:00", endTime: "11:00" };
 // Spans the full bookable window (matches TIME_OPTIONS bounds in BookingPanel)
 // so a full-day booking blocks the entire day, not just office hours.
 const FULL_DAY_TIME: DayBookingTime = { startTime: "07:00", endTime: "21:00" };
+
+function matchesFullDay(t: DayBookingTime): boolean {
+  return t.startTime === FULL_DAY_TIME.startTime && t.endTime === FULL_DAY_TIME.endTime;
+}
 const MIN_BOOKING_LEAD_DAYS = 7;
 
 export function useBookingCalendar(room: Room) {
@@ -161,9 +165,8 @@ export function useBookingCalendar(room: Room) {
       const t = getEffectiveTime(dateStr);
       const h = calcHours(t.startTime, t.endTime);
       totalHours += h;
-      totalPrice += fullDayDates[dateStr] && room.pricePerDay !== undefined
-        ? room.pricePerDay
-        : h * room.pricePerHour;
+      const useDaily = (fullDayDates[dateStr] || matchesFullDay(t)) && room.pricePerDay !== undefined;
+      totalPrice += useDaily ? room.pricePerDay! : h * room.pricePerHour;
     }
     return { totalHours, totalPrice };
   }, [selectedDates, dayTimes, sameTimeForAll, globalTime, fullDayDates, room.pricePerHour, room.pricePerDay]);

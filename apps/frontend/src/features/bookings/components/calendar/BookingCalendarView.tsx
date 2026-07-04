@@ -63,7 +63,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
                   date: dateStr,
                   startTime: t.startTime,
                   endTime: t.endTime,
-                  isFullDay: !!cal.fullDayDates[dateStr],
+                  isFullDay: !!cal.fullDayDates[dateStr] || (t.startTime === "07:00" && t.endTime === "21:00"),
                 };
               });
               sessionStorage.setItem(
