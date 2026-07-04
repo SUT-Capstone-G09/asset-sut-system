@@ -16,13 +16,14 @@ type EvaluationsDetail struct {
 	Base
 	EvaluationCriteriaID uint `gorm:"not null" json:"criteria_id"`
 	EvaluationID string `gorm:"type:varchar(255);not null" json:"evaluation_id"`
-	Score int `gorm:"not null" json:"score"`
+	Score *int `gorm:"default:null" json:"score"`
 }
 
 type EvaluationCriteria struct {
 	Base
 	CriteriaName string `gorm:"type:varchar(255);not null" json:"criteria_name"`
 	MaxScore int `gorm:"not null" json:"max_score"`
+	Category     string `gorm:"type:varchar(100);not null;index" json:"category"`
 }
 
 type GradeSettings struct {

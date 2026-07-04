@@ -1,6 +1,6 @@
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Tags } from "lucide-react";
 import Link from "next/link";
 
 export function AdminEvalTableHeader() {
@@ -17,11 +17,18 @@ export function AdminEvalTableHeader() {
                 <h1 className="text-3xl font-extrabold text-slate-950 md:text-3xl lg:text-[2.75rem] lg:leading-[1.15]">
                     รายการประเมินผู้ประกอบการ
                 </h1>
-                <Link href="/admin/tenants/eval/form">
-                    <Button className="bg-[#f26522] hover:bg-orange-600 text-white">
-                        <PlusIcon className="h-4 w-4 mr-2" />เพิ่มการประเมินผู้ประกอบการ
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link href="/admin/tenants/eval/categories">
+                        <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                            <Tags className="h-4 w-4 mr-2" />จัดการหมวดหมู่
+                        </Button>
+                    </Link>
+                    <Link href="/admin/tenants/eval/form">
+                        <Button className="bg-[#f26522] hover:bg-orange-600 text-white">
+                            <PlusIcon className="h-4 w-4 mr-2" />เพิ่มการประเมินผู้ประกอบการ
+                        </Button>
+                    </Link>
+                </div>
             </div>
         </div>
     );
