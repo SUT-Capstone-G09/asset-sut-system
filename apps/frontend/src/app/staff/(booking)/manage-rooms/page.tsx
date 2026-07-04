@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Building2 } from "lucide-react";
-import BookingHeader from "@/features/booking/components/admin/BookingHeader";
+import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import RoomGrid from "@/features/booking/components/rooms/RoomGrid";
 import RoomCreateDrawer from "@/features/booking/components/rooms/RoomCreateDrawer";

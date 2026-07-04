@@ -16,7 +16,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   news: "ข่าวสาร",
   detail: "รายละเอียด",
   areas: "พื้นที่",
-  requests: "คำร้องขอ",
   admin: "จัดการระบบ",
   staff: "Staff Portal",
   booking: "การจอง",
@@ -41,10 +40,10 @@ const SEGMENT_LABELS: Record<string, string> = {
 // เช่น /bookings สามารถมี context จาก /my-bookings หรือ /dashboard ได้
 const VALID_REFERRER_SECTIONS: Record<string, string[]> = {
   "/bookings": ["/my-bookings", "/dashboard"],
-  "/payment":  ["/my-bookings"],
+  "/payment": ["/my-bookings"],
 };
 
-const SKIP_PATHS = new Set(["/", "/login"]);
+const SKIP_PATHS = new Set(["/", "/login", "/contact-us"]);
 const STORAGE_KEY = "nav_breadcrumb";
 const MAX_CRUMBS = 6;
 

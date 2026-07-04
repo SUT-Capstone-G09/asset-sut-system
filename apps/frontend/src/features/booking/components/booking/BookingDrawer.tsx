@@ -37,15 +37,18 @@ import {
   Download,
   Plus,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
 import { mockRooms } from "../../data/rooms";
 import { addonService, Addon } from "@/lib/services/addon.service";
 import { getHoursFromTimeSlot } from "../../utils/time";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 import {
   Select,
@@ -138,6 +141,9 @@ export default function BookingDrawer({
   >("this");
 
   const [isEditingExpenses, setIsEditingExpenses] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const router = useRouter();
   const [editedExpenses, setEditedExpenses] = useState<any[]>([]);
   const [housekeeperPrice, setHousekeeperPrice] = useState(0);
   const [housekeeperCount, setHousekeeperCount] = useState(0);
@@ -327,10 +333,15 @@ export default function BookingDrawer({
     },
   ];
 
-  const handleApprove = () => {
-    onUpdateStatus(booking.id, "approved");
-    alert("อนุมัติคำขอจองสำเร็จ!");
-    onClose();
+  const handleApproveConfirm = async () => {
+    setActionLoading(true);
+    try {
+      await onUpdateStatus(booking.id, "approved");
+      setShowApproveModal(false);
+      onClose();
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleReject = () => {
@@ -405,7 +416,11 @@ export default function BookingDrawer({
                   <Select
                     value={booking.status}
                     onValueChange={(val) => {
-                      onUpdateStatus(booking.id, val as any);
+                      if (val === "approved" && booking.status === "pending") {
+                        setShowApproveModal(true);
+                      } else {
+                        onUpdateStatus(booking.id, val as any);
+                      }
                     }}
                   >
                     <SelectTrigger
@@ -773,6 +788,72 @@ export default function BookingDrawer({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Approve Confirmation Modal */}
+      {booking && (
+        <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
+          <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden z-[300]">
+            <DialogHeader className="p-6 pb-0 border-b-0">
+              <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="text-emerald-500" size={24} />
+                ยืนยันการอนุมัติการจอง
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="p-6 pt-4 space-y-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center space-y-2">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">ยอดชำระทั้งหมด</span>
+                <span className="text-3xl font-black text-[#f26522]">
+                  {(() => {
+                    const total = (booking.expenses || []).reduce((acc, exp) => acc + (exp.amount || 0), 0);
+                    return total === 0 
+                      ? "ยังไม่ได้คำนวณ" 
+                      : `฿${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+                  })()}
+                </span>
+              </div>
+
+              <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
+                className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+              >
+                จัดการค่าใช้จ่าย
+              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowApproveModal(false)}
+                  className="h-11 rounded-[7px] font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  onClick={handleApproveConfirm}
+                  disabled={actionLoading}
+                  className="h-11 rounded-[7px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white min-w-[120px]"
+                >
+                  {actionLoading ? (
+                    <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  ) : (
+                    "ยืนยันการอนุมัติ"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <BookingEditDrawer
         booking={booking}

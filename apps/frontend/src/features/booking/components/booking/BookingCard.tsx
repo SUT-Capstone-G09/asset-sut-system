@@ -54,37 +54,17 @@ export default function BookingCard({
       <div className="flex-[2] flex flex-col justify-center gap-5 py-2">
         {/* Status, Title, Location */}
         <div className="space-y-3">
-          <div onClick={(e) => e.stopPropagation()} className="w-fit">
-            <Select
-              value={booking.status}
-              onValueChange={(val) => {
-                onUpdateStatus?.(booking.id, val as any);
-              }}
+          <div className="w-fit">
+            <div
+              className={cn(
+                "h-9 px-4 py-2 rounded-full border flex items-center gap-2 text-xs font-bold tracking-wide",
+                status.gridBg || "bg-slate-100 border-slate-200",
+                status.gridText || "text-slate-700",
+              )}
             >
-              <SelectTrigger
-                className={cn(
-                  "h-9 px-4 py-2 rounded-full border-0 shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer flex items-center justify-between gap-3 text-xs font-bold tracking-wide min-w-[140px]",
-                  status.gridBg || "bg-slate-100",
-                  status.gridText || "text-slate-700",
-                )}
-              >
-                  <SelectValue placeholder="สถานะ" />
-              </SelectTrigger>
-              <SelectContent className="bg-white z-[200]">
-                <SelectItem value="pending" className="text-xs font-bold text-amber-700 focus:bg-amber-50">
-                  รออนุมัติ
-                </SelectItem>
-                <SelectItem value="approved" className="text-xs font-bold text-emerald-700 focus:bg-emerald-50">
-                  อนุมัติ
-                </SelectItem>
-                <SelectItem value="rejected" className="text-xs font-bold text-red-600 focus:bg-red-50">
-                  ปฏิเสธ
-                </SelectItem>
-                <SelectItem value="completed" className="text-xs font-bold text-teal-700 focus:bg-teal-50">
-                  เสร็จสิ้น
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              <div className={cn("size-2 rounded-full", status.dot || "bg-slate-400")} />
+              {status.label || "ไม่ทราบสถานะ"}
+            </div>
           </div>
 
           <h3 className="text-[22px] font-extrabold text-slate-900 leading-snug group-hover:text-[#f26522] transition-colors line-clamp-2">

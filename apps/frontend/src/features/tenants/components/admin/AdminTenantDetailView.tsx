@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   Printer,
@@ -37,6 +37,7 @@ export default function AdminTenantDetailView({
   areaName,
 }: AdminTenantDetailViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // State variables
   const [tenant, setTenant] = useState<MockTenant>(initialTenant);
@@ -202,7 +203,10 @@ export default function AdminTenantDetailView({
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push(`/admin/tenants/lists/${areaId}`)}
+            onClick={() => {
+              const currentQuery = searchParams.toString();
+              router.push(`/admin/tenants/lists/${areaId}${currentQuery ? `?${currentQuery}` : ""}`);
+            }}
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-xs"
           >
             <ChevronLeft size={20} />
@@ -210,8 +214,8 @@ export default function AdminTenantDetailView({
           <AssetBreadcrumb
             items={[
               { label: "Admin", href: "/admin" },
-              { label: "ผู้ประกอบการ", href: "/admin/tenants/lists" },
-              { label: areaName, href: `/admin/tenants/lists/${areaId}` },
+              { label: "ผู้ประกอบการ", href: `/admin/tenants/lists${searchParams.toString() ? `?${searchParams.toString()}` : ""}` },
+              { label: areaName, href: `/admin/tenants/lists/${areaId}${searchParams.toString() ? `?${searchParams.toString()}` : ""}` },
               { label: tenant.name },
             ]}
           />

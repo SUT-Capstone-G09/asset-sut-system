@@ -22,8 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 import { PaymentTransactionDTO, verifyPayment } from "@/features/payment/services/payment.service";
-import { getBookingById } from "@/features/bookings/services/booking.service";
-import { BookingResponse } from "@/features/bookings/types/booking";
+import { getBookingById, BookingResponseDTO } from "@/features/bookings/services/booking.service";
 import { getDocumentById, createDocument, DocumentDTO } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 
@@ -40,7 +39,7 @@ export default function AdminPaymentVerificationModal({
   payment,
   onVerified,
 }: AdminPaymentVerificationModalProps) {
-  const [booking, setBooking] = useState<BookingResponse | null>(null);
+  const [booking, setBooking] = useState<BookingResponseDTO | null>(null);
   const [slipImage, setSlipImage] = useState<string | null>(null);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function AdminPaymentVerificationModal({
       setBooking(bData);
 
       // Check if there is an official receipt in documents
-      const receiptDoc = bData.documents.find(
+      const receiptDoc = bData.documents?.find(
         (d) => d.document_type === "payment_receipt" || d.file_url.includes("payment-receipt") || d.file_url.includes("ใบเสร็จรับเงิน") || d.file_url.includes("%E0%B9%83%E0%B8%9A%E0%B9%80%E0%B8%AA%E0%B8%A3%E0%B9%87%E0%B8%88%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B9%80%E0%B8%87%E0%B8%B4%E0%B8%99")
       );
       if (receiptDoc) {
@@ -282,11 +281,11 @@ export default function AdminPaymentVerificationModal({
                         booking.base_price === 0 && <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
                       )}
                       
-                      {booking.discount_price > 0 && (
+                      {(booking.discount_price ?? 0) > 0 && (
                         <div className="flex justify-between items-center text-slate-600 font-bold pt-1 border-t border-dashed border-slate-200 mt-1">
                           <span>ส่วนลด</span>
                           <span className="text-emerald-600">
-                            - ฿ {booking.discount_price.toLocaleString()}
+                            - ฿ {(booking.discount_price ?? 0).toLocaleString()}
                           </span>
                         </div>
                       )}

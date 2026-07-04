@@ -80,7 +80,7 @@ export default function AdminAreaCategoryCard({
     return { totalUnits, occupied, vacant };
   }, [locations]);
 
-  // ---- LIST VIEW ----
+  // List View
   if (viewMode === "list") {
     return (
       <button
@@ -140,7 +140,7 @@ export default function AdminAreaCategoryCard({
     );
   }
 
-  // ---- GRID VIEW ----
+  // Grid View
   return (
     <Card
       className={cn(

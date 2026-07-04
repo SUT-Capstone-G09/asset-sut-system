@@ -598,24 +598,7 @@ export default function BookingExpensesPage() {
                     บาท
                   </span>
                 </div>
-                <div className="flex justify-between w-72 text-sm items-center">
-                  <span className="text-emerald-600 font-bold">ส่วนลดรวม:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-black">−</span>
-                    <Input
-                      type="number"
-                      value={globalDiscount || ""}
-                      onChange={(e) => setGlobalDiscount(parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      disabled={isWaived}
-                      className={cn(
-                        "h-8 w-24 border-slate-200 focus:border-emerald-500 rounded-[5px] text-right font-bold text-emerald-600 shadow-sm transition-opacity",
-                        isWaived && "opacity-50 bg-slate-100"
-                      )}
-                    />
-                    <span className="text-emerald-600 font-bold text-xs">บาท</span>
-                  </div>
-                </div>
+
 
                 <div className="flex justify-end w-72 mt-2 mb-1">
                   <div className="flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setGlobalDiscount(isWaived ? 0 : subtotal)}>

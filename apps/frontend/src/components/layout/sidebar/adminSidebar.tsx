@@ -93,7 +93,7 @@ const menuGroups: MenuGroup[] = [
       {
         id: "booking-requests",
         label: "คำขอจองพื้นที่",
-        icon: ClipboardList,
+        icon: LayoutDashboard,
         href: "/admin/booking/requests",
       },
       {

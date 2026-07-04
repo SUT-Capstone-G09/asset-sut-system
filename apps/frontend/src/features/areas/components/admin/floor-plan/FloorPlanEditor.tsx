@@ -21,7 +21,7 @@ import {
 } from "@/features/areas/types/floor-plan";
 import FloorPlanStallDialog from "./FloorPlanStallDialog";
 
-// ─── Design Tokens (ยึดตาม Design System ของโปรเจกต์) ──────────
+// Design Tokens (ยึดตาม Design System ของโปรเจกต์)
 const BRAND = "#f26522";
 const CELL_COLORS: Record<CellType, string> = {
   empty: "bg-slate-50 border-slate-200/60",
@@ -53,7 +53,7 @@ export default function FloorPlanEditor({
   initialData,
   onSave,
 }: FloorPlanEditorProps) {
-  // ── State ──────────────────────────────────────────────────────
+  // State
   const [grid, setGrid] = useState<CellType[][]>(
     () => initialData.grid.map((row) => [...row])
   );
@@ -74,14 +74,14 @@ export default function FloorPlanEditor({
   const rows = initialData.rows;
   const cols = initialData.cols;
 
-  // ── Helpers ────────────────────────────────────────────────────
+  // Helpers
   const findStall = useCallback(
     (r: number, c: number) =>
       stalls.find((s) => s.cells.some(([sr, sc]) => sr === r && sc === c)),
     [stalls]
   );
 
-  // ── Tool actions ───────────────────────────────────────────────
+  // Tool actions
   const paintCell = useCallback(
     (r: number, c: number) => {
       if (tool === "select") return;
@@ -151,7 +151,7 @@ export default function FloorPlanEditor({
     setIsPainting(false);
   };
 
-  // ── Stall creation ─────────────────────────────────────────────
+  // Stall creation
   const handleStallCreate = (label: string, name: string) => {
     const newStall: FloorPlanStall = {
       id: `s${Date.now()}`,
@@ -181,7 +181,7 @@ export default function FloorPlanEditor({
     setStallDialogOpen(false);
   };
 
-  // ── Save ───────────────────────────────────────────────────────
+  // Save
   const handleSave = async () => {
     setIsSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -205,7 +205,7 @@ export default function FloorPlanEditor({
     setIsSaving(false);
   };
 
-  // ── Reset ──────────────────────────────────────────────────────
+  // Reset
   const handleReset = () => {
     setGrid(initialData.grid.map((row) => [...row]));
     setStalls([...initialData.stalls]);
@@ -213,7 +213,7 @@ export default function FloorPlanEditor({
     setTool("select");
   };
 
-  // ── Cell style helper ──────────────────────────────────────────
+  // Cell style helper
   const getCellStyle = (r: number, c: number) => {
     const isSelected = selectedCells.some(([sr, sc]) => sr === r && sc === c);
     if (isSelected) {
@@ -236,7 +236,7 @@ export default function FloorPlanEditor({
     return CELL_COLORS[grid[r][c]];
   };
 
-  // ── Render ─────────────────────────────────────────────────────
+  // Render
   const tools: {
     mode: ToolMode;
     label: string;
@@ -252,7 +252,7 @@ export default function FloorPlanEditor({
 
   return (
     <div className="space-y-6">
-      {/* ── Toolbar ─────────────────────────────────────────── */}
+      {/* Toolbar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 rounded-[7px] shadow-sm border border-slate-100">
         {/* Tool Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -299,7 +299,7 @@ export default function FloorPlanEditor({
         </div>
       </div>
 
-      {/* ── Grid Canvas ─────────────────────────────────────── */}
+      {/* Grid Canvas */}
       <div className="bg-white rounded-[7px] shadow-sm border border-slate-100 p-5 overflow-x-auto">
         {/* Legend */}
         <div className="flex items-center gap-5 mb-5 flex-wrap">
@@ -366,7 +366,7 @@ export default function FloorPlanEditor({
         </div>
       </div>
 
-      {/* ── Stall List Summary ──────────────────────────────── */}
+      {/* Stall List Summary */}
       {stalls.length > 0 && (
         <div className="bg-white rounded-[7px] shadow-sm border border-slate-100 p-5">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
@@ -405,7 +405,7 @@ export default function FloorPlanEditor({
         </div>
       )}
 
-      {/* ── Stall Dialog ────────────────────────────────────── */}
+      {/* Stall Dialog */}
       <FloorPlanStallDialog
         open={stallDialogOpen}
         onConfirm={handleStallCreate}

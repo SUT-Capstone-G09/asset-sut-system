@@ -15,12 +15,12 @@ export default function UserLayout({ children }: { children: ReactNode }) {
       router.push("/login")        // ยังไม่ได้ login
       return
     }
-    if (user?.role !== "user") {
+    if (user?.role !== "user" && user?.role !== "requester") {
       router.push("/unauthorized") // login แล้วแต่ role ผิด
     }
   }, [isAuthenticated, user])
 
-  if (!isAuthenticated || user?.role !== "user") return null
+  if (!isAuthenticated || (user?.role !== "user" && user?.role !== "requester")) return null
 
   return (
     <div className="min-h-screen bg-slate-50/30">

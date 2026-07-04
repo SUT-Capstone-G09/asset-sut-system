@@ -1,4 +1,4 @@
-import { CommercialCategoryType } from '../data/constants';
+import { CommercialCategoryType } from '../constants';
 
 export interface Location {
   id: string;

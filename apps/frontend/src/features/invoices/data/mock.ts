@@ -1,10 +1,10 @@
 import { Location, Tenant } from "../types";
 
 export const mockLocations: Location[] = [
-  { id: "loc1", name: "โรงอาหารกาสะลอง" },
-  { id: "loc2", name: "โรงอาหารเรียนรวม 2" },
-  { id: "loc3", name: "อาคารเรียนรวม 1" },
-  { id: "loc4", name: "หอพักหญิง 15" },
+  { id: "loc1", name: "โรงอาหารกาสะลอง", zoneId: "cafeterias" },
+  { id: "loc2", name: "โรงอาหารเรียนรวม 2", zoneId: "cafeterias" },
+  { id: "loc3", name: "อาคารเรียนรวม 1", zoneId: "learning-buildings" },
+  { id: "loc4", name: "หอพักหญิง 15", zoneId: "student-dormitories" },
 ];
 
 export const mockTenants: Tenant[] = [

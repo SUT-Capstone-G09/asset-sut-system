@@ -27,19 +27,17 @@ export const NewsFilterTabs: React.FC<NewsFilterTabsProps> = ({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`pb-4 text-sm font-medium transition-colors relative flex items-center gap-2 outline-none ${
-                isActive
+              className={`pb-4 text-sm font-medium transition-colors relative flex items-center gap-2 outline-none ${isActive
                   ? "text-[#EA580C]"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               <span>{tab.label}</span>
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  isActive
+                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isActive
                     ? "bg-[#EA580C] text-white"
                     : "bg-gray-100 text-gray-600"
-                }`}
+                  }`}
               >
                 {tab.count}
               </span>
