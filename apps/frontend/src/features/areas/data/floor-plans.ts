@@ -1,116 +1,470 @@
-import { FloorPlanData, CellType } from "@/features/areas/types/floor-plan";
-
-/**
- * ข้อมูลจำลองผังร้านค้า "โรงอาหารพราวแสดทอง"
- * ตาราง 10 แถว x 14 คอลัมน์
- */
-
-const ROWS = 10;
-const COLS = 14;
-
-// สร้าง grid ว่างเปล่า
-function createEmptyGrid(rows: number, cols: number): CellType[][] {
-  return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, (): CellType => "empty")
-  );
-}
-
-function generateCanteenGrid(): CellType[][] {
-  const g = createEmptyGrid(ROWS, COLS);
-  
-  // วาดกำแพงขอบ (แถวบนสุด, แถวล่างสุด, คอลัมน์ซ้าย, คอลัมน์ขวา)
-  for (let c = 0; c < COLS; c++) {
-    g[0][c] = "wall";
-    g[ROWS - 1][c] = "wall";
-  }
-  for (let r = 0; r < ROWS; r++) {
-    g[r][0] = "wall";
-    g[r][COLS - 1] = "wall";
-  }
-
-  // ทางเดินกลาง (แถว 5)
-  for (let c = 1; c < COLS - 1; c++) {
-    g[4][c] = "walkway";
-    g[5][c] = "walkway";
-  }
-
-  // ทางเดินแนวตั้ง (คอลัมน์ 7)
-  for (let r = 1; r < ROWS - 1; r++) {
-    g[r][7] = "walkway";
-  }
-
-  // เติม stall cells — ฝั่งบน ซ้าย
-  for (let r = 1; r <= 3; r++) {
-    for (let c = 1; c <= 3; c++) g[r][c] = "stall";
-    for (let c = 4; c <= 6; c++) g[r][c] = "stall";
-    for (let c = 8; c <= 10; c++) g[r][c] = "stall";
-    for (let c = 11; c <= 12; c++) g[r][c] = "stall";
-  }
-
-  // เติม stall cells — ฝั่งล่าง
-  for (let r = 6; r <= 8; r++) {
-    for (let c = 1; c <= 3; c++) g[r][c] = "stall";
-    for (let c = 4; c <= 6; c++) g[r][c] = "stall";
-    for (let c = 8; c <= 10; c++) g[r][c] = "stall";
-    for (let c = 11; c <= 12; c++) g[r][c] = "stall";
-  }
-  
-  return g;
-}
-
-function cellRange(rowStart: number, rowEnd: number, colStart: number, colEnd: number): [number, number][] {
-  const cells: [number, number][] = [];
-  for (let r = rowStart; r <= rowEnd; r++) {
-    for (let c = colStart; c <= colEnd; c++) {
-      cells.push([r, c]);
-    }
-  }
-  return cells;
-}
+import { FloorPlanData } from "@/features/areas/types/floor-plan";
 
 export const mockFloorPlans: FloorPlanData[] = [
   {
     id: "fp-1",
     locationId: "1",
     name: "ผังโรงอาหารพราวแสดทอง",
-    rows: ROWS,
-    cols: COLS,
-    grid: generateCanteenGrid(),
-    stalls: [
-      // ฝั่งบน
-      { id: "s1", label: "A01", name: "ร้านก๋วยเตี๋ยวเรือ",    status: "occupied", cells: cellRange(1, 3, 1, 3) },
-      { id: "s2", label: "A02", name: "ร้านส้มตำจัดจ้าน",     status: "occupied", cells: cellRange(1, 3, 4, 6) },
-      { id: "s3", label: "A03", name: "ร้านข้าวแกง",          status: "vacant",   cells: cellRange(1, 3, 8, 10) },
-      { id: "s4", label: "A04", name: "",                     status: "vacant",   cells: cellRange(1, 3, 11, 12) },
-
-      // ฝั่งล่าง
-      { id: "s5", label: "B01", name: "ร้านชาบู & สุกี้",     status: "occupied", cells: cellRange(6, 8, 1, 3) },
-      { id: "s6", label: "B02", name: "",                     status: "inactive", cells: cellRange(6, 8, 4, 6) },
-      { id: "s7", label: "B03", name: "ร้านเครื่องดื่ม & น้ำผลไม้", status: "occupied", cells: cellRange(6, 8, 8, 10) },
-      { id: "s8", label: "B04", name: "ร้านขนมหวาน",          status: "occupied", cells: cellRange(6, 8, 11, 12) },
+    layers: [
+      { id: 'shops', name: 'ร้านค้า (Shops)', visible: true, locked: false, color: '#6366f1' },
+      { id: 'toilet', name: 'ห้องน้ำ (Restrooms)', visible: true, locked: false, color: '#10b981' },
+      { id: 'areas', name: 'พื้นที่ส่วนกลาง (Areas)', visible: true, locked: false, color: '#f59e0b' }
     ],
-    updatedAt: new Date().toISOString(),
+    elements: [
+      {
+        id: 'b-main',
+        name: 'โครงสร้างอาคารหลัก',
+        type: 'wall',
+        status: 'open',
+        x: 50,
+        y: 150,
+        width: 935,
+        height: 700,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Structure Zone',
+        fillColor: '#efefef',
+        strokeColor: '#000000'
+      },
+      {
+        id: 'b-restroom',
+        name: 'โครงสร้างอาคารห้องน้ำ',
+        type: 'wall',
+        status: 'open',
+        x: 50,
+        y: 10,
+        width: 300,
+        height: 140,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Structure Zone',
+        fillColor: '#efefef',
+        strokeColor: '#000000'
+      },
+      {
+        id: 'toilet-1',
+        name: 'ห้องน้ำชาย',
+        type: 'area',
+        areaType: 'toilet',
+        status: 'open',
+        x: 60,
+        y: 80,
+        width: 140,
+        height: 220,
+        rotation: 0,
+        layerId: 'toilet',
+        zone: 'Restroom Zone',
+        fillColor: '#a7f3d0',
+        strokeColor: '#059669'
+      },
+      {
+        id: 'toilet-2',
+        name: 'ห้องน้ำหญิง',
+        type: 'area',
+        areaType: 'toilet',
+        status: 'open',
+        x: 200,
+        y: 80,
+        width: 120,
+        height: 220,
+        rotation: 0,
+        layerId: 'toilet',
+        zone: 'Restroom Zone',
+        fillColor: '#a7f3d0',
+        strokeColor: '#059669'
+      },
+      {
+        id: 's1',
+        name: 'ร้านก๋วยเตี๋ยวเรือ',
+        label: 'A01',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 350,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านก๋วยเตี๋ยวเรือ',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's2',
+        name: 'ร้านส้มตำจัดจ้าน',
+        label: 'A02',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 500,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านส้มตำจัดจ้าน',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's3',
+        name: 'ร้านข้าวแกง',
+        label: 'A03',
+        type: 'area',
+        areaType: 'shop',
+        status: 'open',
+        x: 650,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านข้าวแกง',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's4',
+        name: 'แผงว่าง',
+        label: 'A04',
+        type: 'area',
+        areaType: 'shop',
+        status: 'open',
+        x: 800,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's5',
+        name: 'ร้านชาบู & สุกี้',
+        label: 'B01',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 350,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านชาบู & สุกี้',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's6',
+        name: 'แผงปิดปรับปรุง',
+        label: 'B02',
+        type: 'area',
+        areaType: 'shop',
+        status: 'maintenance',
+        x: 500,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's7',
+        name: 'ร้านเครื่องดื่ม',
+        label: 'B03',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 650,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านเครื่องดื่ม & น้ำผลไม้',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 's8',
+        name: 'ร้านขนมหวาน',
+        label: 'B04',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 800,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านขนมหวาน',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'dining-area',
+        name: 'พื้นที่ทานอาหารรวม',
+        type: 'area',
+        areaType: 'seating',
+        status: 'open',
+        x: 140,
+        y: 480,
+        width: 750,
+        height: 320,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Dining Zone',
+        fillColor: '#f8fafc',
+        strokeColor: '#64748b'
+      }
+    ],
+    updatedAt: new Date().toISOString()
   },
   {
     id: "fp-2",
     locationId: "2",
     name: "ผังโรงอาหารกาสะลองคำ",
-    rows: ROWS,
-    cols: COLS,
-    grid: generateCanteenGrid(),
-    stalls: [
-      // ฝั่งบน
-      { id: "k1", label: "A01", name: "ร้านก๋วยเตี๋ยวเรือกาสะลอง", status: "occupied", cells: cellRange(1, 3, 1, 3) },
-      { id: "k2", label: "A02", name: "ร้านส้มตำแซ่บเวอร์",     status: "occupied", cells: cellRange(1, 3, 4, 6) },
-      { id: "k3", label: "A03", name: "ร้านข้าวราดแกงเมืองเลย",  status: "vacant",   cells: cellRange(1, 3, 8, 10) },
-      { id: "k4", label: "A04", name: "",                     status: "vacant",   cells: cellRange(1, 3, 11, 12) },
-
-      // ฝั่งล่าง
-      { id: "k5", label: "B01", name: "ร้านชาบูอินดี้",        status: "occupied", cells: cellRange(6, 8, 1, 3) },
-      { id: "k6", label: "B02", name: "",                     status: "inactive", cells: cellRange(6, 8, 4, 6) },
-      { id: "k7", label: "B03", name: "ร้านน้ำผลไม้ปั่น",       status: "occupied", cells: cellRange(6, 8, 8, 10) },
-      { id: "k8", label: "B04", name: "ร้านบัวลอยนมสด",        status: "occupied", cells: cellRange(6, 8, 11, 12) },
+    layers: [
+      { id: 'shops', name: 'ร้านค้า (Shops)', visible: true, locked: false, color: '#6366f1' },
+      { id: 'toilet', name: 'ห้องน้ำ (Restrooms)', visible: true, locked: false, color: '#10b981' },
+      { id: 'areas', name: 'พื้นที่ส่วนกลาง (Areas)', visible: true, locked: false, color: '#f59e0b' }
     ],
-    updatedAt: new Date().toISOString(),
-  },
+    elements: [
+      {
+        id: 'b-main-2',
+        name: 'โครงสร้างอาคารหลัก',
+        type: 'wall',
+        status: 'open',
+        x: 50,
+        y: 150,
+        width: 935,
+        height: 700,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Structure Zone',
+        fillColor: '#efefef',
+        strokeColor: '#000000'
+      },
+      {
+        id: 'b-restroom-2',
+        name: 'โครงสร้างอาคารห้องน้ำ',
+        type: 'wall',
+        status: 'open',
+        x: 50,
+        y: 10,
+        width: 300,
+        height: 140,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Structure Zone',
+        fillColor: '#efefef',
+        strokeColor: '#000000'
+      },
+      {
+        id: 'toilet-1-2',
+        name: 'ห้องน้ำชาย',
+        type: 'area',
+        areaType: 'toilet',
+        status: 'open',
+        x: 60,
+        y: 80,
+        width: 140,
+        height: 220,
+        rotation: 0,
+        layerId: 'toilet',
+        zone: 'Restroom Zone',
+        fillColor: '#a7f3d0',
+        strokeColor: '#059669'
+      },
+      {
+        id: 'toilet-2-2',
+        name: 'ห้องน้ำหญิง',
+        type: 'area',
+        areaType: 'toilet',
+        status: 'open',
+        x: 200,
+        y: 80,
+        width: 120,
+        height: 220,
+        rotation: 0,
+        layerId: 'toilet',
+        zone: 'Restroom Zone',
+        fillColor: '#a7f3d0',
+        strokeColor: '#059669'
+      },
+      {
+        id: 'k1',
+        name: 'ร้านก๋วยเตี๋ยวเรือกาสะลอง',
+        label: 'A01',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 350,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านก๋วยเตี๋ยวเรือกาสะลอง',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k2',
+        name: 'ร้านส้มตำแซ่บเวอร์',
+        label: 'A02',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 500,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านส้มตำแซ่บเวอร์',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k3',
+        name: 'ร้านข้าวราดแกงเมืองเลย',
+        label: 'A03',
+        type: 'area',
+        areaType: 'shop',
+        status: 'open',
+        x: 650,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        tenant: 'ร้านข้าวราดแกงเมืองเลย',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k4',
+        name: 'แผงว่าง',
+        label: 'A04',
+        type: 'area',
+        areaType: 'shop',
+        status: 'open',
+        x: 800,
+        y: 150,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone A',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k5',
+        name: 'ร้านชาบูอินดี้',
+        label: 'B01',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 350,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านชาบูอินดี้',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k6',
+        name: 'แผงปิดปรับปรุง',
+        label: 'B02',
+        type: 'area',
+        areaType: 'shop',
+        status: 'maintenance',
+        x: 500,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k7',
+        name: 'ร้านน้ำผลไม้ปั่น',
+        label: 'B03',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 650,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านน้ำผลไม้ปั่น',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'k8',
+        name: 'ร้านบัวลอยนมสด',
+        label: 'B04',
+        type: 'area',
+        areaType: 'shop',
+        status: 'occupied',
+        x: 800,
+        y: 300,
+        width: 140,
+        height: 120,
+        rotation: 0,
+        layerId: 'shops',
+        zone: 'Food Zone B',
+        tenant: 'ร้านบัวลอยนมสด',
+        fillColor: '#bfdbfe',
+        strokeColor: '#1d4ed8'
+      },
+      {
+        id: 'dining-area-2',
+        name: 'พื้นที่ทานอาหารรวม',
+        type: 'area',
+        areaType: 'seating',
+        status: 'open',
+        x: 140,
+        y: 480,
+        width: 750,
+        height: 320,
+        rotation: 0,
+        layerId: 'areas',
+        zone: 'Dining Zone',
+        fillColor: '#f8fafc',
+        strokeColor: '#64748b'
+      }
+    ],
+    updatedAt: new Date().toISOString()
+  }
 ];
