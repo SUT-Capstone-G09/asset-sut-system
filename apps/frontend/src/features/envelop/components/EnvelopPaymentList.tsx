@@ -16,10 +16,12 @@ import {
 // ─── Status Badge ────────────────────────────────────────────────────────────
 
 const statusConfig: Record<PaymentStatus, { label: string; className: string }> = {
-  รอชำระ: { label: "รอชำระ", className: "bg-slate-100 text-slate-600" },
-  รอตรวจสอบ: { label: "รอตรวจสอบ", className: "bg-amber-100 text-amber-700" },
-  จ่ายแล้ว: { label: "จ่ายแล้ว", className: "bg-emerald-100 text-emerald-700" },
-  ปฏิเสธ: { label: "ปฏิเสธ", className: "bg-red-100 text-red-600" },
+  pending_payment: { label: "รอชำระ", className: "bg-slate-100 text-slate-600" },
+  payment_submitted: { label: "รอตรวจสอบ", className: "bg-amber-100 text-amber-700" },
+  paid: { label: "จ่ายแล้ว", className: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "ปฏิเสธ", className: "bg-red-100 text-red-600" },
+  cancelled: { label: "ยกเลิก", className: "bg-red-100 text-red-600" },
+  expired: { label: "หมดอายุ", className: "bg-slate-100 text-slate-600" },
 };
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -84,7 +86,7 @@ function DetailPanel({ payment, onApprove, onReject }: DetailPanelProps) {
   const [loading, setLoading] = useState<"approve" | "reject" | null>(null);
 
   const allChecked = checked.every(Boolean);
-  const canApprove = allChecked && payment.status === "รอตรวจสอบ";
+  const canApprove = allChecked && payment.status === "payment_submitted";
 
   const toggle = (i: number) =>
     setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
@@ -241,7 +243,7 @@ function DetailPanel({ payment, onApprove, onReject }: DetailPanelProps) {
       </div>
 
       {/* Checklist — แสดงเฉพาะสถานะ รอตรวจสอบ */}
-      {payment.status === "รอตรวจสอบ" && (
+      {payment.status === "payment_submitted" && (
         <div>
           <div className="flex items-center mb-2">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
@@ -275,7 +277,7 @@ function DetailPanel({ payment, onApprove, onReject }: DetailPanelProps) {
       )}
 
       {/* Actions — แสดงเฉพาะสถานะ รอตรวจสอบ */}
-      {payment.status === "รอตรวจสอบ" && (
+      {payment.status === "payment_submitted" && (
         <div className="space-y-3 border-t border-slate-100 pt-4">
 
           {/* Reject section */}
@@ -375,14 +377,14 @@ export default function EnvelopPaymentList() {
     setPayments((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, status: "จ่ายแล้ว" as const, paidAt: `วันนี้ เวลา ${timeStr}` }
+          ? { ...p, status: "paid" as const, paidAt: `วันนี้ เวลา ${timeStr}` }
           : p
       )
     );
     // Update selected to reflect new status
     setSelected((prev) =>
       prev?.id === id
-        ? { ...prev, status: "จ่ายแล้ว" as const, paidAt: `วันนี้ เวลา ${timeStr}` }
+        ? { ...prev, status: "paid" as const, paidAt: `วันนี้ เวลา ${timeStr}` }
         : prev
     );
   };
@@ -391,13 +393,13 @@ export default function EnvelopPaymentList() {
     setPayments((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, status: "ปฏิเสธ" as const, rejectionReason: reason }
+          ? { ...p, status: "rejected" as const, rejectionReason: reason }
           : p
       )
     );
     setSelected((prev) =>
       prev?.id === id
-        ? { ...prev, status: "ปฏิเสธ" as const, rejectionReason: reason }
+        ? { ...prev, status: "rejected" as const, rejectionReason: reason }
         : prev
     );
   };

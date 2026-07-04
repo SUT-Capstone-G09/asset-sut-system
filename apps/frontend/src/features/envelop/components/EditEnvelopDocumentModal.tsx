@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pencil, CheckCircle2, Upload, X } from "lucide-react";
+import { FileDropzone, ExistingFile } from "@/components/ui/file-dropzone";
 import {
   Select,
   SelectContent,
@@ -33,9 +34,10 @@ const vacantSpaces = [
 ];
 
 const statusOptions: { value: DocumentStatus; label: string; color: string }[] = [
-  { value: "พร้อมใช้งาน", label: "พร้อมใช้งาน", color: "text-emerald-600" },
-  { value: "ใช้งานอยู่", label: "ใช้งานอยู่", color: "text-blue-600" },
-  { value: "หมดอายุ", label: "หมดอายุ", color: "text-red-500" },
+  { value: "draft",       label: "ร่าง",           color: "text-slate-500" },
+  { value: "on_sale",     label: "เปิดขาย",        color: "text-emerald-600" },
+  { value: "unavailable", label: "ปิดชั่วคราว",   color: "text-amber-600" },
+  { value: "archived",    label: "ปิดถาวร",       color: "text-red-500" },
 ];
 
 interface EditEnvelopDocumentModalProps {
@@ -51,7 +53,8 @@ export interface EditEnvelopDocumentFormData {
   location: string;
   price: number;
   documentStatus: DocumentStatus;
-  files: File[];
+  files: File[];              // ไฟล์ใหม่ที่ผู้ใช้เพิ่ง upload
+  removedAttachmentIds: string[]; // id ของไฟล์เดิมที่ต้องการลบ
   allowOnlineSubmit: boolean;
   note: string;
 }
@@ -62,16 +65,14 @@ export function EditEnvelopDocumentModal({
   document,
   onSubmit,
 }: EditEnvelopDocumentModalProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
   const [form, setForm] = useState<EditEnvelopDocumentFormData>({
     title: "",
     areaId: "",
     location: "",
     price: 0,
-    documentStatus: "พร้อมใช้งาน",
+    documentStatus: "draft",
     files: [],
+    removedAttachmentIds: [],
     allowOnlineSubmit: true,
     note: "",
   });
@@ -79,7 +80,6 @@ export function EditEnvelopDocumentModal({
   // Pre-fill form when document changes
   useEffect(() => {
     if (document) {
-      // Try to find the matching areaId from the location string
       const matchedArea = tenantAreaOptions.find((area) =>
         area.subLocations.includes(document.location)
       );
@@ -87,38 +87,25 @@ export function EditEnvelopDocumentModal({
         title: document.name,
         areaId: matchedArea?.id ?? "",
         location: document.location,
-        price: 0,
+        price: document.amount ?? 0,
         documentStatus: document.documentStatus,
         files: [],
+        removedAttachmentIds: [],
         allowOnlineSubmit: true,
         note: "",
       });
     }
   }, [document]);
 
+  // ไฟล์เดิมที่ยังไม่ได้ถูก mark ว่าจะลบ
+  const visibleExistingFiles: ExistingFile[] = (
+    document?.attachments ?? []
+  ).filter((a) => !form.removedAttachmentIds.includes(a.id));
+
   const selectedArea = tenantAreaOptions.find((a) => a.id === form.areaId);
 
   const handleClose = () => {
     onOpenChange(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => setIsDragging(false);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const dropped = Array.from(e.dataTransfer.files);
-    if (dropped.length > 0) setForm((f) => ({ ...f, files: [...f.files, ...dropped] }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    if (selected.length > 0) setForm((f) => ({ ...f, files: [...f.files, ...selected] }));
   };
 
   const handleSubmit = () => {
@@ -296,84 +283,20 @@ export function EditEnvelopDocumentModal({
                 <h3 className="text-sm font-bold text-slate-700">ไฟล์เอกสาร</h3>
               </div>
 
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={cn(
-                  "relative rounded-[7px] border-2 border-dashed p-4 transition-all",
-                  isDragging ? "bg-orange-50 border-[#f26522]" : "bg-slate-50 border-slate-200"
-                )}
-              >
-                {form.files.length > 0 && (
-                  <div className="max-h-52 overflow-y-auto pr-0.5 mb-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      {form.files.map((file, index) => {
-                        const isPdf = file.name.toLowerCase().endsWith(".pdf");
-                        return (
-                          <div key={index} className="group relative flex flex-col items-center p-3 bg-white rounded-[7px] border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                            <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setForm((f) => ({ ...f, files: f.files.filter((_, i) => i !== index) })); }}
-                                className="w-6 h-6 flex items-center justify-center rounded-md bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                            <div className="w-12 h-14 mb-2 flex items-end justify-center">
-                              {isPdf ? (
-                                <svg viewBox="0 0 48 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                                  <rect width="48" height="56" rx="6" fill="#EEF0FF"/>
-                                  <path d="M32 2L46 16H32V2Z" fill="#C7CBFF"/>
-                                  <path d="M32 2H8C5.8 2 4 3.8 4 6v44c0 2.2 1.8 4 4 4h32c2.2 0 4-1.8 4-4V16L32 2Z" fill="#C7CBFF" fillOpacity="0.4"/>
-                                  <text x="7" y="44" fontFamily="Arial" fontSize="11" fontWeight="bold" fill="#6366f1">PDF</text>
-                                </svg>
-                              ) : (
-                                <svg viewBox="0 0 48 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                                  <rect width="48" height="56" rx="6" fill="#EEF0FF"/>
-                                  <path d="M32 2L46 16H32V2Z" fill="#C7CBFF"/>
-                                  <rect x="10" y="26" width="8" height="8" rx="1" fill="#6366f1"/>
-                                  <rect x="20" y="26" width="8" height="8" rx="1" fill="#6366f1"/>
-                                  <rect x="30" y="26" width="8" height="8" rx="1" fill="#6366f1"/>
-                                  <rect x="10" y="36" width="8" height="8" rx="1" fill="#6366f1"/>
-                                  <rect x="20" y="36" width="8" height="8" rx="1" fill="#6366f1"/>
-                                </svg>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-600 font-medium text-center leading-tight line-clamp-2 break-all w-full">{file.name}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {form.files.length === 0 ? (
-                  <div
-                    className="flex flex-col items-center text-center gap-1 cursor-pointer py-6 rounded-[7px] hover:bg-white/60 transition-colors"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload size={24} className="text-slate-300 mb-1" />
-                    <p className="text-sm font-semibold text-slate-700">
-                      ลากไฟล์มาวางที่นี่ หรือ{" "}
-                      <span className="text-[#f26522] underline underline-offset-2">คลิกเพื่ออัปโหลด</span>
-                    </p>
-                    <p className="text-xs text-slate-400">PDF, ZIP ไม่เกิน 20MB · เลือกได้หลายไฟล์</p>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[7px] border border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-[#f26522] hover:bg-white hover:text-[#f26522] transition-all"
-                  >
-                    <Upload size={14} />
-                    เพิ่มไฟล์ · PDF, ZIP ไม่เกิน 20MB
-                  </button>
-                )}
-                <input ref={fileInputRef} type="file" multiple accept=".pdf,.zip" className="hidden" onChange={handleFileChange} />
-              </div>
+              <FileDropzone
+                files={form.files}
+                onFilesChange={(files) => setForm((f) => ({ ...f, files }))}
+                existingFiles={visibleExistingFiles}
+                onExistingFileRemove={(id) =>
+                  setForm((f) => ({
+                    ...f,
+                    removedAttachmentIds: [...f.removedAttachmentIds, id],
+                  }))
+                }
+                multiple
+                accept=".pdf,.zip"
+                hint="PDF, ZIP ไม่เกิน 20MB · เลือกได้หลายไฟล์"
+              />
 
               {/* Toggle */}
               <div className="flex items-center justify-between rounded-[7px] bg-slate-50 px-4 py-3.5">
