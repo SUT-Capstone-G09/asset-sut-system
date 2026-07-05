@@ -15,6 +15,8 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   folder?: UploadFolder | string;
   error?: string;
+  label?: string;
+  icon?: React.ReactNode;
 }
 
 export default function ImageUpload({
@@ -65,39 +67,44 @@ export default function ImageUpload({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const defaultIcon = (
+    <Upload size={28} className="text-[#f26522]" />
+  );
+
   return (
-    <div className="space-y-2">
+    <div className="w-full space-y-2">
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept="image/*"
+        accept="image/jpeg, image/png, image/webp"
         className="hidden"
       />
 
       {preview ? (
-        <div className="relative group aspect-video rounded-[7px] overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
             alt="Preview"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className={cn(
+              "object-contain w-full h-full transition-opacity duration-300",
+              uploading ? "opacity-50 blur-sm" : "opacity-100 group-hover:opacity-90"
+            )}
           />
-
           {uploading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 text-white text-sm font-bold">
-              <Loader2 size={20} className="animate-spin" />
-              กำลังอัปโหลด...
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 size={32} className="text-[#f26522] animate-spin drop-shadow-md" />
             </div>
           )}
-
           {!uploading && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[7px] font-bold gap-2"
+                className="rounded-lg font-bold gap-2 shadow-lg"
               >
                 <RefreshCw size={14} />
                 เปลี่ยนรูป
@@ -107,7 +114,7 @@ export default function ImageUpload({
                 variant="destructive"
                 size="sm"
                 onClick={handleRemove}
-                className="rounded-[7px] font-bold gap-2"
+                className="rounded-lg font-bold gap-2 shadow-lg"
               >
                 <X size={14} />
                 ลบรูป
@@ -119,7 +126,7 @@ export default function ImageUpload({
         <div
           onClick={() => !uploading && fileInputRef.current?.click()}
           className={cn(
-            "border-2 border-dashed rounded-[7px] p-10 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer group shadow-inner",
+            "border-2 border-dashed rounded-2xl py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
             error
               ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
               : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",

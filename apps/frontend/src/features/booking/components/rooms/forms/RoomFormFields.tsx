@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,27 +28,16 @@ import { RoomFormValues } from "../../../schemas/room-schema";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 import RoomRateModal from "../RoomRateModal";
+import {
+  getLocations,
+  getLocationTypes,
+  getBuildings,
+  BuildingDTO,
+} from "@/features/bookings/services/location.service";
 
 interface RoomFormFieldsProps {
   isEdit?: boolean;
 }
-
-const CATEGORIES = [
-  "ห้องบรรยาย",
-  "ห้องปฏิบัติการ",
-  "ห้องสัมมนา",
-  "ห้องประชุมขนาดเล็ก",
-  "ห้องประชุมขนาดกลาง",
-  "ห้องประชุมขนาดใหญ่",
-];
-
-const BUILDINGS = [
-  "อาคารเรียนรวม 1",
-  "อาคารเรียนรวม 2",
-  "อาคารบริหาร",
-  "อาคารเครื่องมือ F1",
-  "อาคารเครื่องมือ F2",
-];
 
 const EQUIPMENT_LIST = [
   "เครื่องฉายโปรเจคเตอร์",
@@ -79,6 +68,29 @@ export default function RoomFormFields({
 
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [categories, setCategories] = useState<string[]>([]);
+  const [buildings, setBuildings] = useState<BuildingDTO[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [locs, types, bldgs] = await Promise.all([
+          getLocations(),
+          getLocationTypes(),
+          getBuildings(),
+        ]);
+
+        const uniqueCategories = types.map((t) => t.type);
+        setCategories(uniqueCategories);
+
+        setBuildings(bldgs);
+      } catch (error) {
+        console.error("Failed to fetch locations data", error);
+      }
+    }
+    fetchData();
+  }, []);
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
@@ -180,11 +192,11 @@ export default function RoomFormFields({
           {/* Space Name */}
           <div className="space-y-2">
             <Label className="text-xs font-bold text-slate-500">
-              ชื่อพื้นที่ (Space Name)
+              ชื่อห้อง (Room Name)
             </Label>
             <Input
               {...register("roomName")}
-              placeholder="เช่น Premium Boardroom A"
+              placeholder="เช่น ห้อง A"
               className={cn(
                 "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all pl-4",
                 themeRing,
@@ -205,32 +217,32 @@ export default function RoomFormFields({
               ชื่ออาคาร (Building Name)
             </Label>
             <Controller
-              name="building"
+              name="buildingId"
               control={control}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger
                     className={cn(
-                      "rounded-[7px] data-[size=default]:h-12 pl-4 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all w-full",
+                      "rounded-[7px] data-[size=default]:h-12 w-full pl-4 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
                       themeRing,
-                      errors.building && "border-red-500",
+                      errors.buildingId && "border-red-500",
                     )}
                   >
                     <SelectValue placeholder="เลือกอาคาร" />
                   </SelectTrigger>
                   <SelectContent>
-                    {BUILDINGS.map((bldg) => (
-                      <SelectItem key={bldg} value={bldg}>
-                        {bldg}
+                    {buildings.map((bldg) => (
+                      <SelectItem key={bldg.id} value={bldg.id.toString()}>
+                        {bldg.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.building && (
+            {errors.buildingId && (
               <p className="text-[10px] font-bold text-red-500 ml-1">
-                {errors.building.message}
+                {errors.buildingId.message}
               </p>
             )}
           </div>
@@ -240,7 +252,7 @@ export default function RoomFormFields({
           {/* Space Type */}
           <div className="space-y-2">
             <Label className="text-xs font-bold text-slate-500">
-              ประเภทของสถานที่ (Space Type)
+              ประเภทของห้อง (Room Type)
             </Label>
             <Controller
               name="category"
@@ -257,7 +269,7 @@ export default function RoomFormFields({
                     <SelectValue placeholder="เลือกประเภทของสถานที่" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {cat}
                       </SelectItem>
@@ -492,7 +504,6 @@ export default function RoomFormFields({
                 รองรับ PDF, PNG, JPG (สูงสุด 10MB)
               </p>
             </div>
-
           </div>
 
           {/* Uploaded Files List */}

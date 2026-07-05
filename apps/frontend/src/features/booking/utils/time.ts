@@ -10,7 +10,10 @@ export function getHoursFromTimeSlot(timeSlot: string): number {
       const startMin = parseInt(match[2], 10);
       const endHour = parseInt(match[3], 10);
       const endMin = parseInt(match[4], 10);
-      const diffMin = endHour * 60 + endMin - (startHour * 60 + startMin);
+      let diffMin = endHour * 60 + endMin - (startHour * 60 + startMin);
+      if (diffMin < 0) {
+        diffMin += 24 * 60; // add 24 hours
+      }
       return Math.max(1, diffMin / 60);
     }
   } catch (e) {

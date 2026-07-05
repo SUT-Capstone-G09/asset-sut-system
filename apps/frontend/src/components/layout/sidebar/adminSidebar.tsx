@@ -94,23 +94,20 @@ const menuGroups: MenuGroup[] = [
       {
         id: "booking-requests",
         label: "คำขอจองพื้นที่",
-        icon: ClipboardList,
+        icon: LayoutDashboard,
         href: "/admin/booking/requests",
+      },
+      {
+        id: "booking",
+        label: "ขอใช้พื้นที่",
+        icon: Calendar,
+        href: "/admin/booking",
       },
       {
         id: "payment-verify",
         label: "ตรวจสอบการชำระเงิน",
         icon: Wallet,
         href: "/admin/payment/verify",
-      },
-      {
-        id: "booking",
-        label: "ขอใช้พื้นที่",
-        icon: Calendar,
-        subItems: [
-          { label: "ห้องเรียน", href: "/admin/booking/classroom" },
-          { label: "ห้องประชุม", href: "/admin/booking/meeting" },
-        ],
       },
       {
         id: "manage-rooms",

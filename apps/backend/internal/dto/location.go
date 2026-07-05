@@ -8,7 +8,7 @@ type CreateLocationRequest struct {
 	ParentID    *uint   `json:"parent_id"`
 	TypeID      uint    `json:"type_id" binding:"required"`
 	Name        string  `json:"name" binding:"required"`
-	Building    *string `json:"building"`
+	BuildingID  *uint   `json:"building_id"`
 	ImageURL    *string `json:"image_url"`
 	RoomNumber  *int    `json:"room_number"`
 	FloorNumber *int    `json:"floor_number"`
@@ -20,7 +20,7 @@ type UpdateLocationRequest struct {
 	ParentID    *uint   `json:"parent_id"`
 	TypeID      *uint   `json:"type_id"`
 	Name        string  `json:"name"`
-	Building    *string `json:"building"`
+	BuildingID  *uint   `json:"building_id"`
 	ImageURL    *string `json:"image_url"`
 	RoomNumber  *int    `json:"room_number"`
 	FloorNumber *int    `json:"floor_number"`
@@ -34,6 +34,7 @@ type LocationResponse struct {
 	TypeID       uint                  `json:"type_id"`
 	Type         string                `json:"type"`
 	Name         string                `json:"name"`
+	BuildingID   *uint                 `json:"building_id"`
 	Building     *string               `json:"building"`
 	ImageURL     *string               `json:"image_url"`
 	RoomNumber   *int                  `json:"room_number"`
@@ -131,7 +132,7 @@ type CreateAddonRequest struct {
 
 type AddonResponse struct {
 	ID           uint   `json:"id"`
-	LocationID   uint   `json:"location_id"`
+	LocationID   *uint  `json:"location_id,omitempty"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	DefaultPrice int    `json:"default_price"`

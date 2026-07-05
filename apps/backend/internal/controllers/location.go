@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -22,6 +24,15 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, types)
+}
+
+func (c *LocationController) GetBuildings(ctx *gin.Context) {
+	buildings, err := c.locationService.GetBuildings()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, buildings)
 }
 
 func (c *LocationController) GetAll(ctx *gin.Context) {
@@ -313,7 +324,7 @@ func (c *LocationController) CreateAddon(ctx *gin.Context) {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	addon, err := c.locationService.CreateAddon(id, req)
+	addon, err := c.locationService.CreateAddon(&id, req)
 	if err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -322,7 +333,7 @@ func (c *LocationController) CreateAddon(ctx *gin.Context) {
 }
 
 func (c *LocationController) UpdateAddon(ctx *gin.Context) {
-	id, err := parseSubID(ctx, "aid")
+	id, err := parseAddonID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid addon id")
 		return
@@ -341,7 +352,7 @@ func (c *LocationController) UpdateAddon(ctx *gin.Context) {
 }
 
 func (c *LocationController) DeleteAddon(ctx *gin.Context) {
-	id, err := parseSubID(ctx, "aid")
+	id, err := parseAddonID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid addon id")
 		return
@@ -387,48 +398,52 @@ func (c *LocationController) DeletePricingTier(ctx *gin.Context) {
 	response.OK(ctx, gin.H{"message": "deleted"})
 }
 
-// ── Hall Floor Plan ──────────────────────────────────────────────────────────
+// ── Global Addon Handlers ───────────────────────────────────────────────────
 
-// GetFloorPlan คืนผังของโถง; ถ้ายังไม่มีผังจะคืน 200 พร้อม data: null (frontend สร้างผังว่างเอง)
-func (c *LocationController) GetFloorPlan(ctx *gin.Context) {
-	id, err := parseID(ctx)
-	if err != nil {
-		response.BadRequest(ctx, "invalid id")
-		return
-	}
-	fp, err := c.locationService.GetFloorPlan(id)
+func (c *LocationController) GetGlobalAddons(ctx *gin.Context) {
+	items, err := c.locationService.GetGlobalAddons()
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null
+	response.OK(ctx, items)
 }
 
-func (c *LocationController) UpsertFloorPlan(ctx *gin.Context) {
-	id, err := parseID(ctx)
+func (c *LocationController) GetAddonByID(ctx *gin.Context) {
+	id, err := parseAddonID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	var req dto.UpsertHallFloorPlanRequest
+	item, err := c.locationService.GetAddonByID(id)
+	if err != nil {
+		response.NotFound(ctx, "addon not found")
+		return
+	}
+	response.OK(ctx, item)
+}
+
+func (c *LocationController) CreateGlobalAddon(ctx *gin.Context) {
+	var req dto.CreateAddonRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	fp, err := c.locationService.UpsertFloorPlan(id, req)
+	item, err := c.locationService.CreateAddon(nil, req)
 	if err != nil {
-		response.InternalError(ctx, err.Error())
+		response.BadRequest(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, fp)
+	response.Created(ctx, item)
 }
 
-// GetFloorPlanIDs คืน location_id ทั้งหมดที่มีผังแล้ว (ใช้โชว์ป้าย "มีผัง" บนการ์ด)
-func (c *LocationController) GetFloorPlanIDs(ctx *gin.Context) {
-	ids, err := c.locationService.GetFloorPlanLocationIDs()
-	if err != nil {
-		response.InternalError(ctx, err.Error())
-		return
+func parseAddonID(ctx *gin.Context) (uint, error) {
+	if aid := ctx.Param("aid"); aid != "" {
+		id, err := strconv.ParseUint(aid, 10, 64)
+		return uint(id), err
 	}
-	response.OK(ctx, ids)
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
+	return uint(id), err
 }
+
+

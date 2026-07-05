@@ -250,13 +250,11 @@ html {
     scrollbar-width: none;
   }
 }
-
-/* Lighter placeholder text across all inputs / selects (single source of truth) */
 input::placeholder,
 textarea::placeholder,
 [data-placeholder] {
-  color: var(--color-neutral-400); /* #B2B2B2 — lighter than muted-foreground */
-  /* }
+  color: var(--color-neutral-400);
+}
 
 .upload-zone {
   border-color: #cbd5e1; /* slate-300 */

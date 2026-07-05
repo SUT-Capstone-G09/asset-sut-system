@@ -22,7 +22,8 @@ type Locations struct {
 	TypeID           uint                       `gorm:"not null" json:"type_id"`
 	Type             *LocationTypes             `gorm:"foreignKey:TypeID" json:"type,omitempty"`
 	Name             string                     `gorm:"not null" json:"name"`
-	Building         *string                    `json:"building"`
+	BuildingID       *uint                      `json:"building_id"`
+	Building         *Buildings                 `gorm:"foreignKey:BuildingID" json:"building,omitempty"`
 	ImageURL         *string                    `json:"image_url"`
 	RoomNumber       *int                       `json:"room_number"`
 	FloorNumber      *int                       `json:"floor_number"`
@@ -76,7 +77,7 @@ type ChargeTypes struct {
 
 type LocationAddons struct {
 	Base
-	LocationID   uint         `gorm:"not null" json:"location_id"`
+	LocationID   *uint        `json:"location_id"`
 	Location     *Locations   `gorm:"foreignKey:LocationID" json:"location,omitempty"`
 	Name         string       `gorm:"not null" json:"name"`
 	Description  string       `json:"description"`

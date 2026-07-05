@@ -15,7 +15,8 @@ export interface CreateBookingPayload {
 }
 
 export interface UpdateBookingStatusPayload {
-  status_id: number;
+  status_id?: number;
+  status?: string;
   note?: string;
 }
 
@@ -36,6 +37,11 @@ export interface BookingResponseDTO {
   id: number;
   user_id: number;
   user_name: string;
+  requester_name?: string;
+  requester_id?: string;
+  requester_type?: string;
+  contact_phone?: string;
+  contact_email?: string;
   purpose: string;
   base_price: number;
   addon_price: number;
@@ -43,6 +49,13 @@ export interface BookingResponseDTO {
   status: string;
   status_id: number;
   timeslots: TimeslotResponseDTO[];
+  booking_addons?: {
+    id: number;
+    addon_name: string;
+    applied_price: number;
+    quantity: number;
+    total_price: number;
+  }[];
   status_logs: {
     id: number;
     from_status: string;
@@ -51,6 +64,17 @@ export interface BookingResponseDTO {
     changed_by_name: string;
     changed_at: string;
     note: string;
+  }[];
+  documents?: {
+    id: number;
+    booking_id: number;
+    document_type_id: number;
+    document_type: string;
+    file_name: string;
+    file_url: string;
+    content_type: string;
+    method: string;
+    created_at: string;
   }[];
   created_at: string;
 }
@@ -78,6 +102,27 @@ export async function updateBookingStatus(
   payload: UpdateBookingStatusPayload
 ): Promise<BookingResponseDTO> {
   return apiClient.put<BookingResponseDTO>(`/bookings/${id}/status`, payload);
+}
+
+export interface TimeslotExpensesPayload {
+  timeslot_id: number;
+  expenses: {
+    addon_name: string;
+    applied_price: number;
+    quantity: number;
+  }[];
+}
+
+export interface UpdateBookingExpensesPayload {
+  is_waived: boolean;
+  timeslots: TimeslotExpensesPayload[];
+}
+
+export async function updateBookingExpenses(
+  id: number,
+  payload: UpdateBookingExpensesPayload
+): Promise<BookingResponseDTO> {
+  return apiClient.put<BookingResponseDTO>(`/bookings/${id}/expenses`, payload);
 }
 
 // Map backend status strings to Thai UI labels
