@@ -45,7 +45,6 @@ export interface BookingResponseDTO {
   purpose: string;
   base_price: number;
   addon_price: number;
-  discount_price?: number;
   total_price: number;
   status: string;
   status_id: number;
@@ -115,7 +114,7 @@ export interface TimeslotExpensesPayload {
 }
 
 export interface UpdateBookingExpensesPayload {
-  discount_price: number;
+  is_waived: boolean;
   timeslots: TimeslotExpensesPayload[];
 }
 

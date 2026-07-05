@@ -472,17 +472,49 @@ export default function PaymentVerificationModal({
                         </div>
                       ) : (
                         <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100 text-[11px] max-h-[140px] overflow-y-auto custom-scrollbar">
-                          {selectedBooking.expenses && selectedBooking.expenses.length > 0 ? (
-                            selectedBooking.expenses.map((exp, idx) => (
-                              <div key={idx} className="flex justify-between items-center text-slate-600 font-bold">
-                                <span>{exp.name}</span>
-                                <span className={cn(exp.amount < 0 ? "text-emerald-600" : "text-slate-800")}>
-                                  {exp.amount < 0 ? "-" : ""} ฿ {Math.abs(exp.amount).toLocaleString()}
-                                </span>
-                              </div>
-                            ))
+                          {selectedBooking.timeslots && selectedBooking.timeslots.length > 0 ? (
+                            <div className="space-y-4">
+                              {selectedBooking.timeslots.map((ts, idx) => (
+                                <div key={ts.id || idx} className="space-y-2">
+                                  <div className="font-black text-slate-700 text-xs border-b border-slate-200 pb-1 mb-2">
+                                    {new Date(ts.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} ({ts.timeSlot})
+                                  </div>
+                                  
+                                  {ts.priceSnapshot > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                      <span>ค่าเช่าพื้นที่</span>
+                                      <span className="text-slate-800">
+                                        ฿ {ts.priceSnapshot.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {ts.expenses && ts.expenses.length > 0 && (
+                                    ts.expenses.map((exp, eIdx) => (
+                                      <div key={eIdx} className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                        <span>{exp.name} {exp.quantity > 1 ? `(x${exp.quantity})` : ''}</span>
+                                        <span className={cn(exp.amount < 0 ? "text-emerald-600" : "text-slate-800")}>
+                                          {exp.amount < 0 ? "-" : ""} ฿ {Math.abs(exp.amount).toLocaleString()}
+                                        </span>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           ) : (
-                            <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
+                            selectedBooking.expenses && selectedBooking.expenses.length > 0 ? (
+                              selectedBooking.expenses.map((exp, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-slate-600 font-bold">
+                                  <span>{exp.name}</span>
+                                  <span className={cn(exp.amount < 0 ? "text-emerald-600" : "text-slate-800")}>
+                                    {exp.amount < 0 ? "-" : ""} ฿ {Math.abs(exp.amount).toLocaleString()}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
+                            )
                           )}
                         </div>
                       )}

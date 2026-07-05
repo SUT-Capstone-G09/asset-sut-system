@@ -805,9 +805,12 @@ export default function BookingDrawer({
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">ยอดชำระทั้งหมด</span>
                 <span className="text-3xl font-black text-[#f26522]">
                   {(() => {
-                    const total = (booking.expenses || []).reduce((acc, exp) => acc + (exp.amount || 0), 0);
+                    const total = booking.totalPrice !== undefined 
+                      ? booking.totalPrice 
+                      : (booking.basePrice || 0) + (booking.expenses || []).reduce((acc, exp) => acc + (exp.amount || 0), 0);
+                    
                     return total === 0 
-                      ? "ยังไม่ได้คำนวณ" 
+                      ? "ไม่มีค่าใช้จ่าย" 
                       : `฿${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
                   })()}
                 </span>
@@ -841,7 +844,7 @@ export default function BookingDrawer({
                 <Button
                   onClick={handleApproveConfirm}
                   disabled={actionLoading}
-                  className="h-11 rounded-[7px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white min-w-[120px]"
+                  className="h-11 rounded-[7px] font-bold bg-[var(--color-brand-primary)] hover:opacity-90 text-white min-w-[120px]"
                 >
                   {actionLoading ? (
                     <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />

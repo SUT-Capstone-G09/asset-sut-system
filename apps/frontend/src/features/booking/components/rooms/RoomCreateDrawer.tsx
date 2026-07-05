@@ -24,7 +24,7 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   roomName: "ชื่อห้อง",
-  building: "อาคาร",
+  buildingId: "อาคาร",
   category: "ประเภทห้อง",
   capacity: "ความจุ",
   image: "รูปภาพ",
@@ -40,7 +40,7 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
     defaultValues: {
       roomName: "",
       roomNumber: "",
-      building: "",
+      buildingId: "",
       category: "",
       capacity: 1,
       image: "",
@@ -65,7 +65,8 @@ export default function RoomCreateDrawer({ open, onClose, onSave }: Props) {
         id: "",
         roomName: data.roomName,
         roomNumber: data.roomNumber ?? "",
-        building: data.building,
+        buildingId: data.buildingId,
+        building: "", // Temporary placeholder, backend provides real name
         category: data.category,
         capacity: Number(data.capacity),
         image: data.image ?? "",

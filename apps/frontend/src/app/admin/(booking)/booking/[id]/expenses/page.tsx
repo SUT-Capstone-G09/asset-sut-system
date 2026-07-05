@@ -59,8 +59,8 @@ export default function BookingExpensesPage() {
 
   // Room cost (booking level)
   const [roomCostPrice, setRoomCostPrice] = useState(0);
-  // Global discount
-  const [globalDiscount, setGlobalDiscount] = useState(0);
+  // Global waive fee
+  const [isWaived, setIsWaived] = useState(false);
 
   // Per timeslot addons state
   interface TimeslotData {
@@ -71,7 +71,6 @@ export default function BookingExpensesPage() {
     durationHours: number;
     priceSnapshot: number;
     otherExpenses: ExpenseRow[];
-    discounts: ExpenseRow[];
   }
   const [timeslotsData, setTimeslotsData] = useState<TimeslotData[]>([]);
 
@@ -100,23 +99,8 @@ export default function BookingExpensesPage() {
         }
         setRoomCostPrice(computedBasePrice);
 
-        // Calculate old discounts from addons if discount_price is 0
-        let oldAddonDiscounts = 0;
-        if (data.timeslots) {
-          data.timeslots.forEach((ts) => {
-            if (ts.addons) {
-              ts.addons.forEach((a) => {
-                const name = a.addon_name.toLowerCase();
-                if (name.includes("ส่วนลด") || name.includes("discount")) {
-                  oldAddonDiscounts += Math.abs(a.applied_price * a.quantity);
-                }
-              });
-            }
-          });
-        }
-        
-        // Set global discount
-        setGlobalDiscount(data.discount_price || oldAddonDiscounts || 0);
+        // Set waive status
+        setIsWaived(data.total_price === 0 && (computedBasePrice > 0 || (data.addon_price || 0) > 0));
 
         // Parse payment slip
         if ((data as any).receipt_image) {
@@ -130,28 +114,16 @@ export default function BookingExpensesPage() {
             
             if (ts.addons) {
               ts.addons.forEach((a) => {
-                const isDiscount =
-                  a.addon_name.toLowerCase().includes("ส่วนลด") ||
-                  a.addon_name.toLowerCase().includes("discount");
                 const isRoom =
                   a.addon_name.startsWith("ค่าห้อง") ||
                   a.addon_name.startsWith("room");
 
                 if (!isRoom) {
-                  if (isDiscount) {
-                    tsDiscounts.push({
-                      name: a.addon_name,
-                      price: Math.abs(a.applied_price),
-                      quantity: a.quantity,
-                      isDiscount: true,
-                    });
-                  } else {
-                    tsOtherExpenses.push({
-                      name: a.addon_name,
-                      price: a.applied_price,
-                      quantity: a.quantity,
-                    });
-                  }
+                  tsOtherExpenses.push({
+                    name: a.addon_name,
+                    price: a.applied_price,
+                    quantity: a.quantity,
+                  });
                 }
               });
             }
@@ -180,7 +152,6 @@ export default function BookingExpensesPage() {
               durationHours,
               priceSnapshot: ts.price_snapshot || 0,
               otherExpenses: tsOtherExpenses,
-              discounts: tsDiscounts
             };
           });
           setTimeslotsData(mappedTimeslots);
@@ -218,7 +189,7 @@ export default function BookingExpensesPage() {
       });
 
       await updateBookingExpenses(bookingId, { 
-        discount_price: globalDiscount,
+        is_waived: isWaived,
         timeslots: timeslotPayloads 
       });
 
@@ -331,8 +302,7 @@ export default function BookingExpensesPage() {
   });
 
   const subtotal = roomCostPrice + otherTotal;
-  const isWaived = subtotal > 0 && globalDiscount === subtotal;
-  const grandTotal = subtotal - globalDiscount;
+  const grandTotal = isWaived ? 0 : subtotal;
 
   const filteredAddons = addons.filter((a: any) => {
     const itemName = a.itemName || a.name || a.item_name || "";
@@ -601,11 +571,11 @@ export default function BookingExpensesPage() {
 
 
                 <div className="flex justify-end w-72 mt-2 mb-1">
-                  <div className="flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setGlobalDiscount(isWaived ? 0 : subtotal)}>
+                  <div className="flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setIsWaived(!isWaived)}>
                     <Checkbox 
                       id="waive-fee" 
                       checked={isWaived} 
-                      onCheckedChange={(checked) => setGlobalDiscount(checked ? subtotal : 0)}
+                      onCheckedChange={(checked) => setIsWaived(checked as boolean)}
                       className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                     />
                     <label

@@ -58,6 +58,7 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
   return {
     id: String(b.id),
     basePrice: b.base_price || 0,
+    totalPrice: b.total_price || 0,
     discountPrice: b.discount_price || 0,
     roomName: loc?.name || firstSlot?.location_name || "ไม่ระบุห้อง",
     roomNumber: loc?.room_number ? String(loc.room_number) : "",

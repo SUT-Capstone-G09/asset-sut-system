@@ -124,10 +124,15 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 			return err
 		}
 
-		building := r.Building
+		// Get or create building
+		var bldg models.Buildings
+		if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
+			return err
+		}
+
 		location := models.Locations{
 			Name:        r.Name,
-			Building:    &building,
+			BuildingID:  &bldg.ID,
 			TypeID:      locType.ID,
 			StatusID:    availableStatus.ID,
 			Capacity:    r.Capacity,

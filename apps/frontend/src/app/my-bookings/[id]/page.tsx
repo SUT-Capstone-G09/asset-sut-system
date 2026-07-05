@@ -365,10 +365,10 @@ export default function BookingDetailPage() {
                       <span>฿{(booking.addon_price ?? 0).toLocaleString()}</span>
                     </div>
                   )}
-                  {(booking.discount_price ?? 0) > 0 && (
+                  {booking.total_price === 0 && (booking.base_price > 0 || (booking.addon_price ?? 0) > 0) && (
                     <div className="flex justify-between text-emerald-500">
                       <span>ส่วนลด / ยกเว้นค่าบริการ</span>
-                      <span>-฿{(booking.discount_price ?? 0).toLocaleString()}</span>
+                      <span>-฿{(booking.base_price + (booking.addon_price ?? 0)).toLocaleString()}</span>
                     </div>
                   )}
                   <div className="border-t border-gray-100 pt-2 mt-1 flex justify-between font-bold text-gray-900">

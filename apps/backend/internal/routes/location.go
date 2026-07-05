@@ -10,6 +10,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	optAuth := middleware.OptionalAuthMiddleware(deps.Config.JWT.Secret)
 	lc := deps.LocationController
 
+	rg.GET("/buildings", lc.GetBuildings)
 	rg.GET("/location-types", lc.GetTypes)
 
 	locations := rg.Group("/locations")

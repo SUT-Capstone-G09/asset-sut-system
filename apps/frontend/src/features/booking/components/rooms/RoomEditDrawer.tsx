@@ -41,7 +41,7 @@ export default function RoomEditDrawer({ room, open, onClose, onSave }: Props) {
     defaultValues: {
       roomName: "",
       roomNumber: "",
-      building: "",
+      buildingId: "",
       category: "",
       capacity: 1,
       image: "",
@@ -62,10 +62,10 @@ export default function RoomEditDrawer({ room, open, onClose, onSave }: Props) {
   useEffect(() => {
     if (room) {
       methods.reset({
-        roomName: room.roomName || "",
-        roomNumber: room.roomNumber || "",
-        building: room.building || "",
-        category: room.category || "",
+        roomName: room?.roomName || "",
+        roomNumber: room?.roomNumber || "",
+        buildingId: room?.buildingId || "",
+        category: room?.category || "",
         capacity: room.capacity || 1,
         image: room.image || "",
         status: room.status || "available",
@@ -91,7 +91,8 @@ export default function RoomEditDrawer({ room, open, onClose, onSave }: Props) {
         ...room,
         roomName: data.roomName,
         roomNumber: data.roomNumber ?? "",
-        building: data.building,
+        buildingId: data.buildingId,
+        building: room?.building || "",
         category: data.category,
         capacity: Number(data.capacity),
         image: data.image || room.image,

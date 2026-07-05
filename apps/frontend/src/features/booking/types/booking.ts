@@ -16,6 +16,7 @@ export interface TimeslotDetail {
 export interface Booking {
   id: string;
   basePrice?: number;
+  totalPrice?: number;
   roomName: string;
   roomNumber: string;
   building: string;

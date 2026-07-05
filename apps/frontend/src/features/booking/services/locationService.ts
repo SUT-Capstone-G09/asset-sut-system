@@ -7,6 +7,7 @@ export interface AdminLocationDTO {
   type_id: number;
   type: string;
   name: string;
+  building_id?: number;
   building?: string;
   image_url?: string;
   room_number?: number;
@@ -20,7 +21,7 @@ export interface AdminLocationDTO {
 export interface CreateLocationPayload {
   type_id: number;
   name: string;
-  building?: string;
+  building_id?: number;
   image_url?: string;
   room_number?: number;
   floor_number?: number;
@@ -31,7 +32,7 @@ export interface CreateLocationPayload {
 export interface UpdateLocationPayload {
   type_id?: number;
   name?: string;
-  building?: string;
+  building_id?: number;
   image_url?: string;
   room_number?: number;
   floor_number?: number;
@@ -69,6 +70,7 @@ export function locationToRoom(loc: AdminLocationDTO): Room {
     id: String(loc.id),
     roomName: loc.name,
     roomNumber: loc.room_number ? String(loc.room_number) : "",
+    buildingId: loc.building_id ? String(loc.building_id) : undefined,
     building: loc.building ?? "",
     category: loc.type,
     capacity: loc.capacity,

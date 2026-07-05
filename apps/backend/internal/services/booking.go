@@ -259,14 +259,7 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 	for _, tsInput := range req.Timeslots {
 		for _, item := range tsInput.Expenses {
 			total := item.AppliedPrice * item.Quantity
-
-			// If the item is a discount, subtract it from the total addon price
-			// Otherwise, add it.
-			if len(item.AddonName) >= 18 && item.AddonName[:18] == "ส่วนลด" || item.AddonName == "ส่วนลด" {
-				addonPrice -= total
-			} else {
-				addonPrice += total
-			}
+			addonPrice += total
 
 			newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
 				TimeslotID:   tsInput.TimeslotID,
@@ -286,9 +279,12 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 		}
 	}
 
-	totalPrice := basePrice + addonPrice - req.DiscountPrice
+	totalPrice := basePrice + addonPrice
+	if req.IsWaived {
+		totalPrice = 0
+	}
 
-	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, basePrice, addonPrice, req.DiscountPrice, totalPrice); err != nil {
+	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, basePrice, addonPrice, totalPrice); err != nil {
 		return nil, err
 	}
 
@@ -354,7 +350,6 @@ func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingRespons
 		Purpose:    b.Purpose,
 		BasePrice:     b.BasePrice,
 		AddonPrice:    b.AddonPrice,
-		DiscountPrice: b.DiscountPrice,
 		TotalPrice:    b.TotalPrice,
 		StatusID:      b.StatusID,
 		CreatedAt:     b.CreatedAt,

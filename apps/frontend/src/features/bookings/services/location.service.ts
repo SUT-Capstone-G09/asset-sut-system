@@ -7,6 +7,7 @@ export interface LocationDTO {
   type_id: number;
   type: string;
   name: string;
+  building_id?: number;
   building?: string;
   image_url?: string;
   room_number?: number;
@@ -56,6 +57,25 @@ export type MonthlyAvailabilityMap = Record<string, DayAvailability>;
 
 export async function getLocations(): Promise<LocationDTO[]> {
   return apiClient.get<LocationDTO[]>("/locations");
+}
+
+export interface LocationTypeDTO {
+  id: number;
+  type: string;
+}
+
+export async function getLocationTypes(): Promise<LocationTypeDTO[]> {
+  return apiClient.get<LocationTypeDTO[]>("/location-types");
+}
+
+export interface BuildingDTO {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+export async function getBuildings(): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>("/buildings");
 }
 
 export async function getLocationById(id: number): Promise<LocationDetailDTO> {

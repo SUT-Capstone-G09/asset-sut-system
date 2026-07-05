@@ -25,6 +25,24 @@ func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
 	return s.locationRepo.FindAllTypes()
 }
 
+func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
+	buildings, err := s.locationRepo.FindAllBuildings()
+	if err != nil {
+		return nil, err
+	}
+	var res []dto.BuildingResponse
+	for _, b := range buildings {
+		res = append(res, dto.BuildingResponse{
+			ID:        b.ID,
+			Name:      b.Name,
+			Code:      b.Code,
+			CreatedAt: b.CreatedAt,
+			UpdatedAt: b.UpdatedAt,
+		})
+	}
+	return res, nil
+}
+
 func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
 	var locations []models.Locations
 	var err error
@@ -66,7 +84,7 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
 		Name:        req.Name,
-		Building:    req.Building,
+		BuildingID:  req.BuildingID,
 		ImageURL:    req.ImageURL,
 		RoomNumber:  req.RoomNumber,
 		FloorNumber: req.FloorNumber,
@@ -109,8 +127,8 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role st
 	if req.Name != "" {
 		location.Name = req.Name
 	}
-	if req.Building != nil {
-		location.Building = req.Building
+	if req.BuildingID != nil {
+		location.BuildingID = req.BuildingID
 	}
 	if req.ImageURL != nil {
 		location.ImageURL = req.ImageURL
@@ -419,7 +437,7 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
-		Building:    l.Building,
+		BuildingID:  l.BuildingID,
 		ImageURL:    s.resolveImageURL(l.ImageURL),
 		RoomNumber:  l.RoomNumber,
 		FloorNumber: l.FloorNumber,
@@ -428,6 +446,10 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 	}
 	if l.Type != nil {
 		res.Type = l.Type.Type
+	}
+	if l.Building != nil {
+		name := l.Building.Name
+		res.Building = &name
 	}
 	if l.Status != nil {
 		res.Status = l.Status.Status

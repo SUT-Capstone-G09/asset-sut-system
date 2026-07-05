@@ -18,6 +18,7 @@ import {
   User,
   ExternalLink,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
@@ -255,37 +256,71 @@ export default function AdminPaymentVerificationModal({
                     </h3>
 
                     <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100 text-[11px] max-h-[140px] overflow-y-auto custom-scrollbar">
-                      {booking.base_price > 0 && (
-                        <div className="flex justify-between items-center text-slate-600 font-bold">
-                          <span>ค่าเช่าพื้นที่</span>
-                          <span className="text-slate-800">
-                            ฿ {booking.base_price.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {booking.booking_addons && booking.booking_addons.length > 0 ? (
-                        booking.booking_addons.map((addon) => (
-                          <div key={addon.id} className="flex justify-between items-center text-slate-600 font-bold">
-                            <span>{addon.addon_name} (x{addon.quantity})</span>
-                            <span
-                              className={cn(
-                                addon.applied_price < 0 ? "text-emerald-600" : "text-slate-800"
+                      {booking.timeslots && booking.timeslots.length > 0 ? (
+                        <div className="space-y-4">
+                          {booking.timeslots.map((ts, idx) => (
+                            <div key={ts.id || idx} className="space-y-2">
+                              <div className="font-black text-slate-700 text-xs border-b border-slate-200 pb-1 mb-2">
+                                {new Date(ts.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} ({new Date(ts.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} - {new Date(ts.end_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.)
+                              </div>
+                              
+                              {ts.price_snapshot > 0 && (
+                                <div className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                  <span>ค่าเช่าพื้นที่</span>
+                                  <span className="text-slate-800">
+                                    ฿ {ts.price_snapshot.toLocaleString()}
+                                  </span>
+                                </div>
                               )}
-                            >
-                              {addon.applied_price < 0 ? "-" : ""} ฿ {Math.abs(addon.total_price).toLocaleString()}
-                            </span>
-                          </div>
-                        ))
+                              
+                              {ts.addons && ts.addons.length > 0 && (
+                                ts.addons.map((addon) => (
+                                  <div key={addon.id} className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                    <span>{addon.addon_name} (x{addon.quantity})</span>
+                                    <span className={cn(addon.applied_price < 0 ? "text-emerald-600" : "text-slate-800")}>
+                                      {addon.applied_price < 0 ? "-" : ""} ฿ {Math.abs(addon.total_price).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       ) : (
-                        booking.base_price === 0 && <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
+                        <>
+                          {booking.base_price > 0 && (
+                            <div className="flex justify-between items-center text-slate-600 font-bold">
+                              <span>ค่าเช่าพื้นที่</span>
+                              <span className="text-slate-800">
+                                ฿ {booking.base_price.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {booking.booking_addons && booking.booking_addons.length > 0 ? (
+                            booking.booking_addons.map((addon) => (
+                              <div key={addon.id} className="flex justify-between items-center text-slate-600 font-bold">
+                                <span>{addon.addon_name} (x{addon.quantity})</span>
+                                <span
+                                  className={cn(
+                                    addon.applied_price < 0 ? "text-emerald-600" : "text-slate-800"
+                                  )}
+                                >
+                                  {addon.applied_price < 0 ? "-" : ""} ฿ {Math.abs(addon.total_price).toLocaleString()}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            booking.base_price === 0 && <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
+                          )}
+                        </>
                       )}
                       
-                      {(booking.discount_price ?? 0) > 0 && (
+                      {booking.total_price === 0 && (booking.base_price > 0 || booking.addon_price > 0) && (
                         <div className="flex justify-between items-center text-slate-600 font-bold pt-1 border-t border-dashed border-slate-200 mt-1">
-                          <span>ส่วนลด</span>
+                          <span>ส่วนลด / ยกเว้นค่าบริการ</span>
                           <span className="text-emerald-600">
-                            - ฿ {(booking.discount_price ?? 0).toLocaleString()}
+                            - ฿ {(booking.base_price + booking.addon_price).toLocaleString()}
                           </span>
                         </div>
                       )}
@@ -383,13 +418,13 @@ export default function AdminPaymentVerificationModal({
                           {!localPreview ? (
                             <div
                               onClick={() => document.getElementById('receipt-upload')?.click()}
-                              className="border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30 rounded-[7px] p-8 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group shadow-inner"
+                              className="border-2 border-dashed rounded-2xl py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm border-slate-200 bg-slate-50/80 hover:bg-slate-100/50 hover:border-[#f26522]/40"
                             >
-                              <div className="size-12 rounded-[7px] bg-white shadow-md flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                                <Banknote size={24} className="text-[#f26522]" />
+                              <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+                                <Upload size={28} className="text-[#f26522]" />
                               </div>
-                              <div className="text-center space-y-1">
-                                <p className="text-sm font-bold text-slate-900">
+                              <div className="text-center space-y-1.5">
+                                <p className="text-[15px] font-bold tracking-tight transition-colors text-slate-800 group-hover:text-[#f26522]">
                                   คลิกเพื่อเลือกไฟล์ใบเสร็จ
                                 </p>
                                 <p className="text-[10px] text-slate-400 font-medium">รองรับ JPG, PNG (สูงสุด 10MB)</p>

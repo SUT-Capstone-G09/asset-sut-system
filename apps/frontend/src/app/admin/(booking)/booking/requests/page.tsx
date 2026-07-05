@@ -12,11 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BookingDashboardStats } from "@/features/dashboard/components/BookingDashboardStats";
-import { BookingDashboardUsageChart } from "@/features/dashboard/components/BookingDashboardUsageChart";
-import { BookingDashboardProportionChart } from "@/features/dashboard/components/BookingDashboardProportionChart";
-import { BookingDashboardOccupancy } from "@/features/dashboard/components/BookingDashboardOccupancy";
-import { BookingDashboardPendingRequests } from "@/features/dashboard/components/BookingDashboardPendingRequests";
+
 import BookingDrawer from "@/features/booking/components/booking/BookingDrawer";
 import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
 import { AdminLocationDTO } from "@/features/booking/services/locationService";
@@ -83,26 +79,11 @@ export default function BookingRequestsPage() {
         </Button>
       </div>
 
-      {/* Dashboard Section */}
-      <div className="space-y-6 mb-8">
-        <BookingDashboardStats bookings={bookings} />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <BookingDashboardUsageChart bookings={bookings} />
-          </div>
-          <div className="lg:col-span-1">
-            <BookingDashboardProportionChart bookings={bookings} />
-          </div>
-        </div>
-        
-        {/* Bottom Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {/* Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-        {loading ? (
+      {/* Table Section */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
+        {loading && bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">กำลังโหลด...</div>
-        ) : error ? (
+        ) : error && bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-red-400 text-sm">{error}</div>
         ) : bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">ยังไม่มีคำขอ</div>
@@ -199,15 +180,6 @@ export default function BookingRequestsPage() {
             </tbody>
           </table>
         )}
-            </div>
-          </div>
-          
-          {/* Right side Widgets */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
-            <BookingDashboardOccupancy bookings={bookings} />
-            <BookingDashboardPendingRequests bookings={bookings} />
-          </div>
-        </div>
       </div>
 
       {/* BookingDrawer from existing booking page */}
@@ -270,7 +242,7 @@ export default function BookingRequestsPage() {
               <Button
                 onClick={() => approveModalBooking && handleAction(approveModalBooking.id, "approved")}
                 disabled={actionLoading === approveModalBooking?.id}
-                className="h-11 rounded-[7px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white min-w-[120px]"
+                className="h-11 rounded-[7px] font-bold bg-[var(--color-brand-primary)] hover:opacity-90 text-white min-w-[120px]"
               >
                 {actionLoading === approveModalBooking?.id ? (
                   <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />

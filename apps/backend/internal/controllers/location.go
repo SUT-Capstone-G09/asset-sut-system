@@ -26,6 +26,15 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 	response.OK(ctx, types)
 }
 
+func (c *LocationController) GetBuildings(ctx *gin.Context) {
+	buildings, err := c.locationService.GetBuildings()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, buildings)
+}
+
 func (c *LocationController) GetAll(ctx *gin.Context) {
 	role := ctx.GetString("role")
 	userID := ctx.GetUint("user_id")

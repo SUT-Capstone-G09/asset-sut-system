@@ -15,7 +15,6 @@ type Bookings struct {
 	Purpose     string           `gorm:"not null" json:"purpose"`
 	BasePrice     int              `gorm:"not null;default:0" json:"base_price"`
 	AddonPrice    int              `gorm:"not null;default:0" json:"addon_price"`
-	DiscountPrice int              `gorm:"not null;default:0" json:"discount_price"`
 	TotalPrice    int              `gorm:"not null;default:0" json:"total_price"`
 	StatusID    uint             `gorm:"not null" json:"status_id"`
 	Status      *BookingStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`

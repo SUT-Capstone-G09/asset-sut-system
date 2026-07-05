@@ -66,7 +66,6 @@ type BookingResponse struct {
 	Purpose       string             `json:"purpose"`
 	BasePrice     int                `json:"base_price"`
 	AddonPrice    int                `json:"addon_price"`
-	DiscountPrice int                `json:"discount_price"`
 	TotalPrice    int                `json:"total_price"`
 	Status        string             `json:"status"`
 	StatusID      uint               `json:"status_id"`
@@ -89,6 +88,6 @@ type TimeslotExpensesInput struct {
 }
 
 type UpdateBookingExpensesRequest struct {
-	DiscountPrice int                     `json:"discount_price"`
-	Timeslots     []TimeslotExpensesInput `json:"timeslots"`
+	IsWaived  bool                    `json:"is_waived"`
+	Timeslots []TimeslotExpensesInput `json:"timeslots"`
 }
