@@ -10,6 +10,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	optAuth := middleware.OptionalAuthMiddleware(deps.Config.JWT.Secret)
 	lc := deps.LocationController
 
+	rg.GET("/buildings", lc.GetBuildings)
 	rg.GET("/location-types", lc.GetTypes)
 
 	locations := rg.Group("/locations")
@@ -49,6 +50,21 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 			adminOnly.GET("/:id/staff", middleware.RequirePermission("location_mgmt", "read"), lc.GetLocationStaff)
 			adminOnly.POST("/:id/staff", middleware.RequirePermission("location_mgmt", "update"), lc.AssignStaff)
 			adminOnly.DELETE("/:id/staff/:uid", middleware.RequirePermission("location_mgmt", "update"), lc.UnassignStaff)
+		}
+	}
+
+	addons := rg.Group("/addons")
+	addons.Use(auth)
+	{
+		addons.GET("", lc.GetGlobalAddons)
+		addons.GET("/:id", lc.GetAddonByID)
+
+		adminOnly := addons.Group("")
+		adminOnly.Use(middleware.RequireRole("admin"))
+		{
+			adminOnly.POST("", lc.CreateGlobalAddon)
+			adminOnly.PUT("/:id", lc.UpdateAddon)
+			adminOnly.DELETE("/:id", lc.DeleteAddon)
 		}
 	}
 }

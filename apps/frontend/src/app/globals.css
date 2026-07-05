@@ -250,6 +250,11 @@ html {
     scrollbar-width: none;
   }
 }
+input::placeholder,
+textarea::placeholder,
+[data-placeholder] {
+  color: var(--color-neutral-400);
+}
 .upload-zone {
   border-color: #cbd5e1; /* slate-300 */
   background-color: #f8fafc; /* slate-50 */

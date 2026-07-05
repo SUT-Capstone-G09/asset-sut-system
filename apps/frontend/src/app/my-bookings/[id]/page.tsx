@@ -323,7 +323,7 @@ export default function BookingDetailPage() {
             </div>
 
             {/* Addons / Equipment */}
-            {allAddons.length > 0 && (
+            {allAddons.length > 0 && booking.status === "approved" && (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
                 <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
                   <Package size={15} className="text-brand-primary" />
@@ -354,27 +354,40 @@ export default function BookingDetailPage() {
             )}
 
             {/* Price summary */}
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-700 mb-4">สรุปราคา</h3>
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between text-gray-500">
-                  <span>ค่าห้อง</span>
-                  <span>฿{booking.base_price.toLocaleString()}</span>
-                </div>
-                {booking.addon_price > 0 && (
+            {booking.status === "approved" || booking.status === "completed" ? (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+                <h3 className="text-sm font-bold text-gray-700 mb-4">สรุปราคา</h3>
+                <div className="flex flex-col gap-2 text-sm">
                   <div className="flex justify-between text-gray-500">
-                    <span>ค่า Add-ons</span>
-                    <span>฿{booking.addon_price.toLocaleString()}</span>
+                    <span>ค่าห้อง</span>
+                    <span>฿{(booking.base_price ?? 0).toLocaleString()}</span>
                   </div>
-                )}
-                <div className="border-t border-gray-100 pt-2 mt-1 flex justify-between font-bold text-gray-900">
-                  <span>รวมทั้งหมด</span>
-                  <span className="text-brand-primary">
-                    ฿{booking.total_price.toLocaleString()}
-                  </span>
+                  {(booking.addon_price ?? 0) > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>ค่า Add-ons</span>
+                      <span>฿{(booking.addon_price ?? 0).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {booking.total_price === 0 && (booking.base_price > 0 || (booking.addon_price ?? 0) > 0) && (
+                    <div className="flex justify-between text-emerald-500">
+                      <span>ส่วนลด / ยกเว้นค่าบริการ</span>
+                      <span>-฿{(booking.base_price + (booking.addon_price ?? 0)).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-gray-100 pt-2 mt-1 flex justify-between font-bold text-gray-900">
+                    <span>รวมทั้งหมด</span>
+                    <span className="text-brand-primary">
+                      ฿{(booking.total_price ?? 0).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : booking.status === "pending" || booking.status === "cancelled" || booking.status === "rejected" ? (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col items-center justify-center text-gray-400 gap-2 h-32">
+                <p className="text-sm font-semibold">กำลังรอผู้ดูแลระบบสรุปค่าใช้จ่าย</p>
+                <p className="text-xs">ค่าใช้จ่ายจะแสดงเมื่อผู้ดูแลระบบตรวจสอบเสร็จสิ้น</p>
+              </div>
+            ) : null}
           </div>
 
           {/* Right — tabs */}

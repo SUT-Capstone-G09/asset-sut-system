@@ -97,6 +97,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 	}
 	tx.StatusID = req.StatusID
 	tx.VerifyBy = &verifierID
+	tx.Status = nil
 	if err := s.paymentRepo.Update(tx); err != nil {
 		return nil, err
 	}
@@ -112,6 +113,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 			paidStatus, err := s.invoiceRepo.FindStatusByName("paid")
 			if err == nil {
 				invoice.StatusID = paidStatus.ID
+				invoice.Status = nil
 				_ = s.invoiceRepo.Update(invoice)
 			}
 
@@ -119,6 +121,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 				if booking, err := s.bookingRepo.FindByID(invoice.BookingID); err == nil {
 					oldStatusID := booking.StatusID
 					booking.StatusID = completedStatus.ID
+					booking.Status = nil
 					if err := s.bookingRepo.Update(booking); err == nil {
 						_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
 							BookingID:    booking.ID,

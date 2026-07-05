@@ -62,10 +62,10 @@ func main() {
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
 	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
-	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
-	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
-	documentService := services.NewDocumentService(documentRepo)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo, storageService)
+	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
+	documentService := services.NewDocumentService(documentRepo, storageService)
 	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {
 		log.Fatalf("failed to init email service: %v", err)
@@ -86,7 +86,7 @@ func main() {
 	roleCtrl := controllers.NewRoleController(roleService)
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
-	paymentCtrl := controllers.NewPaymentController(paymentQRService, paymentService)
+	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService)
 	documentCtrl := controllers.NewDocumentController(documentService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)

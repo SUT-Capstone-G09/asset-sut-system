@@ -7,6 +7,7 @@ export interface LocationDTO {
   type_id: number;
   type: string;
   name: string;
+  building_id?: number;
   building?: string;
   image_url?: string;
   room_number?: number;
@@ -58,6 +59,25 @@ export async function getLocations(): Promise<LocationDTO[]> {
   return apiClient.get<LocationDTO[]>("/locations");
 }
 
+export interface LocationTypeDTO {
+  id: number;
+  type: string;
+}
+
+export async function getLocationTypes(): Promise<LocationTypeDTO[]> {
+  return apiClient.get<LocationTypeDTO[]>("/location-types");
+}
+
+export interface BuildingDTO {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+export async function getBuildings(): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>("/buildings");
+}
+
 export async function getLocationById(id: number): Promise<LocationDetailDTO> {
   return apiClient.get<LocationDetailDTO>(`/locations/${id}`);
 }
@@ -79,6 +99,7 @@ function pickHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: 
   const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";
   return (
     tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "hourly")?.price ??
+    tiers?.find((t) => t.rate_type === "hourly")?.price ??
     tiers?.[0]?.price ??
     0
   );
@@ -88,7 +109,10 @@ function pickHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: 
 function pickDailyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number | undefined {
   const isExternal = requesterTypeId === 2;
   const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";
-  return tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "daily")?.price;
+  return (
+    tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "daily")?.price ??
+    tiers?.find((t) => t.rate_type === "daily")?.price
+  );
 }
 
 export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room {

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import {
   X,
@@ -70,6 +71,8 @@ export default function RoomDrawer({
           showCloseButton={false}
           className="w-full sm:max-w-[540px] p-0 border-none bg-slate-50/50 backdrop-blur-md flex flex-col h-full shadow-2xl"
         >
+          <SheetTitle className="sr-only">{room.roomName}</SheetTitle>
+          
           {/* Header Image */}
           <div className="relative h-64 w-full shrink-0 bg-slate-200">
             <img

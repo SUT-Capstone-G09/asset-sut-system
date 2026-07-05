@@ -19,8 +19,8 @@ import {
   getBookingById,
   BookingResponseDTO,
 } from "@/features/bookings/services/booking.service";
-import { uploadFile } from "@/lib/services/upload";
 import { createDocument } from "@/features/payment/services/document.service";
+import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 
 function UploadZoneControlled({
   onFileChange,
@@ -80,10 +80,10 @@ export default function PaymentPage() {
   const [booking, setBooking] = useState<BookingResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [slipFile, setSlipFile] = useState<File | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -97,42 +97,48 @@ export default function PaymentPage() {
   }, [bookingId]);
 
   const handleSubmit = useCallback(async () => {
-    if (!invoice) return;
+    if (!invoice || !selectedFile) {
+      setSubmitError("กรุณาอัปโหลดสลิปการชำระเงิน");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
-      let slipDocumentId: number | undefined;
-      if (slipFile) {
-        const uploaded = await uploadFile(slipFile, "slips");
-        const doc = await createDocument({
-          booking_id: bookingId,
-          document_type_id: 3,
-          file_name: uploaded.file_name,
-          bucket_name: "payment-qr",
-          object_key: uploaded.object_key,
-          file_url: uploaded.url,
-          content_type: uploaded.content_type,
-          method_id: 2,
-        });
-        slipDocumentId = doc.id;
-      }
+      const firstSlot = booking?.timeslots?.[0];
+      const bDateStr = firstSlot?.date ? firstSlot.date.slice(0, 10) : undefined;
+      const locName = firstSlot?.location_name;
 
-      const transaction = await createPayment({
-        invoice_id: invoice.id,
-        amount_paid: invoice.total_amount,
-        method_id: 3,
+      // 1. Upload file to storage
+      const uploadResult = await uploadFile(selectedFile, UPLOAD_FOLDERS.PAYMENT_SLIP, bDateStr, locName, bookingId);
+
+      // 2. Create document record
+      const doc = await createDocument({
+        booking_id: bookingId,
+        document_type_id: 3, // Assuming 3 is payment slip or similar
+        file_name: uploadResult.file_name,
+        bucket_name: uploadResult.bucket_name,
+        object_key: uploadResult.object_key,
+        file_url: uploadResult.url,
+        content_type: uploadResult.content_type,
+        method_id: 1, // Upload method
       });
 
-      if (slipDocumentId) {
-        await attachSlip(transaction.id, slipDocumentId);
-      }
+      // 3. Create payment transaction
+      const payment = await createPayment({
+        invoice_id: invoice.id,
+        amount_paid: invoice.total_amount,
+        method_id: 3, // Bank transfer/QR
+      });
+
+      // 4. Attach slip to payment
+      await attachSlip(payment.id, doc.id);
 
       router.push("/payment/success");
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+      setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       setSubmitting(false);
     }
-  }, [invoice, slipFile, bookingId, router]);
+  }, [invoice, router, selectedFile, bookingId, booking]);
 
   if (loading) return <PaymentPageSkeleton />;
 
@@ -185,7 +191,29 @@ export default function PaymentPage() {
         )
       : 1;
 
-  const hourlyRate = Math.round(invoice.total_amount / durationHours);
+  const hourlyRate = Math.round(invoice.total_amount / durationHours); // Fallback
+  const actualHourlyRate = booking.base_price ? Math.round(booking.base_price / durationHours) : hourlyRate;
+  const basePrice = booking.base_price || (hourlyRate * durationHours);
+
+  const roomExpense = {
+    name: `ค่าห้อง (฿${actualHourlyRate.toLocaleString("th-TH", { minimumFractionDigits: 2 })} × ${durationHours} ชั่วโมง)`,
+    price: basePrice,
+    quantity: 1,
+  };
+
+  const expensesList = [roomExpense];
+  if (booking.booking_addons && booking.booking_addons.length > 0) {
+    expensesList.push(
+      ...booking.booking_addons
+        // Filter out any accidentally saved "ค่าห้อง" addons to prevent duplicate
+        .filter((a) => !a.addon_name.startsWith("ค่าห้อง") && !a.addon_name.startsWith("room"))
+        .map((a) => ({
+          name: a.addon_name,
+          price: a.applied_price,
+          quantity: a.quantity,
+        }))
+    );
+  }
 
   return (
     <PaymentPageContrainer>
@@ -212,9 +240,8 @@ export default function PaymentPage() {
           location={locationBuilding}
           bookingDate={bookingDate}
           bookingTime={`${startTime} - ${endTime}`}
-          hourlyRate={hourlyRate}
-          hours={durationHours}
           totalPrice={invoice.total_amount}
+          expenses={expensesList}
         />
 
         <div className="flex flex-col gap-4">
@@ -234,7 +261,7 @@ export default function PaymentPage() {
               </p>
             </div>
 
-            <UploadZoneControlled onFileChange={setSlipFile} />
+            <UploadZoneControlled onFileChange={setSelectedFile} />
 
             <div className="px-6 pb-5 flex flex-col gap-3">
               <label className="flex items-start gap-3 cursor-pointer">
@@ -256,9 +283,9 @@ export default function PaymentPage() {
 
               <Button
                 onClick={handleSubmit}
-                disabled={!termsAccepted || submitting}
+                disabled={!termsAccepted || !selectedFile || submitting}
                 className={`w-full py-6 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-colors ${
-                  termsAccepted && !submitting
+                  termsAccepted && selectedFile && !submitting
                     ? "bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
                 }`}

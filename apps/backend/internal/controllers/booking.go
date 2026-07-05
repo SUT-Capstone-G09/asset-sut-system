@@ -100,3 +100,22 @@ func (c *BookingController) GetInvoice(ctx *gin.Context) {
 	}
 	response.OK(ctx, invoice)
 }
+
+func (c *BookingController) UpdateExpenses(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateBookingExpensesRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	booking, err := c.bookingService.UpdateExpenses(id, req)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, booking)
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   LayoutGrid,
   List,
@@ -20,6 +21,13 @@ import {
 } from "@/features/booking/types/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BookingGridProps {
   filteredBookings: Booking[];
@@ -29,10 +37,10 @@ interface BookingGridProps {
     id: string,
     status:
       | "pending"
-      | "pending_payment"
-      | "verifying_payment"
       | "approved"
-      | "rejected",
+      | "rejected"
+      | "cancelled"
+      | "completed",
   ) => void;
   onEdit: (updatedBooking: Booking, mode: "this" | "following" | "all") => void;
   onDelete: (
@@ -57,12 +65,15 @@ export default function BookingGrid({
   onDelete,
   isLoading = false,
 }: BookingGridProps) {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
 
-  const handleOpenDrawer = (booking: Booking) => {
+  const handleOpenDrawer = (booking: Booking, mode: "view" | "edit" = "view") => {
     setSelectedBooking(booking);
+    setDrawerMode(mode);
     setIsDrawerOpen(true);
   };
 
@@ -113,12 +124,15 @@ export default function BookingGrid({
 
               {/* Grid View */}
               {viewMode === "grid" && (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 justify-items-center">
+                <div className="grid grid-cols-1 gap-6">
                   {items.map((booking) => (
                     <BookingCard
                       key={booking.id}
                       booking={booking}
-                      onClick={() => handleOpenDrawer(booking)}
+                      onClick={() => handleOpenDrawer(booking, "view")}
+                      onEditClick={() => handleOpenDrawer(booking, "edit")}
+                      onExpensesClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
+                      onUpdateStatus={onUpdateStatus}
                     />
                   ))}
                 </div>
@@ -132,6 +146,7 @@ export default function BookingGrid({
                       key={booking.id}
                       booking={booking}
                       onClick={() => handleOpenDrawer(booking)}
+                      onUpdateStatus={onUpdateStatus}
                     />
                   ))}
                 </div>
@@ -195,6 +210,7 @@ export default function BookingGrid({
         onUpdateStatus={onUpdateStatus}
         onEdit={onEdit}
         onDelete={onDelete}
+        initialMode={drawerMode}
       />
     </div>
   );
@@ -227,9 +243,14 @@ function ViewToggleButton({
 function ListRow({
   booking,
   onClick,
+  onUpdateStatus,
 }: {
   booking: Booking;
   onClick: () => void;
+  onUpdateStatus?: (
+    id: string,
+    status: "pending" | "approved" | "rejected" | "cancelled" | "completed"
+  ) => void;
 }) {
   const status =
     BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
@@ -275,15 +296,39 @@ function ListRow({
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
             สถานะ
           </p>
-          <span
-            className={cn(
-              "px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0",
-              status.gridBg,
-              status.gridText,
-            )}
-          >
-            {status.label}
-          </span>
+          <div onClick={(e) => e.stopPropagation()} className="inline-block mt-0.5">
+            <Select
+              value={booking.status}
+              onValueChange={(val) => {
+                onUpdateStatus?.(booking.id, val as any);
+              }}
+            >
+              <SelectTrigger
+                className={cn(
+                  "h-auto px-2 py-0.5 min-h-[22px] rounded-[4px] border focus:ring-0 focus:ring-offset-0 cursor-pointer flex items-center shadow-none text-[9px] font-black uppercase tracking-wider shrink-0 w-fit mx-auto",
+                  status.gridBg,
+                  status.gridText,
+                  "[&>svg]:size-3 [&>svg]:ml-1"
+                )}
+              >
+                <SelectValue placeholder="สถานะ" />
+              </SelectTrigger>
+              <SelectContent className="bg-white z-[200]">
+                <SelectItem value="pending" className="text-xs font-bold text-amber-700 focus:bg-amber-50">
+                  <div className="flex items-center gap-1.5"><div className="size-1.5 rounded-full bg-amber-500" /><span>รออนุมัติ</span></div>
+                </SelectItem>
+                <SelectItem value="approved" className="text-xs font-bold text-emerald-700 focus:bg-emerald-50">
+                  <div className="flex items-center gap-1.5"><div className="size-1.5 rounded-full bg-emerald-500" /><span>อนุมัติ</span></div>
+                </SelectItem>
+                <SelectItem value="rejected" className="text-xs font-bold text-red-600 focus:bg-red-50">
+                  <div className="flex items-center gap-1.5"><div className="size-1.5 rounded-full bg-red-500" /><span>ปฏิเสธ</span></div>
+                </SelectItem>
+                <SelectItem value="completed" className="text-xs font-bold text-teal-700 focus:bg-teal-50">
+                  <div className="flex items-center gap-1.5"><div className="size-1.5 rounded-full bg-teal-500" /><span>เสร็จสิ้น</span></div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
