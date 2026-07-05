@@ -64,7 +64,7 @@ func main() {
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
 	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
-	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo)
+	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
 	documentService := services.NewDocumentService(documentRepo)
 	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {

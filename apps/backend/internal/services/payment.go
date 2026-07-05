@@ -12,15 +12,18 @@ import (
 type PaymentService struct {
 	paymentRepo *repositories.PaymentRepository
 	invoiceRepo *repositories.InvoiceRepository
+	bookingRepo *repositories.BookingRepository
 }
 
 func NewPaymentService(
 	paymentRepo *repositories.PaymentRepository,
 	invoiceRepo *repositories.InvoiceRepository,
+	bookingRepo *repositories.BookingRepository,
 ) *PaymentService {
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		invoiceRepo: invoiceRepo,
+		bookingRepo: bookingRepo,
 	}
 }
 
@@ -98,7 +101,10 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 		return nil, err
 	}
 
-	// If approved, mark invoice as paid
+	// If approved, mark invoice as paid and the booking as completed —
+	// without this, a booking stays "approved" forever after payment, so
+	// screens that gate the pay button on status=="approved" (e.g. my
+	// bookings) keep offering to pay again.
 	status, err := s.paymentRepo.FindStatusByName("approved")
 	if err == nil && req.StatusID == status.ID {
 		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
@@ -107,6 +113,23 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 			if err == nil {
 				invoice.StatusID = paidStatus.ID
 				_ = s.invoiceRepo.Update(invoice)
+			}
+
+			if completedStatus, err := s.bookingRepo.FindStatusByName("completed"); err == nil {
+				if booking, err := s.bookingRepo.FindByID(invoice.BookingID); err == nil {
+					oldStatusID := booking.StatusID
+					booking.StatusID = completedStatus.ID
+					if err := s.bookingRepo.Update(booking); err == nil {
+						_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
+							BookingID:    booking.ID,
+							FromStatusID: &oldStatusID,
+							ToStatusID:   completedStatus.ID,
+							ChangedBy:    verifierID,
+							ChangedAt:    time.Now(),
+							Note:         "ชำระเงินสำเร็จ",
+						})
+					}
+				}
 			}
 		}
 	}
@@ -140,8 +163,8 @@ func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResp
 	if tx.Status != nil {
 		res.Status = tx.Status.Status
 	}
-	if tx.Verifier != nil {
-		res.VerifierName = tx.Verifier.FirstName + " " + tx.Verifier.LastName
+	if tx.Verifier != nil && tx.Verifier.Profiles != nil {
+		res.VerifierName = tx.Verifier.Profiles.FirstName + " " + tx.Verifier.Profiles.LastName
 	}
 	if tx.Invoice != nil {
 		res.BookingID = tx.Invoice.BookingID

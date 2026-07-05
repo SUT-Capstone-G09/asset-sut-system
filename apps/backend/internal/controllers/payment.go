@@ -74,7 +74,7 @@ func (c *PaymentController) Verify(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	verifierID := ctx.GetUint("userID")
+	verifierID := ctx.GetUint("user_id")
 	var req dto.VerifyPaymentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())

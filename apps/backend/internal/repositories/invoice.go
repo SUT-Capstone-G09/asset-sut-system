@@ -3,6 +3,7 @@ package repositories
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type InvoiceRepository struct {
@@ -39,8 +40,12 @@ func (r *InvoiceRepository) Create(invoice *models.Invoices) error {
 	return r.db.Create(invoice).Error
 }
 
+// Omit(clause.Associations): FindByID preloads Status, so a plain Save would
+// re-upsert that association from its (now stale) in-memory value and
+// silently overwrite a StatusID change made after loading — same pitfall as
+// PaymentRepository.Update.
 func (r *InvoiceRepository) Update(invoice *models.Invoices) error {
-	return r.db.Save(invoice).Error
+	return r.db.Omit(clause.Associations).Save(invoice).Error
 }
 
 func (r *InvoiceRepository) FindStatusByName(name string) (*models.InvoiceStatuses, error) {
