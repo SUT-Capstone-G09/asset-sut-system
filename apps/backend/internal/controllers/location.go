@@ -386,3 +386,49 @@ func (c *LocationController) DeletePricingTier(ctx *gin.Context) {
 	}
 	response.OK(ctx, gin.H{"message": "deleted"})
 }
+
+// ── Hall Floor Plan ──────────────────────────────────────────────────────────
+
+// GetFloorPlan คืนผังของโถง; ถ้ายังไม่มีผังจะคืน 200 พร้อม data: null (frontend สร้างผังว่างเอง)
+func (c *LocationController) GetFloorPlan(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	fp, err := c.locationService.GetFloorPlan(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null
+}
+
+func (c *LocationController) UpsertFloorPlan(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpsertHallFloorPlanRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	fp, err := c.locationService.UpsertFloorPlan(id, req)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, fp)
+}
+
+// GetFloorPlanIDs คืน location_id ทั้งหมดที่มีผังแล้ว (ใช้โชว์ป้าย "มีผัง" บนการ์ด)
+func (c *LocationController) GetFloorPlanIDs(ctx *gin.Context) {
+	ids, err := c.locationService.GetFloorPlanLocationIDs()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, ids)
+}

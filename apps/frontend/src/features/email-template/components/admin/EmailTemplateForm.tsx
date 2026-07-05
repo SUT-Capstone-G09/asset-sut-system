@@ -175,7 +175,7 @@ export default function EmailTemplateForm({
               setSubject(e.target.value);
               clearFieldError("subject");
             }}
-            placeholder="การจองได้รับการอนุมัติ - {{.userName}}"
+            placeholder="การจองได้รับการอนุมัติ"
           />
           {fieldErrors.subject && (
             <p id="subject-error" className="text-xs font-medium text-red-500">
@@ -240,7 +240,7 @@ export default function EmailTemplateForm({
           onClick={handleSave}
           disabled={submitting}
           size="lg"
-          className="bg-brand-primary text-white hover:bg-brand-primary/90"
+          className="bg-primary text-white hover:bg-brand-primary-600"
         >
           {submitting ? "กำลังบันทึก..." : "บันทึก"}
         </Button>

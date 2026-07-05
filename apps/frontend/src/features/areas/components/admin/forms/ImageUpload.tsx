@@ -1,10 +1,14 @@
-"use client"
+"use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { UploadCloud, X, RefreshCw, Loader2 } from "lucide-react";
+import { UploadCloud, X, RefreshCw, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { uploadFile, UPLOAD_FOLDERS, UploadFolder } from "@/lib/services/upload";
+import {
+  uploadFile,
+  UPLOAD_FOLDERS,
+  UploadFolder,
+} from "@/lib/services/upload";
 
 interface ImageUploadProps {
   value?: string;
@@ -13,7 +17,12 @@ interface ImageUploadProps {
   error?: string;
 }
 
-export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.LOCATION_PICS, error }: ImageUploadProps) {
+export default function ImageUpload({
+  value,
+  onChange,
+  folder = UPLOAD_FOLDERS.LOCATION_PICS,
+  error,
+}: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
   const [uploading, setUploading] = useState(false);
@@ -113,20 +122,30 @@ export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.L
             "border-2 border-dashed rounded-[7px] p-10 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer group shadow-inner",
             error
               ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
-              : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30"
+              : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",
           )}
         >
-          <div className="size-16 rounded-[7px] bg-white shadow-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-            {uploading
-              ? <Loader2 size={32} className="text-[#f26522] animate-spin" />
-              : <UploadCloud size={32} className={cn(error ? "text-red-400" : "text-[#f26522]")} />
-            }
+          <div className="size-16 rounded-[7px] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+            {uploading ? (
+              <Loader2 size={32} className="text-[#f26522] animate-spin" />
+            ) : (
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-brand-primary mb-4">
+                <Upload className="w-6 h-6" />
+              </div>
+            )}
           </div>
           <div className="text-center space-y-1">
-            <p className={cn("text-base font-bold", error ? "text-red-600" : "text-slate-900")}>
+            <p
+              className={cn(
+                "text-base font-bold",
+                error ? "text-red-600" : "text-slate-900",
+              )}
+            >
               {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพ"}
             </p>
-            <p className="text-xs text-slate-400 font-medium">รองรับ JPG, PNG (สูงสุด 10MB)</p>
+            <p className="text-xs text-slate-400 font-medium">
+              รองรับ JPG, PNG (สูงสุด 10MB)
+            </p>
           </div>
         </div>
       )}

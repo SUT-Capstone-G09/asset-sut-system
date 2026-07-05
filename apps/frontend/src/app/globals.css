@@ -47,9 +47,70 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   /* สีมหาลัย */
-  --color-brand-primary: #f26522;
   --color-brand-secondary: #6d6e70;
   --color-brand-accent: #a67436;
+
+  --color-brand-primary: var(--color-brand-primary-500);
+  --color-brand-primary-foreground: var(--color-brand-white);
+  --color-brand-primary-50: #fef5ee;
+  --color-brand-primary-100: #fee9d6;
+  --color-brand-primary-200: #fbd0ad;
+  --color-brand-primary-300: #f9af78;
+  --color-brand-primary-400: #f58342;
+  --color-brand-primary-500: #f26522;
+  --color-brand-primary-600: #e34813;
+  --color-brand-primary-700: #bc3512;
+  --color-brand-primary-800: #962b16;
+  /* Neutral */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e6e6e6;
+  --color-neutral-300: #d3d3d3;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #727272;
+  --color-neutral-600: #4d4d4d;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #272727;
+  /* Success */
+  --color-success-50: #f4fcf1;
+  --color-success-100: #e5f9df;
+  --color-success-200: #ccf1c1;
+  --color-success-300: #a2e590;
+  --color-success-400: #70d058;
+  --color-success-500: #4cb631;
+  --color-success-600: #3a9623;
+  --color-success-700: #30761f;
+  --color-success-800: #295e1d;
+  /* Error */
+  --color-error-50: #fef3f2;
+  --color-error-100: #fee4e2;
+  --color-error-200: #fecdca;
+  --color-error-300: #fbaba6;
+  --color-error-400: #f77b72;
+  --color-error-500: #ec3e32;
+  --color-error-600: #db3327;
+  --color-error-700: #b8271d;
+  --color-error-800: #98241c;
+  /* Warning */
+  --color-warning-50: #fffefa;
+  --color-warning-100: #fdfde9;
+  --color-warning-200: #fcfcc5;
+  --color-warning-300: #fbf78d;
+  --color-warning-400: #f8ec4c;
+  --color-warning-500: #f5df32;
+  --color-warning-600: #e4c30e;
+  --color-warning-700: #c59909;
+  --color-warning-800: #9d6e0b;
+  /* Information */
+  --color-info-50: #eff6ff;
+  --color-info-100: #daebff;
+  --color-info-200: #bddcff;
+  --color-info-300: #90c7ff;
+  --color-info-400: #5ca8fe;
+  --color-info-500: #3685fb;
+  --color-info-600: #155eef;
+  --color-info-700: #1850dd;
+  --color-info-800: #1b42b2;
 }
 
 .leaflet-popup-content-wrapper {
@@ -74,7 +135,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #f26522;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -189,6 +250,14 @@ html {
     scrollbar-width: none;
   }
 }
+
+/* Lighter placeholder text across all inputs / selects (single source of truth) */
+input::placeholder,
+textarea::placeholder,
+[data-placeholder] {
+  color: var(--color-neutral-400); /* #B2B2B2 — lighter than muted-foreground */
+  /* }
+
 .upload-zone {
   border-color: #cbd5e1; /* slate-300 */
   background-color: #f8fafc; /* slate-50 */

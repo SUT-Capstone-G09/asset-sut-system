@@ -12,6 +12,9 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 	rg.GET("/location-types", lc.GetTypes)
 
+	// รายการ location_id ที่มีผังพื้นที่แล้ว (แยก path ออกจาก /locations/:id กันชนกับ param route)
+	rg.GET("/hall-floor-plans", auth, middleware.RequireRole("staff", "admin"), lc.GetFloorPlanIDs)
+
 	locations := rg.Group("/locations")
 	{
 		// Optional auth: staff gets filtered list, others get all
@@ -39,6 +42,10 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 			mgmt.POST("/:id/pricing-tiers", middleware.RequirePermission("location_mgmt", "update"), lc.CreatePricingTier)
 			mgmt.DELETE("/:id/pricing-tiers/:tid", middleware.RequirePermission("location_mgmt", "update"), lc.DeletePricingTier)
+
+			// ผังพื้นที่โถง (top-view + สเกล + กรอบ + ช่องห้ามจอง)
+			mgmt.GET("/:id/floor-plan", middleware.RequirePermission("location_mgmt", "read"), lc.GetFloorPlan)
+			mgmt.PUT("/:id/floor-plan", middleware.RequirePermission("location_mgmt", "update"), lc.UpsertFloorPlan)
 		}
 
 		// Admin-only: delete location, manage staff assignments per location

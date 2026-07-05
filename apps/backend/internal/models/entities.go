@@ -20,6 +20,7 @@ var AllEntities = []any{
 	&LocationAddons{},
 	&RateTypes{},
 	&LocationPricingTiers{},
+	&HallFloorPlans{},
 
 	// Area
 	&Buildings{},

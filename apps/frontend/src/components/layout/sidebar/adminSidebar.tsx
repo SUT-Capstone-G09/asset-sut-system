@@ -13,6 +13,7 @@ import {
   Wrench,
   Settings,
   Mail,
+  LayoutGrid,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -116,6 +117,13 @@ const menuGroups: MenuGroup[] = [
         label: "จัดการห้อง",
         icon: Building,
         href: "/admin/manage-rooms",
+      },
+      {
+        id: "manage-halls",
+        label: "จัดการโถงพื้นที่",
+        icon: LayoutGrid,
+        href: "/admin/manage-halls",
+        roles: ["admin"], // เฟสนี้ admin เท่านั้น
       },
       {
         id: "calendar",
