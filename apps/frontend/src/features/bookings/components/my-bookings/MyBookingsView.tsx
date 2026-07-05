@@ -19,12 +19,12 @@ import { cn } from "@/lib/utils";
 import { MyBooking, BookingStatus } from "@/features/bookings/data/mock-my-bookings";
 import { useMyBookings } from "@/features/bookings/hooks/useMyBookings";
 
-type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก";
+type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "เสร็จสิ้น" | "ยกเลิก";
 
 const STATUS_STYLE: Record<BookingStatus, { label: string; className: string }> = {
   รออนุมัติ: { label: "รออนุมัติ", className: "bg-orange-100 text-orange-600" },
   อนุมัติแล้ว: { label: "อนุมัติแล้ว", className: "bg-blue-100 text-blue-600" },
-  ที่ผ่านมา: { label: "ที่ผ่านมา", className: "bg-gray-100 text-gray-500" },
+  เสร็จสิ้น: { label: "เสร็จสิ้น", className: "bg-gray-100 text-gray-500" },
   ยกเลิก: { label: "ยกเลิก", className: "bg-gray-100 text-gray-600" },
   ปฏิเสธ: { label: "ปฏิเสธ", className: "bg-red-100 text-red-500" },
 };
@@ -56,7 +56,7 @@ export default function MyBookingsView() {
     cancelled: bookings.filter((b) => b.status === "ยกเลิก" || b.status === "ปฏิเสธ").length,
   };
 
-  const tabs: TabKey[] = ["ทั้งหมด", "รออนุมัติ", "อนุมัติแล้ว", "ที่ผ่านมา", "ยกเลิก"];
+  const tabs: TabKey[] = ["ทั้งหมด", "รออนุมัติ", "อนุมัติแล้ว", "เสร็จสิ้น", "ยกเลิก"];
 
   const filtered = filterByTab(bookings, activeTab);
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);

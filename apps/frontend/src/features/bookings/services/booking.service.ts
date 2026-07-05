@@ -86,7 +86,7 @@ export async function updateBookingStatus(
 const STATUS_MAP: Record<string, BookingStatus> = {
   pending: "รออนุมัติ",
   approved: "อนุมัติแล้ว",
-  completed: "ที่ผ่านมา",
+  completed: "เสร็จสิ้น",
   cancelled: "ยกเลิก",
   rejected: "ปฏิเสธ",
 };

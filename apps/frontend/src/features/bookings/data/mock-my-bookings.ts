@@ -1,4 +1,4 @@
-export type BookingStatus = "รออนุมัติ" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก" | "ปฏิเสธ";
+export type BookingStatus = "รออนุมัติ" | "อนุมัติแล้ว" | "เสร็จสิ้น" | "ยกเลิก" | "ปฏิเสธ";
 
 export interface MyBooking {
   id: string;
@@ -111,7 +111,7 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "13:00",
     endTime: "15:00",
     price: 700,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
   {
     bookingId: 0,
@@ -125,7 +125,7 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "09:00",
     endTime: "17:00",
     price: 2400,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
   {
     bookingId: 0,
@@ -139,7 +139,7 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "10:00",
     endTime: "12:00",
     price: 1000,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
   {
     bookingId: 0,
@@ -153,7 +153,7 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "08:00",
     endTime: "17:00",
     price: 7200,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
   {
     bookingId: 0,
@@ -181,7 +181,7 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "09:00",
     endTime: "11:00",
     price: 800,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
   {
     bookingId: 0,
@@ -195,6 +195,6 @@ export const mockMyBookings: MyBooking[] = [
     startTime: "14:00",
     endTime: "17:00",
     price: 3600,
-    status: "ที่ผ่านมา",
+    status: "เสร็จสิ้น",
   },
 ];

@@ -116,7 +116,47 @@ const { room, notFound: notFound404 } = useRoom(roomId);
 | ไฟล์ | การเปลี่ยนแปลง |
 |---|---|
 | `features/bookings/components/confirm/BookingConfirmView.tsx` | Fix #1, #2, #3, #4, #5 |
-| `features/bookings/components/confirm/DocumentFormModal.tsx` | Fix #3, #5 |
+| `features/bookings/components/confirm/DocumentFormModal.tsx` | Fix #3, #5, #8, #9, Refactor |
 | `app/bookings/[roomId]/page.tsx` | Fix #6, #7 |
 | `app/bookings/[roomId]/confirm/page.tsx` | Fix #6, #7 |
 | `features/bookings/hooks/useRoom.ts` *(ใหม่)* | Fix #7 |
+| `features/bookings/hooks/useThaiAddressAutofill.ts` *(ใหม่)* | Fix #8, #9 |
+| `features/bookings/components/confirm/SignaturePad.tsx` *(ใหม่)* | Refactor |
+| `features/bookings/components/confirm/FField.tsx` *(ใหม่)* | Refactor |
+| `lib/utils/thaiDate.ts` *(ใหม่)* | Refactor |
+
+---
+
+## อัปเดต — 5 กรกฎาคม 2569
+
+### Fix #8 — เพิ่ม Thai address autofill ใน DocumentFormModal
+
+**ไฟล์:** `features/bookings/components/confirm/DocumentFormModal.tsx`, `features/bookings/hooks/useThaiAddressAutofill.ts` *(ใหม่)*
+
+**ปัญหา:** ผู้ใช้ต้องกรอกตำบล/อำเภอ/จังหวัดเองทั้งหมด ทั้งที่รหัสไปรษณีย์บอกข้อมูลนี้ได้อยู่แล้ว
+
+**การแก้:**
+- ใช้ package `use-thai-address` ดึงข้อมูลตำบล/อำเภอ/จังหวัดจากรหัสไปรษณีย์ 5 หลัก
+- รหัสไปรษณีย์ 1 รหัส อาจมีได้หลายอำเภอ/ตำบล (เช่น `30000` มี 20 ตำบล กระจายอยู่ 2 อำเภอ) — ถ้าไม่กำกวมให้เติมอัตโนมัติเป็น text ปกติ ถ้ากำกวมให้เปลี่ยนเป็น `<select>` dropdown ให้ผู้ใช้เลือกเองแทนการเดา
+- อำเภอกับตำบลกรองกันเอง 2 ทาง: เลือกอำเภอก่อน → ตำบลถูกกรองเหลือเฉพาะของอำเภอนั้น, หรือเลือกตำบลก่อน → อำเภอ/จังหวัดเติมอัตโนมัติจากตำบลที่เลือก
+- ระดับความกำกวมของอำเภอตัดสินจาก "จำนวนอำเภอที่ไม่ซ้ำกัน" ไม่ใช่จำนวนตำบลทั้งหมด (ซิป 10130 มี 15 ตำบล แต่อยู่อำเภอเดียว → เติมอำเภอให้ตรงได้เลย ไม่ต้องมี dropdown)
+
+**ทดสอบแล้ว** (ผ่านเบราว์เซอร์จริง): รหัสไม่กำกวม (10303, 10130) เติมครบอัตโนมัติ, รหัสกำกวม (30000, 10110) ขึ้น dropdown ให้เลือก, รหัสมั่ว (99999) ไม่เติมอะไร
+
+### Fix #9 — แก้ค่าตำบล/อำเภอค้าง (stale) ข้ามรหัสไปรษณีย์
+
+**ไฟล์:** `features/bookings/hooks/useThaiAddressAutofill.ts`
+
+**ปัญหา:** เวอร์ชันแรกของ Fix #8 เวลารหัสไปรษณีย์ใหม่กำกวม จะ **คงค่าตำบล/อำเภอเดิม** ไว้แทนที่จะเคลียร์ ทำให้พิมพ์รหัส A (เติมอำเภอ X) แล้วเปลี่ยนเป็นรหัส B (กำกวม) จะได้ที่อยู่ขัดแย้งกันเอง เช่น "เมืองปราจีนบุรี นครราชสีมา 30000" (อำเภอกับจังหวัดคนละที่กัน)
+
+**การแก้:** เปลี่ยนให้เคลียร์ค่าที่กำกวมเป็นค่าว่างแทนการคงค่าเดิม แล้วค่อยให้ผู้ใช้เลือกใหม่จาก dropdown
+
+---
+
+### Refactor — แยก DocumentFormModal.tsx ออกเป็นหลายไฟล์
+
+**ไฟล์ที่แยกออกมาใหม่:** `SignaturePad.tsx`, `FField.tsx`, `useThaiAddressAutofill.ts`, `lib/utils/thaiDate.ts`
+
+**ปัญหา:** `DocumentFormModal.tsx` ยาวเกินไป (1,001 บรรทัด) ปนกันหลาย concern: signature pad component, date formatter, generic input field, และ logic ของ Thai address ทั้งหมดอยู่ในไฟล์เดียว
+
+**การแก้:** แยกตาม concern โดยไม่เปลี่ยนพฤติกรรมใดๆ — `DocumentFormModal.tsx` เหลือ **561 บรรทัด** (ลดลง ~44%) เก็บไว้แค่ state หลักและการประกอบ component ย่อยเข้าด้วยกัน
