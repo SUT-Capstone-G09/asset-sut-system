@@ -39,7 +39,7 @@ func (r *PaymentRepository) Create(tx *models.PaymentTransactions) error {
 }
 
 func (r *PaymentRepository) Update(tx *models.PaymentTransactions) error {
-	return r.db.Save(tx).Error
+	return r.db.Omit("Method", "Status", "Verifier", "Invoice").Save(tx).Error
 }
 
 func (r *PaymentRepository) FindStatusByName(name string) (*models.PaymentStatuses, error) {

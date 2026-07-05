@@ -13,6 +13,7 @@ export interface Room {
   capacityMin: number;
   capacityMax: number;
   pricePerHour: number;
+  pricePerDay?: number;
   amenities: string[];
   image: string;
   badge?: RoomBadge;

@@ -12,15 +12,18 @@ import (
 type PaymentService struct {
 	paymentRepo *repositories.PaymentRepository
 	invoiceRepo *repositories.InvoiceRepository
+	bookingRepo *repositories.BookingRepository
 }
 
 func NewPaymentService(
 	paymentRepo *repositories.PaymentRepository,
 	invoiceRepo *repositories.InvoiceRepository,
+	bookingRepo *repositories.BookingRepository,
 ) *PaymentService {
 	return &PaymentService{
 		paymentRepo: paymentRepo,
 		invoiceRepo: invoiceRepo,
+		bookingRepo: bookingRepo,
 	}
 }
 
@@ -94,11 +97,12 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 	}
 	tx.StatusID = req.StatusID
 	tx.VerifyBy = &verifierID
+	tx.Status = nil
 	if err := s.paymentRepo.Update(tx); err != nil {
 		return nil, err
 	}
 
-	// If approved, mark invoice as paid
+	// If approved, mark invoice as paid and booking as completed
 	status, err := s.paymentRepo.FindStatusByName("approved")
 	if err == nil && req.StatusID == status.ID {
 		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
@@ -106,7 +110,29 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 			paidStatus, err := s.invoiceRepo.FindStatusByName("paid")
 			if err == nil {
 				invoice.StatusID = paidStatus.ID
+				invoice.Status = nil
 				_ = s.invoiceRepo.Update(invoice)
+			}
+			// Also update booking status to completed
+			booking, err := s.bookingRepo.FindByID(invoice.BookingID)
+			if err == nil && booking != nil {
+				completedStatus, err := s.bookingRepo.FindStatusByName("completed")
+				if err == nil {
+					oldStatusID := booking.StatusID
+					booking.StatusID = completedStatus.ID
+					booking.Status = nil
+					_ = s.bookingRepo.Update(booking)
+
+					// Log the booking status change
+					_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
+						BookingID:    booking.ID,
+						FromStatusID: &oldStatusID,
+						ToStatusID:   completedStatus.ID,
+						ChangedBy:    verifierID,
+						ChangedAt:    time.Now(),
+						Note:         "Payment verified and approved",
+					})
+				}
 			}
 		}
 	}

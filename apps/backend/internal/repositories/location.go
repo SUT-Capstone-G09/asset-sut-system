@@ -16,6 +16,7 @@ func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, er
 		Where("sl.user_id = ?", staffID).
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("PricingTiers.RequesterType").
 		Preload("PricingTiers.RateType").
 		Find(&locs).Error
@@ -83,6 +84,7 @@ func (r *LocationRepository) FindAll() ([]models.Locations, error) {
 	err := r.db.
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("PricingTiers.RequesterType").
 		Preload("PricingTiers.RateType").
 		Find(&locations).Error
@@ -94,6 +96,7 @@ func (r *LocationRepository) FindByID(id uint) (*models.Locations, error) {
 	err := r.db.
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("Equipments.Equipment").
 		Preload("Addons.ChargeType").
 		Preload("PricingTiers.RequesterType").
@@ -178,3 +181,16 @@ func (r *LocationRepository) FindUnavailabilitiesByDate(locationID uint, date ti
 	err := r.db.Where("location_id = ? AND date = ?", locationID, date.Format("2006-01-02")).Find(&items).Error
 	return items, err
 }
+
+func (r *LocationRepository) FindAllGlobalAddons() ([]models.LocationAddons, error) {
+	var addons []models.LocationAddons
+	err := r.db.Where("location_id IS NULL").Find(&addons).Error
+	return addons, err
+}
+
+func (r *LocationRepository) FindAllBuildings() ([]models.Buildings, error) {
+	var buildings []models.Buildings
+	err := r.db.Find(&buildings).Error
+	return buildings, err
+}
+

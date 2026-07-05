@@ -40,7 +40,7 @@ func (r *InvoiceRepository) Create(invoice *models.Invoices) error {
 }
 
 func (r *InvoiceRepository) Update(invoice *models.Invoices) error {
-	return r.db.Save(invoice).Error
+	return r.db.Omit("Status", "Transactions", "Booking").Save(invoice).Error
 }
 
 func (r *InvoiceRepository) FindStatusByName(name string) (*models.InvoiceStatuses, error) {

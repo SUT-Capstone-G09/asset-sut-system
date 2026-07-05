@@ -86,6 +86,30 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
+	// Master Addons (Expenses)
+	initialAddons := []models.LocationAddons{
+		{LocationID: nil, Name: "ค่าเก็บขยะ", Description: "", DefaultPrice: 100, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "แม่บ้าน", Description: "", DefaultPrice: 359, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "อินเทอร์เน็ต", Description: "", DefaultPrice: 599, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "ค่าน้ำประปา", Description: "", DefaultPrice: 150, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "พนักงานรักษาความปลอดภัย", Description: "", DefaultPrice: 500, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "ตรวจเช็คถังดับเพลิง", Description: "", DefaultPrice: 250, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "น้ำดื่มและเครื่องดื่มบริการ", Description: "", DefaultPrice: 120, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+	}
+
+	for _, a := range initialAddons {
+		var existing models.LocationAddons
+		if err := db.Where("name = ? AND location_id IS NULL", a.Name).First(&existing).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				if err := db.Create(&a).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+	}
+
 	log.Println("Lookup tables seeded successfully.")
 	return nil
 }

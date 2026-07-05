@@ -33,6 +33,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   lists: "รายการ",
   classroom: "ห้องเรียน",
   meeting: "ห้องประชุม",
+  expenses: "ค่าใช้จ่าย",
 };
 
 // กำหนดว่า section ไหนสามารถเป็น "referrer context" ของ section ไหนได้

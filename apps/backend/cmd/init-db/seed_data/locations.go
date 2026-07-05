@@ -106,6 +106,11 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 		return err
 	}
 
+	var dailyRate models.RateTypes
+	if err := db.Where("type = ?", "daily").First(&dailyRate).Error; err != nil {
+		return err
+	}
+
 	for _, r := range roomSeeds {
 		// Skip if location already exists
 		var existing models.Locations
@@ -119,10 +124,15 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 			return err
 		}
 
-		building := r.Building
+		// Get or create building
+		var bldg models.Buildings
+		if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
+			return err
+		}
+
 		location := models.Locations{
 			Name:        r.Name,
-			Building:    &building,
+			BuildingID:  &bldg.ID,
 			TypeID:      locType.ID,
 			StatusID:    availableStatus.ID,
 			Capacity:    r.Capacity,
@@ -150,6 +160,8 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 		tiers := []models.LocationPricingTiers{
 			{LocationID: location.ID, RequesterTypeID: internalType.ID, RateTypeID: hourlyRate.ID, Price: r.PriceHourly},
 			{LocationID: location.ID, RequesterTypeID: externalType.ID, RateTypeID: hourlyRate.ID, Price: r.PriceHourly * 2},
+			{LocationID: location.ID, RequesterTypeID: internalType.ID, RateTypeID: dailyRate.ID, Price: r.PriceHourly * 8},
+			{LocationID: location.ID, RequesterTypeID: externalType.ID, RateTypeID: dailyRate.ID, Price: (r.PriceHourly * 2) * 8},
 		}
 		for _, t := range tiers {
 			db.FirstOrCreate(&t, models.LocationPricingTiers{

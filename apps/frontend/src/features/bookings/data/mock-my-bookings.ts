@@ -1,4 +1,4 @@
-export type BookingStatus = "รออนุมัติ" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก" | "ปฏิเสธ";
+export type BookingStatus = "รออนุมัติ" | "รอชำระเงิน" | "รอตรวจสอบการชำระเงิน" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก" | "ปฏิเสธ";
 
 export interface MyBooking {
   id: string;
