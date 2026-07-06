@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, MapPin, Store, CheckCircle2, ChevronRight, Upload } from "lucide-react";
+import { Search, MapPin, Store, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockLocations, mockTenants } from "../data/mock";
 import { Tenant } from "../types";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
 
 interface TenantSelectorProps {
   onSelect: (tenant: Tenant) => void;
@@ -19,8 +20,15 @@ interface TenantSelectorProps {
 }
 
 export function TenantSelector({ onSelect, selectedTenantId }: TenantSelectorProps) {
+  const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Sub-locations (mockLocations) that belong to the selected zone
+  const zoneLocations = useMemo(() => {
+    if (selectedZoneId === "all") return mockLocations;
+    return mockLocations.filter((loc) => loc.zoneId === selectedZoneId);
+  }, [selectedZoneId]);
 
   const filteredTenants = useMemo(() => {
     return mockTenants.filter((t) => {
@@ -33,27 +41,60 @@ export function TenantSelector({ onSelect, selectedTenantId }: TenantSelectorPro
     });
   }, [selectedLocationId, searchQuery]);
 
+  const handleZoneChange = (val: string) => {
+    setSelectedZoneId(val);
+    setSelectedLocationId("all"); // reset sub-location when zone changes
+  };
+
+  const selectedZone = tenantAreaOptions.find((z) => z.id === selectedZoneId);
+
   return (
     <div className="space-y-6">
-      {/* Step 1: Location Filter & Search */}
+      {/* Step 1 & 2: Zone + Sub-location Filter */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Step 1: Zone (โซนพื้นที่) */}
         <div className="md:col-span-1 space-y-2">
           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            ขั้นตอนที่ 1: เลือกสถานที่
+            ขั้นตอนที่ 1: เลือกโซนพื้นที่
           </label>
-          <Select
-            value={selectedLocationId}
-            onValueChange={setSelectedLocationId}
-          >
+          <Select value={selectedZoneId} onValueChange={handleZoneChange}>
             <SelectTrigger className="w-full h-12 bg-white border-slate-200 rounded-xl focus:ring-orange-500/20">
               <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-slate-400" />
-                <SelectValue placeholder="เลือกสถานที่" />
+                <MapPin size={16} className="text-slate-400 shrink-0" />
+                <SelectValue placeholder="เลือกโซน..." />
               </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200">
               <SelectItem value="all">ทั้งหมด</SelectItem>
-              {mockLocations.map((loc) => (
+              {tenantAreaOptions.map((zone) => (
+                <SelectItem key={zone.id} value={zone.id}>
+                  {zone.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Step 2: Sub-location */}
+        <div className="md:col-span-1 space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            ขั้นตอนที่ 2: เลือกสถานที่ย่อย
+          </label>
+          <Select
+            value={selectedLocationId}
+            onValueChange={setSelectedLocationId}
+            disabled={selectedZoneId === "all"}
+          >
+            <SelectTrigger className="w-full h-12 bg-white border-slate-200 rounded-xl focus:ring-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+              <SelectValue
+                placeholder={
+                  selectedZoneId === "all" ? "— เลือกโซนก่อน —" : "เลือกสถานที่ย่อย..."
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200">
+              <SelectItem value="all">ทั้งหมด{selectedZone ? ` ใน${selectedZone.name}` : ""}</SelectItem>
+              {zoneLocations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>
                   {loc.name}
                 </SelectItem>
@@ -62,9 +103,10 @@ export function TenantSelector({ onSelect, selectedTenantId }: TenantSelectorPro
           </Select>
         </div>
 
-        <div className="md:col-span-2 space-y-2">
+        {/* Step 3: Search */}
+        <div className="md:col-span-1 space-y-2">
           <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            ขั้นตอนที่ 2: ระบุผู้เช่าที่ต้องการ
+            ขั้นตอนที่ 3: ระบุผู้เช่าที่ต้องการ
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-orange-500 transition-colors">

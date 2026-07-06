@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/lib/context/auth-context";
 import Navbar from "@/components/layout/topbar";
 import NextTopLoader from "nextjs-toploader";
+import { Toaster } from "sonner";
 
 
 const notoSansThai = Noto_Sans_Thai({
@@ -56,6 +57,7 @@ export default function RootLayout({
           <Navbar />
           {children}
         </AuthProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

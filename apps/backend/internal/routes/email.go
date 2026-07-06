@@ -24,6 +24,7 @@ func SetupEmailRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		broadcasts.POST("", deps.EmailBroadcastController.Create)
 		broadcasts.GET("", deps.EmailBroadcastController.List)
 		broadcasts.GET("/:id", deps.EmailBroadcastController.Get)
+		broadcasts.GET("/:id/recipients", deps.EmailBroadcastController.Recipients)
 
 		email.GET("/audiences/options", deps.EmailBroadcastController.Options)
 		email.GET("/recipients/search", deps.EmailBroadcastController.SearchRecipients)

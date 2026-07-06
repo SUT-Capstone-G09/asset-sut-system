@@ -1,6 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin, ReceiptText } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { SectionHeader } from "./SectionHeader";
 
 interface PaymentSummaryCardProps {
@@ -22,6 +25,8 @@ export function PaymentSummaryCard({
   hours,
   totalPrice,
 }: PaymentSummaryCardProps) {
+  const [detailed, setDetailed] = useState(true);
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
       <SectionHeader icon={<ReceiptText size={14} />} label="สรุปการจอง" />
@@ -45,26 +50,62 @@ export function PaymentSummaryCard({
         </div>
       </div>
 
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-gray-400">
+          {detailed ? "รายละเอียดราคา" : "สรุปอย่างย่อ"}
+        </span>
+        <button
+          type="button"
+          onClick={() => setDetailed((prev) => !prev)}
+          role="switch"
+          aria-checked={detailed}
+          aria-label="สลับการแสดงรายละเอียดราคา"
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+            detailed ? "bg-brand-primary" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+              detailed ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
       <div className="flex flex-col gap-2 text-sm">
-        <div className="flex justify-between text-gray-500">
-          <span>
-            ฿
-            {hourlyRate.toLocaleString("th-TH", {
-              minimumFractionDigits: 2,
-            })}{" "}
-            × {hours} ชั่วโมง
-          </span>
-          <span className="font-semibold text-gray-800">
-            ฿
-            {totalPrice.toLocaleString("th-TH", {
-              minimumFractionDigits: 2,
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between text-gray-500">
-          <span>ค่าบริการ</span>
-          <span className="font-semibold text-gray-800">฿0.00</span>
-        </div>
+        {detailed ? (
+          <>
+            <div className="flex justify-between text-gray-500">
+              <span>
+                ฿
+                {hourlyRate.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                })}{" "}
+                × {hours} ชั่วโมง
+              </span>
+              <span className="font-semibold text-gray-800">
+                ฿
+                {totalPrice.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div className="flex justify-between text-gray-500">
+              <span>ค่าบริการ</span>
+              <span className="font-semibold text-gray-800">฿0.00</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-between text-gray-500">
+            <span>ค่าบำรุงสถานที่</span>
+            <span className="font-semibold text-gray-800">
+              ฿
+              {totalPrice.toLocaleString("th-TH", {
+                minimumFractionDigits: 2,
+              })}
+            </span>
+          </div>
+        )}
       </div>
 
       <hr className="border-gray-100" />

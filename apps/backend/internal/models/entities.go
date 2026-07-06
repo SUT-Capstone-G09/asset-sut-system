@@ -21,6 +21,15 @@ var AllEntities = []any{
 	&RateTypes{},
 	&LocationPricingTiers{},
 
+	// Area
+	&Buildings{},
+	&Areas{},
+	&AreaImages{},
+	&AreaTags{},
+	&FloorPlans{},
+	&MapLayers{},
+	&MapElements{},
+
 	// Booking
 	&BookingStatuses{},
 	&Bookings{},
@@ -52,4 +61,32 @@ var AllEntities = []any{
 	&RequestTypes{},
 	&ChatMessage{},
 	&RequestStatus{},
+	// Tenant
+	&TenantProfiles{},
+	&TenantContacts{},
+	&TenantKYC{},
+
+	// Contract
+	&BusinessTypes{},
+	&Contracts{},
+	&ContractHistory{},
+	&ContractInvoices{},
+	//Envelope
+	&DocumentEnvelopes{},
+	&EnvelopeOrders{},
+	&EnvelopePayments{},
+	&OrderDeliveries{},
+	&Receipts{},
+	// Evaluation
+	&GradeSettings{},
+	&EvaluationCriteria{},
+	&Evaluations{},
+	&EvaluationsDetail{},
+
+	// News
+	&NewsCategories{},
+	&NewsAnnouncements{},
+	&NewsLeaseOffers{},
+	&NewsLogs{},
+	&NewsViews{},
 }

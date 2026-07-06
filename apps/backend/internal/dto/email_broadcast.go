@@ -43,6 +43,14 @@ type BroadcastResponse struct {
 	Counts          map[string]int `json:"counts"`
 }
 
+type BroadcastRecipientResponse struct {
+	ID        uint   `json:"id"`
+	ToEmail   string `json:"to_email"`
+	Status    string `json:"status"`
+	Attempts  int    `json:"attempts"`
+	LastError string `json:"last_error"`
+}
+
 type AudienceOptionsResponse struct {
 	Roles          []string              `json:"roles"`
 	RequesterTypes []RequesterTypeOption `json:"requester_types"`

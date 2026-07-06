@@ -13,8 +13,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getBroadcast } from "../../services/email-broadcast.service";
 import type { BroadcastSummary } from "../../types";
+import BroadcastRecipients from "./BroadcastRecipients";
 
 const POLL_MS = 3000;
 
@@ -71,7 +73,7 @@ export default function BroadcastStatus({ id }: { id: number }) {
 
   if (error) {
     return (
-      <div className="max-w-3xl space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <BackLink />
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -83,14 +85,14 @@ export default function BroadcastStatus({ id }: { id: number }) {
 
   if (!b) {
     return (
-      <div className="max-w-3xl space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <BackLink />
-        <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-6">
-          <div className="h-6 w-1/3 animate-pulse rounded bg-gray-100" />
-          <div className="h-2 w-full animate-pulse rounded bg-gray-100" />
+        <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-6" aria-hidden="true">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-2 w-full" />
           <div className="grid grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-100" />
+              <Skeleton key={i} className="h-24 rounded-lg" />
             ))}
           </div>
         </div>
@@ -116,10 +118,11 @@ export default function BroadcastStatus({ id }: { id: number }) {
   ];
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <BackLink />
 
-      <div className="rounded-xl border border-gray-100 bg-white p-7 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="rounded-xl border border-gray-100 bg-white p-7 shadow-sm">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -188,6 +191,15 @@ export default function BroadcastStatus({ id }: { id: number }) {
             </div>
           ))}
         </div>
+        </div>
+
+        {/* Per-recipient delivery status */}
+        <BroadcastRecipients
+          broadcastId={b.id}
+          counts={b.counts}
+          totalRecipients={b.total_recipients}
+          refreshKey={done}
+        />
       </div>
     </div>
   );
