@@ -63,7 +63,6 @@ export default function AdminRequestTableView() {
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <p className="text-[10px] font-bold text-[#E9652B] uppercase tracking-widest mb-1">Admin Dashboard</p>
           <h2 className="text-3xl font-black text-slate-800">
             {currentTab === 'requests' ? 'จัดการรายการคำร้อง' : 'กล่องข้อความติดต่อสอบถาม'}
           </h2>
