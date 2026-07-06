@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,9 +76,9 @@ export function UploadInvoiceModal({
             <DialogTitle className="text-xl font-black text-slate-900">
               ยืนยันการอัปโหลดใบแจ้งหนี้
             </DialogTitle>
-            <p className="text-sm text-slate-400 text-center max-w-md">
+            <DialogDescription className="text-sm text-slate-400 text-center max-w-md">
               กรุณาตรวจสอบรายละเอียดความถูกต้องก่อนดำเนินการบันทึกข้อมูลเข้าสู่ระบบ
-            </p>
+            </DialogDescription>
           </DialogHeader>
 
           {/* Upload Area */}
