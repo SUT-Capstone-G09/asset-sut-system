@@ -1,23 +1,10 @@
 "use client"
 
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import { Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloorPlanData, FloorPlanStall } from "@/features/areas/types/floor-plan";
-
-// Design Tokens (อนาคตเปลี่ยนไปไว้ Globals)
-const CELL_COLORS = {
-  empty: "bg-slate-50",
-  wall: "bg-slate-700",
-  walkway: "bg-amber-100/80",
-  stall: "bg-slate-200",
-};
-
-const STALL_STATUS_BG: Record<string, string> = {
-  occupied: "bg-emerald-400/90",
-  vacant: "bg-amber-400/90",
-  inactive: "bg-slate-400/90",
-};
+import Canvas from "./Canvas";
 
 interface FloorPlanViewerProps {
   data: FloorPlanData;
@@ -30,22 +17,18 @@ export default function FloorPlanViewer({
   onStallClick,
   compact = false,
 }: FloorPlanViewerProps) {
-  const { rows, cols, grid, stalls } = data;
+  const [scale, setScale] = useState(compact ? 0.5 : 0.8);
+  const [pan, setPan] = useState({ x: 20, y: -80 });
 
-  const stallMap = useMemo(() => {
-    const map = new Map<string, FloorPlanStall>();
-    for (const stall of stalls) {
-      for (const [r, c] of stall.cells) {
-        map.set(`${r}-${c}`, stall);
-      }
+  const shops = data.elements.filter(el => el.type === 'area' && el.areaType === 'shop');
+  
+  const handleSelectElement = (id: string | null) => {
+    if (!id || !onStallClick) return;
+    const element = data.elements.find(el => el.id === id);
+    if (element && element.type === 'area' && element.areaType === 'shop') {
+      onStallClick(element);
     }
-    return map;
-  }, [stalls]);
-
-  const cellSize = compact ? "h-5" : "h-8";
-  const fontSize = compact ? "text-[6px]" : "text-[9px]";
-  const gap = compact ? "gap-[1px]" : "gap-[2px]";
-  const minCellWidth = compact ? "24px" : "32px";
+  };
 
   return (
     <div className="space-y-4">
@@ -57,8 +40,9 @@ export default function FloorPlanViewer({
         </div>
         <div className="flex items-center gap-3">
           {[
-            { color: "bg-emerald-400", label: "มีผู้เช่า" },
-            { color: "bg-amber-400", label: "ว่าง" },
+            { color: "bg-emerald-400", label: "ว่าง" },
+            { color: "bg-amber-400", label: "จองแล้ว" },
+            { color: "bg-rose-500", label: "มีผู้เช่า" },
             { color: "bg-slate-400", label: "ปิดปรับปรุง" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
@@ -71,72 +55,54 @@ export default function FloorPlanViewer({
         </div>
       </div>
 
-      {/* Grid */}
-      <div
-        className={cn("inline-grid select-none", gap)}
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(${minCellWidth}, 1fr))` }}
-      >
-        {grid.map((row, r) =>
-          row.map((cellType, c) => {
-            const stall = stallMap.get(`${r}-${c}`);
-            const isFirstCell =
-              stall && stall.cells[0][0] === r && stall.cells[0][1] === c;
-
-            const bgColor = stall
-              ? STALL_STATUS_BG[stall.status]
-              : CELL_COLORS[cellType];
-
-            return (
-              <div
-                key={`${r}-${c}`}
-                onClick={() => stall && onStallClick?.(stall)}
-                className={cn(
-                  "relative rounded-[2px] transition-all duration-150",
-                  cellSize,
-                  bgColor,
-                  stall && onStallClick && "cursor-pointer hover:brightness-90 hover:scale-105"
-                )}
-                title={stall ? `${stall.label} — ${stall.name || "ยังไม่ตั้งชื่อ"}` : undefined}
-              >
-                {isFirstCell && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span
-                      className={cn(
-                        "font-black text-white drop-shadow-sm leading-none truncate px-0.5",
-                        fontSize
-                      )}
-                    >
-                      {stall.label}
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+      {/* Canvas Workspace */}
+      <div className={cn("relative border border-slate-100 rounded-[7px] overflow-hidden bg-slate-50", compact ? "h-[300px]" : "h-[500px]")}>
+        <Canvas
+          elements={data.elements}
+          layers={data.layers}
+          selectedId={null}
+          canvasMode="select"
+          scale={scale}
+          pan={pan}
+          selectElement={handleSelectElement}
+          updateElement={() => {}}
+          deleteElement={() => {}}
+          addElement={() => {}}
+          reorderElement={() => {}}
+          setCanvasMode={() => {}}
+          setScale={setScale}
+          setPan={setPan}
+          previewMode={true}
+        />
       </div>
 
-      {/* Stats */}
-      {!compact && stalls.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
+      {/* Statistics */}
+      {!compact && shops.length > 0 && (
+        <div className="grid grid-cols-4 gap-2">
           {[
             {
               label: "ทั้งหมด",
-              value: stalls.length,
+              value: shops.length,
               color: "text-slate-700",
               bg: "bg-slate-50",
             },
             {
-              label: "มีผู้เช่า",
-              value: stalls.filter((s) => s.status === "occupied").length,
+              label: "ว่าง",
+              value: shops.filter((s) => s.status === "open").length,
               color: "text-emerald-600",
               bg: "bg-emerald-50",
             },
             {
-              label: "ว่าง",
-              value: stalls.filter((s) => s.status === "vacant").length,
-              color: "text-amber-500",
+              label: "จองแล้ว",
+              value: shops.filter((s) => s.status === "reserved").length,
+              color: "text-amber-600",
               bg: "bg-amber-50",
+            },
+            {
+              label: "มีผู้เช่า",
+              value: shops.filter((s) => s.status === "occupied").length,
+              color: "text-rose-600",
+              bg: "bg-rose-50",
             },
           ].map((stat) => (
             <div
