@@ -17,6 +17,7 @@ var AllSeeders = []Seeder{
 	seedRequesters,
 	seedUsers,
 	seedLocations,
+	seedRequests,
 }
 
 func RunSeeders(db *gorm.DB, cfg *config.Config) error {
