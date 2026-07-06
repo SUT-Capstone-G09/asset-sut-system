@@ -6,7 +6,6 @@ import { Search, MapPin, Calendar, Store, MoreHorizontal, User, X, Plus, FileTex
 import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
 import { generateMockTenants, MockTenant } from "@/features/tenants/data/mock-tenants";
 import { cn } from "@/lib/utils";
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import {
   Sheet,
   SheetContent,
@@ -233,14 +232,6 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
 
       {/* Header Section */}
       <div className="flex flex-col gap-6">
-        <AssetBreadcrumb
-          items={[
-            { label: "Admin", href: "/admin" },
-            { label: "ผู้ประกอบการ", href: backHref },
-            { label: area.name },
-          ]}
-        />
-
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-linear-to-br from-card to-card/50 p-8 rounded-3xl border border-border/60 shadow-sm relative overflow-hidden">
           {/* Decorative background circle */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl" />

@@ -23,7 +23,6 @@ import {
   Save,
   Edit2
 } from "lucide-react";
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import { MockTenant, MockContract } from "../../data/mock-tenants";
 import { cn } from "@/lib/utils";
 
@@ -157,14 +156,6 @@ export default function AdminTenantDetailView({
           >
             <ChevronLeft size={20} />
           </button>
-          <AssetBreadcrumb
-            items={[
-              { label: "Admin", href: "/admin" },
-              { label: "ผู้ประกอบการ", href: `/admin/tenants/lists${searchParams.toString() ? `?${searchParams.toString()}` : ""}` },
-              { label: areaName, href: `/admin/tenants/lists/${areaId}${searchParams.toString() ? `?${searchParams.toString()}` : ""}` },
-              { label: tenant.name },
-            ]}
-          />
         </div>
       </div>
 
