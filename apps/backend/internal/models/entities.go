@@ -23,9 +23,9 @@ var AllEntities = []any{
 
 	// Area
 	&Buildings{},
-	&Areas{},
-	&AreaImages{},
-	&AreaTags{},
+	&RentalSpaces{},
+	&RentalSpaceImages{},
+	&RentalSpaceTags{},
 	&FloorPlans{},
 	&MapLayers{},
 	&MapElements{},
