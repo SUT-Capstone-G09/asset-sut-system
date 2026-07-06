@@ -48,6 +48,7 @@ func main() {
 	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
 	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
 	recipientRepo := repositories.NewRecipientRepository(db)
+	requestRepo := repositories.NewRequestRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -71,6 +72,7 @@ func main() {
 	emailBroadcastService := services.NewEmailBroadcastService(
 		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
 	)
+	requestService := services.NewRequestService(requestRepo)
 
 	// ----------------------------------------
 	// Controllers
@@ -84,6 +86,7 @@ func main() {
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentQRService)
 	documentCtrl := controllers.NewDocumentController(documentService)
+	requestCtrl := controllers.NewRequestController(requestService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
 	var driveService *services.DriveService
@@ -125,6 +128,7 @@ func main() {
 		EmailTemplateController:  emailTemplateCtrl,
 		EmailBroadcastController: emailBroadcastCtrl,
 		ImageController:          imageCtrl,
+		RequestController:        requestCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

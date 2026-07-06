@@ -55,6 +55,12 @@ var AllEntities = []any{
 	&EmailBroadcast{},
 	&EmailOutbox{},
 
+	// Requests
+	&Requests{},
+	&ActionHistories{},
+	&RequestTypes{},
+	&ChatMessage{},
+	&RequestStatus{},
 	// Tenant
 	&TenantProfiles{},
 	&TenantContacts{},

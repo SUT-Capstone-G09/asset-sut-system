@@ -1,44 +1,65 @@
 "use client";
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import {
-  LayoutDashboard, ClipboardList, PlusCircle, FileText,
-  Search, Bell, Settings, LogOut, Download,
-  ChevronDown, Filter, ChevronLeft, ChevronRight, Calendar,
+  Search, Download, ChevronDown, ChevronLeft, ChevronRight,
   Wrench, ShoppingCart, Calendar as CalendarIcon, RotateCcw,
-  MessageSquareText, ArrowRight, CheckCircle2, AlertCircle, User
+  ArrowRight, CheckCircle2, User, SlidersHorizontal
 } from 'lucide-react';
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
-import {
-  DEFAULT_ADMIN_REQUESTS,
-  DEFAULT_ADMIN_INQUIRIES,
-} from "../../mock/adminRequestMock";
+import { useAdminRequests } from '../../presentation/hooks/useAdminRequests';
 
 export default function AdminRequestTableView() {
-  const router = useRouter();
-  
-  // 📍 สเตทควบคุมแท็บหลัก ('requests' = คำร้องแจ้งซ่อม, 'inquiries' = ข้อความติดต่อสอบถาม)
-  const [currentTab, setCurrentTab] = useState<'requests' | 'inquiries'>('requests');
-  const [inquirySubTab, setInquirySubTab] = useState('unread');
+  const {
+    isMounted,
+    currentTab,
+    setCurrentTab,
+    inquirySubTab,
+    setInquirySubTab,
+    searchTerm,
+    setSearchTerm,
+    requests,
+    inquiries,
+    isLoading,
+    handleRequestClick,
+    handleInquiryClick
+  } = useAdminRequests();
 
-  // ข้อมูลคำร้องเดิม (จาก REQ Table)
-  const requests = DEFAULT_ADMIN_REQUESTS;
+  if (!isMounted) {
+    return null;
+  }
 
-  // ข้อมูลจำลองข้อความที่ส่งมาจากหน้าติดต่อสอบถามของฝั่ง User
-  const inquiries = DEFAULT_ADMIN_INQUIRIES;
+  // Helper to determine request type icons
+  const getTypeIcon = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('ซ่อม')) return <Wrench size={14} className="text-orange-500" />;
+    if (t.includes('เบิก') || t.includes('จ่าย')) return <ShoppingCart size={14} className="text-blue-500" />;
+    if (t.includes('จอง') || t.includes('พื้นที่')) return <CalendarIcon size={14} className="text-green-500" />;
+    return <RotateCcw size={14} className="text-slate-500" />;
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'REJECT': return 'bg-red-50 text-red-500 border border-red-100';
+      case 'IN-PROGRESS': return 'bg-blue-50 text-blue-500 border border-blue-100';
+      case 'COMPLETED': return 'bg-green-50 text-green-600 border border-green-100';
+      case 'CANCELLED': return 'bg-slate-100 text-slate-400 border border-slate-200';
+      case 'PENDING': 
+      default: return 'bg-yellow-50 text-yellow-600 border border-yellow-100';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'REJECT': return 'ปฏิเสธ';
+      case 'IN-PROGRESS': return 'กำลังดำเนินการ';
+      case 'COMPLETED': return 'เสร็จสิ้น';
+      case 'CANCELLED': return 'ยกเลิก';
+      case 'PENDING':
+      default: return 'รอดำเนินการ';
+    }
+  };
 
   return (
-    <main className="flex-1 p-8 overflow-y-auto min-h-screen">
-      <div className="mb-4">
-        <AssetBreadcrumb
-          items={[
-            { label: "หน้าหลัก", href: "/" },
-            { label: "ระบบจัดการคำร้อง", href: "/requests/dashboard" },
-            { label: currentTab === 'requests' ? "รายการคำร้อง" : "กล่องข้อความติดต่อสอบถาม" }
-          ]}
-        />
-      </div>
-
+    <main className="flex-1 p-8 overflow-y-auto min-h-screen bg-slate-50/50">
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -47,71 +68,105 @@ export default function AdminRequestTableView() {
             {currentTab === 'requests' ? 'จัดการรายการคำร้อง' : 'กล่องข้อความติดต่อสอบถาม'}
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            {currentTab === 'requests' 
-              ? 'ตรวจสอบและดำเนินการคำร้องขอใช้สินทรัพย์ รวมถึงการแจ้งซ่อมและบำรุงรักษา' 
+            {currentTab === 'requests'
+              ? 'ตรวจสอบและดำเนินการคำร้องขอใช้สินทรัพย์ รวมถึงการแจ้งซ่อมและบำรุงรักษา'
               : 'อ่านและดำเนินการตอบกลับข้อความติดต่อสอบถามข้อมูลทั่วไปจากหน้าเว็บไซต์'}
           </p>
-        </div>
-        <div className="flex space-x-3">
-          <div className="bg-white border px-4 py-2 rounded-xl text-sm font-bold shadow-sm">ทั้งหมด <span className="text-orange-500 ml-2">1,284</span></div>
-          <div className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl text-sm font-bold shadow-sm">รอดำเนินการ 12</div>
-          <button className="bg-white border px-4 py-2 rounded-xl text-sm font-bold text-slate-600 flex items-center hover:bg-slate-50 transition-colors shadow-sm">
-            <Download size={16} className="mr-2" /> ส่งออกรายงาน
-          </button>
         </div>
       </div>
 
       {/* 📍 แถบแท็บหลักสลับการทำงาน (Tabs Bar) */}
-      <div className="flex border-b border-slate-200 gap-6 text-sm font-bold mb-6">
-        <button 
-          onClick={() => setCurrentTab('requests')}
-          className={`pb-3 transition-all relative ${currentTab === 'requests' ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <span>คำร้องแจ้งซ่อม / บริการ</span>
-          {currentTab === 'requests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full" />}
-        </button>
-        <button 
-          onClick={() => setCurrentTab('inquiries')}
-          className={`pb-3 transition-all relative flex items-center gap-2 ${currentTab === 'inquiries' ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <span>ข้อความติดต่อสอบถาม</span>
-          <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-sans">
-            {inquiries.filter(i => i.status === 'unread').length}
-          </span>
-          {currentTab === 'inquiries' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full" />}
-        </button>
+      <div className="flex justify-between items-center mb-6 bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setCurrentTab('requests')}
+            className={`px-6 py-3 rounded-full text-xs font-black transition-all cursor-pointer ${
+              currentTab === 'requests'
+                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            รายการคำร้องแจ้งซ่อมทั้งหมด
+          </button>
+          <button
+            onClick={() => setCurrentTab('inquiries')}
+            className={`px-6 py-3 rounded-full text-xs font-black transition-all cursor-pointer ${
+              currentTab === 'inquiries'
+                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            ข้อความติดต่อสอบถาม
+          </button>
+        </div>
+
+        {/* ฟิลเตอร์ย่อยสำหรับแท็บข้อความติดต่อสอบถาม */}
+        {currentTab === 'inquiries' && (
+          <div className="flex space-x-1 bg-slate-50 p-1 rounded-full border border-slate-100">
+            <button
+              onClick={() => setInquirySubTab('unread')}
+              className={`px-4 py-2 rounded-full text-[10px] font-black transition-all cursor-pointer ${
+                inquirySubTab === 'unread'
+                  ? 'bg-white text-orange-500 shadow-sm border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              ยังไม่ได้ตอบกลับ
+            </button>
+            <button
+              onClick={() => setInquirySubTab('replied')}
+              className={`px-4 py-2 rounded-full text-[10px] font-black transition-all cursor-pointer ${
+                inquirySubTab === 'replied'
+                  ? 'bg-white text-green-600 shadow-sm border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              ตอบกลับแล้ว
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 🎛️ Dynamic Filter Bar ปรับตามแท็บที่เลือก */}
-      {currentTab === 'requests' ? (
-        <div className="flex space-x-4 mb-8 items-center">
-          <FilterSelect label="สถานะ : ทั้งหมด" />
-          <FilterSelect label="ประเภท : ทั้งหมด" />
-          <div className="relative">
-            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="วว / ดด / ปปปป" className="bg-white border rounded-xl py-2 pl-10 pr-4 text-sm w-40 outline-none" />
+      {/* Search & Control Tools */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex-1 bg-white border border-slate-100 rounded-2xl px-4 py-3 flex items-center shadow-sm">
+          <Search size={18} className="text-slate-400 mr-3" />
+          <input
+            type="text"
+            placeholder={
+              currentTab === 'requests'
+                ? 'ค้นหาคำร้องด้วยรหัส, ชื่อหัวเรื่อง, ผู้แจ้ง, สถานที่...'
+                : 'ค้นหาอีเมล, ชื่อ, หัวข้อติดต่อ...'
+            }
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-transparent text-sm w-full outline-none font-medium text-slate-700"
+          />
+        </div>
+        
+        {currentTab === 'requests' && (
+          <div className="flex gap-2">
+            <FilterSelect label="ประเภทคำร้อง" />
+            <FilterSelect label="สถานะ" />
+            <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-2xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-[0.98]">
+              <SlidersHorizontal size={14} /> กรองข้อมูลเพิ่มเติม
+            </button>
           </div>
-          <button className="bg-orange-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-orange-200">กรองข้อมูล</button>
-        </div>
-      ) : (
-        <div className="flex justify-between items-center bg-slate-100/60 p-1.5 rounded-2xl border border-slate-200/60 mb-6 max-w-fit">
-          <button onClick={() => setInquirySubTab('unread')} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${inquirySubTab === 'unread' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>ยังไม่ได้อ่าน ({inquiries.filter(i => i.status === 'unread').length})</button>
-          <button onClick={() => setInquirySubTab('replied')} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${inquirySubTab === 'replied' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>ตอบกลับแล้ว ({inquiries.filter(i => i.status === 'replied').length})</button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 📊 Content Layout Rendering */}
-      {currentTab === 'requests' ? (
-        /* --- [TAB 1] ตารางจัดการคำร้องแบบเดิมของคุณ --- */
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
-            <h3 className="font-bold text-slate-700">รายการคำร้อง</h3>
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">แสดง 3 จาก 1,284 รายการ</span>
-          </div>
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/30 text-[10px] uppercase font-black text-slate-300 tracking-tighter border-b">
-              <tr>
-                <th className="px-6 py-4">Refcode</th>
+      {/* Loading Overlay */}
+      {isLoading ? (
+        <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100 shadow-sm">
+          <p className="text-slate-400 font-bold text-sm animate-pulse">กำลังโหลดข้อมูลรายการ...</p>
+        </div>
+      ) : currentTab === 'requests' ? (
+        /* --- [TAB 1] รายการคำร้องแจ้งซ่อมคอลัมน์ดึงจากฐานข้อมูลจริง --- */
+        <div className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th className="px-6 py-4">รหัสคำร้อง</th>
                 <th className="px-6 py-4">ประเภท</th>
                 <th className="px-6 py-4">หัวข้อ</th>
                 <th className="px-6 py-4">ผู้แจ้ง</th>
@@ -122,42 +177,52 @@ export default function AdminRequestTableView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {requests.map((req) => (
-                <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-5 text-xs font-bold text-orange-500">#{req.id}</td>
-                  <td className="px-6 py-5 text-xs text-slate-500 flex items-center gap-1.5">{req.icon} {req.type}</td>
-                  <td className="px-6 py-5">
-                    <p className="text-xs font-bold text-slate-700">{req.title}</p>
-                    <p className="text-[9px] text-slate-300">ID: {req.asset}</p>
-                  </td>
-                  <td className="px-6 py-5 text-xs text-slate-500">{req.sender}</td>
-                  <td className="px-6 py-5 text-xs text-slate-500">{req.location}</td>
-                  <td className="px-6 py-5">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black ${getStatusStyle(req.status)}`}>{req.status}</span>
-                  </td>
-                  <td className="px-6 py-5 text-[10px] text-slate-400">{req.date}</td>
-                  <td className="px-6 py-5">
-                    <button
-                      onClick={() => router.push(`/admin/requests/manage-requests`)}
-                      className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-[10px] font-bold hover:bg-slate-200"
-                    >
-                      เปิดดู
-                    </button>
+              {requests.length > 0 ? (
+                requests.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-50/20 transition-colors">
+                    <td className="px-6 py-5 text-xs font-bold text-orange-500">#{req.id}</td>
+                    <td className="px-6 py-5 text-xs font-black text-slate-600 flex items-center gap-1.5 pt-6">
+                      {getTypeIcon(req.type)} {req.type}
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="text-xs font-black text-slate-800 leading-normal">{req.title}</p>
+                      {req.email && <p className="text-[9px] font-mono text-slate-400 mt-0.5">{req.email}</p>}
+                    </td>
+                    <td className="px-6 py-5 text-xs font-bold text-slate-600">{req.sender}</td>
+                    <td className="px-6 py-5 text-xs text-slate-500 font-medium">{req.location}</td>
+                    <td className="px-6 py-5">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black ${getStatusStyle(req.status)}`}>
+                        {getStatusLabel(req.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-[10px] font-bold text-slate-400">{req.date}</td>
+                    <td className="px-6 py-5">
+                      <button
+                        onClick={() => handleRequestClick(req.id)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black cursor-pointer transition-all active:scale-[0.96]"
+                      >
+                        เปิดจัดการ
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm font-medium">
+                    ไม่พบข้อมูลรายการคำร้องแจ้งซ่อม
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
 
           {/* Pagination */}
           <div className="p-6 border-t flex justify-between items-center text-slate-400 text-xs font-bold">
-            <span>แสดง 3 จากทั้งหมด 1,248 รายการ</span>
+            <span>แสดง {requests.length} จากทั้งหมด {requests.length} รายการ</span>
             <div className="flex space-x-2">
-              <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronLeft size={16} /></button>
-              <button className="bg-orange-500 text-white w-8 h-8 rounded-lg">1</button>
-              <button className="w-8 h-8 hover:bg-slate-100 rounded-lg">2</button>
-              <button className="w-8 h-8 hover:bg-slate-100 rounded-lg">3</button>
-              <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={16} /></button>
+              <button className="p-2 hover:bg-slate-100 rounded-lg cursor-pointer"><ChevronLeft size={16} /></button>
+              <button className="bg-[#E9652B] text-white w-8 h-8 rounded-lg">1</button>
+              <button className="p-2 hover:bg-slate-100 rounded-lg cursor-pointer"><ChevronRight size={16} /></button>
             </div>
           </div>
         </div>
@@ -167,8 +232,8 @@ export default function AdminRequestTableView() {
           {inquiries
             .filter(item => item.status === inquirySubTab)
             .map((inq) => (
-              <div 
-                key={inq.id} 
+              <div
+                key={inq.id}
                 className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between gap-6 hover:border-orange-200 transition-all animate-in fade-in duration-200"
               >
                 <div className="space-y-3 flex-1">
@@ -182,7 +247,7 @@ export default function AdminRequestTableView() {
                     <p className="text-slate-500 text-sm mt-1 leading-relaxed">"{inq.detail}"</p>
                   </div>
                   <div className="flex flex-wrap gap-x-6 gap-y-1 pt-2 text-xs font-semibold text-slate-400 border-t border-slate-50">
-                    <span className="text-slate-600 flex items-center"><User size={13} className="mr-1 text-slate-400"/> {inq.name}</span>
+                    <span className="text-slate-600 flex items-center"><User size={13} className="mr-1 text-slate-400" /> {inq.name}</span>
                     <span>เบอร์โทร: <span className="text-slate-600 font-mono">{inq.phone}</span></span>
                     <span>อีเมล: <span className="text-slate-600 font-mono">{inq.email}</span></span>
                   </div>
@@ -190,10 +255,13 @@ export default function AdminRequestTableView() {
                 <div className="flex flex-col justify-center items-end gap-2 min-w-[140px] border-l border-dashed pl-0 md:pl-6 border-slate-100">
                   {inq.status === 'unread' ? (
                     <>
-                      <button className="w-full bg-[#E9652B] hover:bg-orange-600 text-white font-bold py-2 rounded-xl text-xs shadow-md shadow-orange-100 flex items-center justify-center transition-colors">
-                        ตอบกลับแชท <ArrowRight size={14} className="ml-1.5"/>
+                      <button 
+                        onClick={() => handleInquiryClick(inq.id)}
+                        className="w-full bg-[#E9652B] hover:bg-orange-600 text-white font-bold py-2 rounded-xl text-xs shadow-md shadow-orange-100 flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        ตอบกลับแชท <ArrowRight size={14} className="ml-1.5" />
                       </button>
-                      <button className="w-full bg-slate-50 text-slate-500 py-2 rounded-xl text-xs font-bold border hover:bg-slate-100 transition-colors">
+                      <button className="w-full bg-slate-50 text-slate-500 py-2 rounded-xl text-xs font-bold border hover:bg-slate-100 transition-colors cursor-pointer">
                         ส่งต่อสายช่าง
                       </button>
                     </>
@@ -204,7 +272,7 @@ export default function AdminRequestTableView() {
                   )}
                 </div>
               </div>
-          ))}
+            ))}
           {inquiries.filter(item => item.status === inquirySubTab).length === 0 && (
             <div className="bg-white rounded-[2rem] p-12 text-center border border-dashed border-slate-200 text-slate-400 text-sm font-medium">
               ไม่มีข้อความติดต่อสอบถามในหมวดหมู่นี้
@@ -221,12 +289,3 @@ const FilterSelect = ({ label }: { label: string }) => (
     {label} <ChevronDown size={16} className="ml-2 text-slate-400" />
   </div>
 );
-
-const getStatusStyle = (status: string) => {
-  switch (status) {
-    case 'URGENT': return 'bg-red-50 text-red-500';
-    case 'IN-PROGRESS': return 'bg-blue-50 text-blue-500';
-    case 'RESOLVED': return 'bg-green-50 text-green-500';
-    default: return 'bg-slate-50 text-slate-500';
-  }
-};
