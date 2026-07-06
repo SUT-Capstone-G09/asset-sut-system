@@ -1,3 +1,17 @@
+export interface MockContract {
+  id: string;
+  contractNumber: string;
+  startDate: string;
+  endDate: string;
+  monthlyRental: number;
+  deposit: number;
+  scholarship: number;
+  terms?: string;
+  note?: string;
+  status: "active" | "expiring" | "expired" | "terminated";
+  pdfUrl?: string;
+}
+
 export interface MockTenant {
   id: string;
   name: string;
@@ -7,6 +21,15 @@ export interface MockTenant {
   contractEndDate: string;
   image?: string;
   bannerUrl?: string; // Maps to banner_url in backend database schema
+  phone?: string;
+  nationalId?: string;
+  deposit?: number;
+  scholarship?: number;
+  terms?: string;
+  note?: string;
+  contractStartDate?: string;
+  taxId?: string;
+  contracts?: MockContract[];
 }
 
 const getMockBannerUrl = (businessType: string, index: number): string => {
@@ -74,14 +97,66 @@ export const generateMockTenants = (areaId: string, subLocations: string[]): Moc
       const businessType = businessTypes[businessTypeIndex];
       const bannerUrl = getMockBannerUrl(businessType, i + index);
       
+      const tenantId = `${areaId}-${index}-${i}`;
+      const contractEndDate = `202${5 + yearOffset}-12-31`;
+      const contractStartDate = `202${3 + yearOffset}-01-01`;
+      const phone = `08${(10000000 + index * 100000 + i * 999).toString().substring(0, 8)}`;
+      const nationalId = `1-3012-${(10000 + index * 100 + i).toString()}-0`;
+      const taxId = `01055600${(10000 + index * 100 + i).toString()}`;
+      const monthlyRental = 5000 + (i * 500);
+      const depositVal = 10000;
+      const scholarshipVal = 2000;
+      const termsVal = "ต้องเปิดบริการอย่างน้อย 6 วันต่อสัปดาห์ และแต่งกายถูกต้องตามระเบียบที่กำหนด";
+      const noteVal = "ไม่มีหมายเหตุเพิ่มเติม";
+
+      const mockContractsList: MockContract[] = [];
+      const currentContractStatus = (yearOffset === 0) ? "expiring" : "active";
+
+      mockContractsList.push({
+        id: `ct-${tenantId}-current`,
+        contractNumber: `CT-202${3 + yearOffset}-${(100 + index * 10 + i).toString()}`,
+        startDate: contractStartDate,
+        endDate: contractEndDate,
+        monthlyRental,
+        deposit: depositVal,
+        scholarship: scholarshipVal,
+        terms: termsVal,
+        note: noteVal,
+        status: currentContractStatus,
+      });
+
+      if (yearOffset > 0) {
+        mockContractsList.push({
+          id: `ct-${tenantId}-past`,
+          contractNumber: `CT-202${1 + yearOffset}-${(100 + index * 10 + i).toString()}`,
+          startDate: `202${1 + yearOffset}-01-01`,
+          endDate: `202${2 + yearOffset}-12-31`,
+          monthlyRental: monthlyRental - 500,
+          deposit: depositVal,
+          scholarship: scholarshipVal,
+          terms: "รักษาความสะอาดพื้นที่",
+          note: "หมดสัญญาปกติ",
+          status: "expired",
+        });
+      }
+
       tenants.push({
-        id: `${areaId}-${index}-${i}`,
+        id: tenantId,
         name,
         subLocation: sub,
         businessType,
         ownerName: `คุณ ${["สมชาย", "สมหญิง", "มาลี", "วิชัย", "นารี", "ปรีชา"][ownerIndex]} ใจดี`,
-        contractEndDate: `202${5 + yearOffset}-12-31`,
+        contractEndDate,
+        contractStartDate,
         bannerUrl,
+        phone,
+        nationalId,
+        taxId,
+        deposit: depositVal,
+        scholarship: scholarshipVal,
+        terms: termsVal,
+        note: noteVal,
+        contracts: mockContractsList,
       });
     }
   });

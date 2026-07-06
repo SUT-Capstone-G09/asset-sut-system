@@ -31,7 +31,7 @@ export default function AreasBanner() {
           </p>
 
           <div className="pt-4">
-            <Button className="h-14 px-10 bg-[#f26522] hover:bg-[#dd5b1c] text-white rounded-[7px] font-bold text-sm tracking-wide transition-all">
+            <Button className="h-14 px-10 bg-brand-primary hover:bg-brand-primary-600 text-white rounded font-bold text-sm tracking-wide transition-all">
               ค้นหาพื้นที่ธุรกิจ
             </Button>
           </div>

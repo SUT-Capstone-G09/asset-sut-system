@@ -6,6 +6,7 @@ type TenantProfiles struct {
 	User              *Users           `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
 	BusinessName      string           `gorm:"not null" json:"business_name"`
 	TaxID             string           `gorm:"not null" json:"tax_id"`
+	NationalID        string           `gorm:"not null" json:"national_id"` // เลขบัตรประชาชน (เพิ่มใหม่)
 	RegisteredAddress string           `gorm:"not null" json:"registered_address"`
 	BannerURL         string           `json:"banner_url"`
 	TenantContacts    []TenantContacts `gorm:"foreignKey:TenantProfileID" json:"tenant_contacts,omitempty"`

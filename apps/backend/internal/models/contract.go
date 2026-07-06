@@ -10,12 +10,18 @@ type BusinessTypes struct {
 type Contracts struct {
 	Base
 	ContractNo       string             `gorm:"not null;unique" json:"contract_no"`
-	ContractType     string             `gorm:"not null" json:"contract_type"` // เช่น "monthly", "yearly" กรณีที่มีประเภทสัญญา
+	ContractType     string             `gorm:"not null" json:"contract_type"` // เช่น "monthly", "yearly"
 	StartDate        time.Time          `gorm:"not null" json:"start_date"`
 	EndDate          time.Time          `gorm:"not null" json:"end_date"`
-	Rental           float64            `gorm:"not null;default:0" json:"rental"`
+	Rental           float64            `gorm:"not null;default:0" json:"rental"`      // ค่าบำรุงรายเดือน
+	Deposit          float64            `gorm:"not null;default:0" json:"deposit"`     // หลักประกัน
+	Scholarship      float64            `gorm:"not null;default:0" json:"scholarship"` // ทุนการศึกษา
+	Terms            string             `gorm:"type:text" json:"terms"`                // เงื่อนไข
+	Note             string             `gorm:"type:text" json:"note"`                 // หมายเหตุ
 	DocumentURL      string             `json:"document_url"`
 	Status           string             `gorm:"not null;default:'draft'" json:"status"` // เช่น draft, active, expired
+	AreaID           uint               `gorm:"not null" json:"area_id"`                // รหัสสถานที่/พื้นที่เช่า
+	Area             *Areas             `gorm:"foreignKey:AreaID" json:"area,omitempty"`
 	TenantProfileID  uint               `gorm:"not null" json:"tenant_profile_id"`
 	TenantProfile    *TenantProfiles    `gorm:"foreignKey:TenantProfileID" json:"tenant_profile,omitempty"`
 	BusinessTypeID   uint               `gorm:"not null" json:"business_type_id"`
