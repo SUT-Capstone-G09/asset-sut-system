@@ -71,6 +71,12 @@ const menuGroups: MenuGroup[] = [
         ],
       },
       {
+        id: "contracts",
+        label: "สัญญา",
+        icon: ClipboardList,
+        href: "/admin/contracts",
+      },
+      {
         id: "finance",
         label: "การเงิน",
         icon: Wallet,
