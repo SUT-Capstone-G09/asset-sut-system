@@ -1,5 +1,5 @@
-import { AdminEvalTable} from "@/features/evaluations/components/AdminEvalTable"
-import { AdminEvalTableHeader } from "@/features/evaluations/components/AdminEvalTableHeader"
+import { AdminEvalTable} from "@/features/evaluations/components/records/AdminEvalTable"
+import { AdminEvalTableHeader } from "@/features/evaluations/components/records/AdminEvalTableHeader"
 
 export default function DashboardPage() {
     return (

@@ -10,15 +10,27 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { EvalAssessmentCriteria } from "./EvalAssessmentCriteria"
+
+const DETAIL_EVAL_CRITERIA = {
+  hygiene: [
+    { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 5, note: "" },
+    { id: "h2", text: "2. การแต่งกายและสุขอนามัยของผู้สัมผัสอาหาร (ถุงมือ/ผ้ากันเปื้อน)", score: 5, note: "" },
+    { id: "h3", text: "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี", score: 4, note: "ตู้เย็นช่องที่ 2 สูงกว่าเกณฑ์ 1 องศา" },
+    { id: "h4", text: "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย", score: 3, note: "จุดทิ้งขยะเปียกไม่ปิดสนิท" },
+    { id: "h5", text: "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน", score: 5, note: "" },
+  ],
+  payment: [
+    { id: "p1", text: "6. ความตรงต่อเวลาในการชำระเงิน", score: 5, note: "", section: "หัวข้อ: ประวัติการชำระเงิน" },
+    { id: "p2", text: "7. ความถูกต้องของเอกสารใบแจ้งหนี้", score: 5, note: "" },
+    { id: "p3", text: "8. การบริหารจัดการยอดค้างชำระ", score: 5, note: "" },
+  ],
+  other: [
+    { id: "o1", text: "9. การปฏิบัติตามกฎระเบียบของสถานที่", score: 5, note: "" },
+    { id: "o2", text: "10. ความร่วมมือกับเจ้าหน้าที่ในการตรวจสอบ", score: 5, note: "" },
+  ],
+}
 
 export function AdminEvalDetail() {
   return (
@@ -27,7 +39,7 @@ export function AdminEvalDetail() {
       <div className="grid grid-cols-4 gap-3 h-[400px] mb-8">
         <div className="col-span-2 relative overflow-hidden rounded-2xl group cursor-zoom-in">
           <img 
-            src="https://www.bkkmenu.com/eat/stories/9-unique-cafes-to-sip-in-style.html" 
+            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80" 
             className="w-full h-full object-cover transition duration-500 group-hover:scale-110"
             alt="Store View"
           />
@@ -81,52 +93,9 @@ export function AdminEvalDetail() {
                 <span className="w-1 h-6 bg-orange-500 rounded-full" />
                 รายการตรวจสอบประเมินผล (Latest Audit)
               </h2>
-              <span className="text-sm text-slate-500">ทั้งหมด 6 รายการ</span>
             </div>
 
-            <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow>
-                    <TableHead className="w-[350px]">รายการตรวจสอบ</TableHead>
-                    <TableHead className="text-center">คะแนน</TableHead>
-                    <TableHead className="text-center">สถานะ</TableHead>
-                    <TableHead className="text-right">หมายเหตุ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 10, max: 10, status: "Pass", note: "" },
-                    { item: "การจัดเก็บวัตถุดิบและอุณหภูมิที่เหมาะสม", score: 9, max: 10, status: "Pass", note: "ตู้เย็นช่องที่ 2 สูงกว่าเกณฑ์ 1 องศา" },
-                    { item: "การแต่งกายและสุขวิทยาส่วนบุคคล", score: 10, max: 10, status: "Pass", note: "" },
-                    { item: "การกำจัดขยะและเศษอาหาร", score: 8, max: 10, status: "Improvement", note: "จุดทิ้งขยะเปียกไม่ปิดสนิท" },
-                    { item: "ป้ายราคาสินค้าและการแสดงข้อมูลผู้บริโภค", score: 5, max: 5, status: "Pass", note: "" },
-                    { item: "ระบบดับเพลิงและทางหนีไฟ", score: 5, max: 5, status: "Pass", note: "" },
-                  ].map((row, i) => (
-                    <TableRow key={i} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-medium">{row.item}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-bold text-slate-900">{row.score}</span>
-                        <span className="text-slate-400">/{row.max}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge 
-                          variant="secondary" 
-                          className={row.status === "Pass" 
-                            ? "bg-green-50 text-green-700 border-green-100" 
-                            : "bg-amber-50 text-amber-700 border-amber-100"}
-                        >
-                          {row.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-slate-500 text-sm">
-                        {row.note || "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <EvalAssessmentCriteria criteria={DETAIL_EVAL_CRITERIA} readOnly={true} />
           </div>
 
           {/* History SECTION */}
