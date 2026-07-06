@@ -19,7 +19,7 @@ func SetupAdminRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 		staffs := adminOnly.Group("/staffs")
 		staffs.GET("", deps.StaffController.GetAll)
-		//admin-only create staff account, staff cannot create other staff accounts just testing feature permissions
+		// admin-only create staff account, staff cannot create other staff accounts just testing feature permissions
 		staffs.POST("", middleware.RequirePermission("user_mgmt", "create"), deps.StaffController.Create)
 		staffs.GET("/:id", deps.StaffController.GetByID)
 		staffs.PUT("/:id", deps.StaffController.Update)

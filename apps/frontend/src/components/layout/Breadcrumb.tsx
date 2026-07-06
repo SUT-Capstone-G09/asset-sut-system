@@ -23,6 +23,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   verify: "ตรวจสอบ",
   "access-setting": "ตั้งค่าสิทธิ์",
   "news-management": "จัดการข่าวสาร",
+  "requests": "คำร้องขอ",
+  "manage-requests": "รายละเอียดคำร้อง",
   create: "สร้างใหม่",
   finance: "การเงิน",
   invoices: "ใบแจ้งหนี้",

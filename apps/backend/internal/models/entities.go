@@ -45,4 +45,11 @@ var AllEntities = []any{
 	&EmailTemplate{},
 	&EmailBroadcast{},
 	&EmailOutbox{},
+
+	// Requests
+	&Requests{},
+	&ActionHistories{},
+	&RequestTypes{},
+	&ChatMessage{},
+	&RequestStatus{},
 }

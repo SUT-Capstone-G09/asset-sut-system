@@ -11,7 +11,7 @@ import {
   DEFAULT_REQUEST_INFO,
   DEFAULT_STATUS_STEPS,
   DEFAULT_CHAT_MESSAGES
-} from '../mock/requestDetailMock';
+} from '../data/requestDetailMock';
 
 export default function RequestDetailView() {
   const [activeTab, setActiveTab] = useState('details');
