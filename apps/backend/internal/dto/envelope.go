@@ -23,6 +23,7 @@ type UpdateDocumentEnvelopeRequest struct {
 	FilePath         *string `json:"file_path"`
 	IsOnlineDelivery *bool   `json:"is_online_delivery"`
 	Note             *string `json:"note"`
+	Status           *string `json:"status" binding:"omitempty,oneof=draft on_sale unavailable archived"`
 }
 
 type DocumentEnvelopeResponse struct {
@@ -32,6 +33,7 @@ type DocumentEnvelopeResponse struct {
 	FileURL          string `json:"file_url"`
 	IsOnlineDelivery bool   `json:"is_online_delivery"`
 	Note             string `json:"note"`
+	Status           string `json:"status"`
 	AreaID           uint   `json:"area_id"`
 	AreaName         string `json:"area_name,omitempty"`
 }

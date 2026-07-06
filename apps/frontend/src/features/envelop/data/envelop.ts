@@ -5,28 +5,32 @@ export const mockEnvelopDocuments: EnvelopDocument[] = [
     id: "1",
     name: "ล็อค 1 พื้นที่จำหน่ายอาหารคาว",
     location: "โรงอาหารกาสะลอง",
-    documentStatus: "ใช้งานอยู่",
+    documentStatus: "on_sale",
+    amount: 3000,
     date: "01/05/2568",
   },
   {
     id: "2",
     name: "ล็อค B4 พื้นที่อาหารคาว",
     location: "โรงอาหารเรียนรวม2",
-    documentStatus: "พร้อมใช้งาน",
+    documentStatus: "on_sale",
+    amount: 2800,
     date: "03/05/2568",
   },
   {
     id: "3",
     name: "พื้นที่ติดตั้งตู้กดน้ำดื่มอัตโนมัติ (จุดที่3)",
     location: "อาคารเรียนรวม 1",
-    documentStatus: "ใช้งานอยู่",
+    documentStatus: "on_sale",
+    amount: 800,
     date: "07/05/2568",
   },
   {
     id: "4",
     name: "ชุมจำหน่ายเครื่องดื่มและเบเกอรี่",
     location: "หอพักหญิง 15",
-    documentStatus: "หมดอายุ",
+    documentStatus: "archived",
+    amount: 1500,
     date: "30/04/2568",
   },
 ];
@@ -39,7 +43,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "ล็อค 1 พื้นที่จำหน่ายอาหารคาว",
     amount: 3500,
     date: "12/05/2568",
-    status: "รอตรวจสอบ",
+    status: "pending_payment",
   },
   {
     id: "2",
@@ -48,7 +52,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "ล็อค B4 พื้นที่อาหารคาว",
     amount: 2800,
     date: "10/05/2568",
-    status: "จ่ายแล้ว",
+    status: "paid",
     paidAt: "เมื่อ 2 ชั่วโมงที่แล้ว",
   },
   {
@@ -58,7 +62,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "ชุมจำหน่ายเครื่องดื่มและเบเกอรี่",
     amount: 1500,
     date: "09/05/2568",
-    status: "รอตรวจสอบ",
+    status: "pending_payment",
   },
   {
     id: "4",
@@ -67,7 +71,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "พื้นที่ติดตั้งตู้กดน้ำดื่มอัตโนมัติ (จุดที่3)",
     amount: 800,
     date: "07/05/2568",
-    status: "ปฏิเสธ",
+    status: "cancelled",
     rejectionReason: "สลิปไม่ชัดเจน ไม่สามารถยืนยันยอดได้",
   },
   {
@@ -77,7 +81,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "ล็อค 1 พื้นที่จำหน่ายอาหารคาว",
     amount: 3500,
     date: "05/05/2568",
-    status: "รอชำระ",
+    status: "expired",
   },
   {
     id: "6",
@@ -86,7 +90,7 @@ export const mockEnvelopPayments: EnvelopPayment[] = [
     location: "ล็อค B4 พื้นที่อาหารคาว",
     amount: 2800,
     date: "01/05/2568",
-    status: "รอชำระ",
+    status: "payment_submitted",
   },
 ];
 
