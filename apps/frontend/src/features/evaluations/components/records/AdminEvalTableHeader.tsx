@@ -1,4 +1,3 @@
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Tags } from "lucide-react";
 import Link from "next/link";
@@ -6,15 +5,8 @@ import Link from "next/link";
 export function AdminEvalTableHeader() {
     return (
         <div className="flex flex-col gap-4">
-            <AssetBreadcrumb
-                items={[
-                    { label: "Asset SUT", href: "/" },
-                    { label: "ผลการประเมินผู้ประกอบการ" }
-                ]}
-            />
-
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h1 className="text-3xl font-extrabold text-slate-950 md:text-3xl lg:text-[2.75rem] lg:leading-[1.15]">
+                <h1 className="text-2xl font-extrabold text-slate-950">
                     รายการประเมินผู้ประกอบการ
                 </h1>
                 <div className="flex items-center gap-2">

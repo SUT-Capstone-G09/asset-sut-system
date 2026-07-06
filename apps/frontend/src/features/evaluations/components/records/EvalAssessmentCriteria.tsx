@@ -1,6 +1,7 @@
 "use client"
+
 import { useState } from "react"
-import { ClipboardList, Plus, Trash2 } from "lucide-react"
+import { ClipboardList } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,7 @@ export type CriterionItem = {
   id: string
   text: string
   score: number | null
+  note?: string
   section?: string // optional section separator label
 }
 
@@ -29,20 +31,20 @@ export const DEFAULT_EVAL_TABS: CriteriaTab[] = [
 
 export const DEFAULT_EVAL_CRITERIA: Record<string, CriterionItem[]> = {
   hygiene: [
-    { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: null },
-    { id: "h2", text: "2. การแต่งกายและสุขอนามัยของผู้สัมผัสอาหาร (ถุงมือ/ผ้ากันเปื้อน)", score: null },
-    { id: "h3", text: "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี", score: null },
-    { id: "h4", text: "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย", score: null },
-    { id: "h5", text: "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน", score: null },
+    { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: null, note: "" },
+    { id: "h2", text: "2. การแต่งกายและสุขอนามัยของผู้สัมผัสอาหาร (ถุงมือ/ผ้ากันเปื้อน)", score: null, note: "" },
+    { id: "h3", text: "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี", score: null, note: "" },
+    { id: "h4", text: "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย", score: null, note: "" },
+    { id: "h5", text: "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน", score: null, note: "" },
   ],
   payment: [
-    { id: "p1", text: "6. ความตรงต่อเวลาในการชำระเงิน (Payment Punctuality)", score: null, section: "Section: Payment History" },
-    { id: "p2", text: "7. ความถูกต้องของเอกสารใบแจ้งหนี้ (Invoice Accuracy)", score: null },
-    { id: "p3", text: "8. การบริหารจัดการยอดค้างชำระ (Outstanding Balance Management)", score: null },
+    { id: "p1", text: "6. ความตรงต่อเวลาในการชำระเงิน", score: null, note: "", section: "หัวข้อ: ประวัติการชำระเงิน" },
+    { id: "p2", text: "7. ความถูกต้องของเอกสารใบแจ้งหนี้", score: null, note: "" },
+    { id: "p3", text: "8. การบริหารจัดการยอดค้างชำระ", score: null, note: "" },
   ],
   other: [
-    { id: "o1", text: "9. การปฏิบัติตามกฎระเบียบของสถานที่", score: null },
-    { id: "o2", text: "10. ความร่วมมือกับเจ้าหน้าที่ในการตรวจสอบ", score: null },
+    { id: "o1", text: "9. การปฏิบัติตามกฎระเบียบของสถานที่", score: null, note: "" },
+    { id: "o2", text: "10. ความร่วมมือกับเจ้าหน้าที่ในการตรวจสอบ", score: null, note: "" },
   ],
 }
 
@@ -51,35 +53,61 @@ export const DEFAULT_EVAL_CRITERIA: Record<string, CriterionItem[]> = {
 function ScoreButtons({
   value,
   onChange,
+  readOnly = false,
 }: {
   value: number | null
   onChange: (score: number) => void
+  readOnly?: boolean
 }) {
   return (
-    <div className="flex items-center gap-2 flex-shrink-0">
+    <div className={`flex items-center gap-2 flex-shrink-0 ${readOnly ? "pointer-events-none" : ""}`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <label key={n} className="cursor-pointer">
+        <label key={n} className={readOnly ? "cursor-default" : "cursor-pointer"}>
           <input
             type="radio"
             name={`score-${n}`}
             value={n}
             checked={value === n}
+            disabled={readOnly}
             onChange={() => onChange(n)}
             className="peer sr-only"
           />
           <span
-            className={`flex size-9 items-center justify-center rounded-lg border-2 text-sm font-semibold transition-all duration-150 cursor-pointer
+            className={`flex size-9 items-center justify-center rounded-lg border-2 text-sm font-semibold transition-all duration-150
               ${
                 value === n
                   ? "border-orange-500 bg-orange-500 text-white shadow-md scale-110"
                   : "border-zinc-300 bg-white text-zinc-700 hover:border-orange-400 hover:text-orange-500"
-              }`}
-            onClick={() => onChange(n)}
+              } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+            onClick={() => !readOnly && onChange(n)}
           >
             {n}
           </span>
         </label>
       ))}
+      {/* N/A button */}
+      <label className={readOnly ? "cursor-default" : "cursor-pointer"}>
+        <input
+          type="radio"
+          name="score-na"
+          value={-1}
+          checked={value === -1}
+          disabled={readOnly}
+          onChange={() => onChange(-1)}
+          className="peer sr-only"
+        />
+        <span
+          className={`flex h-9 px-2 items-center justify-center rounded-lg border-2 text-xs font-bold transition-all duration-150
+            ${
+              value === -1
+                ? "border-slate-500 bg-slate-500 text-white shadow-md scale-110"
+                : "border-zinc-300 bg-white text-zinc-500 hover:border-slate-400 hover:text-slate-600"
+            } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+          onClick={() => !readOnly && onChange(-1)}
+        >
+          N/A
+        </span>
+      </label>
     </div>
   )
 }
@@ -122,6 +150,15 @@ export function EvalAssessmentCriteria({
     })
   }
 
+  const handleNoteChange = (id: string, note: string) => {
+    updateCriteria({
+      ...criteria,
+      [activeTab]: criteria[activeTab].map((item) =>
+        item.id === id ? { ...item, note } : item
+      ),
+    })
+  }
+
   const handleTextChange = (id: string, text: string) => {
     updateCriteria({
       ...criteria,
@@ -131,22 +168,9 @@ export function EvalAssessmentCriteria({
     })
   }
 
-  const handleDelete = (id: string) => {
-    updateCriteria({
-      ...criteria,
-      [activeTab]: criteria[activeTab].filter((item) => item.id !== id),
-    })
-  }
 
-  const handleAddCriterion = () => {
-    const existing = criteria[activeTab] ?? []
-    const newItem: CriterionItem = {
-      id: `${activeTab}-${Date.now()}`,
-      text: "",
-      score: null,
-    }
-    updateCriteria({ ...criteria, [activeTab]: [...existing, newItem] })
-  }
+
+
 
   const activeTabData = tabs.find((t) => t.id === activeTab) ?? tabs[0]
   const items = criteria[activeTab] ?? []
@@ -165,14 +189,14 @@ export function EvalAssessmentCriteria({
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-4 py-3.5 text-xs font-bold tracking-widest uppercase transition-all duration-200
+            className={`flex-1 px-4 py-3.5 text-sm font-bold transition-all duration-200
               ${
                 activeTab === tab.id
                   ? "text-zinc-900 border-b-2 border-zinc-900 bg-white"
                   : "text-zinc-400 hover:text-zinc-600 bg-slate-50"
               }`}
           >
-            {tab.labelEn}
+            {tab.labelTh}
           </button>
         ))}
       </div>
@@ -184,13 +208,9 @@ export function EvalAssessmentCriteria({
           <div className="flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-orange-500" />
             <h2 className="text-lg font-bold text-zinc-900">
-              เกณฑ์การประเมิน{" "}
-              <span className="text-base font-normal text-zinc-500">(ASSESSMENT CRITERIA)</span>
+              {activeTabData?.labelTh}
             </h2>
           </div>
-          <span className="text-xs font-bold tracking-widest text-zinc-400 uppercase">
-            ACTIVE: {activeTabData?.labelEn.split(" ")[0]}
-          </span>
         </div>
 
         {/* ── Column headers ── */}
@@ -200,7 +220,7 @@ export function EvalAssessmentCriteria({
         </div>
 
         {/* ── Rows ── */}
-        <div className="space-y-0">
+        <div className="space-y-0 max-h-[420px] overflow-y-auto pr-2">
           {items.length === 0 && (
             <p className="py-8 text-center text-sm text-zinc-400">
               ยังไม่มีเกณฑ์การประเมิน
@@ -216,36 +236,50 @@ export function EvalAssessmentCriteria({
               )}
 
               {/* Row */}
-              <div className="flex items-center justify-between gap-6 border-b border-slate-100 py-5 last:border-b-0 group">
-                {/* Criterion text */}
-                <div className="flex-1 flex items-start gap-2 min-w-0">
-                  {readOnly ? (
-                    <p className="text-sm font-medium text-slate-700 leading-6">{item.text}</p>
-                  ) : (
-                    <input
-                      value={item.text}
-                      onChange={(e) => handleTextChange(item.id, e.target.value)}
-                      placeholder="ระบุรายละเอียดเกณฑ์การประเมิน..."
-                      className="flex-1 text-sm text-slate-700 font-medium leading-6 bg-transparent border-none outline-none focus:bg-slate-50 rounded px-1 -ml-1 placeholder:text-zinc-300"
+              <div className="flex flex-col gap-3 border-b border-slate-100 py-5 last:border-b-0 group">
+                <div className="flex items-center justify-between gap-6">
+                  {/* Criterion text */}
+                  <div className="flex-1 flex items-start gap-2 min-w-0">
+                    {readOnly ? (
+                      <p className="text-sm font-medium text-slate-700 leading-6">{item.text}</p>
+                    ) : (
+                      <input
+                        value={item.text}
+                        onChange={(e) => handleTextChange(item.id, e.target.value)}
+                        placeholder="ระบุรายละเอียดเกณฑ์การประเมิน..."
+                        className="flex-1 text-sm text-slate-700 font-medium leading-6 bg-transparent border-none outline-none focus:bg-slate-50 rounded px-1 -ml-1 placeholder:text-zinc-300"
+                      />
+                    )}
+
+                  </div>
+
+                  {/* Score buttons */}
+                  <div className="flex shrink-0 gap-2">
+                    <ScoreButtons
+                      value={item.score}
+                      onChange={(score) => handleScoreChange(item.id, score)}
+                      readOnly={readOnly}
                     />
-                  )}
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300 hover:text-red-400 mt-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* Score buttons */}
-                <div className="flex shrink-0 gap-2">
-                  <ScoreButtons
-                    value={item.score}
-                    onChange={(score) => handleScoreChange(item.id, score)}
-                  />
+                {/* Note input/display for this criterion */}
+                <div className="pl-1">
+                  {readOnly ? (
+                    item.note ? (
+                      <p className="text-xs text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-100 inline-block">
+                        <span className="font-bold text-orange-600">หมายเหตุ:</span> {item.note}
+                      </p>
+                    ) : null
+                  ) : (
+                    <input
+                      type="text"
+                      value={item.note || ""}
+                      onChange={(e) => handleNoteChange(item.id, e.target.value)}
+                      placeholder="เพิ่มหมายเหตุสำหรับเกณฑ์ข้อนี้ (ถ้ามี)..."
+                      className="w-full max-w-xl text-xs text-slate-500 bg-slate-100 border-none rounded-[7px] px-2.5 py-1.5 outline-none transition-all"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -260,17 +294,7 @@ export function EvalAssessmentCriteria({
           </p>
         </div>
 
-        {/* ── Add Button (edit mode only) ── */}
-        {!readOnly && (
-          <button
-            type="button"
-            onClick={handleAddCriterion}
-            className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-slate-500 hover:border-orange-400 hover:text-orange-500 hover:bg-orange-50/40 transition-all duration-200"
-          >
-            <Plus className="w-4 h-4" />
-            + เพิ่มเกณฑ์การประเมิน (ADD CRITERION)
-          </button>
-        )}
+
 
         {/* ── Progress bar ── */}
         {totalCount > 0 && (
