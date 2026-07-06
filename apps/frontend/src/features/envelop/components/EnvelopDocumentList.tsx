@@ -190,12 +190,12 @@ export default function EnvelopDocumentList() {
       prev.map((doc) =>
         doc.id === id
           ? {
-              ...doc,
-              name: data.title,
-              location: data.location,
-              amount: data.price,
-              documentStatus: data.documentStatus,
-            }
+            ...doc,
+            name: data.title,
+            location: data.location,
+            amount: data.price,
+            documentStatus: data.documentStatus,
+          }
           : doc
       )
     );
