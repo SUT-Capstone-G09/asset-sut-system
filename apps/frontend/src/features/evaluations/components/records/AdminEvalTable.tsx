@@ -18,7 +18,7 @@ import {
   mockEvaluations,
   evalCategories,
   evalTableHeaders,
-} from "@/features/evaluations/data/mock-evals";
+} from "../../data/mock-evals";
 import { cn } from "@/lib/utils";
 
 export function AdminEvalTable() {
@@ -79,7 +79,7 @@ export function AdminEvalTable() {
               <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="ค้นหาชื่อร้านค้า..."
-                className="pl-9"
+                className="pl-9 bg-slate-100 border-none rounded-[7px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -123,6 +123,15 @@ export function AdminEvalTable() {
                 </TableCell>
                 <TableCell className="font-medium">{item.storeName}</TableCell>
                 <TableCell>{item.location}</TableCell>
+                <TableCell className="text-center text-sm text-slate-600">
+                  {item.lastAuditDate
+                    ? new Date(item.lastAuditDate).toLocaleDateString("th-TH", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    : "-"}
+                </TableCell>
                 <TableCell
                   className={`text-center font-bold ${item.score < 50 ? "text-red-600" : "text-black"}`}
                 >

@@ -29,6 +29,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   envelop: "ใบเสร็จ",
   tenants: "ผู้เช่า",
   eval: "ประเมิน",
+  categories: "หมวดหมู่",
   form: "แบบฟอร์ม",
   lists: "รายการ",
   classroom: "ห้องเรียน",
