@@ -3,6 +3,7 @@
 import { MapPin, ArrowRight } from "lucide-react";
 import { Location } from "@/features/areas/types/location";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -16,8 +17,11 @@ interface PublicAreaCardProps {
 }
 
 export default function PublicAreaCard({ location }: PublicAreaCardProps) {
+  const router = useRouter();
+
   return (
     <Card
+      onClick={() => router.push(`/areas/${location.id}`)}
       className={cn(
         "group overflow-hidden",
         "bg-white w-full max-w-[300px] mx-auto",

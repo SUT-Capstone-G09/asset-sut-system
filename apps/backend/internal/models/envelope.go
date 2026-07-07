@@ -2,17 +2,26 @@ package models
 
 import "time"
 
+// EnvelopeStatus defines allowed values for DocumentEnvelopes.Status
+type EnvelopeStatus string
+
+const (
+	EnvelopeStatusDraft       EnvelopeStatus = "draft"
+	EnvelopeStatusOnSale      EnvelopeStatus = "on_sale"
+	EnvelopeStatusUnavailable EnvelopeStatus = "unavailable"
+	EnvelopeStatusArchived    EnvelopeStatus = "archived"
+)
+
 type DocumentEnvelopes struct {
 	Base
-	Title            string  `gorm:"not null"`
-	Price            int `gorm:"not null;default:0"`
-	FilePath         string  `gorm:"not null"`
-	IsOnlineDelivery bool    `gorm:"default:false"`
-	Note             string  `gorm:"type:text"`
-	Status           string  `gorm:"not null;default:'active'"`
-
-	AreaID uint   `gorm:"not null"`
-	//Area   *Areas `gorm:"foreignKey:AreaID" json:"area,omitempty"`
+	Title            string         `gorm:"not null"`
+	Price            int            `gorm:"not null;default:0"`
+	FilePath         string         `gorm:"not null"`
+	IsOnlineDelivery bool           `gorm:"default:false"`
+	Note             string         `gorm:"type:text"`
+	Status           EnvelopeStatus `gorm:"type:varchar(20);not null;default:'draft'"`
+	RentalSpaceID    uint          `gorm:"not null"`
+	RentalSpace      *RentalSpaces `gorm:"foreignKey:RentalSpaceID" json:"rental_space,omitempty"`
 
 	Orders []EnvelopeOrders `gorm:"foreignKey:EnvelopeID" json:"orders,omitempty"`
 }
@@ -26,7 +35,7 @@ type EnvelopeOrders struct {
 	User   *Users `gorm:"foreignKey:UserID" json:"user,omitempty"`
 
 	OrderDate   time.Time `gorm:"not null"`
-	TotalAmount int   `gorm:"not null;default:0"`
+	TotalAmount int       `gorm:"not null;default:0"`
 	OrderStatus string    `gorm:"not null;default:'pending'"`
 
 	Payment  *EnvelopePayments `gorm:"foreignKey:EnvelopeOrderID" json:"payment,omitempty"`
@@ -39,10 +48,10 @@ type EnvelopePayments struct {
 	EnvelopeOrderID uint            `gorm:"not null"`
 	EnvelopeOrder   *EnvelopeOrders `gorm:"foreignKey:EnvelopeOrderID" json:"envelope_order,omitempty"`
 
-	SlipImage    string    `gorm:"not null"`
-	Status       string    `gorm:"not null;default:'pending'"`
-	PaidAt       *time.Time 
-	VerifiedAt     *time.Time
+	SlipImage    string `gorm:"not null"`
+	Status       string `gorm:"not null;default:'pending'"`
+	PaidAt       *time.Time
+	VerifiedAt   *time.Time
 	RejectReason string `gorm:"type:text"`
 
 	VerifyBy *uint  `json:"verify_by"`
@@ -54,9 +63,9 @@ type OrderDeliveries struct {
 	EnvelopeOrderID uint            `gorm:"not null"`
 	EnvelopeOrder   *EnvelopeOrders `gorm:"foreignKey:EnvelopeOrderID" json:"envelope_order,omitempty"`
 
-	DeliveryMethod string    `gorm:"not null;default:'pickup'"`
-	DeliveryStatus string    `gorm:"not null;default:'pending'"`
-	PickupDate     *time.Time 
+	DeliveryMethod string `gorm:"not null;default:'pickup'"`
+	DeliveryStatus string `gorm:"not null;default:'pending'"`
+	PickupDate     *time.Time
 }
 
 type Receipts struct {
@@ -64,7 +73,7 @@ type Receipts struct {
 	EnvelopeOrderID uint            `gorm:"not null"`
 	EnvelopeOrder   *EnvelopeOrders `gorm:"foreignKey:EnvelopeOrderID" json:"envelope_order,omitempty"`
 	ReceiptImage    string          `gorm:"not null"`
-	UploadedAt      *time.Time       `gorm:"not null"`
+	UploadedAt      *time.Time      `gorm:"not null"`
 	UploadedByID    uint            `gorm:"not null"`
 	UploadedBy      *Users          `gorm:"foreignKey:UploadedByID;references:ID" json:"uploaded_by,omitempty"`
 }

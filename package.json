@@ -1,0 +1,11 @@
+{
+  "name": "asset-sut-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix apps/frontend",
+    "build": "npm run build --prefix apps/frontend",
+    "start": "npm run start --prefix apps/frontend",
+    "lint": "npm run lint --prefix apps/frontend"
+  }
+}
