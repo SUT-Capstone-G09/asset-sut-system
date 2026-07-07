@@ -5,6 +5,7 @@ import (
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type InvoiceRepository struct {
@@ -57,7 +58,7 @@ func (r *InvoiceRepository) UpdateQRByBookingID(bookingID uint, ref1, payload, o
 }
 
 func (r *InvoiceRepository) Update(invoice *models.Invoices) error {
-	return r.db.Omit("Status", "Transactions", "Booking").Save(invoice).Error
+	return r.db.Omit(clause.Associations).Save(invoice).Error
 }
 
 func (r *InvoiceRepository) FindStatusByName(name string) (*models.InvoiceStatuses, error) {

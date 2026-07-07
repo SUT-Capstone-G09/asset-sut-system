@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createBooking } from "@/features/bookings/services/booking.service";
 import { createDocument } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
@@ -52,7 +53,7 @@ const STEPS = [
 
 interface BookingDraft {
   locationId: string;
-  timeslots: { date: string; startTime: string; endTime: string }[];
+  timeslots: { date: string; startTime: string; endTime: string; isFullDay?: boolean }[];
 }
 
 interface BookingConfirmViewProps {
@@ -80,6 +81,22 @@ function calcTotalHours(timeslots: { startTime: string; endTime: string }[]): nu
   return timeslots.reduce((sum, ts) => sum + calcSlotHours(ts.startTime, ts.endTime), 0);
 }
 
+const FULL_DAY_START = "07:00";
+const FULL_DAY_END = "21:00";
+
+function isFullDaySlot(ts: { startTime: string; endTime: string; isFullDay?: boolean }): boolean {
+  return ts.isFullDay === true || (ts.startTime === FULL_DAY_START && ts.endTime === FULL_DAY_END);
+}
+
+function splitByType(
+  timeslots: { startTime: string; endTime: string; isFullDay?: boolean }[],
+  pricePerDay: number | undefined
+) {
+  const fullDay = timeslots.filter((ts) => isFullDaySlot(ts) && pricePerDay != null);
+  const hourly = timeslots.filter((ts) => !isFullDaySlot(ts) || pricePerDay == null);
+  return { fullDay, hourly };
+}
+
 export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const router = useRouter();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -88,17 +105,29 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [termsRead, setTermsRead] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(`booking_draft_${room.id}`);
-    if (raw) setDraft(JSON.parse(raw));
-  }, [room.id]);
+    if (raw) {
+      setDraft(JSON.parse(raw));
+    } else {
+      router.replace(`/bookings/${room.id}`);
+    }
+  }, [room.id, router]);
+
+  if (!draft) return null;
 
   const hasDocument = uploadedFiles.length > 0 || generateDoc;
-  const totalHours = draft ? calcTotalHours(draft.timeslots) : 0;
-  const totalPrice = totalHours * room.pricePerHour;
+  const { fullDay: fullDaySlots, hourly: hourlySlots } = splitByType(draft.timeslots, room.pricePerDay);
+  const fullDayTotal = fullDaySlots.length * (room.pricePerDay ?? 0);
+  const hourlyHours = calcTotalHours(hourlySlots);
+  const hourlyTotal = hourlyHours * room.pricePerHour;
+  const totalHours = calcTotalHours(draft.timeslots);
+  const totalPrice = fullDayTotal + hourlyTotal;
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -130,6 +159,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
         date: new Date(`${ts.date}T00:00:00`).toISOString(),
         start_time: new Date(`${ts.date}T${ts.startTime}:00`).toISOString(),
         end_time: new Date(`${ts.date}T${ts.endTime}:00`).toISOString(),
+        is_full_day: !!ts.isFullDay,
       }));
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);
@@ -150,7 +180,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             method_id: 1,
           });
         } catch {
-          // Non-blocking — booking already created, document save failure shouldn't block redirect
+          toast.warning(`อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว`);
         }
       }
 
@@ -164,7 +194,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
   return (
     <>
-    <div className="max-w-[1280px] mx-auto px-6 py-10">
+    <div className="max-w-7xl mx-auto px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">สรุปรายละเอียดการจอง</h1>
         <p className="text-gray-500 text-sm mt-1">ตรวจสอบข้อมูลการจองห้องและช่วงเวลาที่เลือกก่อนยืนยัน</p>
@@ -307,6 +337,13 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                       >
                         <Download size={14} />
                       </button>
+                      <button
+                        title="ลบไฟล์"
+                        onClick={() => removeFile(i)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -326,14 +363,30 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                 <h3 className="font-bold text-gray-900">สรุปค่าใช้จ่าย</h3>
               </div>
               <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between text-gray-500">
-                  <span>ราคา/ชั่วโมง</span>
-                  <span>฿{room.pricePerHour.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>จำนวนชั่วโมงรวม</span>
-                  <span>{totalHours} ชม.</span>
-                </div>
+                {fullDaySlots.length > 0 && (
+                  <>
+                    <div className="flex justify-between text-gray-500">
+                      <span>ราคา/วัน (เต็มวัน)</span>
+                      <span>฿{(room.pricePerDay ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500">
+                      <span>จำนวนวันเต็มวัน</span>
+                      <span>{fullDaySlots.length} วัน</span>
+                    </div>
+                  </>
+                )}
+                {hourlySlots.length > 0 && (
+                  <>
+                    <div className="flex justify-between text-gray-500">
+                      <span>ราคา/ชั่วโมง</span>
+                      <span>฿{room.pricePerHour.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500">
+                      <span>จำนวนชั่วโมง</span>
+                      <span>{hourlyHours} ชม.</span>
+                    </div>
+                  </>
+                )}
                 <div className="h-px bg-gray-100 my-1" />
                 <div className="flex justify-between font-bold text-base text-gray-900">
                   <span>ราคารวม</span>
@@ -388,18 +441,77 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             />
           </div>
 
+          {/* Terms and Conditions */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <label className="text-sm font-semibold text-gray-700 block mb-2">
+              ข้อตกลงและเงื่อนไข <span className="text-red-400">*</span>
+            </label>
+            <div
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                if (el.scrollHeight - el.scrollTop <= el.clientHeight + 10) setTermsRead(true);
+              }}
+              className="h-44 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-600 leading-relaxed space-y-2 select-none"
+            >
+              <p className="font-semibold text-gray-700">ข้อตกลงและเงื่อนไขการจองและเข้าใช้พื้นที่</p>
+              <p className="text-gray-400 italic">โปรดอ่านและทำความเข้าใจข้อปฏิบัติในการจองและใช้งานพื้นที่อย่างละเอียด การยืนยันการจอง ถือเป็นการยอมรับเงื่อนไขดังต่อไปนี้</p>
+              <p className="font-semibold text-gray-700">1. ระเบียบทั่วไปสำหรับการจองทุกประเภท</p>
+              <p><span className="font-medium">สิทธิการใช้งาน:</span> ผู้จองต้องใช้ข้อมูลที่แท้จริง สิทธิในการจองเป็นสิทธิเฉพาะตัว ไม่อนุญาตให้โอนสิทธิหรือจองแทนผู้อื่นโดยเด็ดขาด</p>
+              <p><span className="font-medium">เวลาการใช้งาน:</span> ต้องเข้าใช้และคืนพื้นที่ตามเวลาที่ระบุไว้ในระบบ หากเกินเวลาอาจมีผลต่อการพิจารณาสิทธิการจองในครั้งต่อไป</p>
+              <p><span className="font-medium">การยกเลิก:</span> หากไม่สามารถมาใช้งานได้ ต้องกดยกเลิกในระบบล่วงหน้าอย่างน้อย 2 ชั่วโมงก่อนถึงกำหนดเวลา</p>
+              <p><span className="font-medium">การไม่เข้าใช้งาน (No-show):</span> หากผู้จองไม่มาแสดงตัวภายใน 15 นาที ระบบจะยกเลิกการจองอัตโนมัติ และหากเกิดกรณีนี้ติดต่อกัน 3 ครั้ง ระบบจะระงับสิทธิการใช้งานเป็นเวลา 30 วัน</p>
+              <p className="font-semibold text-gray-700">2. ข้อปฏิบัติเฉพาะพื้นที่</p>
+              <p className="font-medium">หมวดห้องประชุมและห้องเรียน:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>ใช้เพื่อการประชุม การศึกษา หรือกิจกรรมทางวิชาการเท่านั้น</li>
+                <li>งดการส่งเสียงดังรบกวนห้องเรียนหรือห้องประชุมข้างเคียง</li>
+                <li>ห้ามนำอาหารที่มีกลิ่นแรงหรือเครื่องดื่มที่อาจทำให้เกิดคราบเลอะเทอะเข้ามาภายในห้อง</li>
+                <li>เมื่อใช้งานเสร็จสิ้น ต้องปิดเครื่องปรับอากาศ ไฟส่องสว่าง โปรเจกเตอร์ และจัดโต๊ะเก้าอี้ให้อยู่ในสภาพเดิม</li>
+              </ul>
+              <p className="font-medium">หมวดโถงอาคาร (พื้นที่จัดกิจกรรม/นิทรรศการ):</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>การติดตั้งโครงสร้าง บอร์ด ป้าย หรือเวที ต้องไม่กีดขวางทางเดินหลักและประตูหนีไฟ</li>
+                <li>ห้ามตอก เจาะ หรือติดเทปกาวที่ก่อให้เกิดความเสียหายต่อพื้นผิวอาคาร</li>
+                <li>ผู้จองต้องรับผิดชอบในการจัดเก็บขยะและทำความสะอาดพื้นที่ทันทีหลังจบกิจกรรม</li>
+              </ul>
+              <p className="font-semibold text-gray-700">3. ความรับผิดชอบต่อความเสียหาย</p>
+              <p>หากเกิดความเสียหายต่อสถานที่ อุปกรณ์ หรือทรัพย์สินส่วนรวม อันเกิดจากการใช้งานผิดประเภทหรือความประมาทเลินเล่อ ผู้จองจะต้องเป็นผู้รับผิดชอบชดใช้ค่าเสียหายตามที่เกิดขึ้นจริง</p>
+              <p className="font-semibold text-gray-700">4. การยอมรับข้อตกลง</p>
+              <p>การกดยืนยันการจองถือเป็นการยืนยันว่าผู้จองได้อ่านและยอมรับข้อตกลงทั้งหมดข้างต้น</p>
+            </div>
+            {!termsRead && (
+              <p className="text-xs text-gray-400 mt-1">เลื่อนอ่านจนถึงด้านล่างเพื่อยอมรับข้อตกลง</p>
+            )}
+            <label className={cn("flex items-start gap-2 mt-2 cursor-pointer", !termsRead && "opacity-40 cursor-not-allowed")}>
+              <input
+                type="checkbox"
+                disabled={!termsRead}
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 accent-primary"
+              />
+              <span className="text-xs text-gray-600">
+                ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับข้อปฏิบัติในการจองพื้นที่ทุกประการ
+              </span>
+            </label>
+          </div>
+
           {/* Actions */}
           <div className="flex flex-col gap-2">
             <Button
               onClick={handleConfirm}
-              disabled={!hasDocument || !purpose.trim() || submitting}
+              disabled={!hasDocument || !purpose.trim() || !termsAccepted || submitting}
               className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-12 rounded-xl text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "กำลังส่งคำขอ..." : "ยืนยันการจอง"}
             </Button>
-            {(!hasDocument || !purpose.trim()) && (
+            {(!hasDocument || !purpose.trim() || !termsAccepted) && (
               <p className="text-xs text-red-400 text-center">
-                {!purpose.trim() ? "กรุณาระบุวัตถุประสงค์การจอง" : "กรุณาอัปโหลดเอกสารหรือสร้างเอกสารก่อนยืนยัน"}
+                {!purpose.trim()
+                  ? "กรุณาระบุวัตถุประสงค์การจอง"
+                  : !hasDocument
+                  ? "กรุณาอัปโหลดเอกสารหรือสร้างเอกสารก่อนยืนยัน"
+                  : "กรุณายอมรับข้อตกลงและเงื่อนไขก่อนยืนยัน"}
               </p>
             )}
             {submitError && (
@@ -440,7 +552,6 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
           setUploadedFiles((prev) => [...prev, file]);
           setGenerateDoc(true);
         }}
-        onPurposeChange={setPurpose}
       />
     )}
     </>

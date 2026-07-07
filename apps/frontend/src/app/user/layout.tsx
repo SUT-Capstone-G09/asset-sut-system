@@ -2,24 +2,32 @@
 "use client"
 import { useAuthContext } from "@/lib/context/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, ReactNode } from "react"
+import { useEffect, useState, ReactNode } from "react"
 import UserSidebar from "@/components/layout/sidebar/userSidebar"
 import DashboardTopbar from "@/components/layout/DashboardTopbar"
 
 export default function UserLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuthContext()
   const router = useRouter()
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login")        // ยังไม่ได้ login
-      return
-    }
-    if (user?.role !== "user" && user?.role !== "requester") {
-      router.push("/unauthorized") // login แล้วแต่ role ผิด
-    }
-  }, [isAuthenticated, user])
+    setIsMounted(true)
+  }, [])
 
+  useEffect(() => {
+    if (isMounted) {
+      if (!isAuthenticated) {
+        router.push("/login")        // ยังไม่ได้ login
+        return
+      }
+      if (user?.role !== "user" && user?.role !== "requester") {
+        router.push("/unauthorized") // login แล้วแต่ role ผิด
+      }
+    }
+  }, [isAuthenticated, user, isMounted, router])
+
+  if (!isMounted) return null
   if (!isAuthenticated || (user?.role !== "user" && user?.role !== "requester")) return null
 
   return (

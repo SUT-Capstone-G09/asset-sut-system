@@ -9,6 +9,7 @@ type TimeslotInput struct {
 	Date       time.Time `json:"date" binding:"required"`
 	StartTime  time.Time `json:"start_time" binding:"required"`
 	EndTime    time.Time `json:"end_time" binding:"required"`
+	IsFullDay  bool      `json:"is_full_day"`
 	AddonIDs   []uint    `json:"addon_ids"`
 }
 
@@ -31,6 +32,7 @@ type TimeslotResponse struct {
 	Date          time.Time `json:"date"`
 	StartTime     time.Time `json:"start_time"`
 	EndTime       time.Time `json:"end_time"`
+	IsFullDay     bool      `json:"is_full_day"`
 	PriceSnapshot int       `json:"price_snapshot"`
 	Status        string    `json:"status"`
 	Addons        []BookingAddonResponse `json:"addons"`

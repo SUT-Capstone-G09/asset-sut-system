@@ -105,6 +105,7 @@ function pickHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: 
   );
 }
 
+// Returns undefined when the location has no daily-rate tier configured.
 function pickDailyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number | undefined {
   const isExternal = requesterTypeId === 2;
   const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";

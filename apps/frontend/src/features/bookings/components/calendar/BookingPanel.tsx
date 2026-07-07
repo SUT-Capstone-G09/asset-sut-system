@@ -85,6 +85,11 @@ interface BookingPanelProps {
   getEffectiveTime: (dateStr: string) => DayBookingTime;
   updateDayTime: (dateStr: string, field: keyof DayBookingTime, value: string) => void;
   removeDate: (dateStr: string) => void;
+  fullDayDates: Record<string, boolean>;
+  toggleFullDay: (dateStr: string) => void;
+  isFullDayAvailable: boolean;
+  allFullDay: boolean;
+  setAllFullDay: (v: boolean) => void;
   sameTimeForAll: boolean;
   setSameTimeForAll: (v: boolean) => void;
   globalTime: DayBookingTime;
@@ -96,6 +101,7 @@ interface BookingPanelProps {
 
 export default function BookingPanel({
   room, selectedDates, getEffectiveTime, updateDayTime, removeDate,
+  fullDayDates, toggleFullDay, isFullDayAvailable, allFullDay, setAllFullDay,
   sameTimeForAll, setSameTimeForAll, globalTime, updateGlobalTime, totalStats, onConfirm,
   getTimeConflict,
 }: BookingPanelProps) {
@@ -159,6 +165,19 @@ export default function BookingPanel({
               </div>
             )}
 
+            {/* Full-day toggle for all selected days — only relevant when 2+ days selected */}
+            {selectedDates.length >= 2 && isFullDayAvailable && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">
+                  จองเต็มวันทั้งหมด{" "}
+                  <span className="text-gray-400 text-xs">
+                    (฿{room.pricePerDay?.toLocaleString()}/วัน)
+                  </span>
+                </span>
+                <Toggle checked={allFullDay} onChange={setAllFullDay} />
+              </div>
+            )}
+
             {/* Global time input */}
             {sameTimeForAll && (
               <div className="flex flex-col gap-1.5">
@@ -193,14 +212,10 @@ export default function BookingPanel({
               {selectedDates.map((dateStr) => {
                 const date = parseISO(dateStr);
                 const label = format(date, "EEEE, d MMM.", { locale: th });
+                const isFull = fullDayDates[dateStr] && isFullDayAvailable;
                 const time = getEffectiveTime(dateStr);
                 const hours = calcHours(time.startTime, time.endTime);
-                let price = hours * room.pricePerHour;
-                let isDaily = false;
-                if (hours > 4 && room.pricePerDay !== undefined) {
-                  price = room.pricePerDay;
-                  isDaily = true;
-                }
+                const price = isFull ? (room.pricePerDay as number) : hours * room.pricePerHour;
 
                 return (
                   <div key={dateStr} className="border border-gray-100 rounded-xl p-3 flex flex-col gap-2">
@@ -214,7 +229,17 @@ export default function BookingPanel({
                       </button>
                     </div>
 
-                    {!sameTimeForAll && (() => {
+                    {isFullDayAvailable && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          จองเต็มวัน{" "}
+                          <span className="text-gray-400">(฿{room.pricePerDay?.toLocaleString()})</span>
+                        </span>
+                        <Toggle checked={isFull} onChange={() => toggleFullDay(dateStr)} />
+                      </div>
+                    )}
+
+                    {!isFull && !sameTimeForAll && (() => {
                       const conflict = getTimeConflict(dateStr, time.startTime, time.endTime);
                       return (
                         <div className="flex flex-col gap-1">
@@ -240,7 +265,7 @@ export default function BookingPanel({
                     })()}
 
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>{isDaily ? `${hours} ชม. (เหมาวัน)` : `${hours} ชม.`}</span>
+                      <span>{isFull ? "เต็มวัน" : `${hours} ชม.`}</span>
                       <span className="font-medium text-gray-600">
                         ฿{price.toLocaleString()}
                       </span>
