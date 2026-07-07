@@ -62,6 +62,22 @@ func seedRoles(db *gorm.DB, cfg *config.Config) error {
 		return err
 	}
 
+	// Staff handle day-to-day operations (bookings, payments, documents, locations)
+	// but not user/role management, which stays admin-only.
+	var staffRole models.Roles
+	if err := db.Where("name = ?", "staff").First(&staffRole).Error; err != nil {
+		return err
+	}
+	var staffPerms []models.Permissions
+	for _, p := range allPerms {
+		if p.Module != "user_mgmt" {
+			staffPerms = append(staffPerms, p)
+		}
+	}
+	if err := db.Model(&staffRole).Association("Permissions").Replace(staffPerms); err != nil {
+		return err
+	}
+
 	log.Println("Roles seeded successfully.")
 	return nil
 }
