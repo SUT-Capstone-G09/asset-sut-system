@@ -86,6 +86,24 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
+	// Request types
+	reqTypes := []models.RequestTypes{
+		{Name: "แจ้งซ่อมครุภัณฑ์", Description: "แจ้งซ่อมแซมครุภัณฑ์และอุปกรณ์ต่างๆ"},
+		{Name: "แจ้งปัญหาการใช้งานพื้นที่", Description: "แจ้งปัญหาเกี่ยวกับพื้นที่ อาคาร หรือสิ่งอำนวยความสะดวก"},
+	}
+	for _, t := range reqTypes {
+		if err := db.FirstOrCreate(&models.RequestTypes{}, models.RequestTypes{Name: t.Name, Description: t.Description}).Error; err != nil {
+			return err
+		}
+	}
+
+	// Request statuses (canonical 5 values)
+	for _, s := range []string{"pending", "in_progress", "completed", "cancelled", "reject"} {
+		if err := db.FirstOrCreate(&models.RequestStatus{}, models.RequestStatus{Status: s}).Error; err != nil {
+			return err
+		}
+	}
+
 	log.Println("Lookup tables seeded successfully.")
 	return nil
 }
