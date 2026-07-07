@@ -13,11 +13,11 @@ func SetupPaymentRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	payments := rg.Group("/payments")
 	payments.Use(auth)
 	{
-		payments.POST("/qr", deps.PaymentController.GenerateQR)
-		payments.POST("/verify-slip", deps.PaymentController.VerifySlip)
-		payments.POST("", deps.PaymentController.Create)
-		payments.GET("", deps.PaymentController.GetAll)
-		payments.POST("/:id/verify", deps.PaymentController.Verify)
-		payments.PUT("/:id/slip/:docId", deps.PaymentController.AttachSlip)
+		payments.POST("/qr", pc.GenerateQR)
+		payments.POST("/verify-slip", pc.VerifySlip)
+		payments.POST("", pc.Create)
+		payments.GET("", pc.GetAll)
+		payments.POST("/:id/verify", pc.Verify)
+		payments.PUT("/:id/slip/:docId", pc.AttachSlip)
 	}
 }

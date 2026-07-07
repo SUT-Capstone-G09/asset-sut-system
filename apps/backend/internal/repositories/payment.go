@@ -20,6 +20,7 @@ func (r *PaymentRepository) FindByID(id uint) (*models.PaymentTransactions, erro
 		Preload("Method").
 		Preload("Status").
 		Preload("Verifier.Profiles").
+		Preload("Invoice.Booking.User.Profiles").
 		First(&tx, id).Error
 	return &tx, err
 }
@@ -82,7 +83,7 @@ func (r *PaymentRepository) FindAll() ([]models.PaymentTransactions, error) {
 		Preload("Method").
 		Preload("Status").
 		Preload("Verifier.Profiles").
-		Preload("Invoice.Booking.User").
+		Preload("Invoice.Booking.User.Profiles").
 		Preload("Invoice.Booking.Timeslots.Location").
 		Order("created_at DESC").
 		Find(&txs).Error

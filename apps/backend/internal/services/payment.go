@@ -97,6 +97,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 	}
 	tx.StatusID = req.StatusID
 	tx.VerifyBy = &verifierID
+	tx.VerifyNote = req.Note
 	tx.Status = nil
 	if err := s.paymentRepo.Update(tx); err != nil {
 		return nil, err
@@ -154,6 +155,7 @@ func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResp
 		StatusID:       tx.StatusID,
 		SlipDocumentID: tx.SlipDocumentID,
 		VerifyBy:       tx.VerifyBy,
+		VerifyNote:     tx.VerifyNote,
 		PaidAt:         tx.PaidAt,
 		CreatedAt:      tx.CreatedAt,
 	}
@@ -171,7 +173,11 @@ func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResp
 		if tx.Invoice.Booking != nil {
 			b := tx.Invoice.Booking
 			if b.User != nil {
-				res.UserName = b.User.Email
+				if b.User.Profiles != nil {
+					res.UserName = b.User.Profiles.FirstName + " " + b.User.Profiles.LastName
+				} else {
+					res.UserName = b.User.Email
+				}
 			}
 			if len(b.Timeslots) > 0 && b.Timeslots[0].Location != nil {
 				res.LocationName = b.Timeslots[0].Location.Name

@@ -43,7 +43,8 @@ export default function AdminPaymentVerifyPage() {
       .then((data) => setPayments(data ?? []))
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+    }, []);
+    console.log("data: ", payments);
 
   useEffect(() => {
     load();
