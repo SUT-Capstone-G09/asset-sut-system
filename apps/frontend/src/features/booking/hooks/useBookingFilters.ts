@@ -62,7 +62,11 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     discountPrice: b.discount_price || 0,
     roomName: loc?.name || firstSlot?.location_name || "ไม่ระบุห้อง",
     roomNumber: loc?.room_number ? String(loc.room_number) : "",
-    building: loc?.building ?? "",
+    // Falls back to a label (never "") — BookingGrid groups the list by
+    // building, and an empty string gets stripped by the buildings list's
+    // .filter(Boolean), which makes the whole grid disappear whenever every
+    // booking in view happens to be on a location with no building set.
+    building: loc?.building || "ไม่ระบุอาคาร",
     category: loc?.type ?? "",
     requesterName: b.requester_name || b.user_name || "ไม่ทราบชื่อ",
     requesterId: b.requester_id || String(b.user_id),
