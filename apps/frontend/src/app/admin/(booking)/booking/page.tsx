@@ -6,7 +6,7 @@ import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import BookingFilters from "@/features/booking/components/booking/BookingFilters";
 import BookingGrid from "@/features/booking/components/booking/BookingGrid";
 import BookingCreateDrawer from "@/features/booking/components/booking/BookingCreateDrawer";
-import { useBookingFilters, BookingTypeFilter } from "@/features/booking/hooks/useBookingFilters";
+import { useBookingFilters, BookingTypeFilter, getBookingTypeBucket } from "@/features/booking/hooks/useBookingFilters";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GraduationCap, Building2, ArrowRight, Calendar, ClipboardList, Trophy, DoorOpen } from "lucide-react";
@@ -63,10 +63,10 @@ function AdminBookingPageContent() {
       };
     }
 
-    const classroomList = bookings.filter((b) => b.category === "ห้องเรียน");
-    const meetingList = bookings.filter((b) => b.category === "ห้องประชุม");
-    const sportList = bookings.filter((b) => b.category === "สนามกีฬา");
-    const hallList = bookings.filter((b) => b.category === "โถงอาคาร");
+    const classroomList = bookings.filter((b) => getBookingTypeBucket(b.category) === "classroom");
+    const meetingList = bookings.filter((b) => getBookingTypeBucket(b.category) === "meeting");
+    const sportList = bookings.filter((b) => getBookingTypeBucket(b.category) === "sport");
+    const hallList = bookings.filter((b) => getBookingTypeBucket(b.category) === "hall");
 
     return {
       classroom: {

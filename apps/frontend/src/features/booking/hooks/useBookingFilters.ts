@@ -109,6 +109,30 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
 
 export type BookingTypeFilter = "classroom" | "meeting" | "sport" | "hall" | "all";
 
+// location_types in the DB is more granular than the 4 top-level cards shown
+// in the admin booking selection page — group each raw type into its card's
+// bucket (per each card's own description) instead of comparing it verbatim,
+// otherwise bookings on any subtype room (e.g. "ห้องประชุมขนาดเล็ก",
+// "พื้นที่สาธารณะ") silently disappear from every card's count.
+const rawTypeToBucket: Record<string, Exclude<BookingTypeFilter, "all">> = {
+  "ห้องเรียน": "classroom",
+  "ห้องบรรยาย": "classroom",
+  "ห้องปฏิบัติการ": "classroom",
+  "ห้องสัมมนา": "classroom",
+  "อื่นๆ": "classroom",
+  "ห้องประชุม": "meeting",
+  "ห้องประชุมขนาดเล็ก": "meeting",
+  "ห้องประชุมขนาดกลาง": "meeting",
+  "ห้องประชุมขนาดใหญ่": "meeting",
+  "พื้นที่สาธารณะ": "meeting",
+  "สนามกีฬา": "sport",
+  "โถงอาคาร": "hall",
+};
+
+export function getBookingTypeBucket(rawType: string): BookingTypeFilter | undefined {
+  return rawTypeToBucket[rawType];
+}
+
 export function useBookingFilters(type: BookingTypeFilter) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
@@ -118,6 +142,17 @@ export function useBookingFilters(type: BookingTypeFilter) {
   const [selectedBuilding, setSelectedBuilding] = useState("all");
   const [loading, setLoading] = useState(true);
 
+  // The admin booking page keeps this hook mounted across category switches
+  // (only the "type" query param changes), so filters left over from a
+  // previous category would otherwise silently hide everything in the next
+  // one — reset them whenever the active category changes.
+  useEffect(() => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedStatus("all");
+    setSelectedBuilding("all");
+  }, [type]);
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -126,25 +161,17 @@ export function useBookingFilters(type: BookingTypeFilter) {
         getLocations(),
       ]);
       setLocations(locationsData);
-      
+
       const locMap = new Map<number, AdminLocationDTO>();
       locationsData.forEach((loc) => locMap.set(loc.id, loc));
-      
+
       const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
-      
-      // Filter by exactly matched DB categories
-      const typeToCategory: Record<string, string> = {
-        classroom: "ห้องเรียน",
-        meeting: "ห้องประชุม",
-        sport: "สนามกีฬา",
-        hall: "โถงอาคาร",
-      };
-      
+
       const filtered = mappedBookings.filter((b) => {
         if (type === "all") return true;
-        return b.category === typeToCategory[type];
+        return getBookingTypeBucket(b.category) === type;
       });
-      
+
       setBookings(filtered);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
