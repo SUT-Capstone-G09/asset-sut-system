@@ -24,8 +24,6 @@ export default function ImageUpload({
   onChange,
   folder = UPLOAD_FOLDERS.LOCATION_PICS,
   error,
-  label = "คลิกเพื่ออัปโหลดรูปภาพ",
-  icon,
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
@@ -130,27 +128,29 @@ export default function ImageUpload({
           className={cn(
             "border-2 border-dashed rounded-2xl py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
             error
-              ? "border-red-200 bg-red-50/50 hover:bg-red-50"
-              : "border-slate-200 bg-slate-50/80 hover:bg-slate-100/50 hover:border-[#f26522]/40"
+              ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
+              : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",
           )}
         >
-          <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+          <div className="size-16 rounded-[7px] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
             {uploading ? (
-              <Loader2 size={28} className="text-[#f26522] animate-spin" />
+              <Loader2 size={32} className="text-[#f26522] animate-spin" />
             ) : (
-              icon || defaultIcon
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-brand-primary mb-4">
+                <Upload className="w-6 h-6" />
+              </div>
             )}
           </div>
-          <div className="text-center space-y-1.5">
+          <div className="text-center space-y-1">
             <p
               className={cn(
-                "text-[15px] font-bold tracking-tight transition-colors",
-                error ? "text-red-600" : "text-slate-800 group-hover:text-[#f26522]"
+                "text-base font-bold",
+                error ? "text-red-600" : "text-slate-900",
               )}
             >
-              {uploading ? "กำลังอัปโหลด..." : label}
+              {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพ"}
             </p>
-            <p className="text-[13px] text-slate-400 font-medium">
+            <p className="text-xs text-slate-400 font-medium">
               รองรับ JPG, PNG (สูงสุด 10MB)
             </p>
           </div>

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/easyslip"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
 	"github.com/gin-gonic/gin"
@@ -15,12 +16,18 @@ import (
 type PaymentController struct {
 	paymentService *services.PaymentService
 	qrService      *services.PaymentQRService
+	verifyService  *services.PaymentVerifyService
 }
 
-func NewPaymentController(paymentService *services.PaymentService, qrService *services.PaymentQRService) *PaymentController {
+func NewPaymentController(
+	paymentService *services.PaymentService,
+	qrService *services.PaymentQRService,
+	verifyService *services.PaymentVerifyService,
+) *PaymentController {
 	return &PaymentController{
 		paymentService: paymentService,
 		qrService:      qrService,
+		verifyService:  verifyService,
 	}
 }
 
@@ -49,7 +56,38 @@ func (c *PaymentController) GenerateQR(ctx *gin.Context) {
 		case errors.Is(err, services.ErrInvalidMode):
 			response.BadRequest(ctx, err.Error())
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			response.NotFound(ctx, "invoice not found")
+			response.NotFound(ctx, "booking not found")
+		default:
+			response.InternalError(ctx, err.Error())
+		}
+		return
+	}
+
+	response.OK(ctx, resp)
+}
+
+// VerifySlip sends an uploaded slip to EasySlip and records the auto-match result.
+func (c *PaymentController) VerifySlip(ctx *gin.Context) {
+	var req dto.VerifySlipRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	resp, err := c.verifyService.VerifySlip(ctx.Request.Context(), req)
+	if err != nil {
+		var apiErr *easyslip.APIError
+		switch {
+		case errors.Is(err, services.ErrDuplicateSlip):
+			response.BadRequest(ctx, "duplicate slip")
+		case errors.Is(err, services.ErrNoSlipSource):
+			response.BadRequest(ctx, err.Error())
+		case errors.Is(err, easyslip.ErrNotConfigured):
+			response.InternalError(ctx, "slip verification is not configured")
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			response.NotFound(ctx, "booking, invoice or slip not found")
+		case errors.As(err, &apiErr):
+			response.BadRequest(ctx, apiErr.Message)
 		default:
 			response.InternalError(ctx, err.Error())
 		}

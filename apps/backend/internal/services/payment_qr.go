@@ -21,26 +21,29 @@ import (
 var ErrInvalidMode = errors.New("mode must be 'promptpay' or 'biller'")
 
 type PaymentQRService struct {
+	bookingRepo *repositories.BookingRepository
 	invoiceRepo *repositories.InvoiceRepository
 	storage     *StorageService
 	cfg         config.PaymentConfig
 }
 
 func NewPaymentQRService(
+	bookingRepo *repositories.BookingRepository,
 	invoiceRepo *repositories.InvoiceRepository,
 	storage *StorageService,
 	cfg config.PaymentConfig,
 ) *PaymentQRService {
 	return &PaymentQRService{
+		bookingRepo: bookingRepo,
 		invoiceRepo: invoiceRepo,
 		storage:     storage,
 		cfg:         cfg,
 	}
 }
 
-// Generate builds the EMVCo payload for an invoice's amount, renders it to a PNG
-// stored in MinIO, persists the payload+object key on the invoice's payment, and
-// returns a presigned URL to the image.
+// Generate builds the EMVCo payload for a booking's amount, renders it to a PNG
+// stored in MinIO, and returns a presigned URL to the image. The invoice table is
+// not consulted here — it is only used for tracking payment transactions.
 func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRRequest) (dto.GenerateQRResponse, error) {
 	mode := strings.ToLower(strings.TrimSpace(req.Mode))
 	if mode == "" {
@@ -50,14 +53,18 @@ func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRReque
 		return dto.GenerateQRResponse{}, ErrInvalidMode
 	}
 
-	// Amount always comes from the database, never the client.
-	invoice, err := s.invoiceRepo.FindByID(req.InvoiceID)
+	// Amount always comes from the database, never the client. It is sourced from
+	// the booking's total_price (the authoritative total for what the user owes).
+	booking, err := s.bookingRepo.FindByID(req.BookingID)
 	if err != nil {
 		return dto.GenerateQRResponse{}, err
 	}
-	amount := fmt.Sprintf("%.2f", float64(invoice.TotalAmount))
+	totalPrice := booking.TotalPrice
+	amount := fmt.Sprintf("%.2f", float64(totalPrice))
 
-	payload, err := s.buildPayload(mode, invoice.ID, amount)
+	// ref1 is the reference embedded in the QR (e.g. "BK123" in biller mode; empty
+	// in promptpay mode). It becomes the key an uploaded slip is matched back to.
+	payload, ref1, err := s.buildPayload(mode, booking.ID, amount)
 	if err != nil {
 		return dto.GenerateQRResponse{}, err
 	}
@@ -67,9 +74,16 @@ func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRReque
 		return dto.GenerateQRResponse{}, fmt.Errorf("render qr: %w", err)
 	}
 
-	objectKey := fmt.Sprintf("qr/invoice-%d-%s-%s.png", invoice.ID, time.Now().UTC().Format("20060102150405"), randomSuffix())
+	issuedAt := time.Now().UTC()
+	objectKey := fmt.Sprintf("qr/booking-%d-%s-%s.png", booking.ID, issuedAt.Format("20060102150405"), randomSuffix())
 	if err := s.storage.UploadBytes(ctx, objectKey, pngBytes, "image/png"); err != nil {
 		return dto.GenerateQRResponse{}, fmt.Errorf("upload qr: %w", err)
+	}
+
+	// Persist the issued QR on the booking's invoice so a later uploaded slip can be
+	// matched back to it (via ref1 / amount). Zero rows if no invoice exists yet.
+	if err := s.invoiceRepo.UpdateQRByBookingID(booking.ID, ref1, payload, objectKey, issuedAt); err != nil {
+		return dto.GenerateQRResponse{}, fmt.Errorf("persist qr: %w", err)
 	}
 
 	url, err := s.storage.PresignedURL(ctx, objectKey)
@@ -78,27 +92,31 @@ func (s *PaymentQRService) Generate(ctx context.Context, req dto.GenerateQRReque
 	}
 
 	return dto.GenerateQRResponse{
-		InvoiceID: invoice.ID,
-		Amount:    float64(invoice.TotalAmount),
+		BookingID: booking.ID,
+		Amount:    float64(totalPrice),
 		Payload:   payload,
 		QRCodeURL: url,
 		ExpiresIn: s.storage.URLExpirySeconds(),
 	}, nil
 }
 
-func (s *PaymentQRService) buildPayload(mode string, invoiceID uint, amount string) (string, error) {
+// buildPayload returns the EMVCo payload and the ref1 embedded in it. In promptpay
+// mode there is no reference, so ref1 is empty.
+func (s *PaymentQRService) buildPayload(mode string, bookingID uint, amount string) (payload string, ref1 string, err error) {
 	switch mode {
 	case "promptpay":
-		return promptpay.BuildPromptPayPayload(s.cfg.PromptPayID, s.cfg.MerchantName, s.cfg.MerchantCity, amount)
+		payload, err = promptpay.BuildPromptPayPayload(s.cfg.PromptPayID, s.cfg.MerchantName, s.cfg.MerchantCity, amount)
+		return payload, "", err
 	case "biller":
-		ref1 := s.cfg.BillerRef1
+		ref1 = s.cfg.BillerRef1
 		if strings.TrimSpace(ref1) == "" {
-			// Default reference identifies the specific invoice being paid.
-			ref1 = fmt.Sprintf("INV%d", invoiceID)
+			// Default reference identifies the specific booking being paid.
+			ref1 = fmt.Sprintf("BK%d", bookingID)
 		}
-		return promptpay.BuildBillerPayload(s.cfg.BillerID, ref1, s.cfg.BillerRef2, s.cfg.MerchantName, s.cfg.MerchantCity, amount)
+		payload, err = promptpay.BuildBillerPayload(s.cfg.BillerID, ref1, s.cfg.BillerRef2, s.cfg.MerchantName, s.cfg.MerchantCity, amount)
+		return payload, ref1, err
 	default:
-		return "", ErrInvalidMode
+		return "", "", ErrInvalidMode
 	}
 }
 

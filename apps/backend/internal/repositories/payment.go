@@ -62,6 +62,20 @@ func (r *PaymentRepository) FindMethodByID(id uint) (*models.PaymentMethods, err
 	return &method, err
 }
 
+func (r *PaymentRepository) FindMethodByName(name string) (*models.PaymentMethods, error) {
+	var method models.PaymentMethods
+	err := r.db.Where("method = ?", name).First(&method).Error
+	return &method, err
+}
+
+// FindBySlipTransRef looks up a transaction by the bank transaction reference read
+// from a slip. Used to reject a slip that has already been submitted (dedupe).
+func (r *PaymentRepository) FindBySlipTransRef(transRef string) (*models.PaymentTransactions, error) {
+	var tx models.PaymentTransactions
+	err := r.db.Where("slip_trans_ref = ?", transRef).First(&tx).Error
+	return &tx, err
+}
+
 func (r *PaymentRepository) FindAll() ([]models.PaymentTransactions, error) {
 	var txs []models.PaymentTransactions
 	err := r.db.

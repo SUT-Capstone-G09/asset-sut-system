@@ -102,11 +102,8 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 		return nil, err
 	}
 
-	// If approved, mark invoice as paid and the booking as completed —
-	// without this, a booking stays "approved" forever after payment, so
-	// screens that gate the pay button on status=="approved" (e.g. my
-	// bookings) keep offering to pay again.
-	status, err := s.paymentRepo.FindStatusByName("approved")
+	// If confirmed, mark invoice as paid and booking as completed
+	status, err := s.paymentRepo.FindStatusByName("confirmed")
 	if err == nil && req.StatusID == status.ID {
 		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
 		if err == nil {

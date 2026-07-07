@@ -46,6 +46,48 @@ type LocationResponse struct {
 	Equipments   []EquipmentResponse   `json:"equipments,omitempty"`
 }
 
+// ── Hall Floor Plan ─────────────────────────────────────────────────────────
+
+type OverlayDTO struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
+}
+
+// UpsertHallFloorPlanRequest — บันทึก/แทนที่ผังพื้นที่ของโถงทั้งชุด
+// TopViewImage = object_key ของรูปที่เพิ่งอัปโหลด; ถ้าเป็น URL (http) หรือ null = คงรูปเดิมไว้
+type UpsertHallFloorPlanRequest struct {
+	TopViewImage  *string    `json:"top_view_image"`
+	ImageNaturalW int        `json:"image_natural_w"`
+	ImageNaturalH int        `json:"image_natural_h"`
+	GridCols      int        `json:"grid_cols"`
+	GridRows      int        `json:"grid_rows"`
+	CellSizeM     float64    `json:"cell_size_m"`
+	RealWidthM    *float64   `json:"real_width_m"`
+	RealLengthM   *float64   `json:"real_length_m"`
+	Overlay       OverlayDTO `json:"overlay"`
+	PxPerMX       *float64   `json:"px_per_mx"`
+	PxPerMY       *float64   `json:"px_per_my"`
+	BlockedCells  [][]int    `json:"blocked_cells"`
+}
+
+type HallFloorPlanResponse struct {
+	LocationID      uint       `json:"location_id"`
+	TopViewImageURL *string    `json:"top_view_image_url"` // presigned URL สำหรับแสดงผล
+	ImageNaturalW   int        `json:"image_natural_w"`
+	ImageNaturalH   int        `json:"image_natural_h"`
+	GridCols        int        `json:"grid_cols"`
+	GridRows        int        `json:"grid_rows"`
+	CellSizeM       float64    `json:"cell_size_m"`
+	RealWidthM      *float64   `json:"real_width_m"`
+	RealLengthM     *float64   `json:"real_length_m"`
+	Overlay         OverlayDTO `json:"overlay"`
+	PxPerMX         *float64   `json:"px_per_mx"`
+	PxPerMY         *float64   `json:"px_per_my"`
+	BlockedCells    [][]int    `json:"blocked_cells"`
+}
+
 // ── Unavailability ──────────────────────────────────────────────────────────
 
 type CreateUnavailabilityRequest struct {
