@@ -10,7 +10,7 @@ import "time"
 
 type CreateDocumentEnvelopeRequest struct {
 	Title            string `json:"title" binding:"required"`
-	Price            int    `json:"price" binding:"required,min=0"` 
+	Price            int    `json:"price" binding:"min=0"`
 	FilePath         string `json:"file_path" binding:"required"`
 	IsOnlineDelivery bool   `json:"is_online_delivery"`
 	Note             string `json:"note"`

@@ -117,7 +117,7 @@ func LoadConfig() (*Config, error) {
 			Password: mustGetEnv("POSTGRES_PASSWORD"),
 			DBName:   mustGetEnv("POSTGRES_DB"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
-			LogMode:  getEnv("POSTGRES_LOGMODE", "false"),
+			LogMode:  getEnv("POSTGRES_LOG_MODE", "error"),
 		},
 		Server: ServerConfig{
 			Port:          getEnv("SERVER_PORT", "8080"),

@@ -12,7 +12,7 @@ type CreateLocationRequest struct {
 	ImageURL    *string `json:"image_url"`
 	RoomNumber  *int    `json:"room_number"`
 	FloorNumber *int    `json:"floor_number"`
-	Capacity    int     `json:"capacity" binding:"required,min=0"`
+	Capacity    int     `json:"capacity" binding:"min=0"`
 	StatusID    uint    `json:"status_id" binding:"required"`
 }
 
@@ -147,7 +147,7 @@ type AddonResponse struct {
 type CreatePricingTierRequest struct {
 	RequesterTypeID uint `json:"requester_type_id" binding:"required"`
 	RateTypeID      uint `json:"rate_type_id" binding:"required"`
-	Price           int  `json:"price" binding:"required,min=0"`
+	Price           int  `json:"price" binding:"min=0"`
 }
 
 type PricingTierResponse struct {
