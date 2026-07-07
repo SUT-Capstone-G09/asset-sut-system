@@ -23,6 +23,7 @@ interface DocumentFormModalProps {
   purpose: string;
   onClose: () => void;
   onGenerated: (file: File) => void;
+  onPurposeChange?: (value: string) => void;
 }
 
 interface FormData {
@@ -45,7 +46,7 @@ interface FormData {
 
 const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่น ๆ"];
 
-export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated }: DocumentFormModalProps) {
+export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated, onPurposeChange }: DocumentFormModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [generatedFile, setGeneratedFile] = useState<File | null>(null);
@@ -458,6 +459,23 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                   <input type="text" value={form.otherBuilding} onChange={set("otherBuilding")} placeholder="ระบุสถานที่"
                     className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
                 )}
+              </div>
+
+              {/* Purpose */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  วัตถุประสงค์ <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={purpose}
+                  onChange={(e) => onPurposeChange?.(e.target.value)}
+                  placeholder="ระบุวัตถุประสงค์..."
+                  rows={2}
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 resize-none",
+                    purpose ? "border-gray-200" : "border-red-200"
+                  )}
+                />
               </div>
 
               {/* Pre-filled info */}
