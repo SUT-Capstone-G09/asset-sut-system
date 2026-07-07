@@ -28,6 +28,7 @@ type Dependencies struct {
 	EmailBroadcastController *controllers.EmailBroadcastController
 	ImageController          *controllers.ImageController
 	SignatureController      *controllers.SignatureController
+	RequestController         *controllers.RequestController
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -57,6 +58,7 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupBookingRoutes(v1, deps)
 		SetupDocumentRoutes(v1, deps)
 		SetupSignatureRoutes(v1, deps)
+		SetupRequestRoutes(v1, deps)
 
 		invoices := v1.Group("/invoices")
 		invoices.Use(middleware.AuthMiddleware(deps.Config.JWT.Secret))
