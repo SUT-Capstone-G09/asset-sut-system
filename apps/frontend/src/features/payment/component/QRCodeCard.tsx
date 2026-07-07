@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Landmark, CreditCard, QrCode } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 
@@ -22,12 +21,13 @@ export function QRCodeCard({
 
       <div className="mt-4 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
         <div className="border border-gray-100 rounded-2xl p-3 bg-white shadow-sm shrink-0">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element -- presigned MinIO URL; next/image needs remotePatterns which this app has no next.config for */}
+          <img
             src={qrCodeUrl}
             alt="QR Code"
             width={160}
             height={160}
-            className="rounded-lg w-40 h-40"
+            className="rounded-lg w-40 h-40 object-contain"
           />
         </div>
 

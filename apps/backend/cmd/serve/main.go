@@ -7,6 +7,7 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/database"
 	minioinit "github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/minio"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/easyslip"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/routes"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -63,7 +64,9 @@ func main() {
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
 	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo, storageService)
-	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
+	paymentQRService := services.NewPaymentQRService(bookingRepo, invoiceRepo, storageService, cfg.Payment)
+	easySlipClient := easyslip.New(cfg.EasySlip.APIKey, cfg.EasySlip.VerifyURL)
+	paymentVerifyService := services.NewPaymentVerifyService(easySlipClient, paymentRepo, invoiceRepo, documentRepo, storageService, cfg.Payment)
 	documentService := services.NewDocumentService(documentRepo, storageService)
 	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {
@@ -84,7 +87,7 @@ func main() {
 	roleCtrl := controllers.NewRoleController(roleService)
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
-	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService)
+	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService, paymentVerifyService)
 	documentCtrl := controllers.NewDocumentController(documentService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)

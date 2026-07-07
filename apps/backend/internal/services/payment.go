@@ -102,8 +102,8 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 		return nil, err
 	}
 
-	// If approved, mark invoice as paid and booking as completed
-	status, err := s.paymentRepo.FindStatusByName("approved")
+	// If confirmed, mark invoice as paid and booking as completed
+	status, err := s.paymentRepo.FindStatusByName("confirmed")
 	if err == nil && req.StatusID == status.ID {
 		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
 		if err == nil {

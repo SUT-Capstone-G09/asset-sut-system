@@ -51,8 +51,9 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
-	// Payment statuses
-	for _, s := range []string{"pending", "approved", "rejected"} {
+	// Payment statuses — verification flow:
+	// pending → slip_uploaded → auto_verified → confirmed (mismatch/rejected are terminal-ish)
+	for _, s := range []string{"pending", "slip_uploaded", "auto_verified", "mismatch", "confirmed", "rejected"} {
 		if err := db.FirstOrCreate(&models.PaymentStatuses{}, models.PaymentStatuses{Status: s}).Error; err != nil {
 			return err
 		}

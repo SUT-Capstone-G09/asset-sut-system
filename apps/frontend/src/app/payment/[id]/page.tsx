@@ -11,9 +11,10 @@ import { QRCodeCard } from "@/features/payment/component/QRCodeCard";
 import { PaymentPageSkeleton } from "@/features/payment/component/loading/PaymentPageSkeleton";
 import {
   getInvoiceByBookingId,
-  createPayment,
-  attachSlip,
+  generateQR,
+  verifySlip,
   InvoiceDTO,
+  GenerateQRResponse,
 } from "@/features/payment/services/payment.service";
 import {
   getBookingById,
@@ -21,6 +22,17 @@ import {
 } from "@/features/bookings/services/booking.service";
 import { createDocument } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
+
+const REASON_TH: Record<string, string> = {
+  amount: "ยอดเงินไม่ตรง",
+  ref1: "เลขอ้างอิงไม่ตรง",
+  paid_before_qr: "เวลาชำระก่อนการสร้าง QR",
+};
+
+function describeReasons(reasons?: string[]): string {
+  if (!reasons || reasons.length === 0) return "ข้อมูลสลิปไม่ตรงกับรายการ";
+  return reasons.map((r) => REASON_TH[r] ?? r).join(", ");
+}
 
 function UploadZoneControlled({
   onFileChange,
@@ -84,6 +96,8 @@ export default function PaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [qrData, setQrData] = useState<GenerateQRResponse | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -94,6 +108,15 @@ export default function PaymentPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
+  }, [bookingId]);
+
+  // Generate the payment QR (amount + ref1 come from the booking on the backend).
+  useEffect(() => {
+    if (!bookingId) return;
+    setQrError(null);
+    generateQR(bookingId, "biller")
+      .then(setQrData)
+      .catch((err: Error) => setQrError(err.message));
   }, [bookingId]);
 
   const handleSubmit = useCallback(async () => {
@@ -108,37 +131,40 @@ export default function PaymentPage() {
       const bDateStr = firstSlot?.date ? firstSlot.date.slice(0, 10) : undefined;
       const locName = firstSlot?.location_name;
 
-      // 1. Upload file to storage
+      // 1. Upload slip to storage
       const uploadResult = await uploadFile(selectedFile, UPLOAD_FOLDERS.PAYMENT_SLIP, bDateStr, locName, bookingId);
 
-      // 2. Create document record
+      // 2. Create document record (payment_slip)
       const doc = await createDocument({
         booking_id: bookingId,
-        document_type_id: 3, // Assuming 3 is payment slip or similar
+        document_type_id: 1, // payment_slip
         file_name: uploadResult.file_name,
         bucket_name: uploadResult.bucket_name,
         object_key: uploadResult.object_key,
         file_url: uploadResult.url,
         content_type: uploadResult.content_type,
-        method_id: 1, // Upload method
+        method_id: 1, // upload
       });
 
-      // 3. Create payment transaction
-      const payment = await createPayment({
-        invoice_id: invoice.id,
-        amount_paid: invoice.total_amount,
-        method_id: 3, // Bank transfer/QR
-      });
+      // 3. Verify the slip via EasySlip — this creates the payment transaction
+      //    and runs the auto-match verdict (amount / ref1 / receiver).
+      const result = await verifySlip(bookingId, doc.id);
 
-      // 4. Attach slip to payment
-      await attachSlip(payment.id, doc.id);
+      if (result.status === "mismatch") {
+        setSubmitError(
+          `ตรวจสลิปไม่ผ่าน: ${describeReasons(result.reasons)} — กรุณาตรวจสอบแล้วอัปโหลดใหม่`
+        );
+        setSubmitting(false);
+        return;
+      }
 
+      // auto_verified — payment recorded, awaiting staff confirmation
       router.push("/payment/success");
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       setSubmitting(false);
     }
-  }, [invoice, router, selectedFile, bookingId]);
+  }, [invoice, booking, router, selectedFile, bookingId]);
 
   if (loading) return <PaymentPageSkeleton />;
 
@@ -245,11 +271,21 @@ export default function PaymentPage() {
         />
 
         <div className="flex flex-col gap-4">
-          <QRCodeCard
-            qrCodeUrl="/qr-code.png"
-            accountName="มหาวิทยาลัยเทคโนโลยีสุรนารี"
-            totalPrice={invoice.total_amount}
-          />
+          {qrData ? (
+            <QRCodeCard
+              qrCodeUrl={qrData.qr_code_url}
+              accountName="มหาวิทยาลัยเทคโนโลยีสุรนารี"
+              totalPrice={qrData.amount}
+            />
+          ) : qrError ? (
+            <section className="bg-white rounded-2xl border border-red-100 shadow-sm p-6 text-sm text-red-500">
+              สร้าง QR ไม่สำเร็จ: {qrError}
+            </section>
+          ) : (
+            <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center justify-center h-56 text-slate-400 gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" /> กำลังสร้าง QR...
+            </section>
+          )}
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="px-6 pt-5 pb-2">
