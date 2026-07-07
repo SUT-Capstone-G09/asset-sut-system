@@ -21,7 +21,8 @@ var AllEntities = []any{
 	&RateTypes{},
 	&LocationPricingTiers{},
 
-	// Area
+	// Commercial Leasing / Area
+	&BuildingTypes{},
 	&Buildings{},
 	&RentalSpaces{},
 	&RentalSpaceImages{},

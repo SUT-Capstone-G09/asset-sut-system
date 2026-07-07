@@ -20,8 +20,8 @@ type Contracts struct {
 	Note             string             `gorm:"type:text" json:"note"`                 // หมายเหตุ
 	DocumentURL      string             `json:"document_url"`
 	Status           string             `gorm:"not null;default:'draft'" json:"status"` // เช่น draft, active, expired
-	AreaID           uint               `gorm:"not null" json:"area_id"`                // รหัสสถานที่/พื้นที่เช่า
-	Area             *Areas             `gorm:"foreignKey:AreaID" json:"area,omitempty"`
+	RentalSpaceID    uint               `gorm:"not null" json:"rental_space_id"`       // พื้นที่เช่าที่ผูกกับสัญญา
+	RentalSpace      *RentalSpaces      `gorm:"foreignKey:RentalSpaceID" json:"rental_space,omitempty"`
 	TenantProfileID  uint               `gorm:"not null" json:"tenant_profile_id"`
 	TenantProfile    *TenantProfiles    `gorm:"foreignKey:TenantProfileID" json:"tenant_profile,omitempty"`
 	BusinessTypeID   uint               `gorm:"not null" json:"business_type_id"`
