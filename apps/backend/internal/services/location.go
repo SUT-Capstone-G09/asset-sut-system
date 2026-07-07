@@ -501,6 +501,95 @@ func toAddonResponse(a models.LocationAddons) dto.AddonResponse {
 	return res
 }
 
+// ── Hall Floor Plan ──────────────────────────────────────────────────────────
+
+func (s *LocationService) GetFloorPlan(locationID uint) (*dto.HallFloorPlanResponse, error) {
+	fp, err := s.locationRepo.FindFloorPlanByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+	if fp == nil {
+		return nil, nil
+	}
+	res := s.toFloorPlanResponse(fp)
+	return &res, nil
+}
+
+func (s *LocationService) UpsertFloorPlan(locationID uint, req dto.UpsertHallFloorPlanRequest) (*dto.HallFloorPlanResponse, error) {
+	existing, err := s.locationRepo.FindFloorPlanByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+
+	// object_key ของรูป: default คงของเดิม; อัปเดตเฉพาะเมื่อส่ง key ใหม่ (ไม่ใช่ presigned http url)
+	var imageKey *string
+	if existing != nil {
+		imageKey = existing.TopViewImage
+	}
+	if req.TopViewImage != nil && *req.TopViewImage != "" &&
+		!strings.HasPrefix(*req.TopViewImage, "http://") && !strings.HasPrefix(*req.TopViewImage, "https://") {
+		imageKey = req.TopViewImage
+	}
+
+	blocked := req.BlockedCells
+	if blocked == nil {
+		blocked = [][]int{}
+	}
+
+	fp := &models.HallFloorPlans{
+		LocationID:    locationID,
+		TopViewImage:  imageKey,
+		ImageNaturalW: req.ImageNaturalW,
+		ImageNaturalH: req.ImageNaturalH,
+		GridCols:      req.GridCols,
+		GridRows:      req.GridRows,
+		CellSizeM:     req.CellSizeM,
+		RealWidthM:    req.RealWidthM,
+		RealLengthM:   req.RealLengthM,
+		OverlayX:      req.Overlay.X,
+		OverlayY:      req.Overlay.Y,
+		OverlayW:      req.Overlay.W,
+		OverlayH:      req.Overlay.H,
+		PxPerMX:       req.PxPerMX,
+		PxPerMY:       req.PxPerMY,
+		BlockedCells:  blocked,
+	}
+	if existing != nil {
+		fp.ID = existing.ID
+		fp.CreatedAt = existing.CreatedAt
+	}
+	if err := s.locationRepo.SaveFloorPlan(fp); err != nil {
+		return nil, err
+	}
+	res := s.toFloorPlanResponse(fp)
+	return &res, nil
+}
+
+func (s *LocationService) GetFloorPlanLocationIDs() ([]uint, error) {
+	return s.locationRepo.FindFloorPlanLocationIDs()
+}
+
+func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.HallFloorPlanResponse {
+	blocked := fp.BlockedCells
+	if blocked == nil {
+		blocked = [][]int{}
+	}
+	return dto.HallFloorPlanResponse{
+		LocationID:      fp.LocationID,
+		TopViewImageURL: s.resolveImageURL(fp.TopViewImage),
+		ImageNaturalW:   fp.ImageNaturalW,
+		ImageNaturalH:   fp.ImageNaturalH,
+		GridCols:        fp.GridCols,
+		GridRows:        fp.GridRows,
+		CellSizeM:       fp.CellSizeM,
+		RealWidthM:      fp.RealWidthM,
+		RealLengthM:     fp.RealLengthM,
+		Overlay:         dto.OverlayDTO{X: fp.OverlayX, Y: fp.OverlayY, W: fp.OverlayW, H: fp.OverlayH},
+		PxPerMX:         fp.PxPerMX,
+		PxPerMY:         fp.PxPerMY,
+		BlockedCells:    blocked,
+	}
+}
 // ── Global Addon Services ───────────────────────────────────────────────────
 
 func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {

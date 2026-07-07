@@ -1,281 +1,331 @@
-# Payment QR Generation
+# Payment QR Generation & Slip Verification
 
-เอกสารสรุประบบสร้าง **QR code ชำระเงิน** (PromptPay / Bill Payment) ตามมาตรฐาน
-EMVCo ของ backend (`apps/backend`) — สร้าง payload เอง (TLV + CRC16), render เป็น
-รูป, เก็บใน MinIO แล้วคืน presigned URL ให้ frontend
+เอกสารสรุประบบ **ชำระเงินด้วย QR (PromptPay / Bill Payment)** + **ตรวจสลิปด้วย EasySlip**
+ของ backend (`apps/backend`) — สร้าง EMVCo payload เอง (TLV + CRC16), render เป็นรูป,
+เก็บใน MinIO, คืน presigned URL, แล้วรับสลิปที่ผู้ใช้อัปโหลดไปตรวจกับ EasySlip เพื่อ
+auto-match กลับเข้ากับการจอง ก่อนให้เจ้าหน้าที่ยืนยัน
 
-> อัปเดตล่าสุด: 2026-06-03
+> อัปเดตล่าสุด: 2026-07-06
 
 ---
 
 ## 1. ภาพรวมระบบ
 
-ระบบรับ `invoice_id` จาก frontend → ดึง **ยอดเงินจาก DB** (ไม่เชื่อค่าที่ client ส่ง) →
-สร้าง EMVCo payload จากข้อมูลผู้รับเงินใน `.env` → render เป็นรูป PNG → upload ขึ้น
-MinIO → บันทึก payload + object key ลง `Payment` → คืน presigned URL
+มหาวิทยาลัยเข้าไม่ถึง reconciliation API ของธนาคาร จึงใช้แนวทาง **self-gen reference +
+ตรวจสลิป**: ฝัง `ref1 = BK<bookingID>` ลงใน biller QR (ref เดินทางถึงธนาคารและกลับมาใน
+สลิป), ผู้ใช้อัปสลิป, ระบบส่งสลิปให้ EasySlip แล้วเอา `ref1`/ยอด/ผู้รับที่อ่านได้มา
+match กับ "ตัวตั้ง" ที่เก็บไว้ตอนออก QR
 
 ```
-Frontend ─POST {invoice_id, mode}─▶ Controller ─▶ Service
-                                                   │ 1. ดึง Invoice.TotalAmount จาก DB
-                                                   │ 2. อ่านข้อมูลผู้รับเงินจาก .env (PROMPTPAY_ID / BILLER_ID)
-                                                   │ 3. build EMVCo payload + CRC16  (pkg/promptpay)
-                                                   │ 4. render PNG                   (boombuler/barcode)
-                                                   │ 5. upload PNG → MinIO
-                                                   │ 6. upsert Payment + เก็บ payload/object key
-                                                   ▼
-Frontend ◀── {payload, qr_code_url (presigned), amount} ──┘
+① สร้าง QR
+Frontend ─POST {booking_id, mode}─▶ PaymentQRService
+                                     │ 1. ดึง Booking.TotalPrice จาก DB (ยอดจริง)
+                                     │ 2. อ่านข้อมูลผู้รับจาก .env (BILLER_ID/PROMPTPAY_ID)
+                                     │ 3. build EMVCo payload + CRC16 (ref1=BK<id>)
+                                     │ 4. render PNG → upload MinIO
+                                     │ 5. upsert QRRef1/QRPayload/QRObjectKey/QRIssuedAt → invoice
+                                     ▼
+Frontend ◀── {booking_id, amount, payload, qr_code_url} ──┘
+
+② ผู้ใช้จ่าย + อัปสลิป → ③ ตรวจสลิป
+Frontend ─POST {booking_id, document_id}─▶ PaymentVerifyService
+                                            │ 1. โหลด invoice (ตัวตั้ง: QRRef1/TotalAmount/QRIssuedAt)
+                                            │ 2. ดึงรูปสลิปจาก MinIO → เรียก EasySlip
+                                            │ 3. dedupe ด้วย SlipTransRef
+                                            │ 4. verdict: เทียบยอด/ref1/เวลา + flag ผู้รับ
+                                            │ 5. สร้าง PaymentTransaction (auto_verified | mismatch)
+                                            ▼
+Frontend ◀── {status, trans_ref, match_amount, match_ref, receiver_flag, ...} ──┘
+
+④ เจ้าหน้าที่ยืนยัน
+Staff ─POST /payments/:id/verify {status_id=confirmed}─▶ invoice=paid, booking=completed
 ```
 
-**หลักการสำคัญ:** ยอดเงินมาจาก DB เสมอ ส่วนข้อมูลผู้รับเงิน (เบอร์ PromptPay /
-biller id) เป็นค่าคงที่ต่อ deployment จึงอยู่ใน `.env` ไม่ใช่รับจาก request
+**หลักการสำคัญ:** ยอดเงินมาจาก **`bookings.total_price`** เสมอ (ไม่เชื่อ client) ส่วนข้อมูล
+ผู้รับเงินเป็นค่าคงที่ต่อ deployment อยู่ใน `.env`
 
 ---
 
-## 2. มาตรฐาน EMVCo QR (`internal/pkg/promptpay`)
+## 2. บทบาทของตาราง
 
-payload เป็นสตริงแบบ **TLV** (Tag-Length-Value): แต่ละ field = `tag(2) + length(2) + value`
-ปิดท้ายด้วย checksum **CRC16-CCITT** (poly `0x1021`, init `0xFFFF`) คำนวณครอบทั้ง
-payload รวม `"6304"`
+| ตาราง | บทบาท | ความสัมพันธ์ |
+| --- | --- | --- |
+| `bookings` | แหล่งยอดเงินจริง (`total_price`) | — |
+| `invoices` | **ตัวตั้ง (expected)** — เก็บ QR ที่ออก (`qr_ref1`/`qr_payload`/`qr_object_key`/`qr_issued_at`) + สถานะบิล `pending→paid` | 1 : 1 booking |
+| `payment_transactions` | **หลักฐาน (actual)** — 1 สลิป = 1 แถว, เก็บผล EasySlip + `slip_trans_ref` (uniqueIndex สำหรับ dedupe) | N : 1 invoice |
 
-### 2.1 โครงสร้าง field
-
-| Tag | Field                            | ค่า/หมายเหตุ                                                      |
-| --- | -------------------------------- | ----------------------------------------------------------------- |
-| 00  | Payload Format Indicator         | `01`                                                              |
-| 01  | Point of Initiation              | `11` = static (ไม่ระบุยอด) / `12` = dynamic (มียอด)               |
-| 29  | Merchant Account — **PromptPay** | `00`=AID `A000000677010111`, `01`=เบอร์ หรือ `02`=เลขบัตร         |
-| 30  | Merchant Account — **Biller**    | `00`=AID `A000000677010112`, `01`=biller id, `02`=ref1, `03`=ref2 |
-| 52  | Merchant Category Code           | `0000`                                                            |
-| 53  | Currency                         | `764` (THB)                                                       |
-| 54  | Amount                           | เช่น `150.00` (มีเฉพาะตอนระบุยอด)                                 |
-| 58  | Country                          | `TH`                                                              |
-| 59  | Merchant Name                    | ตัด ≤25 ตัวอักษร                                                  |
-| 60  | Merchant City                    | ตัด ≤15 ตัวอักษร                                                  |
-| 63  | CRC                              | 4 hex digits                                                      |
-
-### 2.2 การ normalize input
-
-- **PromptPay id**: ตัด `-` / ช่องว่างออก, ต้องเป็นตัวเลขล้วน
-  - 10 หลัก → เบอร์มือถือ (ขึ้นต้น `0`) → แปลงเป็น `0066` + 9 หลักหลัง, ใช้ tag `01`
-  - 13 หลัก → เลขบัตรประชาชน/เลขภาษี, ใช้ tag `02`
-- **Biller id**: ต้อง 15 หลัก
-- **Reference (biller)**: A-Z และ 0-9 เท่านั้น, ≤20 ตัว (ref1 บังคับ, ref2 ไม่บังคับ)
-- **Amount**: คืนค่าเป็นทศนิยม 2 ตำแหน่งเสมอ (`"150"` → `"150.00"`); ค่าว่าง = ไม่ระบุยอด
-
-ฟังก์ชันในแพ็กเกจนี้เป็น **pure function** (ไม่มี I/O) ทดสอบได้ที่
-`internal/pkg/promptpay/promptpay_test.go` (เช็ค CRC ด้วยค่ามาตรฐาน `0x29B1` ของ
-`"123456789"` + ตรวจ payload self-consistency)
+> `slip_trans_ref` ต้อง unique ระดับทั้งระบบเพื่อกันสลิปซ้ำ จึงอยู่ที่ transaction ไม่ใช่
+> invoice — 1 invoice อาจมีหลายครั้งอัปสลิป (ครั้งแรก mismatch, ครั้งถัดไปผ่าน)
 
 ---
 
-## 3. โครงสร้างไฟล์
+## 3. Status Flow
+
+```
+                     ┌────────── invoice.status ──────────┐
+                     │ pending ───────────────► paid       │  (เมื่อ transaction = confirmed)
+                     └─────────────────▲───────────────────┘
+        payment_transaction.status
+  สร้าง QR (ยังไม่มี transaction — เก็บ ref ลง invoice)
+        │  ผู้ใช้จ่าย + อัปสลิป
+        ▼
+  slip_uploaded ──► เรียก EasySlip
+        ├─ ยอด/ref/เวลา ไม่ตรง หรือ dedupe ซ้ำ ─► mismatch  (ให้ผู้ใช้อัปใหม่)
+        └─ ผ่าน ─► auto_verified ──┬─ เจ้าหน้าที่ confirm ─► confirmed  ✅ (invoice=paid, booking=completed)
+                                   └─ เจ้าหน้าที่ปฏิเสธ ─► rejected
+```
+
+Seed `PaymentStatuses`: `pending, slip_uploaded, auto_verified, mismatch, confirmed, rejected`
+(`cmd/init-db/seed_data/lookup_tables.go`)
+
+---
+
+## 4. มาตรฐาน EMVCo QR (`internal/pkg/promptpay`)
+
+payload เป็นสตริง **TLV** (`tag(2)+length(2)+value`) ปิดท้ายด้วย **CRC16-CCITT**
+(poly `0x1021`, init `0xFFFF`)
+
+| Tag | Field | ค่า/หมายเหตุ |
+| --- | --- | --- |
+| 00 | Payload Format | `01` |
+| 01 | Point of Initiation | `11` static (ไม่ระบุยอด) / `12` dynamic (มียอด) |
+| 29 | Merchant — **PromptPay** | `00`=AID `A000000677010111`, `01`=เบอร์ / `02`=เลขบัตร |
+| 30 | Merchant — **Biller** | `00`=AID `A000000677010112`, `01`=biller id, `02`=ref1, `03`=ref2 |
+| 52 | Merchant Category | `0000` |
+| 53 | Currency | `764` (THB) |
+| 54 | Amount | เช่น `220.00` (เฉพาะตอนระบุยอด) |
+| 58 / 59 / 60 | Country / Name(≤25) / City(≤15) | `TH` / merchant name / city |
+| 63 | CRC | 4 hex digits |
+
+**การ normalize**: PromptPay id (10 หลัก→เบอร์ tag01 / 13 หลัก→เลขบัตร tag02),
+Biller id 15 หลัก, reference A-Z0-9 ≤20, amount ทศนิยม 2 ตำแหน่งเสมอ
+ทดสอบที่ `internal/pkg/promptpay/promptpay_test.go`
+
+> **โหมดที่ใช้จริง = biller** เพราะ `ref1 = BK<bookingID>` จะเดินทางถึงธนาคารและกลับมาใน
+> สลิป (ยืนยันด้วยการสแกนจริง: ผู้รับ = ม.ทส., Ref1 = BK1) ทำให้ EasySlip อ่าน ref กลับมา
+> auto-match ได้ ส่วน promptpay mode ไม่มี ref → `qr_ref1` ว่าง, match ด้วยยอด/เวลา
+
+---
+
+## 5. ตรวจสลิปด้วย EasySlip (`internal/pkg/easyslip`)
+
+client เรียก EasySlip v2 (`POST {base}/verify`, header `Authorization: Bearer <key>`)
+ได้ 2 ทาง: `VerifyByImage` (multipart field `file`) และ `VerifyByPayload` (JSON `{payload}`)
+คืน `VerifyResult`: `TransRef, Ref1/2/3, Amount, ReceiverName, ReceiverBank, SenderName,
+Date, Payload, Raw`
+
+> ⚠️ mapping ของ response อิงเอกสาร v2 แต่ยัง **ไม่ได้ verify กับ response จริง** — เก็บ
+> body ดิบไว้ที่ `VerifyResult.Raw` ครบ ถ้า field ไม่ตรงปรับได้ที่ `apiData` ใน `easyslip.go`
+
+### Verdict / auto-match (`PaymentVerifyService.evaluate`)
+
+| เงื่อนไข | ผล |
+| --- | --- |
+| `slip_trans_ref` ซ้ำ (dedupe) | reject `duplicate slip` |
+| `round(SlipAmount) ≠ invoice.total_amount` | **mismatch** (hard) |
+| `ref1 ≠ invoice.qr_ref1` (เมื่อ QR มี ref) | **mismatch** (hard) |
+| จ่ายก่อน `qr_issued_at` | **mismatch** (hard) |
+| ชื่อผู้รับไม่ contains `PAYMENT_RECEIVER_NAME` | `auto_verified` + **`receiver_flag=true`** (soft, ให้เจ้าหน้าที่ดู) |
+| ผ่านทั้งหมด | `auto_verified` |
+
+การเทียบชื่อผู้รับเป็น contains-match แบบตัด whitespace/ตัวพิมพ์ (ธนาคาร mask ชื่อไม่เหมือนกัน)
+ถ้า `PAYMENT_RECEIVER_NAME` ว่าง = ถือว่าผ่าน
+
+---
+
+## 6. โครงสร้างไฟล์
 
 ```
 internal/
-├── pkg/promptpay/
-│   ├── promptpay.go        # EMVCo payload + CRC16 + TLV (pure)
-│   └── promptpay_test.go   # unit tests
-├── initializers/minio/
-│   └── minio.go            # MinIO client + ensure bucket
-├── dto/payment.go          # GenerateQRRequest / GenerateQRResponse
+├── pkg/promptpay/           # EMVCo payload + CRC16 + TLV (pure) + test
+├── pkg/easyslip/            # EasySlip HTTP client + response mapping (ใหม่)
+├── initializers/minio/      # MinIO client
+├── dto/payment.go           # GenerateQR* / VerifySlip* / CreatePayment* / VerifyPayment*
 ├── repositories/
-│   ├── invoice.go          # FindByID (ดึงยอดเงิน)
-│   └── payment.go          # UpsertForInvoice / Save
-├── services/payment_qr.go  # orchestrate ทั้ง 6 ขั้น + render QR
-├── controllers/payment.go  # handler + map error → response
-└── routes/payment.go       # POST /api/v1/payments/qr (ต้องล็อกอิน)
+│   ├── invoice.go           # FindByBookingID / FindByID / UpdateQRByBookingID (ใหม่)
+│   ├── booking.go           # FindByID (ดึง total_price)
+│   ├── document.go          # FindByID (ดึงสลิปจาก storage)
+│   └── payment.go           # Create / FindBySlipTransRef / FindMethodByName (ใหม่)
+├── services/
+│   ├── payment_qr.go        # สร้าง QR + persist ref ลง invoice
+│   ├── payment_verify.go    # เรียก EasySlip + verdict + สร้าง transaction (ใหม่)
+│   └── payment.go           # staff confirm (status=confirmed → invoice paid)
+├── controllers/payment.go   # GenerateQR / VerifySlip / Verify / ...
+└── routes/payment.go        # /payments/... (ต้องล็อกอิน)
 ```
 
-จุด wiring: `cmd/serve/main.go` (สร้าง repo/service/controller + connect MinIO),
-`internal/routes/routes.go` (เพิ่ม `PaymentController` ใน `Dependencies` + register)
+wiring: `cmd/serve/main.go` (สร้าง easyslip client + verify service),
+`internal/config/config.go` (`PaymentConfig` + `EasySlipConfig`)
 
 ---
 
-## 4. API
+## 7. API _(ทุก endpoint ต้องล็อกอิน — `Authorization: Bearer <token>`)_
 
-### `POST /api/v1/payments/qr` _(ต้องล็อกอิน — `Authorization: Bearer <token>`)_
+### 7.1 `POST /api/v1/payments/qr` — สร้าง QR
 
 **Request**
-
 ```json
-{ "invoice_id": 1, "mode": "promptpay" }
+{ "booking_id": 1, "mode": "biller" }
 ```
-
-| field        | ชนิด            | หมายเหตุ                            |
-| ------------ | --------------- | ----------------------------------- |
-| `invoice_id` | uint (required) | ใช้ดึงยอดเงินจากตาราง `invoices`    |
-| `mode`       | string          | `promptpay` (default) หรือ `biller` |
+| field | ชนิด | หมายเหตุ |
+| --- | --- | --- |
+| `booking_id` | uint (required) | ใช้ดึง `total_price` จากตาราง `bookings` |
+| `mode` | string | `promptpay` (default) หรือ `biller` |
 
 **Response 200**
-
 ```json
 {
   "success": true,
   "data": {
-    "payment_id": 1,
-    "invoice_id": 1,
-    "amount": 150,
-    "payload": "00020101021229370016A000000677010111...6304C3B4",
-    "qr_code_url": "http://localhost:9000/payment-qr/qr/invoice-1-...png?X-Amz-...",
+    "booking_id": 1,
+    "amount": 220,
+    "payload": "00020101021230460016A00000067701011201150994000288654300203BK1...6304XXXX",
+    "qr_code_url": "http://localhost:9000/payment-qr/qr/booking-1-...png?X-Amz-...",
     "expires_in": 900
   }
 }
 ```
 
-`payload` = string ดิบ (ให้ client ที่อยาก render QR เอง), `qr_code_url` = presigned
-URL ของรูป PNG ใน MinIO (หมดอายุตาม `MINIO_URL_EXPIRY`)
+### 7.2 `POST /api/v1/payments/verify-slip` — ตรวจสลิป
 
-**Error**
-| สถานการณ์ | HTTP |
-|-----------|------|
-| ไม่มี/ผิด `Authorization` header | 401 |
-| `invoice_id` ไม่มีใน DB | 404 `invoice not found` |
-| `mode` ไม่ใช่ promptpay/biller | 400 |
-| config ผู้รับเงินไม่ครบ (เช่น biller mode แต่ `BILLER_ID` ว่าง) | 500 |
-
----
-
-## 5. Configuration (`.env`)
-
-| Key                     | ค่าเริ่มต้น         | คำอธิบาย                                                  |
-| ----------------------- | ------------------- | --------------------------------------------------------- |
-| `MINIO_ENDPOINT`        | `localhost:9000`    | host:port ของ MinIO                                       |
-| `MINIO_ACCESS_KEY`      | `minioadmin`        |                                                           |
-| `MINIO_SECRET_KEY`      | `minioadmin`        |                                                           |
-| `MINIO_BUCKET`          | `payment-qr`        | bucket เก็บรูป (สร้างอัตโนมัติตอน start)                  |
-| `MINIO_USE_SSL`         | `false`             |                                                           |
-| `MINIO_URL_EXPIRY`      | `15m`               | อายุ presigned URL (รูปแบบ Go duration)                   |
-| `PROMPTPAY_ID`          | —                   | เบอร์ 10 หลัก หรือเลขบัตร 13 หลัก ของผู้รับเงิน           |
-| `BILLER_ID`             | —                   | 15 หลัก (โหมด biller)                                     |
-| `BILLER_REF1`           | —                   | reference เริ่มต้น (ถ้าว่าง service ใช้ `INV<invoiceID>`) |
-| `BILLER_REF2`           | —                   | reference รอง (ไม่บังคับ)                                 |
-| `PAYMENT_MERCHANT_NAME` | `SUT`               | tag 59 (ตัด ≤25)                                          |
-| `PAYMENT_MERCHANT_CITY` | `Nakhon Ratchasima` | tag 60 (ตัด ≤15 — ชื่อยาวกว่านี้จะถูกตัด)                 |
-
-config อ่านเข้า struct `MinioConfig` / `PaymentConfig` ใน `internal/config/config.go`
-
----
-
-## 6. การเปลี่ยนแปลง Database
-
-ฟีเจอร์นี้เพิ่ม `Invoice` และ `Payment` เข้า `models.AllEntities` (`init-db` จะ migrate ให้)
-
-### 6.1 แก้ Foreign Key ใน model ให้ถูกต้องตาม GORM
-
-models เดิม (`payment.go`, `invoice.go`) ประกาศ FK ผิด — field ชื่อ `XxxID` แต่ type
-เป็น struct (`*Invoice`) ทำให้ GORM **ไม่สร้างคอลัมน์ FK จริง** และ set ค่าไม่ได้
-รอบนี้แก้เฉพาะ 2 model ที่ฟีเจอร์ใช้ ให้เป็นคอลัมน์ scalar:
-
-```go
-// Payment (หลังแก้)
-InvoiceID      uint    // คอลัมน์ FK จริง set/query ได้
-MethodID       *uint
-SlipDocumentID *uint
-VerifiedByID   *uint
-StatusID       *uint
-QRPayload      string  // payload EMVCo
-QRObjectKey    string  // object key ของรูปใน MinIO (ใช้ re-presign ภายหลัง)
+**Request** (ให้อย่างใดอย่างหนึ่ง: `document_id` = สลิปที่อัปแล้ว / `payload` = QR string จากสลิป สำหรับทดสอบ)
+```json
+{ "booking_id": 1, "document_id": 5 }
 ```
 
-> association struct (เช่น `Invoice *Invoice`) ถูก **ตัดออกตั้งใจ** เพื่อให้ AutoMigrate
-> แตะแค่ตาราง `invoices` / `payments` ไม่ลากตารางอื่น (เช่น `documents` ที่ FK ยังผิดอยู่)
-> เข้ามา — model อื่น (`booking`, `document`) ค่อยแก้ตอนทำฟีเจอร์ที่เกี่ยวข้อง
+**Response 200**
+```json
+{
+  "success": true,
+  "data": {
+    "transaction_id": 12,
+    "status": "auto_verified",
+    "trans_ref": "68370160657749I376388B35",
+    "ref1": "BK1",
+    "amount": 220,
+    "match_amount": true,
+    "match_ref": true,
+    "receiver_matched": true,
+    "receiver_flag": false,
+    "reasons": []
+  }
+}
+```
+`status = mismatch` เมื่อมี hard reason (`reasons` เช่น `["amount"]` / `["ref1"]` / `["paid_before_qr"]`)
 
-### 6.2 Seed data
+### 7.3 `POST /api/v1/payments/:id/verify` — เจ้าหน้าที่ยืนยัน
 
-`cmd/init-db/seed_data/invoice.go` seed invoice ตัวอย่าง 2 ใบ (idempotent, match ด้วย
-`BookingID`): `id=1` ยอด 150.00, `id=2` ยอด 2500.50
+**Request** `{ "status_id": <id ของ "confirmed">, "note": "" }`
+→ ถ้า status = `confirmed`: invoice → `paid`, booking → `completed` (+ status log)
+
+### 7.4 อื่น ๆ
+`POST /payments` (สร้าง transaction ตรง), `GET /payments`, `PUT /payments/:id/slip/:docId`,
+`GET /invoices/:id/transactions`
+
+**Error หลัก**
+| สถานการณ์ | HTTP |
+| --- | --- |
+| ไม่มี/ผิด `Authorization` | 401 |
+| `booking_id`/invoice/slip ไม่พบ | 404 |
+| `mode` ไม่ใช่ promptpay/biller | 400 |
+| สลิปซ้ำ (dedupe) | 400 `duplicate slip` |
+| ไม่ได้ตั้ง `EASYSLIP_API_KEY` | 500 `slip verification is not configured` |
+| EasySlip ตอบ error (เช่น `duplicate_slip`) | 400 (ข้อความจาก EasySlip) |
 
 ---
 
-## 7. วิธีทดสอบ
+## 8. Configuration (`.env`)
 
-### 7.1 เฉพาะตรรกะ payload (ไม่ต้องมี infra)
+| Key | ค่าเริ่มต้น | คำอธิบาย |
+| --- | --- | --- |
+| `MINIO_ENDPOINT` / `_ACCESS_KEY` / `_SECRET_KEY` | `localhost:9000` / `minioadmin` / `minioadmin` | MinIO |
+| `MINIO_BUCKET` | `payment-qr` | bucket (สร้างอัตโนมัติ) |
+| `MINIO_URL_EXPIRY` | `15m` | อายุ presigned URL |
+| `PROMPTPAY_ID` | — | เบอร์ 10 หลัก / เลขบัตร 13 หลัก (promptpay mode) |
+| `BILLER_ID` | — | 15 หลัก = เลขภาษี 13 + suffix 2 (biller mode) |
+| `BILLER_REF1` / `BILLER_REF2` | — | ถ้า `BILLER_REF1` ว่าง service ใช้ `BK<bookingID>` |
+| `PAYMENT_MERCHANT_NAME` / `_CITY` | `SUT` / `Nakhon Ratchasima` | tag 59 (≤25) / tag 60 (≤15) |
+| `PAYMENT_RECEIVER_NAME` | — | ชื่อบัญชีผู้รับที่คาดหวัง (เทียบกับสลิป → `receiver_flag`) |
+| `PAYMENT_RECEIVER_BANK` | — | (optional) รหัสธนาคารผู้รับ |
+| `EASYSLIP_API_KEY` | — | key จาก developer.easyslip.com (ว่าง = ตรวจสลิปไม่ได้) |
+| `EASYSLIP_VERIFY_URL` | — | override URL เต็มของ verify endpoint (ว่าง = default V2 `https://api.easyslip.com/v2/verify/bank`) |
 
+---
+
+## 9. การเปลี่ยนแปลง Database (`AutoMigrate` เพิ่มคอลัมน์ scalar — additive)
+
+**`invoices`** เพิ่ม: `qr_ref1` (index), `qr_payload`, `qr_object_key`, `qr_issued_at`
+
+**`payment_transactions`** เพิ่ม: `slip_trans_ref` (**uniqueIndex**), `slip_ref1` (index),
+`slip_amount`, `slip_receiver`, `slip_sender`, `slip_paid_at`, `slip_payload`,
+`easy_slip_raw` (jsonb), `receiver_flag`, `verify_note`
+
+รัน `go run ./cmd/init-db` เพื่อ migrate + seed statuses ใหม่ (idempotent, ไม่ลบข้อมูลเดิม)
+
+---
+
+## 10. วิธีทดสอบ
+
+### 10.1 เฉพาะตรรกะ payload
 ```powershell
 go test ./internal/pkg/promptpay/... -v
 ```
 
-### 7.2 End-to-end
+### 10.2 End-to-end (PowerShell)
 
-**ขั้นที่ 1 — เตรียมระบบ (รันผ่าน cmd)**
-
-รันทีละคำสั่งใน Command Prompt ที่ path `apps/backend`:
-
-```cmd
-1. สตาร์ท MinIO (object storage)
+**เตรียม:** Postgres รันที่ `localhost:5432`, MinIO ผ่าน Docker:
+```powershell
 docker run -d --name minio -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin minio/minio server /data --console-address ":9001"
-
-2. ตั้ง PROMPTPAY_ID ใน .env เป็นเบอร์ผู้รับเงินจริง (แก้ไฟล์)
-
-3. migrate + seed (สร้างตาราง + user + invoice ตัวอย่าง)
-go run ./cmd/init-db
-
-4. start server
+go run ./cmd/init-db      # migrate + seed (admin@example.com / admin, booking 1=220, booking 2=859)
 go run ./cmd/serve
 ```
 
-> MinIO console: http://localhost:9001 (minioadmin / minioadmin) — bucket `payment-qr` สร้างอัตโนมัติตอน start
+**① login + สร้าง QR**
+```powershell
+$login = Invoke-RestMethod -Uri http://localhost:8080/api/v1/auth/login -Method Post `
+  -ContentType "application/json" -Body '{"email":"admin@example.com","password":"admin"}'
+$headers = @{ Authorization = "Bearer $($login.data.access_token)" }
 
-**ขั้นที่ 2 — ทดสอบ API ด้วย Postman**
+$qr = Invoke-RestMethod -Uri http://localhost:8080/api/v1/payments/qr -Method Post `
+  -ContentType "application/json" -Headers $headers `
+  -Body '{"booking_id":1,"mode":"biller"}'    # ต้องตั้ง BILLER_ID 15 หลักก่อน
+$qr.data | Format-List
+Start-Process $qr.data.qr_code_url
+```
+สแกน QR ด้วยแอปธนาคาร → ผู้รับต้องเป็นมหาวิทยาลัย, Ref1 = `BK1`, ยอด 220.00
 
-**(2.1) Login เพื่อเอา access token**
+**② ยืนยัน persist** (psql)
+```powershell
+psql "postgresql://postgres:postgres@localhost:5432/mydb" -c "SELECT booking_id, qr_ref1, qr_object_key, qr_issued_at FROM invoices WHERE booking_id=1;"
+```
 
-|                   |                                                         |
-| ----------------- | ------------------------------------------------------- |
-| Method            | `POST`                                                  |
-| URL               | `http://localhost:8080/api/v1/auth/login`               |
-| Headers           | `Content-Type: application/json`                        |
-| Body (raw / JSON) | `{ "email": "admin@example.com", "password": "admin" }` |
-
-จาก response คัดลอกค่า `data.access_token` ไปใช้ในขั้นถัดไป
-
-**(2.2) Generate QR**
-
-|                   |                                                                            |
-| ----------------- | -------------------------------------------------------------------------- |
-| Method            | `POST`                                                                     |
-| URL               | `http://localhost:8080/api/v1/payments/qr`                                 |
-| Headers           | `Content-Type: application/json`<br>`Authorization: Bearer <access_token>` |
-| Body (raw / JSON) | `{ "invoice_id": 1, "mode": "promptpay" }`                                 |
-
-- ตั้ง Authorization tab เป็น **Bearer Token** แล้ววาง token หรือใส่ใน Headers ตรงๆ ก็ได้
-- เปลี่ยน `invoice_id` เป็น `2` เพื่อทดสอบยอด 2500.50
-- เปลี่ยน `mode` เป็น `biller` เพื่อทดสอบโหมด bill payment (ต้องตั้ง `BILLER_ID` 15 หลักใน `.env` ก่อน)
-
-**(2.3) ดูรูป QR** — คัดลอก `data.qr_code_url` จาก response ไปเปิดใน browser (presigned URL ใช้ได้ 15 นาที)
-
-**ยืนยันสุดท้าย:** สแกน QR ด้วยแอปธนาคารจริง → ต้องขึ้นชื่อเจ้าของ `PROMPTPAY_ID`
-และยอดตรงกับ invoice
+**③ ตรวจสลิป** (ต้องมี `EASYSLIP_API_KEY`) — ทดสอบเร็วด้วย payload ของสลิปจริง
+```powershell
+Invoke-RestMethod -Uri http://localhost:8080/api/v1/payments/verify-slip -Method Post `
+  -ContentType "application/json" -Headers $headers `
+  -Body '{"booking_id":1,"payload":"<qr-string-จากสลิปจริง>"}'
+```
+คาดหวัง `status=auto_verified`, `match_amount=true`, `match_ref=true`
 
 ---
 
-## 8. ความพร้อมใช้งาน (Readiness)
+## 11. ความพร้อมใช้งาน
 
-### ✅ พร้อมใช้ (development / internal)
+### ✅ พร้อม (development / internal)
+- สร้าง payload PromptPay + Biller ถูกต้องตาม EMVCo (CRC ผ่าน test)
+- ยอดจาก `bookings.total_price` เสมอ (กัน client ปลอมยอด)
+- QR persist ลง invoice (มีตัวตั้งให้ match)
+- ตรวจสลิป EasySlip + auto-match (ยอด/ref1/เวลา) + dedupe + flag ผู้รับ
+- endpoint ต้องล็อกอิน, รูป QR เก็บ MinIO + presigned URL หมดอายุได้
 
-- สร้าง payload PromptPay + Biller ถูกต้องตาม EMVCo (CRC ผ่าน unit test)
-- ยอดเงินดึงจาก DB เสมอ (กัน client ปลอมยอด)
-- endpoint ต้องล็อกอิน (`AuthMiddleware`)
-- รูป QR เก็บ MinIO + presigned URL มีวันหมดอายุ
+### ⚠️ ต้องทำก่อน production
+- [ ] ตั้ง `BILLER_ID` / `PROMPTPAY_ID` เป็นบัญชีจริงของมหาวิทยาลัย
+- [ ] ตั้ง `EASYSLIP_API_KEY` จริง และ **verify response mapping กับ response จริง** (ปรับ `easyslip.go` ถ้า field ต่าง)
+- [ ] `MINIO_USE_SSL=true` + endpoint จริง
+- [ ] พิจารณากั้น endpoint ด้วย permission (ตอนนี้แค่ล็อกอินก็เรียกได้)
 
-### ⚠️ ต้องทำก่อนขึ้น production
-
-- [ ] `PROMPTPAY_ID` / `BILLER_ID` ตั้งเป็นบัญชีผู้รับเงินจริงของมหาวิทยาลัย
-- [ ] `MINIO_USE_SSL=true` + endpoint จริงเมื่อรันบน production
-- [ ] พิจารณากั้น endpoint ด้วย permission `payment:create` (ตอนนี้แค่ล็อกอินก็เรียกได้)
-- [ ] ตั้ง `PAYMENT_MERCHANT_CITY` ให้ ≤15 ตัวอักษร ถ้าไม่อยากให้ถูกตัด (ไม่กระทบการจ่ายเงิน)
-
-### 📌 ข้อจำกัดที่ควรรู้ (by design / ยังไม่ทำ)
-
-- ยังไม่มี API สร้าง/แก้ invoice — ต้อง seed หรือสร้างจากฝั่ง booking ก่อน
-- โหมด biller ใช้ `BILLER_REF1` จาก `.env` ถ้าตั้งไว้ ไม่งั้น default เป็น `INV<invoiceID>`
-- ยังไม่มีการอัปเดตสถานะการชำระเงิน (`PaymentStatus`) / ตรวจสลิป — เป็นขั้นถัดไป
-- 1 invoice ↔ 1 payment (upsert ด้วย `invoice_id`) เรียก generate ซ้ำจะ reuse payment row เดิมและสร้างรูปใหม่
-
-**สรุป:** ใช้สร้าง QR ชำระเงินได้จริงในระดับ dev/internal ส่วนการขึ้น production ให้ทำ
-ตาม checklist ด้านบน และต่อยอดเรื่องตรวจสลิป/อัปเดตสถานะการชำระเงินต่อไป
-
-```
-
+### 📌 ข้อจำกัด/ยังไม่ทำ
+- ยังไม่มี unit test ของ `PaymentVerifyService` / `easyslip`
+- frontend ยังไม่ต่อ `verify-slip` (หน้า payment ยังใช้ flow เดิม)
+- ยังไม่มี API สร้าง/แก้ invoice — invoice ถูกสร้างพร้อม booking
 ```

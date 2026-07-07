@@ -27,6 +27,18 @@ func NewPaymentService(
 	}
 }
 
+func (s *PaymentService) GetAllStatuses() ([]dto.PaymentStatusResponse, error) {
+	statuses, err := s.paymentRepo.FindAllStatuses()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.PaymentStatusResponse, len(statuses))
+	for i, st := range statuses {
+		result[i] = dto.PaymentStatusResponse{ID: st.ID, Status: st.Status}
+	}
+	return result, nil
+}
+
 func (s *PaymentService) GetAll() ([]dto.PaymentTransactionResponse, error) {
 	txs, err := s.paymentRepo.FindAll()
 	if err != nil {
@@ -102,11 +114,12 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 		return nil, err
 	}
 
-	// If approved, mark invoice as paid and the booking as completed —
-	// without this, a booking stays "approved" forever after payment, so
-	// screens that gate the pay button on status=="approved" (e.g. my
-	// bookings) keep offering to pay again.
-	status, err := s.paymentRepo.FindStatusByName("approved")
+	// If the payment reaches "confirmed" (staff/auto-verify sign-off), mark
+	// the invoice as paid and the booking as completed — without this, a
+	// booking stays "approved" forever after payment, so screens that gate
+	// the pay button on status=="approved" (e.g. my bookings) keep offering
+	// to pay again.
+	status, err := s.paymentRepo.FindStatusByName("confirmed")
 	if err == nil && req.StatusID == status.ID {
 		invoice, err := s.invoiceRepo.FindByID(tx.InvoiceID)
 		if err == nil {

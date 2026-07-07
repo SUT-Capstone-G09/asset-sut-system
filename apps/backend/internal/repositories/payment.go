@@ -56,10 +56,32 @@ func (r *PaymentRepository) FindStatusByName(name string) (*models.PaymentStatus
 	return &status, err
 }
 
+// FindAllStatuses lets callers resolve a status name to its ID at runtime
+// instead of hardcoding IDs that shift whenever the seeded status list changes.
+func (r *PaymentRepository) FindAllStatuses() ([]models.PaymentStatuses, error) {
+	var statuses []models.PaymentStatuses
+	err := r.db.Order("id").Find(&statuses).Error
+	return statuses, err
+}
+
 func (r *PaymentRepository) FindMethodByID(id uint) (*models.PaymentMethods, error) {
 	var method models.PaymentMethods
 	err := r.db.First(&method, id).Error
 	return &method, err
+}
+
+func (r *PaymentRepository) FindMethodByName(name string) (*models.PaymentMethods, error) {
+	var method models.PaymentMethods
+	err := r.db.Where("method = ?", name).First(&method).Error
+	return &method, err
+}
+
+// FindBySlipTransRef looks up a transaction by the bank transaction reference read
+// from a slip. Used to reject a slip that has already been submitted (dedupe).
+func (r *PaymentRepository) FindBySlipTransRef(transRef string) (*models.PaymentTransactions, error) {
+	var tx models.PaymentTransactions
+	err := r.db.Where("slip_trans_ref = ?", transRef).First(&tx).Error
+	return &tx, err
 }
 
 func (r *PaymentRepository) FindAll() ([]models.PaymentTransactions, error) {

@@ -17,16 +17,23 @@ import {
 } from "@/features/payment/services/payment.service";
 import AdminPaymentVerificationModal from "@/features/payment/component/admin/AdminPaymentVerificationModal";
 
-type StatusFilter = "all" | "pending" | "approved" | "rejected";
+type StatusFilter = "all" | "pending" | "confirmed" | "rejected";
 
 const STATUS_STYLE: Record<
   string,
   { label: string; className: string }
 > = {
   pending: { label: "รอตรวจสอบ", className: "bg-orange-100 text-orange-600" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-600" },
+  slip_uploaded: { label: "อัปโหลดสลิปแล้ว", className: "bg-blue-100 text-blue-600" },
+  auto_verified: { label: "ตรวจอัตโนมัติผ่าน", className: "bg-teal-100 text-teal-600" },
+  mismatch: { label: "ข้อมูลไม่ตรง", className: "bg-amber-100 text-amber-600" },
+  confirmed: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-600" },
   rejected: { label: "ปฏิเสธ", className: "bg-red-100 text-red-500" },
 };
+
+// "pending"/"slip_uploaded"/"auto_verified"/"mismatch" are all non-terminal
+// states awaiting a staff decision; group them under the "pending" filter tab.
+const NON_TERMINAL_STATUSES = ["pending", "slip_uploaded", "auto_verified", "mismatch"];
 
 export default function AdminPaymentVerifyPage() {
   const [payments, setPayments] = useState<PaymentTransactionDTO[]>([]);
@@ -68,20 +75,21 @@ export default function AdminPaymentVerifyPage() {
 
   const filtered = payments.filter((p) => {
     if (filter === "all") return true;
+    if (filter === "pending") return NON_TERMINAL_STATUSES.includes(p.status);
     return p.status === filter;
   });
 
   const stats = {
     total: payments.length,
-    pending: payments.filter((p) => p.status === "pending").length,
-    approved: payments.filter((p) => p.status === "approved").length,
+    pending: payments.filter((p) => NON_TERMINAL_STATUSES.includes(p.status)).length,
+    confirmed: payments.filter((p) => p.status === "confirmed").length,
     rejected: payments.filter((p) => p.status === "rejected").length,
   };
 
   const filters: { key: StatusFilter; label: string; count: number }[] = [
     { key: "all", label: "ทั้งหมด", count: stats.total },
     { key: "pending", label: "รอตรวจสอบ", count: stats.pending },
-    { key: "approved", label: "อนุมัติแล้ว", count: stats.approved },
+    { key: "confirmed", label: "อนุมัติแล้ว", count: stats.confirmed },
     { key: "rejected", label: "ปฏิเสธ", count: stats.rejected },
   ];
 
@@ -119,7 +127,7 @@ export default function AdminPaymentVerifyPage() {
         />
         <StatCard
           label="อนุมัติแล้ว"
-          value={stats.approved}
+          value={stats.confirmed}
           valueClass="text-green-500"
           dotClass="bg-green-400"
         />
@@ -269,7 +277,7 @@ function PaymentRow({
     label: payment.status,
     className: "bg-gray-100 text-gray-500",
   };
-  const isPending = payment.status === "pending";
+  const isPending = NON_TERMINAL_STATUSES.includes(payment.status);
 
   return (
     <tr 

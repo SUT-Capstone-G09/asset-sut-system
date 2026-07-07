@@ -63,3 +63,61 @@ export async function attachSlip(transactionId: number, documentId: number): Pro
 export async function getAllPayments(): Promise<PaymentTransactionDTO[]> {
   return apiClient.get<PaymentTransactionDTO[]>("/payments");
 }
+
+export interface PaymentStatusDTO {
+  id: number;
+  status: string;
+}
+
+// The seeded status list (and therefore each status's ID) can change over
+// time — look statuses up by name instead of hardcoding IDs in callers.
+export async function getPaymentStatuses(): Promise<PaymentStatusDTO[]> {
+  return apiClient.get<PaymentStatusDTO[]>("/payments/statuses");
+}
+
+// ── QR generation ──────────────────────────────────────────────────────────
+
+export type QRMode = "promptpay" | "biller";
+
+export interface GenerateQRResponse {
+  booking_id: number;
+  amount: number;
+  payload: string;
+  qr_code_url: string;
+  expires_in: number;
+}
+
+export async function generateQR(
+  bookingId: number,
+  mode: QRMode = "biller"
+): Promise<GenerateQRResponse> {
+  return apiClient.post<GenerateQRResponse>("/payments/qr", {
+    booking_id: bookingId,
+    mode,
+  });
+}
+
+// ── Slip verification (EasySlip) ───────────────────────────────────────────
+
+export interface VerifySlipResponse {
+  transaction_id: number;
+  status: "auto_verified" | "mismatch";
+  trans_ref: string;
+  ref1: string;
+  amount: number;
+  match_amount: boolean;
+  match_ref: boolean;
+  receiver_matched: boolean;
+  receiver_flag: boolean;
+  reasons?: string[];
+}
+
+export async function verifySlip(
+  bookingId: number,
+  documentId: number
+): Promise<VerifySlipResponse> {
+  return apiClient.post<VerifySlipResponse>("/payments/verify-slip", {
+    booking_id: bookingId,
+    document_id: documentId,
+  });
+}
