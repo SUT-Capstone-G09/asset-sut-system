@@ -20,8 +20,8 @@ type DocumentEnvelopes struct {
 	IsOnlineDelivery bool           `gorm:"default:false"`
 	Note             string         `gorm:"type:text"`
 	Status           EnvelopeStatus `gorm:"type:varchar(20);not null;default:'draft'"`
-	AreaID           uint           `gorm:"not null"`
-	Area             *Areas         `gorm:"foreignKey:AreaID" json:"area,omitempty"`
+	RentalSpaceID    uint          `gorm:"not null"`
+	RentalSpace      *RentalSpaces `gorm:"foreignKey:RentalSpaceID" json:"rental_space,omitempty"`
 
 	Orders []EnvelopeOrders `gorm:"foreignKey:EnvelopeID" json:"orders,omitempty"`
 }
