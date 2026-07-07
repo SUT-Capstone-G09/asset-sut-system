@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,14 +23,7 @@ import { HallFormValues } from "../../../schemas/hall-schema";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 import RoomRateModal from "@/features/booking/components/rooms/RoomRateModal";
-
-const BUILDINGS = [
-  "อาคารเรียนรวม 1",
-  "อาคารเรียนรวม 2",
-  "อาคารบริหาร",
-  "อาคารเครื่องมือ F1",
-  "อาคารเครื่องมือ F2",
-];
+import { getBuildings, BuildingDTO } from "@/features/bookings/services/location.service";
 
 export default function HallFormFields() {
   const {
@@ -42,6 +35,13 @@ export default function HallFormFields() {
   } = useFormContext<HallFormValues>();
 
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+  const [buildings, setBuildings] = useState<BuildingDTO[]>([]);
+
+  useEffect(() => {
+    getBuildings()
+      .then(setBuildings)
+      .catch((error) => console.error("Failed to fetch buildings", error));
+  }, []);
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
@@ -149,7 +149,7 @@ export default function HallFormFields() {
               ชื่ออาคาร (Building Name)
             </Label>
             <Controller
-              name="building"
+              name="buildingId"
               control={control}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
@@ -157,24 +157,24 @@ export default function HallFormFields() {
                     className={cn(
                       "rounded-[7px] h-12 data-[size=default]:h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all w-full pl-4 ",
                       themeRing,
-                      errors.building && "border-red-500",
+                      errors.buildingId && "border-red-500",
                     )}
                   >
                     <SelectValue placeholder="เลือกอาคาร" />
                   </SelectTrigger>
                   <SelectContent>
-                    {BUILDINGS.map((bldg) => (
-                      <SelectItem key={bldg} value={bldg}>
-                        {bldg}
+                    {buildings.map((bldg) => (
+                      <SelectItem key={bldg.id} value={bldg.id.toString()}>
+                        {bldg.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.building && (
+            {errors.buildingId && (
               <p className="text-[10px] font-bold text-red-500 ml-1">
-                {errors.building.message}
+                {errors.buildingId.message}
               </p>
             )}
           </div>

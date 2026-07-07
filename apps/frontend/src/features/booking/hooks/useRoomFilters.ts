@@ -86,7 +86,7 @@ export function useRoomFilters() {
     const created = await createLocation({
       type_id: typeId,
       name: newRoom.roomName,
-      building: newRoom.building || undefined,
+      building_id: newRoom.buildingId ? Number(newRoom.buildingId) : undefined,
       image_url: newRoom.image || undefined,
       room_number: newRoom.roomNumber ? parseInt(newRoom.roomNumber) : undefined,
       capacity: newRoom.capacity,
@@ -121,7 +121,7 @@ export function useRoomFilters() {
     await updateLocation(Number(updatedRoom.id), {
       ...(typeId && { type_id: typeId }),
       name: updatedRoom.roomName,
-      building: updatedRoom.building || undefined,
+      building_id: updatedRoom.buildingId ? Number(updatedRoom.buildingId) : undefined,
       ...(newImageKey !== undefined && { image_url: newImageKey }),
       room_number: updatedRoom.roomNumber ? parseInt(updatedRoom.roomNumber) : undefined,
       capacity: updatedRoom.capacity,

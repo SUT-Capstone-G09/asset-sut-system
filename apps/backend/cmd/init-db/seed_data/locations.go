@@ -111,6 +111,13 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	for _, r := range roomSeeds {
+		// Get or create building — done unconditionally (not just for new
+		// locations) so pre-existing seeded locations get backfilled below too.
+		var bldg models.Buildings
+		if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
+			return err
+		}
+
 		// Get or create location (existing locations are reused so newly added
 		// pricing tiers below still get applied to them)
 		var location models.Locations
@@ -118,12 +125,6 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 			// Get or create location type
 			var locType models.LocationTypes
 			if err := db.FirstOrCreate(&locType, models.LocationTypes{Type: r.TypeName}).Error; err != nil {
-				return err
-			}
-
-			// Get or create building
-			var bldg models.Buildings
-			if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
 				return err
 			}
 
@@ -136,6 +137,12 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 				FloorNumber: r.FloorNumber,
 			}
 			if err := db.Create(&location).Error; err != nil {
+				return err
+			}
+		} else if location.BuildingID == nil {
+			// Backfill: location already existed from before buildings were tracked.
+			location.BuildingID = &bldg.ID
+			if err := db.Model(&location).Update("building_id", bldg.ID).Error; err != nil {
 				return err
 			}
 		}

@@ -24,7 +24,7 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   name: "ชื่อโถงพื้นที่",
-  building: "อาคาร",
+  buildingId: "อาคาร",
   image: "รูปพื้นที่จริง",
 };
 
@@ -36,7 +36,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
     resolver: zodResolver(hallSchema) as any,
     defaultValues: {
       name: "",
-      building: "",
+      buildingId: "",
       image: "",
       status: "available",
       notes: "",
@@ -56,7 +56,8 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
       const newHall: Hall = {
         id: "",
         name: data.name,
-        building: data.building,
+        buildingId: data.buildingId,
+        building: "",
         category: "โถงอาคาร",
         image: data.image,
         status: data.status,

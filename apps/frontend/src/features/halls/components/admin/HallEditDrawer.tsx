@@ -25,7 +25,7 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   name: "ชื่อโถงพื้นที่",
-  building: "อาคาร",
+  buildingId: "อาคาร",
   image: "รูปพื้นที่จริง",
 };
 
@@ -37,7 +37,7 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
     resolver: zodResolver(hallSchema) as any,
     defaultValues: {
       name: "",
-      building: "",
+      buildingId: "",
       image: "",
       status: "available",
       notes: "",
@@ -49,7 +49,7 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
     if (hall) {
       methods.reset({
         name: hall.name || "",
-        building: hall.building || "",
+        buildingId: hall.buildingId || "",
         image: hall.image || "",
         status: hall.status || "available",
         notes: hall.notes || "",
@@ -66,7 +66,7 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
       const updatedHall: Hall = {
         ...hall,
         name: data.name,
-        building: data.building,
+        buildingId: data.buildingId,
         image: data.image || hall.image,
         status: data.status,
         notes: data.notes,

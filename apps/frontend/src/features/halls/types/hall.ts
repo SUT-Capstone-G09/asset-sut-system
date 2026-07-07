@@ -10,6 +10,7 @@ export interface HallRates {
 export interface Hall {
   id: string;
   name: string;
+  buildingId?: string;
   building: string;
   category: string; // ล็อกเป็น "โถงอาคาร"
   image: string; // รูปพื้นที่จริง

@@ -82,7 +82,7 @@ export function useHalls() {
     const created = await createLocation({
       type_id: tId,
       name: newHall.name,
-      building: newHall.building || undefined,
+      building_id: newHall.buildingId ? Number(newHall.buildingId) : undefined,
       image_url: newHall.image || undefined,
       capacity: 0, // โถงไม่มีความจุ แต่ backend ต้องการค่า
       status_id: statusId,
@@ -112,7 +112,7 @@ export function useHalls() {
 
     await updateLocation(Number(updatedHall.id), {
       name: updatedHall.name,
-      building: updatedHall.building || undefined,
+      building_id: updatedHall.buildingId ? Number(updatedHall.buildingId) : undefined,
       ...(newImageKey !== undefined && { image_url: newImageKey }),
       capacity: 0,
       ...(statusId && { status_id: statusId }),

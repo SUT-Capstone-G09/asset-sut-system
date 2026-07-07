@@ -21,6 +21,7 @@ export function locationToHall(loc: AdminLocationDTO): Hall {
   return {
     id: String(loc.id),
     name: loc.name,
+    buildingId: loc.building_id ? String(loc.building_id) : undefined,
     building: loc.building ?? "",
     category: loc.type,
     image,

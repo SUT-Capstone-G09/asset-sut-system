@@ -4,7 +4,7 @@ import * as z from "zod";
 // ราคาไม่บังคับ (สูตรคำนวณต่างตามประเภทคำขอ — ยังไม่ implement เฟสนี้)
 export const hallSchema = z.object({
   name: z.string().min(1, "กรุณาระบุชื่อโถงพื้นที่"),
-  building: z.string().min(1, "กรุณาระบุอาคาร"),
+  buildingId: z.string().min(1, "กรุณาระบุอาคาร"),
   image: z.string().min(1, "กรุณาอัปโหลดรูปพื้นที่จริง"),
   status: z.enum(["available", "maintenance"]),
   notes: z.string().optional(),
