@@ -59,7 +59,7 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     id: String(b.id),
     basePrice: b.base_price || 0,
     totalPrice: b.total_price || 0,
-    discountPrice: b.discount_price || 0,
+    discountPrice: 0,
     roomName: loc?.name || firstSlot?.location_name || "ไม่ระบุห้อง",
     roomNumber: loc?.room_number ? String(loc.room_number) : "",
     // Falls back to a label (never "") — BookingGrid groups the list by
@@ -283,7 +283,7 @@ export function useBookingFilters(type: BookingTypeFilter) {
     await updateBookingStatus(Number(updatedBooking.id), { status: updatedBooking.status });
     if (updatedBooking.timeslots && updatedBooking.timeslots.length > 0) {
       await updateBookingExpenses(Number(updatedBooking.id), {
-        discount_price: updatedBooking.discountPrice || 0,
+        is_waived: false,
         timeslots: updatedBooking.timeslots.map((ts) => ({
           timeslot_id: ts.id,
           expenses: ts.expenses.map((exp) => ({
@@ -295,7 +295,7 @@ export function useBookingFilters(type: BookingTypeFilter) {
       });
     } else {
       await updateBookingExpenses(Number(updatedBooking.id), {
-        discount_price: updatedBooking.discountPrice || 0,
+        is_waived: false,
         timeslots: [
           {
             timeslot_id: 0,

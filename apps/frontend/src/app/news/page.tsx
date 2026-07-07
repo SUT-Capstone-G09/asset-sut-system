@@ -141,7 +141,7 @@ export default function NewsPage() {
                         <div className="hidden md:block">
                             <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-white/10 relative">
                                 <img
-                                    src="https://placehold.co/800x600/f26522/ffffff?text=ประกาศรับสมัคร+2567"
+                                    src="https://placehold.co/800x600/f26522/ffffff?text=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3+2567"
                                     alt="ประกาศรับสมัครร้านค้า"
                                     className="w-full h-full object-cover opacity-80"
                                 />
@@ -203,7 +203,7 @@ export default function NewsPage() {
                                         ประกาศด่วน
                                     </div>
                                     <img
-                                        src="https://placehold.co/1200x675/f26522/ffffff?text=ข่าวสาร+มทส."
+                                        src="https://placehold.co/1200x675/f26522/ffffff?text=%E0%B8%82%E0%B9%88%E0%B8%B2%E0%B8%A7%E0%B8%AA%E0%B8%B2%E0%B8%A3+%E0%B8%A1%E0%B8%97%E0%B8%AA."
                                         alt="ประกาศด่วน"
                                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />

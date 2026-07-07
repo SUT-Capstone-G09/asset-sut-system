@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import PageContainer from "@/components/layout/PageContainer";
 import RoomSearchForm from "@/features/bookings/components/RoomSearchForm";
@@ -8,6 +9,14 @@ import RoomRecommendations from "@/features/bookings/components/RoomRecommendati
 import { useRoomSearch } from "@/features/bookings/hooks/useRoomSearch";
 
 export default function BookingSearchPage() {
+  return (
+    <Suspense>
+      <BookingSearchContent />
+    </Suspense>
+  );
+}
+
+function BookingSearchContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category") ?? undefined;
 

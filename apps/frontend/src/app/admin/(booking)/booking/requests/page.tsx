@@ -53,10 +53,14 @@ export default function BookingRequestsPage() {
   const router = useRouter();
   const [approveModalBooking, setApproveModalBooking] = useState<BookingResponseDTO | null>(null);
 
-  const handleAction = async (id: number, status: string) => {
-    setActionLoading(id);
+  const handleAction = async (
+    id: string,
+    status: "pending" | "approved" | "rejected" | "cancelled" | "completed",
+  ) => {
+    const numericId = Number(id);
+    setActionLoading(numericId);
     try {
-      await updateBookingStatus(id, { status });
+      await updateBookingStatus(numericId, { status });
       reload();
     } finally {
       setActionLoading(null);
@@ -162,7 +166,7 @@ export default function BookingRequestsPage() {
                                 อนุมัติ
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleAction(b.id, "rejected")}
+                                onClick={() => handleAction(String(b.id), "rejected")}
                                 disabled={actionLoading === b.id}
                                 className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
                               >
@@ -240,7 +244,7 @@ export default function BookingRequestsPage() {
                 ยกเลิก
               </Button>
               <Button
-                onClick={() => approveModalBooking && handleAction(approveModalBooking.id, "approved")}
+                onClick={() => approveModalBooking && handleAction(String(approveModalBooking.id), "approved")}
                 disabled={actionLoading === approveModalBooking?.id}
                 className="h-11 rounded-[7px] font-bold bg-[var(--color-brand-primary)] hover:opacity-90 text-white min-w-[120px]"
               >

@@ -45,10 +45,14 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
   const [approveModalBooking, setApproveModalBooking] = useState<BookingResponseDTO | null>(null);
   const router = useRouter();
 
-  const handleAction = async (id: number, status: string) => {
-    setActionLoading(id);
+  const handleAction = async (
+    id: string,
+    status: "pending" | "approved" | "rejected" | "cancelled" | "completed",
+  ) => {
+    const numericId = Number(id);
+    setActionLoading(numericId);
     try {
-      await updateBookingStatus(id, { status });
+      await updateBookingStatus(numericId, { status });
       onReload?.();
     } finally {
       setActionLoading(null);
@@ -161,7 +165,7 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
                                 อนุมัติ
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => handleAction(booking.id, "rejected")}
+                                onClick={() => handleAction(String(booking.id), "rejected")}
                                 disabled={actionLoading === booking.id}
                                 className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
                               >
@@ -239,7 +243,7 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
                 ยกเลิก
               </Button>
               <Button
-                onClick={() => approveModalBooking && handleAction(approveModalBooking.id, "approved")}
+                onClick={() => approveModalBooking && handleAction(String(approveModalBooking.id), "approved")}
                 disabled={actionLoading === approveModalBooking?.id}
                 className="h-11 rounded-[7px] font-bold bg-[var(--color-brand-primary)] hover:opacity-90 text-white min-w-[120px]"
               >

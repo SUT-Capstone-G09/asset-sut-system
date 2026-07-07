@@ -19,21 +19,21 @@ const newsData: Record<string, Array<{ date: string; tag: string; title: string;
       tag: "ประกาศด่วน",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/f26522/ffffff?text=ประกาศ",
+      image: "https://placehold.co/400x260/f26522/ffffff?text=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8",
     },
     {
       date: "12 ต.ค. 2567",
       tag: "ประกาศ",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/e55a1a/ffffff?text=รับสมัคร",
+      image: "https://placehold.co/400x260/e55a1a/ffffff?text=%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3",
     },
     {
       date: "08 ต.ค. 2567",
       tag: "ข่าวทั่วไป",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/d4541a/ffffff?text=สุขอนามัย",
+      image: "https://placehold.co/400x260/d4541a/ffffff?text=%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B8%AD%E0%B8%99%E0%B8%B2%E0%B8%A1%E0%B8%B1%E0%B8%A2",
     },
   ],
   activity: [
@@ -42,7 +42,7 @@ const newsData: Record<string, Array<{ date: string; tag: string; title: string;
       tag: "กิจกรรม",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/a67436/ffffff?text=กิจกรรม",
+      image: "https://placehold.co/400x260/a67436/ffffff?text=%E0%B8%81%E0%B8%B4%E0%B8%88%E0%B8%81%E0%B8%A3%E0%B8%A3%E0%B8%A1",
     },
   ],
   general: [
@@ -51,7 +51,7 @@ const newsData: Record<string, Array<{ date: string; tag: string; title: string;
       tag: "ประกาศด่วน",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/f26522/ffffff?text=ประกาศ",
+      image: "https://placehold.co/400x260/f26522/ffffff?text=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8",
     },
   ],
   recruit: [
@@ -60,14 +60,14 @@ const newsData: Record<string, Array<{ date: string; tag: string; title: string;
       tag: "ประกาศด่วน",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/f26522/ffffff?text=ประกาศ",
+      image: "https://placehold.co/400x260/f26522/ffffff?text=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8",
     },
     {
       date: "12 ต.ค. 2567",
       tag: "ประกาศ",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/e55a1a/ffffff?text=รับสมัคร",
+      image: "https://placehold.co/400x260/e55a1a/ffffff?text=%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%AA%E0%B8%A1%E0%B8%B1%E0%B8%84%E0%B8%A3",
     },
   ],
   trade: [
@@ -76,7 +76,7 @@ const newsData: Record<string, Array<{ date: string; tag: string; title: string;
       tag: "ประกาศด่วน",
       title: "ตัวอย่างประกาศรับสมัคร",
       description: "ตัวอย่างรายละเอียดประกาศรับสมัครต่างๆ",
-      image: "https://placehold.co/400x260/f26522/ffffff?text=ประกาศ",
+      image: "https://placehold.co/400x260/f26522/ffffff?text=%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8",
     },
 
   ],

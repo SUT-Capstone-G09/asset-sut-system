@@ -39,28 +39,28 @@ const areas: Partial<Location>[] = [
     name: "โรงอาหารคอนตะวัน",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
     category: "โรงอาหาร",
-    image: "https://placehold.co/400x300/d4541a/ffffff?text=คอนตะวัน",
+    image: "https://placehold.co/400x300/d4541a/ffffff?text=%E0%B8%84%E0%B8%AD%E0%B8%99%E0%B8%95%E0%B8%B0%E0%B8%A7%E0%B8%B1%E0%B8%99",
   },
   {
     id: "4",
     name: "โรงอาหารครัวท่านท้าว",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
     category: "โรงอาหาร",
-    image: "https://placehold.co/400x300/c44e18/ffffff?text=ครัวท่านท้าว",
+    image: "https://placehold.co/400x300/c44e18/ffffff?text=%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%A7%E0%B8%97%E0%B9%88%E0%B8%B2%E0%B8%99%E0%B8%97%E0%B9%89%E0%B8%B2%E0%B8%A7",
   },
   {
     id: "5",
     name: "โรงอาหารเด่นทองกวาว",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
     category: "โรงอาหาร",
-    image: "https://placehold.co/400x300/b44816/ffffff?text=เด่นทองกวาว",
+    image: "https://placehold.co/400x300/b44816/ffffff?text=%E0%B9%80%E0%B8%94%E0%B9%88%E0%B8%99%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%81%E0%B8%A7%E0%B8%B2%E0%B8%A7",
   },
   {
     id: "6",
     name: "โรงอาหารเรียนรวม2",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
     category: "โรงอาหาร",
-    image: "https://placehold.co/400x300/a33a0f/ffffff?text=เรียนรวม2",
+    image: "https://placehold.co/400x300/a33a0f/ffffff?text=%E0%B9%80%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%99%E0%B8%A3%E0%B8%A7%E0%B8%A12",
   },
 ];
 
