@@ -25,6 +25,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
         <MonthlyCalendar
           currentMonth={cal.currentMonth}
           today={cal.today}
+          minBookableDate={cal.minBookableDate}
           selectedDates={cal.selectedDates}
           onToggleDate={cal.toggleDate}
           onPrev={cal.prevMonth}
@@ -44,6 +45,11 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
             getEffectiveTime={cal.getEffectiveTime}
             updateDayTime={cal.updateDayTime}
             removeDate={cal.removeDate}
+            fullDayDates={cal.fullDayDates}
+            toggleFullDay={cal.toggleFullDay}
+            isFullDayAvailable={cal.isFullDayAvailable}
+            allFullDay={cal.allFullDay}
+            setAllFullDay={cal.setAllFullDay}
             sameTimeForAll={cal.sameTimeForAll}
             setSameTimeForAll={cal.setSameTimeForAll}
             globalTime={cal.globalTime}
@@ -53,7 +59,12 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
             onConfirm={() => {
               const timeslots = cal.selectedDates.map((dateStr) => {
                 const t = cal.getEffectiveTime(dateStr);
-                return { date: dateStr, startTime: t.startTime, endTime: t.endTime };
+                return {
+                  date: dateStr,
+                  startTime: t.startTime,
+                  endTime: t.endTime,
+                  isFullDay: !!cal.fullDayDates[dateStr] || (t.startTime === "07:00" && t.endTime === "21:00"),
+                };
               });
               sessionStorage.setItem(
                 `booking_draft_${room.id}`,

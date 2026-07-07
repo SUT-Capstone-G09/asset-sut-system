@@ -7,6 +7,7 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/database"
 	minioinit "github.com/SUT-Capstone-G09/asset-sut-system/internal/initializers/minio"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/easyslip"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/routes"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -43,11 +44,13 @@ func main() {
 	bookingRepo := repositories.NewBookingRepository(db)
 	timeslotRepo := repositories.NewTimeslotRepository(db)
 	invoiceRepo := repositories.NewInvoiceRepository(db)
+	paymentRepo := repositories.NewPaymentRepository(db)
 	documentRepo := repositories.NewDocumentRepository(db)
 	emailTemplateRepo := repositories.NewEmailTemplateRepository(db)
 	emailOutboxRepo := repositories.NewEmailOutboxRepository(db)
 	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
 	recipientRepo := repositories.NewRecipientRepository(db)
+	signatureRepo := repositories.NewSignatureRepository(db)
 
 	// ----------------------------------------
 	// Services
@@ -60,9 +63,12 @@ func main() {
 	storageService := services.NewStorageService(minioClient, cfg.Minio)
 	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
-	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo)
-	paymentQRService := services.NewPaymentQRService(invoiceRepo, storageService, cfg.Payment)
-	documentService := services.NewDocumentService(documentRepo)
+	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo, storageService)
+	paymentQRService := services.NewPaymentQRService(bookingRepo, invoiceRepo, storageService, cfg.Payment)
+	easySlipClient := easyslip.New(cfg.EasySlip.APIKey, cfg.EasySlip.VerifyURL)
+	paymentVerifyService := services.NewPaymentVerifyService(easySlipClient, paymentRepo, invoiceRepo, documentRepo, storageService, cfg.Payment)
+	documentService := services.NewDocumentService(documentRepo, storageService)
 	emailService, err := services.NewEmailService(cfg.SMTP, emailTemplateRepo, emailOutboxRepo)
 	if err != nil {
 		log.Fatalf("failed to init email service: %v", err)
@@ -71,6 +77,7 @@ func main() {
 	emailBroadcastService := services.NewEmailBroadcastService(
 		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
 	)
+	signatureService := services.NewSignatureService(signatureRepo, storageService)
 
 	// ----------------------------------------
 	// Controllers
@@ -82,7 +89,7 @@ func main() {
 	roleCtrl := controllers.NewRoleController(roleService)
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
-	paymentCtrl := controllers.NewPaymentController(paymentQRService)
+	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService, paymentVerifyService)
 	documentCtrl := controllers.NewDocumentController(documentService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
@@ -103,6 +110,7 @@ func main() {
 	emailTemplateCtrl := controllers.NewEmailTemplateController(emailTemplateService)
 	emailBroadcastCtrl := controllers.NewEmailBroadcastController(emailBroadcastService)
 	imageCtrl := controllers.NewImageController(storageService, cfg.Server.PublicBaseURL)
+	signatureCtrl := controllers.NewSignatureController(signatureService)
 
 	// ----------------------------------------
 	// Router
@@ -125,6 +133,7 @@ func main() {
 		EmailTemplateController:  emailTemplateCtrl,
 		EmailBroadcastController: emailBroadcastCtrl,
 		ImageController:          imageCtrl,
+		SignatureController:      signatureCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

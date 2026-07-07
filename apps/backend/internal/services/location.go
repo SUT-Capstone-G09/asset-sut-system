@@ -25,6 +25,24 @@ func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
 	return s.locationRepo.FindAllTypes()
 }
 
+func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
+	buildings, err := s.locationRepo.FindAllBuildings()
+	if err != nil {
+		return nil, err
+	}
+	var res []dto.BuildingResponse
+	for _, b := range buildings {
+		res = append(res, dto.BuildingResponse{
+			ID:        b.ID,
+			Name:      b.Name,
+			Code:      b.Code,
+			CreatedAt: b.CreatedAt,
+			UpdatedAt: b.UpdatedAt,
+		})
+	}
+	return res, nil
+}
+
 func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
 	var locations []models.Locations
 	var err error
@@ -66,7 +84,7 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
 		Name:        req.Name,
-		Building:    req.Building,
+		BuildingID:  req.BuildingID,
 		ImageURL:    req.ImageURL,
 		RoomNumber:  req.RoomNumber,
 		FloorNumber: req.FloorNumber,
@@ -109,8 +127,8 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role st
 	if req.Name != "" {
 		location.Name = req.Name
 	}
-	if req.Building != nil {
-		location.Building = req.Building
+	if req.BuildingID != nil {
+		location.BuildingID = req.BuildingID
 	}
 	if req.ImageURL != nil {
 		location.ImageURL = req.ImageURL
@@ -304,7 +322,7 @@ func (s *LocationService) RemoveEquipment(locationID, equipmentID uint) error {
 
 // ── Addons ───────────────────────────────────────────────────────────────────
 
-func (s *LocationService) CreateAddon(locationID uint, req dto.CreateAddonRequest) (*dto.AddonResponse, error) {
+func (s *LocationService) CreateAddon(locationID *uint, req dto.CreateAddonRequest) (*dto.AddonResponse, error) {
 	addon := &models.LocationAddons{
 		LocationID:   locationID,
 		Name:         req.Name,
@@ -358,6 +376,16 @@ func (s *LocationService) DeleteAddon(id uint) error {
 	return s.locationRepo.DeleteAddon(id)
 }
 
+func (s *LocationService) GetAddonByID(id uint) (*dto.AddonResponse, error) {
+	item, err := s.locationRepo.FindAddonByID(id)
+	if err != nil {
+		return nil, err
+	}
+	res := toAddonResponse(*item)
+	return &res, nil
+}
+
+
 // ── Pricing Tiers ─────────────────────────────────────────────────────────────
 
 func (s *LocationService) CreatePricingTier(locationID uint, req dto.CreatePricingTierRequest) (*dto.PricingTierResponse, error) {
@@ -409,7 +437,7 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
-		Building:    l.Building,
+		BuildingID:  l.BuildingID,
 		ImageURL:    s.resolveImageURL(l.ImageURL),
 		RoomNumber:  l.RoomNumber,
 		FloorNumber: l.FloorNumber,
@@ -418,6 +446,10 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 	}
 	if l.Type != nil {
 		res.Type = l.Type.Type
+	}
+	if l.Building != nil {
+		name := l.Building.Name
+		res.Building = &name
 	}
 	if l.Status != nil {
 		res.Status = l.Status.Status
@@ -468,3 +500,110 @@ func toAddonResponse(a models.LocationAddons) dto.AddonResponse {
 	}
 	return res
 }
+
+// ── Hall Floor Plan ──────────────────────────────────────────────────────────
+
+func (s *LocationService) GetFloorPlan(locationID uint) (*dto.HallFloorPlanResponse, error) {
+	fp, err := s.locationRepo.FindFloorPlanByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+	if fp == nil {
+		return nil, nil
+	}
+	res := s.toFloorPlanResponse(fp)
+	return &res, nil
+}
+
+func (s *LocationService) UpsertFloorPlan(locationID uint, req dto.UpsertHallFloorPlanRequest) (*dto.HallFloorPlanResponse, error) {
+	existing, err := s.locationRepo.FindFloorPlanByLocationID(locationID)
+	if err != nil {
+		return nil, err
+	}
+
+	// object_key ของรูป: default คงของเดิม; อัปเดตเฉพาะเมื่อส่ง key ใหม่ (ไม่ใช่ presigned http url)
+	var imageKey *string
+	if existing != nil {
+		imageKey = existing.TopViewImage
+	}
+	if req.TopViewImage != nil && *req.TopViewImage != "" &&
+		!strings.HasPrefix(*req.TopViewImage, "http://") && !strings.HasPrefix(*req.TopViewImage, "https://") {
+		imageKey = req.TopViewImage
+	}
+
+	blocked := req.BlockedCells
+	if blocked == nil {
+		blocked = [][]int{}
+	}
+
+	fp := &models.HallFloorPlans{
+		LocationID:    locationID,
+		TopViewImage:  imageKey,
+		ImageNaturalW: req.ImageNaturalW,
+		ImageNaturalH: req.ImageNaturalH,
+		GridCols:      req.GridCols,
+		GridRows:      req.GridRows,
+		CellSizeM:     req.CellSizeM,
+		RealWidthM:    req.RealWidthM,
+		RealLengthM:   req.RealLengthM,
+		OverlayX:      req.Overlay.X,
+		OverlayY:      req.Overlay.Y,
+		OverlayW:      req.Overlay.W,
+		OverlayH:      req.Overlay.H,
+		PxPerMX:       req.PxPerMX,
+		PxPerMY:       req.PxPerMY,
+		BlockedCells:  blocked,
+	}
+	if existing != nil {
+		fp.ID = existing.ID
+		fp.CreatedAt = existing.CreatedAt
+	}
+	if err := s.locationRepo.SaveFloorPlan(fp); err != nil {
+		return nil, err
+	}
+	res := s.toFloorPlanResponse(fp)
+	return &res, nil
+}
+
+func (s *LocationService) GetFloorPlanLocationIDs() ([]uint, error) {
+	return s.locationRepo.FindFloorPlanLocationIDs()
+}
+
+func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.HallFloorPlanResponse {
+	blocked := fp.BlockedCells
+	if blocked == nil {
+		blocked = [][]int{}
+	}
+	return dto.HallFloorPlanResponse{
+		LocationID:      fp.LocationID,
+		TopViewImageURL: s.resolveImageURL(fp.TopViewImage),
+		ImageNaturalW:   fp.ImageNaturalW,
+		ImageNaturalH:   fp.ImageNaturalH,
+		GridCols:        fp.GridCols,
+		GridRows:        fp.GridRows,
+		CellSizeM:       fp.CellSizeM,
+		RealWidthM:      fp.RealWidthM,
+		RealLengthM:     fp.RealLengthM,
+		Overlay:         dto.OverlayDTO{X: fp.OverlayX, Y: fp.OverlayY, W: fp.OverlayW, H: fp.OverlayH},
+		PxPerMX:         fp.PxPerMX,
+		PxPerMY:         fp.PxPerMY,
+		BlockedCells:    blocked,
+	}
+}
+// ── Global Addon Services ───────────────────────────────────────────────────
+
+func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
+	items, err := s.locationRepo.FindAllGlobalAddons()
+	if err != nil {
+		return nil, err
+	}
+	var result []dto.AddonResponse
+	for _, item := range items {
+		result = append(result, toAddonResponse(item))
+	}
+	return result, nil
+}
+
+
+
+

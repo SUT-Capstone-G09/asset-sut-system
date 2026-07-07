@@ -133,15 +133,8 @@ export default function BookingEditDrawer({
     // Determine status transitions based on expenses if the current status is pending
     let targetStatus = data.status || booking.status;
     if (booking.status === "pending") {
-      const totalExp = (data.expenses || []).reduce(
-        (sum, item) => sum + (Number(item.amount) || 0),
-        0,
-      );
-      if (totalExp === 0) {
-        targetStatus = "approved";
-      } else {
-        targetStatus = "pending_payment";
-      }
+      // When approving from pending, always move to approved
+      targetStatus = "approved";
     }
 
     const updatedBooking: Booking = {
@@ -169,7 +162,7 @@ export default function BookingEditDrawer({
       attachedDocuments: data.attachedDocuments,
       housekeeperPrice: data.housekeeperPrice || 0,
       housekeeperCount: data.housekeeperCount || 0,
-      expenseStatus: targetStatus === "pending_payment" ? (booking.expenseStatus || "draft") : undefined,
+      expenseStatus: undefined,
     };
 
     onSave(updatedBooking);
@@ -264,9 +257,7 @@ export default function BookingEditDrawer({
                 )}
                 {isSubmitting 
                   ? "กำลังบันทึก..." 
-                  : (booking.status === "pending" || booking.status === "pending_payment" 
-                      ? "แจ้งค่าใช้จ่าย" 
-                      : "บันทึกการแก้ไข")}
+                  : "บันทึกการแก้ไข"}
               </Button>
             </div>
           </form>

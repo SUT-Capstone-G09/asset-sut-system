@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/controllers"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +27,7 @@ type Dependencies struct {
 	EmailTemplateController  *controllers.EmailTemplateController
 	EmailBroadcastController *controllers.EmailBroadcastController
 	ImageController          *controllers.ImageController
+	SignatureController      *controllers.SignatureController
 }
 
 // SetupRoutes wires global middleware and registers every domain's routes onto
@@ -54,5 +56,12 @@ func SetupRoutes(router *gin.Engine, deps *Dependencies) {
 		SetupLocationRoutes(v1, deps)
 		SetupBookingRoutes(v1, deps)
 		SetupDocumentRoutes(v1, deps)
+		SetupSignatureRoutes(v1, deps)
+
+		invoices := v1.Group("/invoices")
+		invoices.Use(middleware.AuthMiddleware(deps.Config.JWT.Secret))
+		{
+			invoices.GET("/:id/transactions", deps.PaymentController.GetByInvoiceID)
+		}
 	}
 }

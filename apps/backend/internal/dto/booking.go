@@ -9,6 +9,7 @@ type TimeslotInput struct {
 	Date       time.Time `json:"date" binding:"required"`
 	StartTime  time.Time `json:"start_time" binding:"required"`
 	EndTime    time.Time `json:"end_time" binding:"required"`
+	IsFullDay  bool      `json:"is_full_day"`
 	AddonIDs   []uint    `json:"addon_ids"`
 }
 
@@ -18,7 +19,8 @@ type CreateBookingRequest struct {
 }
 
 type UpdateBookingStatusRequest struct {
-	StatusID uint   `json:"status_id" binding:"required"`
+	StatusID uint   `json:"status_id"`
+	Status   string `json:"status"`
 	Note     string `json:"note"`
 }
 
@@ -30,6 +32,7 @@ type TimeslotResponse struct {
 	Date          time.Time `json:"date"`
 	StartTime     time.Time `json:"start_time"`
 	EndTime       time.Time `json:"end_time"`
+	IsFullDay     bool      `json:"is_full_day"`
 	PriceSnapshot int       `json:"price_snapshot"`
 	Status        string    `json:"status"`
 	Addons        []BookingAddonResponse `json:"addons"`
@@ -54,16 +57,39 @@ type StatusLogResponse struct {
 }
 
 type BookingResponse struct {
-	ID         uint               `json:"id"`
-	UserID     uint               `json:"user_id"`
-	UserName   string             `json:"user_name"`
-	Purpose    string             `json:"purpose"`
-	BasePrice  int                `json:"base_price"`
-	AddonPrice int                `json:"addon_price"`
-	TotalPrice int                `json:"total_price"`
-	Status     string             `json:"status"`
-	StatusID   uint               `json:"status_id"`
-	Timeslots  []TimeslotResponse `json:"timeslots"`
-	StatusLogs []StatusLogResponse `json:"status_logs"`
-	CreatedAt  time.Time          `json:"created_at"`
+	ID            uint               `json:"id"`
+	UserID        uint               `json:"user_id"`
+	UserName      string             `json:"user_name"`
+	RequesterName string             `json:"requester_name"`
+	RequesterID   string             `json:"requester_id"`
+	RequesterType string             `json:"requester_type"`
+	ContactPhone  string             `json:"contact_phone"`
+	ContactEmail  string             `json:"contact_email"`
+	Purpose       string             `json:"purpose"`
+	BasePrice     int                `json:"base_price"`
+	AddonPrice    int                `json:"addon_price"`
+	TotalPrice    int                `json:"total_price"`
+	Status        string             `json:"status"`
+	StatusID      uint               `json:"status_id"`
+	Timeslots     []TimeslotResponse `json:"timeslots"`
+	StatusLogs    []StatusLogResponse `json:"status_logs"`
+	BookingAddons []BookingAddonResponse `json:"booking_addons"`
+	Documents     []DocumentResponse     `json:"documents"`
+	CreatedAt     time.Time          `json:"created_at"`
+}
+
+type BookingAddonInput struct {
+	AddonName    string `json:"addon_name" binding:"required"`
+	AppliedPrice int    `json:"applied_price" binding:"required"`
+	Quantity     int    `json:"quantity" binding:"required"`
+}
+
+type TimeslotExpensesInput struct {
+	TimeslotID uint                `json:"timeslot_id" binding:"required"`
+	Expenses   []BookingAddonInput `json:"expenses"`
+}
+
+type UpdateBookingExpensesRequest struct {
+	IsWaived  bool                    `json:"is_waived"`
+	Timeslots []TimeslotExpensesInput `json:"timeslots"`
 }

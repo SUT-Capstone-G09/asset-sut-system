@@ -1,19 +1,30 @@
-"use client"
+"use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { UploadCloud, X, RefreshCw, Loader2 } from "lucide-react";
+import { UploadCloud, X, RefreshCw, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { uploadFile, UPLOAD_FOLDERS, UploadFolder } from "@/lib/services/upload";
+import {
+  uploadFile,
+  UPLOAD_FOLDERS,
+  UploadFolder,
+} from "@/lib/services/upload";
 
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
   folder?: UploadFolder | string;
   error?: string;
+  label?: string;
+  icon?: React.ReactNode;
 }
 
-export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.LOCATION_PICS, error }: ImageUploadProps) {
+export default function ImageUpload({
+  value,
+  onChange,
+  folder = UPLOAD_FOLDERS.LOCATION_PICS,
+  error,
+}: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
   const [uploading, setUploading] = useState(false);
@@ -56,39 +67,44 @@ export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.L
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const defaultIcon = (
+    <Upload size={28} className="text-[#f26522]" />
+  );
+
   return (
-    <div className="space-y-2">
+    <div className="w-full space-y-2">
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept="image/*"
+        accept="image/jpeg, image/png, image/webp"
         className="hidden"
       />
 
       {preview ? (
-        <div className="relative group aspect-video rounded-[7px] overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
             alt="Preview"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className={cn(
+              "object-contain w-full h-full transition-opacity duration-300",
+              uploading ? "opacity-50 blur-sm" : "opacity-100 group-hover:opacity-90"
+            )}
           />
-
           {uploading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 text-white text-sm font-bold">
-              <Loader2 size={20} className="animate-spin" />
-              กำลังอัปโหลด...
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 size={32} className="text-[#f26522] animate-spin drop-shadow-md" />
             </div>
           )}
-
           {!uploading && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[7px] font-bold gap-2"
+                className="rounded-lg font-bold gap-2 shadow-lg"
               >
                 <RefreshCw size={14} />
                 เปลี่ยนรูป
@@ -98,7 +114,7 @@ export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.L
                 variant="destructive"
                 size="sm"
                 onClick={handleRemove}
-                className="rounded-[7px] font-bold gap-2"
+                className="rounded-lg font-bold gap-2 shadow-lg"
               >
                 <X size={14} />
                 ลบรูป
@@ -110,23 +126,33 @@ export default function ImageUpload({ value, onChange, folder = UPLOAD_FOLDERS.L
         <div
           onClick={() => !uploading && fileInputRef.current?.click()}
           className={cn(
-            "border-2 border-dashed rounded-[7px] p-10 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer group shadow-inner",
+            "border-2 border-dashed rounded-2xl py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
             error
               ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
-              : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30"
+              : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",
           )}
         >
-          <div className="size-16 rounded-[7px] bg-white shadow-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-            {uploading
-              ? <Loader2 size={32} className="text-[#f26522] animate-spin" />
-              : <UploadCloud size={32} className={cn(error ? "text-red-400" : "text-[#f26522]")} />
-            }
+          <div className="size-16 rounded-[7px] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+            {uploading ? (
+              <Loader2 size={32} className="text-[#f26522] animate-spin" />
+            ) : (
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-brand-primary mb-4">
+                <Upload className="w-6 h-6" />
+              </div>
+            )}
           </div>
           <div className="text-center space-y-1">
-            <p className={cn("text-base font-bold", error ? "text-red-600" : "text-slate-900")}>
+            <p
+              className={cn(
+                "text-base font-bold",
+                error ? "text-red-600" : "text-slate-900",
+              )}
+            >
               {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพ"}
             </p>
-            <p className="text-xs text-slate-400 font-medium">รองรับ JPG, PNG (สูงสุด 10MB)</p>
+            <p className="text-xs text-slate-400 font-medium">
+              รองรับ JPG, PNG (สูงสุด 10MB)
+            </p>
           </div>
         </div>
       )}

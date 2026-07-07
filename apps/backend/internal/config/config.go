@@ -21,7 +21,13 @@ type Config struct {
 	Minio    MinioConfig
 	GDrive   GDriveConfig
 	Payment  PaymentConfig
+	EasySlip EasySlipConfig
 	SMTP     SMTPConfig
+}
+
+type EasySlipConfig struct {
+	APIKey    string
+	VerifyURL string // full verify endpoint; empty = use client default (V2)
 }
 
 type DatabaseConfig struct {
@@ -84,6 +90,8 @@ type PaymentConfig struct {
 	BillerRef2   string // optional secondary reference for biller mode
 	MerchantName string
 	MerchantCity string
+	ReceiverName string
+	ReceiverBank string
 }
 
 // SMTPConfig holds the outbound mail server credentials used by EmailService.
@@ -148,6 +156,12 @@ func LoadConfig() (*Config, error) {
 			BillerRef2:   getEnv("BILLER_REF2", ""),
 			MerchantName: getEnv("PAYMENT_MERCHANT_NAME", "SUT"),
 			MerchantCity: getEnv("PAYMENT_MERCHANT_CITY", "Nakhon Ratchasima"),
+			ReceiverName: getEnv("PAYMENT_RECEIVER_NAME", ""),
+			ReceiverBank: getEnv("PAYMENT_RECEIVER_BANK", ""),
+		},
+		EasySlip: EasySlipConfig{
+			APIKey:    getEnv("EASYSLIP_API_KEY", ""),
+			VerifyURL: getEnv("EASYSLIP_VERIFY_URL", ""),
 		},
 		SMTP: SMTPConfig{
 			Host:     getEnv("SMTP_HOST", "localhost"),
