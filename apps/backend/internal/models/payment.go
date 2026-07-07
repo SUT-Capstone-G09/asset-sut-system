@@ -52,9 +52,6 @@ type PaymentTransactions struct {
 	StatusID       uint             `gorm:"not null" json:"status_id"`
 	Status         *PaymentStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 
-	// ── Slip verification result (from EasySlip) ──
-	// SlipTransRef is the bank transaction reference; its unique index is the
-	// dedupe guard that prevents the same slip being used for two payments.
 	SlipTransRef string     `gorm:"uniqueIndex" json:"slip_trans_ref"`
 	SlipRef1     string     `gorm:"index" json:"slip_ref1"` // ref read from slip → matched to Invoice.QRRef1
 	SlipAmount   int        `json:"slip_amount"`            // amount EasySlip read from the slip
