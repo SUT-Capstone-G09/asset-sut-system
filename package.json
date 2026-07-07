@@ -11,5 +11,11 @@
     "build": "npm run build --workspace=apps/frontend",
     "start": "npm run start --workspace=apps/frontend",
     "lint": "npm run lint --workspace=apps/frontend"
+  },
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "dompurify": "3.4.11",
+    "hono": "4.12.28",
+    "js-yaml": "4.3.0"
   }
 }
