@@ -27,10 +27,10 @@ import {
 } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import Footer from "@/components/layout/footer";
-import { mockLocations } from "@/features/areas/data/mock-rental-spaces";
-import { mockFloorPlans } from "@/features/areas/data/mock-floor-plans";
-import { RentalSpace } from "@/features/areas/types/rental-space";
-import { FloorPlanData, MapElement } from "@/features/areas/types/floor-plan";
+import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
+import { mockFloorPlans } from "@/features/space-rental/data/mock-floor-plans";
+import { RentalSpace } from "@/features/space-rental/types/rental-space";
+import { FloorPlanData, MapElement } from "@/features/space-rental/types/floor-plan";
 
 // Dynamically load Leaflet MiniMap to prevent SSR window errors
 const MiniMap = dynamic(() => import("@/components/map/MiniMap"), {
@@ -45,7 +45,7 @@ const MiniMap = dynamic(() => import("@/components/map/MiniMap"), {
   ),
 });
 
-import StallCard from "@/features/areas/components/public/StallCard";
+import StallCard from "@/features/space-rental/components/public/StallCard";
 
 export default function AreaDetailPage() {
   const params = useParams<{ id: string }>();
@@ -337,3 +337,4 @@ export default function AreaDetailPage() {
     </div>
   );
 }
+

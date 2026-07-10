@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { mockFloorPlans } from "@/features/areas/data/mock-floor-plans";
-import { mockLocations } from "@/features/areas/data/mock-rental-spaces";
-import { RentalSpace } from "@/features/areas/types/rental-space";
-import { FloorPlanData, MapElement } from "@/features/areas/types/floor-plan";
+import { mockFloorPlans } from "@/features/space-rental/data/mock-floor-plans";
+import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
+import { RentalSpace } from "@/features/space-rental/types/rental-space";
+import { FloorPlanData, MapElement } from "@/features/space-rental/types/floor-plan";
 import { 
   Store, MapPin, Tag, Clock, Phone, MessageSquare, 
   Mail, CheckCircle, ArrowLeft
@@ -315,3 +315,4 @@ export default function ShopProfilePage() {
     </div>
   );
 }
+

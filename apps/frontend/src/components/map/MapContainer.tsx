@@ -3,7 +3,7 @@
 import { MapContainer as LeafletMap, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { useRouter } from 'next/navigation';
-import { RentalSpace } from '@/features/areas/types/rental-space';
+import { RentalSpace } from '@/features/space-rental/types/rental-space';
 import { MapPin } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { useEffect, useRef } from 'react';
