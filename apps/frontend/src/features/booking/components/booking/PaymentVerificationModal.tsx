@@ -24,7 +24,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
 
 interface PaymentVerificationModalProps {
   open: boolean;
@@ -483,3 +483,4 @@ export default function PaymentVerificationModal({
     </>
   );
 }
+

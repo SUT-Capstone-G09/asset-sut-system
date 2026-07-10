@@ -45,7 +45,7 @@ import BookingEditDrawer from "./BookingEditDrawer";
 import { mockRooms } from "../../data/rooms";
 import { mockExpenses } from "../../data/expenses";
 import { getHoursFromTimeSlot } from "../../utils/time";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
 
 import {
   Select,
@@ -1460,3 +1460,4 @@ export default function BookingDrawer({
     </>
   );
 }
+

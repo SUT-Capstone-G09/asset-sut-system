@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { BookingFormValues } from "../../../schemas/booking-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
 import { mockRooms } from "../../../data/rooms";
 import { getHoursFromTimeSlot } from "../../../utils/time";
 
@@ -1080,3 +1080,4 @@ export default function BookingFormFields({
     </div>
   );
 }
+

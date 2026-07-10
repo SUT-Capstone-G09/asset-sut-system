@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
-import { generateMockTenants } from "@/features/tenants/data/mock-tenants";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
+import { generateMockTenants } from "@/features/space-rental/data/mock-tenants";
 
 export function useContractActions() {
   const router = useRouter();
@@ -192,3 +192,4 @@ export function useContractActions() {
     hasSingleActiveContract
   };
 }
+

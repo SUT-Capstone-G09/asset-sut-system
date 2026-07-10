@@ -6,8 +6,8 @@ import {
   ShoppingCart, GraduationCap, Truck, Store, Building2,
   ArrowRight,
 } from "lucide-react";
-import PublicAreaCard from "@/features/areas/components/public/PublicAreaCard";
-import { RentalSpace } from "@/features/areas/types/rental-space";
+import PublicAreaCard from "@/features/space-rental/components/public/PublicAreaCard";
+import { RentalSpace } from "@/features/space-rental/types/rental-space";
 
 const stats = [
   { icon: UtensilsCrossed, label: "ศูนย์อาหารและบริการ", value: 0 },
@@ -167,3 +167,4 @@ export default function HomeServices() {
     </div>
   );
 }
+

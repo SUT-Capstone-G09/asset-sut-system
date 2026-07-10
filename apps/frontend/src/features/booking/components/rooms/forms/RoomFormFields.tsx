@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { RoomFormValues } from "../../../schemas/room-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
 import RoomRateModal from "../RoomRateModal";
 
 interface RoomFormFieldsProps {
@@ -415,3 +415,4 @@ export default function RoomFormFields({ isEdit = false }: RoomFormFieldsProps) 
     </div>
   );
 }
+
