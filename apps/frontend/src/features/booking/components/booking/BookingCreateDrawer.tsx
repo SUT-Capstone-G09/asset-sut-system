@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { bookingSchema, BookingFormValues } from "../../schemas/booking-schema";
 import BookingFormFields from "./forms/BookingFormFields";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuthContext } from "@/lib/context/auth-context";
 import { Booking } from "../../types/booking";
 import { generateRecurrenceDates } from "../../utils/recurrence";
 
@@ -26,10 +27,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onAdd: (newBooking: Booking | Booking[]) => void;
-  type: "classroom" | "meeting";
+  type: string;
 }
 
 export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Props) {
+  const { user } = useAuthContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<BookingFormValues>({
@@ -66,13 +68,48 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
     }
   });
 
+  useEffect(() => {
+    if (open) {
+      methods.reset({
+        roomName: "",
+        roomNumber: "",
+        building: "",
+        category: "",
+        requesterName: "",
+        requesterId: "",
+        requesterType: "student",
+        purpose: "",
+        date: "",
+        timeSlot: "",
+        attendees: 1,
+        contactPhone: "",
+        contactEmail: "",
+        notes: "",
+        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+        equipment: [],
+        attachedDocuments: [],
+        expenses: [],
+        housekeeperPrice: 0,
+        housekeeperCount: 0,
+        repeat: false,
+        repeatFrequency: "daily",
+        repeatCustomInterval: 1,
+        repeatCustomUnit: "day",
+        repeatDaysOfWeek: [],
+        repeatEndDateType: "none",
+        repeatEndDate: "",
+        repeatEndCount: 10
+      });
+    }
+  }, [open, methods]);
+
   const onSubmit = async (data: BookingFormValues) => {
     setIsSubmitting(true);
     
     // Simulate API Call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const randomId = `${type === "classroom" ? "CB" : "MB"}-${Math.floor(100 + Math.random() * 900)}`;
+    const randomId = `${type === "classroom" ? "CB" : type === "meeting" ? "MB" : type === "sport" ? "SB" : "HB"}-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date();
     const formattedDate = now.toLocaleDateString("th-TH") + " " + now.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.";
 
@@ -176,7 +213,7 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
                 </div>
                 
                 <SheetTitle className="text-xl font-bold text-slate-900 tracking-tight">
-                  {type === "classroom" ? "ยื่นขอจองห้องเรียน" : "ยื่นขอจองห้องประชุม"}
+                  {type === "classroom" ? "ยื่นขอจองห้องเรียน" : type === "meeting" ? "ยื่นขอจองห้องประชุม" : type === "sport" ? "ยื่นขอจองสนามกีฬา" : type === "hall" ? "ยื่นขอจองโถงอาคาร" : "ยื่นขอจองพื้นที่"}
                 </SheetTitle>
 
                 <SheetDescription className="sr-only">

@@ -42,6 +42,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   type: "ประเภทพื้นที่",
   building: "อาคาร",
   space: "ยูนิตพื้นที่",
+  expenses: "ค่าใช้จ่าย",
 };
 
 // กำหนดว่า section ไหนสามารถเป็น "referrer context" ของ section ไหนได้

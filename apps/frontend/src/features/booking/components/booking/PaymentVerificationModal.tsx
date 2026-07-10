@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Booking } from "../../types/booking";
+import { Booking, BookingExpense } from "../../types/booking";
 import { 
   Banknote, 
   X, 
@@ -21,10 +21,14 @@ import {
   Image as ImageIcon,
   DollarSign,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Trash2,
+  Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
+import { addonService, Addon } from "@/lib/services/addon.service";
 
 interface PaymentVerificationModalProps {
   open: boolean;
@@ -39,26 +43,84 @@ export default function PaymentVerificationModal({
   bookings,
   onUpdateBooking,
 }: PaymentVerificationModalProps) {
-  const [activeTab, setActiveTab] = useState<"pending_payment" | "verifying_payment">("pending_payment");
+  const [activeTab, setActiveTab] = useState<"awaiting" | "verifying">("awaiting");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [slipImage, setSlipImage] = useState<string>("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Filter bookings based on selected status tab
-  const filteredList = bookings.filter((b) => b.status === activeTab);
+  // Filter bookings based on selected status tab — using approved as awaiting and completed as verified (legacy)
+  const filteredList = bookings.filter((b) => b.status === "approved");
 
   const selectedBooking = bookings.find((b) => b.id === selectedBookingId);
+
+  const [isEditingExpenses, setIsEditingExpenses] = useState(false);
+  const [editedExpenses, setEditedExpenses] = useState<BookingExpense[]>([]);
+  const [masterAddons, setMasterAddons] = useState<Addon[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      addonService.getAll()
+        .then(setMasterAddons)
+        .catch((err) => console.error("Failed to load master addons:", err));
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      setEditedExpenses(selectedBooking.expenses || []);
+    } else {
+      setEditedExpenses([]);
+    }
+    setIsEditingExpenses(false);
+  }, [selectedBookingId, bookings]);
+
+  const handleAddExpenseItem = () => {
+    setEditedExpenses((prev) => [...prev, { name: "", unitPrice: 0, quantity: 1, amount: 0 }]);
+  };
+
+  const handleRemoveExpenseItem = (index: number) => {
+    setEditedExpenses((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleExpenseChange = (index: number, key: "name" | "amount", value: string | number) => {
+    setEditedExpenses((prev) =>
+      prev.map((exp, idx) => {
+        if (idx === index) {
+          return {
+            ...exp,
+            [key]: key === "amount" ? Number(value) || 0 : value,
+          };
+        }
+        return exp;
+      })
+    );
+  };
+
+  const handleSaveExpenses = () => {
+    if (!selectedBooking) return;
+    
+    // Clean up empty items
+    const cleanedExpenses = editedExpenses.filter((e) => e.name.trim() !== "");
+    
+    const updated: Booking = {
+      ...selectedBooking,
+      expenses: cleanedExpenses,
+    };
+    onUpdateBooking(updated);
+    setIsEditingExpenses(false);
+    alert("บันทึกการแก้ไขค่าใช้จ่ายเรียบร้อยแล้ว!");
+  };
 
   const handleSimulatePayment = (bookingId: string) => {
     const bookingToUpdate = bookings.find((b) => b.id === bookingId);
     if (bookingToUpdate) {
       const updated: Booking = {
         ...bookingToUpdate,
-        status: "verifying_payment",
-        receiptImage: "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&q=80&w=800", // Simulated receipt slip image
+        status: "completed",
+        receiptImage: "https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&q=80&w=800",
       };
       onUpdateBooking(updated);
-      alert("จำลองการแจ้งชำระเงินสำเร็จ! รายการถูกส่งไปที่ฝั่ง 'รอตรวจสอบการชำระเงิน' แล้ว");
+      alert("จำลองการแจ้งชำระเงินสำเร็จ!");
       setSelectedBookingId(null);
     }
   };
@@ -112,11 +174,11 @@ export default function PaymentVerificationModal({
     if (bookingToUpdate) {
       const updated: Booking = {
         ...bookingToUpdate,
-        status: "pending_payment",
+        status: "pending",
         receiptImage: undefined, // Clear the slip image
       };
       onUpdateBooking(updated);
-      alert("ปฏิเสธการชำระเงินแล้ว ระบบจะส่งกลับไปให้ผู้ขอใช้งานชำระเงินใหม่อีกครั้ง");
+      alert("ปฏิเสธการชำระเงินแล้ว");
       setSelectedBookingId(null);
     }
   };
@@ -164,33 +226,33 @@ export default function PaymentVerificationModal({
           <div className="flex border-b border-slate-100 shrink-0 bg-slate-50/50 p-2 gap-2">
             <button
               onClick={() => {
-                setActiveTab("pending_payment");
+                setActiveTab("awaiting");
                 setSelectedBookingId(null);
                 setSlipImage("");
               }}
               className={cn(
                 "flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2",
-                activeTab === "pending_payment"
+                activeTab === "awaiting"
                   ? "bg-white text-[#f26522] shadow-sm border border-slate-200/50"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
               )}
             >
-              รอชำระเงิน ({bookings.filter(b => b.status === "pending_payment").length})
+              รอชำระเงิน ({bookings.filter(b => b.status === "approved").length})
             </button>
             <button
               onClick={() => {
-                setActiveTab("verifying_payment");
+                setActiveTab("verifying");
                 setSelectedBookingId(null);
                 setSlipImage("");
               }}
               className={cn(
                 "flex-1 py-3 px-4 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2",
-                activeTab === "verifying_payment"
+                activeTab === "verifying"
                   ? "bg-white text-[#f26522] shadow-sm border border-slate-200/50"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
               )}
             >
-              รอตรวจสอบการชำระเงิน ({bookings.filter(b => b.status === "verifying_payment").length})
+              รอตรวจสอบการชำระเงิน ({bookings.filter(b => b.status === "completed").length})
             </button>
           </div>
 
@@ -288,12 +350,178 @@ export default function PaymentVerificationModal({
                       </div>
                       <div className="pt-2 border-t border-dashed border-slate-200 flex justify-between font-black text-sm">
                         <span className="text-slate-700">ค่าใช้จ่ายรวม:</span>
-                        <span className="text-[#f26522]">฿ {calculateTotalExpenses(selectedBooking).toLocaleString()}</span>
+                        <span className="text-[#f26522]">
+                          ฿ {isEditingExpenses 
+                            ? editedExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()
+                            : calculateTotalExpenses(selectedBooking).toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
+                    {/* Expenses Management Section */}
+                    <div className="space-y-3 mt-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xs font-black text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                          <Banknote size={14} className="text-[#f26522]" />
+                          รายการค่าใช้จ่าย (Expenses)
+                        </h3>
+                        {!isEditingExpenses && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditedExpenses(selectedBooking.expenses || []);
+                              setIsEditingExpenses(true);
+                            }}
+                            className="text-[10px] font-bold text-[#f26522] hover:text-[#d8561d] flex items-center gap-1 bg-transparent border-none cursor-pointer hover:underline focus:outline-none"
+                          >
+                            <Pencil size={10} />
+                            แก้ไขค่าใช้จ่าย
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditingExpenses ? (
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          <div className="max-h-[150px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                            {editedExpenses.map((exp, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                {exp.name && !masterAddons.some(a => a.itemName === exp.name) ? (
+                                  <div className="flex-1 flex items-center gap-1 bg-white border border-slate-200 focus-within:border-[#f26522] rounded-lg pr-1">
+                                    <input
+                                      type="text"
+                                      placeholder="ชื่อรายการระบุเอง..."
+                                      value={exp.name}
+                                      onChange={(e) => handleExpenseChange(idx, "name", e.target.value)}
+                                      className="flex-1 h-8 px-2 bg-transparent focus:outline-none text-xs font-bold text-slate-700"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleExpenseChange(idx, "name", "")}
+                                      className="text-slate-400 hover:text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded hover:bg-slate-100"
+                                    >
+                                      เลือกใหม่
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={exp.name}
+                                    onChange={(e) => {
+                                      if (e.target.value === "__custom__") {
+                                        handleExpenseChange(idx, "name", "รายการระบุเอง");
+                                      } else {
+                                        const selected = masterAddons.find(a => a.itemName === e.target.value);
+                                        if (selected) {
+                                          handleExpenseChange(idx, "name", selected.itemName);
+                                          handleExpenseChange(idx, "amount", selected.pricePerUnit);
+                                        }
+                                      }
+                                    }}
+                                    className="flex-1 h-8 px-2 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-lg text-xs font-bold text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="">เลือกประเภทค่าใช้จ่าย...</option>
+                                    {masterAddons.map((addon) => (
+                                      <option key={addon.id} value={addon.itemName}>
+                                        {addon.itemName} (฿{addon.pricePerUnit})
+                                      </option>
+                                    ))}
+                                    <option value="__custom__">ระบุเอง (Custom)...</option>
+                                  </select>
+                                )}
+                                <input
+                                  type="number"
+                                  placeholder="ยอดเงิน"
+                                  value={exp.amount || ""}
+                                  onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
+                                  className="w-20 h-8 px-2 bg-white border border-slate-200 focus:outline-none focus:border-[#f26522] rounded-lg text-xs font-bold text-slate-700"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExpenseItem(idx)}
+                                  className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleAddExpenseItem}
+                            className="w-full py-1.5 border border-dashed border-slate-300 hover:border-[#f26522] text-slate-500 hover:text-[#f26522] rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer bg-white"
+                          >
+                            <Plus size={12} />
+                            เพิ่มรายการ
+                          </button>
+
+                          <div className="flex gap-2 pt-2 border-t border-slate-200/60">
+                            <Button
+                              onClick={() => setIsEditingExpenses(false)}
+                              variant="ghost"
+                              className="flex-1 h-8 text-[10px] font-bold text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer"
+                            >
+                              ยกเลิก
+                            </Button>
+                            <Button
+                              onClick={handleSaveExpenses}
+                              className="flex-1 h-8 text-[10px] font-bold bg-[#f26522] hover:bg-[#d8561d] text-white rounded-lg cursor-pointer"
+                            >
+                              บันทึกค่าใช้จ่าย
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100 text-[11px] max-h-[140px] overflow-y-auto custom-scrollbar">
+                          {selectedBooking.timeslots && selectedBooking.timeslots.length > 0 ? (
+                            <div className="space-y-4">
+                              {selectedBooking.timeslots.map((ts, idx) => (
+                                <div key={ts.id || idx} className="space-y-2">
+                                  <div className="font-black text-slate-700 text-xs border-b border-slate-200 pb-1 mb-2">
+                                    {new Date(ts.date).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })} ({ts.timeSlot})
+                                  </div>
+                                  
+                                  {ts.priceSnapshot > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                      <span>ค่าเช่าพื้นที่</span>
+                                      <span className="text-slate-800">
+                                        ฿ {ts.priceSnapshot.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {ts.expenses && ts.expenses.length > 0 && (
+                                    ts.expenses.map((exp, eIdx) => (
+                                      <div key={eIdx} className="flex justify-between items-center text-slate-600 font-bold pl-2">
+                                        <span>{exp.name} {exp.quantity > 1 ? `(x${exp.quantity})` : ''}</span>
+                                        <span className={cn(exp.amount < 0 ? "text-emerald-600" : "text-slate-800")}>
+                                          {exp.amount < 0 ? "-" : ""} ฿ {Math.abs(exp.amount).toLocaleString()}
+                                        </span>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            selectedBooking.expenses && selectedBooking.expenses.length > 0 ? (
+                              selectedBooking.expenses.map((exp, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-slate-600 font-bold">
+                                  <span>{exp.name}</span>
+                                  <span className={cn(exp.amount < 0 ? "text-emerald-600" : "text-slate-800")}>
+                                    {exp.amount < 0 ? "-" : ""} ฿ {Math.abs(exp.amount).toLocaleString()}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-slate-400 py-1 font-bold">ไม่มีรายการค่าใช้จ่าย</div>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Action inputs based on status */}
-                    {activeTab === "pending_payment" && (
+                    {activeTab === "awaiting" && (
                       <div className="space-y-3 bg-slate-50/50 border border-slate-100 p-4 rounded-xl">
                         <h4 className="text-xs font-black text-slate-700 font-bold">จำลองการชำระเงินโดยผู้ใช้งาน</h4>
                         <p className="text-[10px] text-slate-500 leading-relaxed">
@@ -302,7 +530,7 @@ export default function PaymentVerificationModal({
                       </div>
                     )}
 
-                    {activeTab === "verifying_payment" && (
+                    {activeTab === "verifying" && (
                       <div className="space-y-3">
                         {selectedBooking.receiptImage ? (
                           <>
@@ -421,7 +649,7 @@ export default function PaymentVerificationModal({
                   </div>
 
                   <div className="pt-6 border-t border-slate-100 mt-6 flex items-center gap-3">
-                    {activeTab === "pending_payment" ? (
+                    {activeTab === "awaiting" ? (
                       <Button
                         onClick={() => handleSimulatePayment(selectedBooking.id)}
                         className="w-full h-11 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold text-xs shadow-md shadow-[#f26522]/10 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"

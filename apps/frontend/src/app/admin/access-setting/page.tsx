@@ -7,8 +7,8 @@ import StaffTab from "@/features/user-management/components/StaffTab";
 import RequesterTab from "@/features/user-management/components/RequesterTab";
 
 const TABS = [
-  { id: "admin", label: "Admin", icon: ShieldCheck },
-  { id: "staff", label: "Staff", icon: Users },
+  { id: "admin", label: "เจ้าหน้าที่บริหารส่วนสินทรัพย์", icon: ShieldCheck },
+  { id: "staff", label: "เจ้าหน้าที่ประจำสถานที่", icon: Users },
   { id: "requester", label: "ผู้ขอใช้บริการ", icon: UserCircle2 },
 ] as const;
 

@@ -51,8 +51,9 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
-	// Payment statuses
-	for _, s := range []string{"pending", "approved", "rejected"} {
+	// Payment statuses — verification flow:
+	// pending → slip_uploaded → auto_verified → confirmed (mismatch/rejected are terminal-ish)
+	for _, s := range []string{"pending", "slip_uploaded", "auto_verified", "mismatch", "confirmed", "rejected"} {
 		if err := db.FirstOrCreate(&models.PaymentStatuses{}, models.PaymentStatuses{Status: s}).Error; err != nil {
 			return err
 		}
@@ -86,21 +87,27 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
-	// Request types
-	reqTypes := []models.RequestTypes{
-		{Name: "แจ้งซ่อมครุภัณฑ์", Description: "แจ้งซ่อมแซมครุภัณฑ์และอุปกรณ์ต่างๆ"},
-		{Name: "แจ้งปัญหาการใช้งานพื้นที่", Description: "แจ้งปัญหาเกี่ยวกับพื้นที่ อาคาร หรือสิ่งอำนวยความสะดวก"},
-	}
-	for _, t := range reqTypes {
-		if err := db.FirstOrCreate(&models.RequestTypes{}, models.RequestTypes{Name: t.Name, Description: t.Description}).Error; err != nil {
-			return err
-		}
+	// Master Addons (Expenses)
+	initialAddons := []models.LocationAddons{
+		{LocationID: nil, Name: "ค่าเก็บขยะ", Description: "", DefaultPrice: 100, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "แม่บ้าน", Description: "", DefaultPrice: 359, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "อินเทอร์เน็ต", Description: "", DefaultPrice: 599, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "ค่าน้ำประปา", Description: "", DefaultPrice: 150, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "พนักงานรักษาความปลอดภัย", Description: "", DefaultPrice: 500, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "ตรวจเช็คถังดับเพลิง", Description: "", DefaultPrice: 250, ChargeTypeID: 1, Quantity: 1, IsActive: true},
+		{LocationID: nil, Name: "น้ำดื่มและเครื่องดื่มบริการ", Description: "", DefaultPrice: 120, ChargeTypeID: 1, Quantity: 1, IsActive: true},
 	}
 
-	// Request statuses (canonical 5 values)
-	for _, s := range []string{"pending", "in_progress", "completed", "cancelled", "reject"} {
-		if err := db.FirstOrCreate(&models.RequestStatus{}, models.RequestStatus{Status: s}).Error; err != nil {
-			return err
+	for _, a := range initialAddons {
+		var existing models.LocationAddons
+		if err := db.Where("name = ? AND location_id IS NULL", a.Name).First(&existing).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				if err := db.Create(&a).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 

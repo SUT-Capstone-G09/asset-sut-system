@@ -3,7 +3,7 @@ import * as z from "zod";
 export const roomSchema = z.object({
   roomName: z.string().min(1, "กรุณาระบุชื่อห้อง"),
   roomNumber: z.string().optional().default(""),
-  building: z.string().min(1, "กรุณาระบุอาคาร"),
+  buildingId: z.string().min(1, "กรุณาระบุอาคาร"),
   category: z.string().min(1, "กรุณาเลือกประเภทห้อง"),
   capacity: z.coerce.number().min(1, "จำนวนความจุต้องมากกว่า 0"),
   image: z.string().min(1, "กรุณาอัปโหลดรูปภาพ"),

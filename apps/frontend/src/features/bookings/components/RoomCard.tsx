@@ -7,7 +7,7 @@ import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
 
 const BADGE_STYLES: Record<string, string> = {
-  ยอดนิยม: "bg-orange-500 text-white",
+  ยอดนิยม: "bg-brand-primary text-white",
   ใหม่: "bg-violet-500 text-white",
   Premium: "bg-yellow-500 text-white",
 };

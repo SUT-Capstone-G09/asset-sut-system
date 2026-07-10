@@ -13,6 +13,7 @@ import {
   Wrench,
   Settings,
   Mail,
+  LayoutGrid,
   ChevronDown,
   Star,
 } from "lucide-react";
@@ -97,8 +98,14 @@ const menuGroups: MenuGroup[] = [
       {
         id: "booking-requests",
         label: "คำขอจองพื้นที่",
-        icon: ClipboardList,
+        icon: LayoutDashboard,
         href: "/admin/booking/requests",
+      },
+      {
+        id: "booking",
+        label: "ขอใช้พื้นที่",
+        icon: Calendar,
+        href: "/admin/booking",
       },
       {
         id: "payment-verify",
@@ -107,19 +114,17 @@ const menuGroups: MenuGroup[] = [
         href: "/admin/payment/verify",
       },
       {
-        id: "booking",
-        label: "ขอใช้พื้นที่",
-        icon: Calendar,
-        subItems: [
-          { label: "ห้องเรียน", href: "/admin/booking/classroom" },
-          { label: "ห้องประชุม", href: "/admin/booking/meeting" },
-        ],
-      },
-      {
         id: "manage-rooms",
         label: "จัดการห้อง",
         icon: Building,
         href: "/admin/manage-rooms",
+      },
+      {
+        id: "manage-halls",
+        label: "จัดการโถงพื้นที่",
+        icon: LayoutGrid,
+        href: "/admin/manage-halls",
+        roles: ["admin"], // เฟสนี้ admin เท่านั้น
       },
       {
         id: "calendar",

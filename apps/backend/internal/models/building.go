@@ -17,4 +17,5 @@ type Buildings struct {
 	BuildingType   *BuildingTypes `gorm:"foreignKey:BuildingTypeID"`
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
 	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
+	Locations []Locations `gorm:"foreignKey:BuildingID"`
 }

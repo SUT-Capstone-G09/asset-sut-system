@@ -101,7 +101,7 @@
   --color-warning-600: #e4c30e;
   --color-warning-700: #c59909;
   --color-warning-800: #9d6e0b;
-    /* Information */
+  /* Information */
   --color-info-50: #eff6ff;
   --color-info-100: #daebff;
   --color-info-200: #bddcff;
@@ -270,6 +270,12 @@ html {
     scrollbar-width: none;
   }
 }
+input::placeholder,
+textarea::placeholder,
+[data-placeholder] {
+  color: var(--color-neutral-400);
+}
+
 .upload-zone {
   border-color: #cbd5e1; /* slate-300 */
   background-color: #f8fafc; /* slate-50 */

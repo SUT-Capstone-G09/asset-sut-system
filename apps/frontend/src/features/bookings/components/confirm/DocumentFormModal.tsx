@@ -1,10 +1,15 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { X, Download, Loader2, Eraser, CheckCircle2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { X, Download, Loader2, CheckCircle2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
+import { verifyPasswordApi } from "@/lib/services/auth.service";
+import { fmtLong, fmtShortD, fmtShortM, fmtShortBE, todayParts } from "@/lib/utils/thaiDate";
+import { useThaiAddressAutofill } from "@/features/bookings/hooks/useThaiAddressAutofill";
+import SignaturePad from "./SignaturePad";
+import FField from "./FField";
 
 interface Timeslot {
   date: string;
@@ -18,137 +23,68 @@ interface DocumentFormModalProps {
   purpose: string;
   onClose: () => void;
   onGenerated: (file: File) => void;
-  onPurposeChange?: (value: string) => void;
 }
-
-const THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-const THAI_MONTHS_LONG  = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-
-function parseDate(dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return { d, m, y, be: y + 543 };
-}
-function fmtLong(dateStr: string) {
-  const { d, m, be } = parseDate(dateStr);
-  return `${d} ${THAI_MONTHS_LONG[m - 1]} พ.ศ. ${be}`;
-}
-function fmtShortD(dateStr: string) { return String(parseDate(dateStr).d); }
-function fmtShortM(dateStr: string) { return THAI_MONTHS_SHORT[parseDate(dateStr).m - 1]; }
-function fmtShortBE(dateStr: string) { return String(parseDate(dateStr).be); }
-
-function todayParts() {
-  const n = new Date();
-  return { d: n.getDate(), m: THAI_MONTHS_LONG[n.getMonth()], be: n.getFullYear() + 543 };
-}
-
-
-// ── Signature pad ─────────────────────────────────────────────────────────────
-
-function SignaturePad({ onChange }: { onChange: (url: string | null) => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing = useRef(false);
-  const last = useRef<{ x: number; y: number } | null>(null);
-  const [isEmpty, setIsEmpty] = useState(true);
-
-  const pos = (e: MouseEvent | TouchEvent, c: HTMLCanvasElement) => {
-    const r = c.getBoundingClientRect();
-    const sx = c.width / r.width, sy = c.height / r.height;
-    if ("touches" in e) return { x: (e.touches[0].clientX - r.left) * sx, y: (e.touches[0].clientY - r.top) * sy };
-    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
-  };
-
-  useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const ctx = c.getContext("2d")!;
-
-    const down = (e: MouseEvent | TouchEvent) => { e.preventDefault(); drawing.current = true; last.current = pos(e, c); };
-    const move = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      if (!drawing.current || !last.current) return;
-      const p = pos(e, c);
-      ctx.beginPath(); ctx.strokeStyle = "#111"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-      last.current = p; setIsEmpty(false); onChange(c.toDataURL("image/png"));
-    };
-    const up = () => { drawing.current = false; last.current = null; };
-
-    c.addEventListener("mousedown", down); c.addEventListener("mousemove", move);
-    c.addEventListener("mouseup", up); c.addEventListener("mouseleave", up);
-    c.addEventListener("touchstart", down, { passive: false }); c.addEventListener("touchmove", move, { passive: false });
-    c.addEventListener("touchend", up);
-    return () => {
-      c.removeEventListener("mousedown", down); c.removeEventListener("mousemove", move);
-      c.removeEventListener("mouseup", up); c.removeEventListener("mouseleave", up);
-      c.removeEventListener("touchstart", down); c.removeEventListener("touchmove", move);
-      c.removeEventListener("touchend", up);
-    };
-  }, [onChange]);
-
-  const clear = () => {
-    const c = canvasRef.current;
-    if (!c) return;
-    c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
-    setIsEmpty(true); onChange(null);
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className="text-xs font-medium text-gray-600">ลายเซ็น <span className="text-red-400">*</span></label>
-        <button onClick={clear} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400">
-          <Eraser size={12} /> ลบ
-        </button>
-      </div>
-      <div className={cn("rounded-xl border-2 border-dashed overflow-hidden bg-gray-50", isEmpty ? "border-red-200" : "border-gray-200")}>
-        <canvas ref={canvasRef} width={600} height={100} className="w-full h-[75px] cursor-crosshair touch-none" />
-      </div>
-      <p className="text-xs text-gray-400 mt-1">วาดลายเซ็นในกรอบด้านบน</p>
-    </div>
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
 
 interface FormData {
   prefix: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   position: string;
   department: string;
-  address: string;
+  houseNo: string;
+  road: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postalCode: string;
   phone: string;
   attendees: string;
-  purposeText: string;
   buildingType: string;
   otherBuilding: string;
 }
 
-const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่นๆ"];
+const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่น ๆ"];
 
-export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated, onPurposeChange }: DocumentFormModalProps) {
+export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated }: DocumentFormModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [generatedFile, setGeneratedFile] = useState<File | null>(null);
   const [sig, setSig] = useState<string | null>(null);
+  const [sigMode, setSigMode] = useState<"draw" | "upload" | "saved">("draw");
+  const [showPwPrompt, setShowPwPrompt] = useState(false);
+  const [pwValue, setPwValue] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [form, setForm] = useState<FormData>({
-    prefix: "นาย",
-    fullName: "",
+    prefix: "",
+    firstName: "",
+    lastName: "",
     position: "",
     department: "",
-    address: "",
+    houseNo: "",
+    road: "",
+    subdistrict: "",
+    district: "",
+    province: "",
+    postalCode: "",
     phone: "",
     attendees: "",
-    purposeText: purpose,
-    buildingType: "อื่นๆ",
+    buildingType: "อื่น ๆ",
     otherBuilding: room.name,
   });
 
   const set = (f: keyof FormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      const value = e.target.value;
-      setForm((p) => ({ ...p, [f]: value }));
-      if (f === "purposeText") onPurposeChange?.(value);
+      setForm((p) => ({ ...p, [f]: e.target.value }));
     };
+
+  const {
+    subdistrictOptions,
+    districtOptions,
+    handlePostalCodeChange,
+    handleSubdistrictChange,
+    handleDistrictChange,
+  } = useThaiAddressAutofill(form, setForm);
 
   // date/time helpers from timeslots
   const firstSlot = timeslots[0];
@@ -190,10 +126,43 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
     onClose();
   };
 
-  const isValid = form.fullName.trim() && form.department.trim() && form.phone.trim() && form.purposeText.trim() && sig !== null;
+  // Step-up auth: re-confirm the account password before applying a reused
+  // signature (uploaded file or saved-from-before) to a new document. Not
+  // required when freshly drawn — drawing it live each time is itself proof
+  // of present intent.
+  const requestSign = () => {
+    if (sigMode === "draw") {
+      handleGenerate();
+      return;
+    }
+    setPwValue("");
+    setPwError(null);
+    setShowPwPrompt(true);
+  };
+
+  const confirmPasswordAndSign = async () => {
+    if (!pwValue) return;
+    setVerifying(true);
+    setPwError(null);
+    try {
+      await verifyPasswordApi(pwValue);
+      setShowPwPrompt(false);
+      await handleGenerate();
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "รหัสผ่านไม่ถูกต้อง");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const phoneValid = form.phone ? /^0\d{8,9}$/.test(form.phone.replace(/[-\s]/g, "")) : false;
+  const attendeesNum = parseInt(form.attendees);
+  const attendeesValid = !form.attendees || (!isNaN(attendeesNum) && attendeesNum > 0 && attendeesNum <= room.capacityMax);
+
+  const isValid = !!(form.prefix && form.firstName.trim() && form.lastName.trim() && form.position.trim() && form.department.trim() && phoneValid && attendeesValid && purpose.trim() && sig !== null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm py-8 px-4">
+    <div className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm py-8 px-4">
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl">
 
         {/* Header */}
@@ -225,12 +194,14 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <div className="text-right text-[12px] mb-3">
                 <p>
                   ชื่อบริษัท/หน่วยงาน
-                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[140px] mx-1 align-bottom">
+                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[200px] mx-1 align-bottom">
                     {form.department}
                   </span>
+                </p>
+                <p>
                   ที่อยู่
-                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[150px] mx-1 align-bottom">
-                    {form.address}
+                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[300px] mx-1 align-bottom">
+                    {[form.houseNo, form.road, form.subdistrict, form.district, form.province, form.postalCode].filter(Boolean).join(" ")}
                   </span>
                 </p>
                 <p>
@@ -260,7 +231,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <div className="flex items-baseline pl-8">
                 <span className="shrink-0">ด้วยข้าพเจ้า </span>
                 <span className="flex-1 border-b border-dotted border-gray-700 ml-1 text-left">
-                  {form.prefix}{form.fullName}
+                  {form.prefix}{form.firstName} {form.lastName}
                 </span>
               </div>
               <p>
@@ -284,10 +255,10 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 {BUILDING_OPTIONS.map((opt) => (
                   <span key={opt} className="flex items-center gap-1">
                     <span className="text-base">{form.buildingType === opt ? "☑" : "□"}</span>
-                    {opt === "อื่นๆ"
-                      ? <>อื่นๆ
+                    {opt === "อื่น ๆ"
+                      ? <>อื่น ๆ
                           <span className="border-b border-dotted border-gray-700 inline-block min-w-[80px] mx-1 align-bottom text-center text-[11px]">
-                            {form.buildingType === "อื่นๆ" ? form.otherBuilding : ""}
+                            {form.buildingType === "อื่น ๆ" ? form.otherBuilding : ""}
                           </span>
                         </>
                       : opt}
@@ -299,7 +270,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               <div className="flex items-baseline gap-1 ml-8">
                 <span className="shrink-0">- ข้าพเจ้าขอใช้อาคารสถานที่ เพื่อ</span>
                 <span className="flex-1 border-b border-dotted border-gray-700">
-                  {form.purposeText}
+                  {purpose}
                 </span>
               </div>
 
@@ -368,7 +339,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                   </div>
                   {/* Name below the line */}
                   <p className="text-center mt-1">
-                    ({form.prefix}{form.fullName || "…………………………………"})
+                    ({form.firstName || form.lastName ? `${form.prefix}${form.firstName} ${form.lastName}` : "…………………………………"})
                   </p>
                 </div>
               </div>
@@ -383,22 +354,87 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               {/* Name */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  ชื่อ-นามสกุล <span className="text-red-400">*</span>
+                  คำนำหน้า <span className="text-red-400">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <select value={form.prefix} onChange={set("prefix")} className="border border-gray-200 rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                    {["นาย","นาง","นางสาว","ดร.","รศ.ดร.","ผศ.ดร.","ศ.ดร."].map((p) => <option key={p}>{p}</option>)}
-                  </select>
-                  <input type="text" value={form.fullName} onChange={set("fullName")} placeholder="ชื่อ นามสกุล"
-                    className={cn("flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30", form.fullName ? "border-gray-200" : "border-red-200")} />
-                </div>
+                <select
+                  value={form.prefix}
+                  onChange={set("prefix")}
+                  className={cn(
+                    "w-full border rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.prefix ? "border-gray-200" : "border-red-200"
+                  )}
+                >
+                  <option value="" disabled>เลือกคำนำหน้า</option>
+                  {["นาย","นาง","นางสาว","ดร.","รศ.ดร.","ผศ.ดร.","ศ.ดร."].map((p) => <option key={p}>{p}</option>)}
+                </select>
               </div>
 
-              <FField label="ตำแหน่ง" placeholder="เช่น นักศึกษา, อาจารย์" value={form.position} onChange={set("position")} />
+              <div className="flex gap-2">
+                <FField label="ชื่อ" placeholder="ชื่อจริง" value={form.firstName} onChange={set("firstName")} required className="flex-1" />
+                <FField label="นามสกุล" placeholder="นามสกุล" value={form.lastName} onChange={set("lastName")} required className="flex-1" />
+              </div>
+
+              <FField label="ตำแหน่ง" placeholder="เช่น นักศึกษา, อาจารย์" value={form.position} onChange={set("position")} required />
               <FField label="หน่วยงาน / บริษัท" placeholder="เช่น สำนักวิชาวิศวกรรมศาสตร์" value={form.department} onChange={set("department")} required />
-              <FField label="ที่อยู่" placeholder="ที่อยู่หน่วยงาน" value={form.address} onChange={set("address")} />
-              <FField label="เบอร์โทรศัพท์" placeholder="0XX-XXX-XXXX" value={form.phone} onChange={set("phone")} required type="tel" />
-              <FField label="จำนวนผู้เข้าร่วม (คน)" placeholder={`สูงสุด ${room.capacityMax} คน`} value={form.attendees} onChange={set("attendees")} type="number" />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ที่อยู่</label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <FField label="บ้านเลขที่" placeholder="123/4" value={form.houseNo} onChange={set("houseNo")} className="flex-1" />
+                    <FField label="ถนน" placeholder="ถนนมิตรภาพ" value={form.road} onChange={set("road")} className="flex-1" />
+                  </div>
+                  <div className="flex gap-2">
+                    <FField label="ตำบล / แขวง" placeholder="ตำบลสุรนารี" value={form.subdistrict} onChange={handleSubdistrictChange} className="flex-1"
+                      selectOptions={subdistrictOptions} />
+                    <FField label="อำเภอ / เขต" placeholder="อำเภอเมือง" value={form.district} onChange={handleDistrictChange} className="flex-1"
+                      selectOptions={districtOptions} />
+                  </div>
+                  <div className="flex gap-2">
+                    <FField label="จังหวัด" placeholder="นครราชสีมา" value={form.province} onChange={set("province")} className="flex-1" />
+                    <FField label="รหัสไปรษณีย์" placeholder="30000" value={form.postalCode} onChange={handlePostalCodeChange} className="w-28" maxLength={5} />
+                  </div>
+                  <p className="text-xs text-gray-400 -mt-1">กรอกรหัสไปรษณีย์เพื่อเติมตำบล/อำเภอ/จังหวัดอัตโนมัติ</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  เบอร์โทรศัพท์ <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={set("phone")}
+                  placeholder="0XX-XXX-XXXX"
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.phone && !phoneValid ? "border-red-200" : "border-gray-200"
+                  )}
+                />
+                {form.phone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-1">รูปแบบไม่ถูกต้อง — กรอกตัวเลข 10 หลัก เช่น 0812345678</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  จำนวนผู้เข้าร่วม (คน)
+                </label>
+                <input
+                  type="number"
+                  value={form.attendees}
+                  onChange={set("attendees")}
+                  placeholder={`สูงสุด ${room.capacityMax} คน`}
+                  min={1}
+                  max={room.capacityMax}
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.attendees && !attendeesValid ? "border-red-200" : "border-gray-200"
+                  )}
+                />
+                {form.attendees && !attendeesValid && (
+                  <p className="text-xs text-red-500 mt-1">เกินความจุสูงสุดของห้อง ({room.capacityMax} คน)</p>
+                )}
+              </div>
 
               {/* Building type */}
               <div>
@@ -418,19 +454,10 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                     </button>
                   ))}
                 </div>
-                {form.buildingType === "อื่นๆ" && (
+                {form.buildingType === "อื่น ๆ" && (
                   <input type="text" value={form.otherBuilding} onChange={set("otherBuilding")} placeholder="ระบุสถานที่"
                     className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
                 )}
-              </div>
-
-              {/* Purpose */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  วัตถุประสงค์ <span className="text-red-400">*</span>
-                </label>
-                <textarea value={form.purposeText} onChange={set("purposeText")} placeholder="ระบุวัตถุประสงค์..." rows={2}
-                  className={cn("w-full border rounded-lg px-3 py-2 text-sm placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 resize-none", form.purposeText ? "border-gray-200" : "border-red-200")} />
               </div>
 
               {/* Pre-filled info */}
@@ -443,7 +470,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
               </div>
 
               {/* Signature */}
-              <SignaturePad onChange={setSig} />
+              <SignaturePad onChange={setSig} onModeChange={setSigMode} />
 
               {/* Submit */}
               {generatedFile ? (
@@ -471,7 +498,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 </div>
               ) : (
                 <>
-                  <Button onClick={handleGenerate} disabled={!isValid || generating}
+                  <Button onClick={requestSign} disabled={!isValid || generating}
                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
                     {generating
                       ? <><Loader2 size={16} className="animate-spin" /> กำลังสร้าง PDF...</>
@@ -486,23 +513,49 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function FField({ label, placeholder, value, onChange, required, type = "text" }: {
-  label: string; placeholder?: string; value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean; type?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-        className={cn("w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
-          required && !value ? "border-red-200" : "border-gray-200")} />
+      {/* Password re-confirmation before signing */}
+      {showPwPrompt && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={16} className="text-brand-primary" />
+              <h3 className="font-bold text-gray-900">ยืนยันรหัสผ่านก่อนเซ็นเอกสาร</h3>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">กรอกรหัสผ่านบัญชีของคุณเพื่อยืนยันการเซ็นเอกสารนี้</p>
+            <input
+              type="password"
+              autoFocus
+              value={pwValue}
+              onChange={(e) => setPwValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmPasswordAndSign(); }}
+              placeholder="รหัสผ่าน"
+              className={cn(
+                "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                pwError ? "border-red-300" : "border-gray-200"
+              )}
+            />
+            {pwError && <p className="text-xs text-red-500 mt-1.5">{pwError}</p>}
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setShowPwPrompt(false)}
+                className="flex-1 h-10 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                ยกเลิก
+              </button>
+              <Button
+                onClick={confirmPasswordAndSign}
+                disabled={!pwValue || verifying}
+                className="flex-1 h-10 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {verifying ? <Loader2 size={14} className="animate-spin" /> : null}
+                ยืนยันและเซ็น
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

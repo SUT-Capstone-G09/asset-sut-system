@@ -15,6 +15,7 @@ import {
   verifyPayment,
   PaymentTransactionDTO,
 } from "@/features/payment/services/payment.service";
+import AdminPaymentVerificationModal from "@/features/payment/component/admin/AdminPaymentVerificationModal";
 
 type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
@@ -33,6 +34,7 @@ export default function AdminPaymentVerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [actioning, setActioning] = useState<number | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentTransactionDTO | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -41,7 +43,7 @@ export default function AdminPaymentVerifyPage() {
       .then((data) => setPayments(data ?? []))
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+    }, []);
 
   useEffect(() => {
     load();
@@ -209,8 +211,7 @@ export default function AdminPaymentVerifyPage() {
                     <PaymentRow
                       key={p.id}
                       payment={p}
-                      actioning={actioning === p.id}
-                      onVerify={handleVerify}
+                      onClick={() => setSelectedPayment(p)}
                     />
                   ))
                 )}
@@ -219,6 +220,15 @@ export default function AdminPaymentVerifyPage() {
           </div>
         )}
       </div>
+
+      <AdminPaymentVerificationModal
+        open={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        payment={selectedPayment}
+        onVerified={() => {
+          load();
+        }}
+      />
     </div>
   );
 }
@@ -250,12 +260,10 @@ function StatCard({
 
 function PaymentRow({
   payment,
-  actioning,
-  onVerify,
+  onClick,
 }: {
   payment: PaymentTransactionDTO;
-  actioning: boolean;
-  onVerify: (id: number, statusId: number) => void;
+  onClick: () => void;
 }) {
   const style = STATUS_STYLE[payment.status] ?? {
     label: payment.status,
@@ -264,10 +272,13 @@ function PaymentRow({
   const isPending = payment.status === "pending";
 
   return (
-    <tr className="hover:bg-gray-50/60 transition-colors">
+    <tr 
+      onClick={onClick}
+      className="hover:bg-gray-50/60 transition-colors cursor-pointer group"
+    >
       <td className="px-6 py-4 align-middle">
         <div className="flex flex-col">
-          <span className="text-xs font-mono text-gray-400">#{payment.id}</span>
+          <span className="text-xs font-mono text-gray-400 group-hover:text-brand-primary transition-colors">#{payment.id}</span>
           <span className="text-xs text-gray-400 mt-0.5">
             BK-{payment.booking_id}
           </span>
@@ -315,40 +326,15 @@ function PaymentRow({
       </td>
 
       <td className="px-6 py-4 align-middle">
-        {isPending ? (
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => onVerify(payment.id, 2)}
-              disabled={actioning}
-              className="flex items-center gap-1 text-xs font-semibold text-green-600 hover:text-green-800 border border-green-200 hover:border-green-400 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50"
-            >
-              {actioning ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <CheckCircle size={12} />
-              )}
-              อนุมัติ
-            </button>
-            <button
-              onClick={() => onVerify(payment.id, 3)}
-              disabled={actioning}
-              className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50"
-            >
-              {actioning ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <XCircle size={12} />
-              )}
-              ปฏิเสธ
-            </button>
-          </div>
-        ) : (
-          <div className="text-center text-xs text-gray-400">
-            {payment.verifier_name
-              ? `โดย ${payment.verifier_name}`
-              : "ดำเนินการแล้ว"}
-          </div>
-        )}
+        <div className="flex items-center justify-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs text-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 w-full"
+          >
+            {isPending ? "ตรวจสอบ" : "ดูรายละเอียด"}
+          </Button>
+        </div>
       </td>
     </tr>
   );

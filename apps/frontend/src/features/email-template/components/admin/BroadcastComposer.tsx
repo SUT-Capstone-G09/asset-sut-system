@@ -874,7 +874,7 @@ export default function BroadcastComposer() {
             <Button
               onClick={confirmSend}
               disabled={sending}
-              className="bg-brand-primary text-white hover:bg-brand-primary/90"
+              className="bg-primary text-white hover:bg-brand-primary-600"
             >
               {sending ? (
                 <>
