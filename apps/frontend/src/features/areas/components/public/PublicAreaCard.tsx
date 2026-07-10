@@ -1,7 +1,7 @@
 "use client"
 
 import { MapPin, ArrowRight } from "lucide-react";
-import { Location } from "@/features/areas/types/location";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 
 interface PublicAreaCardProps {
-  location: Location;
+  location: RentalSpace;
 }
 
 export default function PublicAreaCard({ location }: PublicAreaCardProps) {
@@ -53,7 +53,7 @@ export default function PublicAreaCard({ location }: PublicAreaCardProps) {
           <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
             <MapPin size={10} className="text-[#f26522]" strokeWidth={2.5} />
             <span className="text-[9px] font-bold text-white uppercase tracking-wider">
-              {location.category}
+              {location.area}
             </span>
           </div>
         </div>

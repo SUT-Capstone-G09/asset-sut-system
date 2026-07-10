@@ -1,10 +1,10 @@
 import { Utensils, Trophy } from "lucide-react";
-import { Location } from "@/features/areas/types/location";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 import PublicAreaCard from "./PublicAreaCard";
 
 interface AreasListProps {
   categories: string[];
-  locations: Location[];
+  locations: RentalSpace[];
 }
 
 export default function AreasList({ categories, locations }: AreasListProps) {
@@ -26,7 +26,7 @@ export default function AreasList({ categories, locations }: AreasListProps) {
                 {cat}
               </h3>
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                พบ {locations.filter((loc) => loc.category === cat).length}{" "}
+                พบ {locations.filter((loc) => loc.area === cat).length}{" "}
                 สถานที่ในหมวดหมู่นี้
               </p>
             </div>
@@ -35,7 +35,7 @@ export default function AreasList({ categories, locations }: AreasListProps) {
           {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {locations
-              .filter((loc) => loc.category === cat)
+              .filter((loc) => loc.area === cat)
               .map((loc) => (
                 <PublicAreaCard key={loc.id} location={loc} />
               ))}

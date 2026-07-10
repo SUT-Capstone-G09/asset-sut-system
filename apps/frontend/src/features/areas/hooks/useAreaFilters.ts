@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react";
-import { Location } from "../types/location";
-import { mockLocations } from "../data/locations";
+import { RentalSpace } from "../types/rental-space";
+import { mockLocations } from "../data/mock-rental-spaces";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
-export function useAreaFilters(locations: Location[] = mockLocations) {
+export function useAreaFilters(locations: RentalSpace[] = mockLocations) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -39,14 +39,14 @@ export function useAreaFilters(locations: Location[] = mockLocations) {
         (item.building ?? "").toLowerCase().includes(q) ||
         (item.description ?? "").toLowerCase().includes(q);
       
-      const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+      const matchesCategory = selectedCategory === "all" || item.area === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
   }, [locations, searchQuery, selectedCategory]);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(locations.map((loc) => loc.category)));
+    return Array.from(new Set(locations.map((loc) => loc.area)));
   }, [locations]);
 
   const totalResults = filteredLocations.length;

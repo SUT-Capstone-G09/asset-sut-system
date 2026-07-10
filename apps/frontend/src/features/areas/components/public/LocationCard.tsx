@@ -1,20 +1,12 @@
 "use client"
 
-import { Location } from "@/features/areas/types/location";
-import { ChevronRight, Utensils, Building2, Store } from "lucide-react";
+import { RentalSpace } from "@/features/areas/types/rental-space";
+import { ChevronRight } from "lucide-react";
+import { getCategoryIcon } from "@/utils/commercial-category-icons";
 
-/* Category icon mapping */
-export const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "โรงอาหาร": <Utensils size={14} />,
-  "อาคารเรียนรวม": <Building2 size={14} />,
-};
-
-export function getCategoryIcon(category: string) {
-  return CATEGORY_ICONS[category] ?? <Store size={14} />;
-}
 
 interface LocationCardProps {
-  location: Location;
+  location: RentalSpace;
   isHovered: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -62,10 +54,15 @@ export default function LocationCard({
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Tags row */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-brand-primary/8 text-brand-primary">
-              {getCategoryIcon(location.category)}
-              {location.category}
-            </span>
+            {(() => {
+              const CategoryIcon = getCategoryIcon(location.area);
+              return (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-brand-primary/8 text-brand-primary">
+                  <CategoryIcon size={10} />
+                  {location.area}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Title */}
@@ -73,7 +70,7 @@ export default function LocationCard({
             {location.name}
           </h4>
 
-          {/* Location info */}
+          {/* RentalSpace info */}
           <p className="text-[11px] text-gray-400 truncate leading-tight">
             {location.building ?? location.address}
           </p>

@@ -2,44 +2,55 @@
 
 import React, { useState } from "react";
 import { LayoutGrid, List, MapPin, ArrowRight, Search } from "lucide-react";
-import AdminAreaCard from "./AdminAreaCard";
-import AdminAreaDrawer from "./AdminAreaDrawer";
-import { AdminAreaGridSkeleton } from "./AdminAreaSkeleton";
-import { Location } from "@/features/areas/types/location";
+import SpaceCard from "./cards/SpaceCard";
+import SpaceDetailDrawer from "./drawers/SpaceDetailDrawer";
+import SpaceEditDrawer from "./drawers/SpaceEditDrawer";
+import AssignTenantDrawer from "./drawers/AssignTenantDrawer";
+import CreateContractDrawer from "./drawers/CreateContractDrawer";
+import { SpaceGridSkeleton } from "./SpaceSkeleton";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-interface AdminAreaGridProps {
-  filteredLocations: Location[];
+interface SpaceGridProps {
+  filteredLocations: RentalSpace[];
   categories: string[];
   onResetFilters: () => void;
   isLoading?: boolean;
+  onUpdateLocation?: (updatedLoc: RentalSpace) => void;
+  viewMode?: "grid" | "list";
+  setViewMode?: (mode: "grid" | "list") => void;
 }
 
-export default function AdminAreaGrid({ 
+export default function SpaceGrid({ 
   filteredLocations, 
   categories,
   onResetFilters,
-  isLoading = false
-}: AdminAreaGridProps) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  isLoading = false,
+  onUpdateLocation,
+  viewMode = "grid",
+  setViewMode
+}: SpaceGridProps) {
+  const [selectedLocation, setSelectedLocation] = useState<RentalSpace | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAssignTenantOpen, setIsAssignTenantOpen] = useState(false);
+  const [isCreateContractOpen, setIsCreateContractOpen] = useState(false);
 
-  const handleOpenDrawer = (location: Location) => {
+  const handleOpenDrawer = (location: RentalSpace) => {
     setSelectedLocation(location);
     setIsDrawerOpen(true);
   };
 
   if (isLoading) {
-    return <AdminAreaGridSkeleton />;
+    return <SpaceGridSkeleton />;
   }
 
   return (
     <div className="space-y-12 pb-20">
       {categories.length > 0 ? (
         categories.map((category) => {
-          const items = filteredLocations.filter((l) => l.category === category);
+          const items = filteredLocations.filter((l) => l.area === category);
 
           return (
             <div key={category} className="space-y-6">
@@ -64,26 +75,13 @@ export default function AdminAreaGrid({
                   <div />
                 )}
 
-                {/* View Toggle */}
-                <div className="flex items-center bg-slate-100/80 backdrop-blur-sm rounded-lg p-1 gap-1 border border-slate-200/50 shadow-inner">
-                  <ViewToggleButton
-                    isActive={viewMode === "grid"}
-                    onClick={() => setViewMode("grid")}
-                    icon={LayoutGrid}
-                  />
-                  <ViewToggleButton
-                    isActive={viewMode === "list"}
-                    onClick={() => setViewMode("list")}
-                    icon={List}
-                  />
-                </div>
               </div>
 
               {/* Grid View */}
               {viewMode === "grid" && (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
                   {items.map((location) => (
-                    <AdminAreaCard
+                    <SpaceCard
                       key={location.id}
                       location={location}
                       onClick={() => handleOpenDrawer(location)}
@@ -127,37 +125,73 @@ export default function AdminAreaGrid({
         </div>
       )}
 
-      <AdminAreaDrawer
+      <SpaceDetailDrawer
         location={selectedLocation}
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        onEditClick={() => {
+          setIsDrawerOpen(false);
+          setIsEditOpen(true);
+        }}
+        onAssignTenantClick={() => {
+          setIsDrawerOpen(false);
+          setIsAssignTenantOpen(true);
+        }}
+        onCreateContractClick={() => {
+          setIsDrawerOpen(false);
+          setIsCreateContractOpen(true);
+        }}
+      />
+
+      <SpaceEditDrawer
+        location={selectedLocation}
+        open={isEditOpen}
+        onClose={() => {
+          setIsEditOpen(false);
+          setIsDrawerOpen(true);
+        }}
+        onUpdateLocation={(updatedLoc: RentalSpace) => {
+          onUpdateLocation?.(updatedLoc);
+          setSelectedLocation(updatedLoc);
+        }}
+      />
+
+      <AssignTenantDrawer
+        location={selectedLocation}
+        open={isAssignTenantOpen}
+        onClose={() => {
+          setIsAssignTenantOpen(false);
+          setIsDrawerOpen(true);
+        }}
+        onSave={(updatedLoc: RentalSpace) => {
+          onUpdateLocation?.(updatedLoc);
+          setSelectedLocation(updatedLoc);
+        }}
+      />
+
+      <CreateContractDrawer
+        location={selectedLocation}
+        open={isCreateContractOpen}
+        onClose={() => {
+          setIsCreateContractOpen(false);
+          setIsDrawerOpen(true);
+        }}
+        onSave={(updatedLoc: RentalSpace) => {
+          onUpdateLocation?.(updatedLoc);
+          setSelectedLocation(updatedLoc);
+        }}
       />
     </div>
   );
 }
 
-function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean; onClick: () => void; icon: React.ElementType }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "p-1.5 rounded-md transition-all duration-300",
-        isActive
-          ? "bg-white text-[#f26522] shadow-md shadow-slate-200 scale-105"
-          : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
-      )}
-    >
-      <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-    </button>
-  );
-}
 
 function ListRow({ 
   location, 
   onClick,
   showCategory = true 
 }: { 
-  location: Location; 
+  location: RentalSpace; 
   onClick: () => void;
   showCategory?: boolean;
 }) {
@@ -182,7 +216,7 @@ function ListRow({
       <div className="flex-1 min-w-0 space-y-1">
         {showCategory && (
           <p className="text-[10px] font-black uppercase tracking-widest text-[#f26522] flex items-center gap-1.5">
-            <MapPin size={12} strokeWidth={3} /> {location.category}
+            <MapPin size={12} strokeWidth={3} /> {location.area}
           </p>
         )}
         <h3 className="text-xl font-bold text-slate-900 truncate group-hover:text-[#f26522] transition-colors leading-tight">
@@ -190,12 +224,12 @@ function ListRow({
         </h3>
       </div>
 
-      {location.category !== "โรงอาหาร" && (
+      {location.area !== "โรงอาหาร" && (
         <div className="hidden lg:flex items-center gap-12 shrink-0 px-8 border-x border-slate-100">
           <ListInfoItem 
             label="สถานะ" 
-            value={location.status === 'active' ? 'มีผู้เช่า' : 'ว่าง'} 
-            highlight={location.status === 'active'} 
+            value={location.status === 'occupied' ? 'มีผู้เช่า' : 'ว่าง'} 
+            highlight={location.status === 'occupied'} 
           />
         </div>
       )}

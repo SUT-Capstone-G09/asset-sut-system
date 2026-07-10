@@ -14,11 +14,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   Building2,
-  User,
-  UploadCloud
+  User
 } from "lucide-react";
-import { AREA_CATEGORIES, BUILDINGS } from "../../../constants";
-import { Button } from "@/components/ui/button";
+import { AREA_CATEGORIES, BUILDINGS, AREA_TO_BUILDINGS } from "../../../constants";
 import { cn } from "@/lib/utils";
 import { AreaFormValues } from "../../../schemas/area-schema";
 
@@ -31,13 +29,26 @@ interface AdminAreaFormFieldsProps {
 export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFieldsProps) {
   const { 
     register, 
-    control, 
+    control,
+    watch,
+    setValue,
     formState: { errors }
   } = useFormContext<AreaFormValues>();
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
   const themeRing = "focus-visible:ring-[#f26522]/30";
+
+  // Watch selected area (parent Area/Zone) to dynamically filter buildings
+  const selectedArea = watch("area");
+  const availableBuildings = selectedArea && AREA_TO_BUILDINGS[selectedArea]
+    ? BUILDINGS.filter(b => AREA_TO_BUILDINGS[selectedArea].includes(b.value))
+    : BUILDINGS;
+
+  const handleAreaChange = (val: string, onChange: (v: string) => void) => {
+    onChange(val);
+    setValue("building", ""); // Reset building value when parent Area changes
+  };
 
   return (
     <div className="space-y-10">
@@ -87,7 +98,32 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
           
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">อาคาร / สถานที่</Label>
+              <Label className="text-xs font-bold text-slate-500 ml-1">พื้นที่หลัก (โซน/ประเภทตึก)</Label>
+              <Controller
+                name="area"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={(val) => handleAreaChange(val, field.onChange)} value={field.value}>
+                    <SelectTrigger className={cn(
+                      "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", 
+                      themeRing,
+                      errors.area && "border-red-500"
+                    )}>
+                      <SelectValue placeholder="เลือกพื้นที่หลัก" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AREA_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.area && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.area.message}</p>}
+            </div>
+            
+            <div className="space-y-2.5">
+              <Label className="text-xs font-bold text-slate-500 ml-1">อาคาร / สถานที่ย่อย</Label>
               <Controller
                 name="building"
                 control={control}
@@ -98,10 +134,10 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
                       themeRing,
                       errors.building && "border-red-500"
                     )}>
-                      <SelectValue placeholder="เลือกสถานที่" />
+                      <SelectValue placeholder="เลือกสถานที่ตั้งย่อย" />
                     </SelectTrigger>
                     <SelectContent>
-                      {BUILDINGS.map((b) => (
+                      {availableBuildings.map((b) => (
                         <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
                       ))}
                     </SelectContent>
@@ -109,30 +145,6 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
                 )}
               />
               {errors.building && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.building.message}</p>}
-            </div>
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ประเภท</Label>
-              <Controller
-                name="category"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={cn(
-                      "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all", 
-                      themeRing,
-                      errors.category && "border-red-500"
-                    )}>
-                      <SelectValue placeholder="เลือกประเภท" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AREA_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.category && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.category.message}</p>}
             </div>
           </div>
 
@@ -150,6 +162,7 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
               />
               {errors.size && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.size.message}</p>}
             </div>
+
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-slate-500 ml-1">ค่าเช่า/เดือน (บาท)</Label>
               <Input 
@@ -176,67 +189,6 @@ export default function AdminAreaFormFields({ isEdit = false }: AdminAreaFormFie
                 themeRing
               )} 
             />
-          </div>
-        </div>
-      </div>
-
-      <Separator className="bg-slate-100" />
-
-      {/* Section: Tenant Info */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2.5 mb-2" style={{ color: themeColor }}>
-          <div className={cn("size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100", themeBg)}>
-            <User size={18} strokeWidth={2.5} />
-          </div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">ข้อมูลผู้เช่า & สัญญา</h3>
-        </div>
-        
-        <div className="space-y-5">
-          <div className="space-y-2.5">
-            <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อผู้ประกอบการ / บริษัท</Label>
-            <Input 
-              {...register("tenantName")}
-              placeholder="ระบุชื่อผู้เช่า หรือชื่อบริษัทผู้ประกอบการ" 
-              className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">เลขบัตรประจำตัวประชาชน / ทะเบียนนิติบุคคล (ID)</Label>
-              <Input 
-                {...register("citizenId")}
-                placeholder="ระบุเลขประจำตัวประชาชน หรือเลขทะเบียนนิติบุคคล" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
-              />
-            </div>
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">เลขที่สัญญา</Label>
-              <Input 
-                {...register("contractNumber")}
-                placeholder="ระบุเลขที่สัญญาเช่า" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">ชื่อสัญญา</Label>
-              <Input 
-                {...register("contractName")}
-                placeholder="ระบุชื่อสัญญาเช่าพื้นที่" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
-              />
-            </div>
-            <div className="space-y-2.5">
-              <Label className="text-xs font-bold text-slate-500 ml-1">วันสิ้นสุดสัญญาเช่า</Label>
-              <Input 
-                {...register("contractEndDate")}
-                placeholder="DD/MM/YYYY" 
-                className={cn("rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all", themeRing)} 
-              />
-            </div>
           </div>
         </div>
       </div>

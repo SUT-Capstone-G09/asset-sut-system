@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Location } from "@/features/areas/types/location";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 import {
   MapPin,
   Search,
@@ -13,8 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { AREA_CATEGORIES } from "@/features/areas/constants";
-import LocationCard, { getCategoryIcon } from "./LocationCard";
+import { AREA_CATEGORIES, getCategoryIcon } from "@/features/areas/constants";
+import LocationCard from "./LocationCard";
 
 const MapContainer = dynamic(() => import("@/components/map/MapContainer"), {
   ssr: false,
@@ -30,7 +30,7 @@ const MapContainer = dynamic(() => import("@/components/map/MapContainer"), {
 
 /* Props */
 interface AreasMapSectionProps {
-  locations: Location[];
+  locations: RentalSpace[];
   categories: string[];
 }
 
@@ -86,7 +86,7 @@ export default function AreasMapSection({
       (loc.building ?? "").toLowerCase().includes(q) ||
       (loc.description ?? "").toLowerCase().includes(q);
     const matchesCategory =
-      !selectedCategory || loc.category === selectedCategory;
+      !selectedCategory || loc.area === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -213,7 +213,10 @@ export default function AreasMapSection({
                             : "bg-white/90 text-gray-600 border-white/60 hover:bg-white"
                         }`}
                       >
-                        {getCategoryIcon(cat.value)}
+                        {(() => {
+                          const CategoryIcon = getCategoryIcon(cat.value);
+                          return <CategoryIcon size={12} />;
+                        })()}
                         {cat.label}
                       </button>
                     );
@@ -267,7 +270,7 @@ export default function AreasMapSection({
               </div>
             </div>
 
-            {/* Location Cards List */}
+            {/* RentalSpace Cards List */}
             <div className="flex-1 overflow-y-auto">
               {filteredLocations.length > 0 ? (
                 <div className="divide-y divide-gray-50">

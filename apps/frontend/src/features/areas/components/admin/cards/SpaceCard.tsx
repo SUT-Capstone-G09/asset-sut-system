@@ -1,7 +1,8 @@
 import { MapPin, ArrowRight, Store } from "lucide-react";
-import { Location } from "@/features/areas/types/location";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 import { cn } from "@/lib/utils";
-import { mockFloorPlans } from "@/features/areas/data/floor-plans";
+import { getCanteenStallStats } from "@/features/areas/utils/stall-helpers";
+import { AREA_STATUS_CONFIG } from "@/features/areas/constants";
 import {
   Card,
   CardHeader,
@@ -11,45 +12,20 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 
-interface AdminAreaCardProps {
-  location: Location;
+interface SpaceCardProps {
+  location: RentalSpace;
   onClick?: () => void;
   showCategory?: boolean;
 }
 
-const statusConfig: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    dot: string;
-  }
-> = {
-  active: {
-    label: "มีผู้เช่า",
-    color: "bg-emerald-50/90 text-emerald-700 border-emerald-100",
-    dot: "bg-emerald-500",
-  },
-  vacant: {
-    label: "ว่าง",
-    color: "bg-amber-50/90 text-amber-700 border-amber-100",
-    dot: "bg-amber-400",
-  },
-  inactive: {
-    label: "ปิดใช้งาน",
-    color: "bg-red-50/90 text-red-500 border-red-100",
-    dot: "bg-red-400",
-  },
-};
-
-export default function AdminAreaCard({
+export default function SpaceCard({
   location,
   onClick,
   showCategory = true,
-}: AdminAreaCardProps) {
-  const status = statusConfig[location.status ?? "active"];
+}: SpaceCardProps) {
+  const status = AREA_STATUS_CONFIG[location.status ?? "available"] || AREA_STATUS_CONFIG.available;
   const hasSubStalls = (location.subStallCount ?? 0) > 0;
-  const isCanteen = location.category === "โรงอาหาร";
+  const isCanteen = location.area === "โรงอาหาร";
 
   return (
 
@@ -115,7 +91,7 @@ export default function AdminAreaCard({
             <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
               <MapPin size={10} className="text-[#f26522]" strokeWidth={2.5} />
               <span className="text-[9px] font-bold text-white uppercase tracking-wider">
-                {location.category}
+                {location.area}
               </span>
             </div>
           </div>
@@ -190,18 +166,7 @@ function SubStallPreview({
   locationId: string;
   stallCount: number;
 }) {
-  const floorPlan = mockFloorPlans.find((fp) => fp.locationId === locationId);
-
-  let total = stallCount;
-  let occupied = Math.floor(stallCount * 0.75);
-  let vacant = stallCount - occupied;
-
-  if (floorPlan) {
-    const shops = floorPlan.elements.filter((el) => el.type === "area" && el.areaType === "shop");
-    total = shops.length;
-    occupied = shops.filter((s) => s.status === "occupied").length;
-    vacant = shops.filter((s) => s.status === "open").length;
-  }
+  const { total, occupied, vacant } = getCanteenStallStats(locationId, stallCount);
 
   return (
     <div className="space-y-3">

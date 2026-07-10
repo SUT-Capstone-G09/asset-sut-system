@@ -3,7 +3,7 @@
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function AdminAreaCardSkeleton() {
+export function SpaceCardSkeleton() {
   return (
     <div className="w-[300px] h-[360px] bg-white rounded-[7px] border border-slate-100 overflow-hidden flex flex-col shadow-sm">
       {/* Image Area Skeleton */}
@@ -31,7 +31,7 @@ export function AdminAreaCardSkeleton() {
   );
 }
 
-export function AdminAreaGridSkeleton() {
+export function SpaceGridSkeleton() {
   return (
     <div className="space-y-12">
       {[1, 2].map((i) => (
@@ -45,7 +45,7 @@ export function AdminAreaGridSkeleton() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
             {[1, 2, 3, 4].map((j) => (
-              <AdminAreaCardSkeleton key={j} />
+              <SpaceCardSkeleton key={j} />
             ))}
           </div>
         </div>

@@ -1,0 +1,10 @@
+export interface Building {
+  id: number;
+  name: string;
+  building_type_id?: number;
+  building_type_name?: string; // เช่น โรงอาหาร, อาคารเรียนรวม, หอพัก
+  rental_space_count: number;
+  has_floor_plan: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -7,7 +7,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import PublicAreaCard from "@/features/areas/components/public/PublicAreaCard";
-import { Location } from "@/features/areas/types/location";
+import { RentalSpace } from "@/features/areas/types/rental-space";
 
 const stats = [
   { icon: UtensilsCrossed, label: "ศูนย์อาหารและบริการ", value: 0 },
@@ -19,47 +19,47 @@ const stats = [
   { icon: Building2, label: "ธนาคาร", value: 0 },
 ];
 
-const areas: Partial<Location>[] = [
+const areas: Partial<RentalSpace>[] = [
   {
     id: "1",
     name: "โรงอาหารพราวแสดทอง",
     address: "ศูนย์อาหารรวมร้านเด็ด ประจำฝั่งหอพักสวัสดิการ",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://beta.sut.ac.th/damt/wp-content/uploads/sites/189/2021/01/1-2.jpg",
   },
   {
     id: "2",
     name: "โรงอาหารกาสะลองคำ",
     address: "โรงอาหารติดแอร์ สะดวกสบาย ใกล้กลุ่มอาคารเรียน",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://beta.sut.ac.th/damt/wp-content/uploads/sites/189/2021/01/1-3.jpg",
   },
   {
     id: "3",
     name: "โรงอาหารคอนตะวัน",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://placehold.co/400x300/d4541a/ffffff?text=คอนตะวัน",
   },
   {
     id: "4",
     name: "โรงอาหารครัวท่านท้าว",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://placehold.co/400x300/c44e18/ffffff?text=ครัวท่านท้าว",
   },
   {
     id: "5",
     name: "โรงอาหารเด่นทองกวาว",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://placehold.co/400x300/b44816/ffffff?text=เด่นทองกวาว",
   },
   {
     id: "6",
     name: "โรงอาหารเรียนรวม2",
     address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
-    category: "โรงอาหาร",
+    area: "โรงอาหาร",
     image: "https://placehold.co/400x300/a33a0f/ffffff?text=เรียนรวม2",
   },
 ];
@@ -158,7 +158,7 @@ export default function HomeServices() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {areas.map((area) => (
               <Link key={area.id} href="/areas" className="block w-full">
-                <PublicAreaCard location={area as Location} />
+                <PublicAreaCard location={area as RentalSpace} />
               </Link>
             ))}
           </div>

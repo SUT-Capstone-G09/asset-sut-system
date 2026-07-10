@@ -2,6 +2,7 @@
 
 import { AlertTriangle, FileText, Store, ArrowRight } from "lucide-react";
 import { MapElement } from "@/features/areas/types/floor-plan";
+import Link from "next/link";
 
 interface StallCardProps {
   stall: MapElement;
@@ -52,7 +53,10 @@ export default function StallCard({ stall }: StallCardProps) {
 
   if (isOccupied) {
     return (
-      <div className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
+      <Link 
+        href={`/shops/${stall.id}`}
+        className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md cursor-pointer text-left decoration-transparent"
+      >
         {/* Image Container */}
         <div className="relative h-44 w-full overflow-hidden bg-slate-100 rounded-t-[7px]">
           <img
@@ -67,7 +71,7 @@ export default function StallCard({ stall }: StallCardProps) {
           {/* Category / Stall Label Badge */}
           <div className="absolute bottom-3 left-3">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-white uppercase tracking-wider font-sans">
                 แผง {stall.label}
               </span>
             </div>
@@ -75,7 +79,7 @@ export default function StallCard({ stall }: StallCardProps) {
         </div>
 
         {/* Content Details */}
-        <div className="space-y-1.5 p-5 pb-0 min-h-[100px]">
+        <div className="space-y-1.5 p-5 pb-0 min-h-[100px] font-sans">
           <h4 className="text-[18px] font-bold leading-snug text-slate-900 line-clamp-1 group-hover:text-brand-primary transition-colors">
             {stall.tenant || stall.name}
           </h4>
@@ -85,22 +89,22 @@ export default function StallCard({ stall }: StallCardProps) {
         </div>
 
         {/* Action Footer */}
-        <div className="p-5 mt-auto pt-4">
-          <button className="flex w-full items-center justify-center gap-2 rounded-[7px] bg-slate-50 py-3 text-[12px] font-semibold text-slate-600 transition-all duration-200 hover:bg-brand-primary hover:text-white active:scale-[0.98]">
+        <div className="p-5 mt-auto pt-4 font-sans">
+          <div className="flex w-full items-center justify-center gap-2 rounded-[7px] bg-slate-50 py-3 text-[12px] font-semibold text-slate-600 transition-all duration-200 group-hover:bg-brand-primary group-hover:text-white active:scale-[0.98]">
             ดูรายละเอียด
             <ArrowRight
               size={14}
               className="transition-transform duration-200 group-hover:translate-x-0.5"
             />
-          </button>
+          </div>
         </div>
-      </div>
+      </Link>
     );
   }
 
   if (isMaintenance) {
     return (
-      <div className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md text-left">
         {/* Image Container */}
         <div className="relative h-44 w-full overflow-hidden bg-slate-100/80 flex items-center justify-center border-b border-slate-100 rounded-t-[7px]">
           <AlertTriangle size={36} className="text-amber-500/30" />
@@ -109,7 +113,7 @@ export default function StallCard({ stall }: StallCardProps) {
           {/* Category / Stall Label Badge */}
           <div className="absolute bottom-3 left-3">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-white uppercase tracking-wider font-sans">
                 แผง {stall.label}
               </span>
             </div>
@@ -117,7 +121,7 @@ export default function StallCard({ stall }: StallCardProps) {
         </div>
 
         {/* Content Details */}
-        <div className="space-y-1.5 p-5 pb-0 min-h-[100px]">
+        <div className="space-y-1.5 p-5 pb-0 min-h-[100px] font-sans">
           <h4 className="text-[18px] font-bold leading-snug text-slate-800 line-clamp-1">
             ปิดปรับปรุงชั่วคราว
           </h4>
@@ -129,7 +133,10 @@ export default function StallCard({ stall }: StallCardProps) {
 
   // Vacant Card (การ์ดแผงว่าง)
   return (
-    <div className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
+    <Link 
+      href="/bookings"
+      className="group overflow-hidden bg-white border border-slate-200/60 shadow-sm rounded-[7px] w-full h-full flex flex-col gap-0 py-0 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-md cursor-pointer text-left decoration-transparent"
+    >
       {/* Image Container */}
       <div className="relative h-44 w-full overflow-hidden bg-orange-50/20 flex items-center justify-center border-b border-slate-100 rounded-t-[7px] group-hover:bg-orange-50/30 transition-colors">
         <Store size={36} className="text-brand-primary/20 group-hover:scale-110 transition-transform" />
@@ -138,7 +145,7 @@ export default function StallCard({ stall }: StallCardProps) {
         {/* Category / Stall Label Badge */}
         <div className="absolute bottom-3 left-3">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-md rounded-md border border-white/20">
-            <span className="text-[9px] font-bold text-white uppercase tracking-wider">
+            <span className="text-[9px] font-bold text-white uppercase tracking-wider font-sans">
               แผง {stall.label}
             </span>
           </div>
@@ -146,7 +153,7 @@ export default function StallCard({ stall }: StallCardProps) {
       </div>
 
       {/* Content Details */}
-      <div className="space-y-1.5 p-5 pb-0 min-h-[100px]">
+      <div className="space-y-1.5 p-5 pb-0 min-h-[100px] font-sans">
         <h4 className="text-[18px] font-bold leading-snug text-slate-800 line-clamp-1 group-hover:text-brand-primary transition-colors">
           เปิดรับสมัครผู้เช่า
         </h4>
@@ -156,13 +163,14 @@ export default function StallCard({ stall }: StallCardProps) {
       </div>
 
       {/* Action Footer */}
-      <div className="p-5 mt-auto pt-4">
-        <button
-          className="flex w-full items-center justify-center gap-2 rounded-[7px] bg-brand-primary text-white py-3 text-[12px] font-semibold transition-all duration-200 hover:bg-[#d8561d] active:scale-[0.98]"
+      <div className="p-5 mt-auto pt-4 font-sans">
+        <div
+          className="flex w-full items-center justify-center gap-2 rounded-[7px] bg-brand-primary text-white py-3 text-[12px] font-semibold transition-all duration-200 group-hover:bg-[#d8561d] active:scale-[0.98]"
         >
           สนใจจองพื้นที่
-        </button>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
+

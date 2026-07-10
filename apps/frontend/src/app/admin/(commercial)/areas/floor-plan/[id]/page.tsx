@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { LayoutGrid, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FloorPlanData } from "@/features/areas/types/floor-plan";
-import { mockFloorPlans } from "@/features/areas/data/floor-plans";
-import { mockLocations } from "@/features/areas/data/locations";
+import { mockFloorPlans } from "@/features/areas/data/mock-floor-plans";
+import { mockLocations } from "@/features/areas/data/mock-rental-spaces";
 import FloorPlanEditor from "@/features/areas/components/admin/floor-plan/FloorPlanEditor";
 
 export default function FloorPlanEditorPage() {

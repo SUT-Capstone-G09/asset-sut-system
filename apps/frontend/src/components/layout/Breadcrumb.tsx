@@ -67,12 +67,15 @@ function formatDynamic(seg: string, parent: string) {
 }
 
 function segmentLabel(seg: string, parent: string) {
-  if (/^\d+$/.test(seg)) return formatDynamic(seg, parent);
-  return SEGMENT_LABELS[seg] ?? seg;
+  const decodedSeg = decodeURIComponent(seg);
+  const decodedParent = decodeURIComponent(parent);
+  if (/^\d+$/.test(decodedSeg)) return formatDynamic(decodedSeg, decodedParent);
+  return SEGMENT_LABELS[decodedSeg] ?? decodedSeg;
 }
 
 function labelForPath(pathname: string): string {
-  const segs = pathname.split("/").filter(Boolean);
+  const decodedPathname = decodeURIComponent(pathname);
+  const segs = decodedPathname.split("/").filter(Boolean);
   if (!segs.length) return "หน้าหลัก";
   const last = segs[segs.length - 1];
   const parent = segs[segs.length - 2] ?? "";

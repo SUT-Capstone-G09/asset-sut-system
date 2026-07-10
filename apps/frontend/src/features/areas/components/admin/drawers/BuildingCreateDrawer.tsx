@@ -16,47 +16,45 @@ import {
   Save,
   Loader2
 } from "lucide-react";
-import AdminAreaFormFields from "./forms/AdminAreaFormFields";
-import { areaSchema, AreaFormValues } from "../../schemas/area-schema";
+import BuildingFormFields from "../forms/BuildingFormFields";
+import { buildingSchema, BuildingFormValues } from "../../../schemas/building-schema";
 import { useState } from "react";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  onAdd?: (newBuilding: any) => void | Promise<void>;
 }
 
-export default function AdminAreaCreateDrawer({ open, onClose }: Props) {
+export default function BuildingCreateDrawer({ open, onClose, onAdd }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const methods = useForm<AreaFormValues>({
-    resolver: zodResolver(areaSchema) as any,
+  const methods = useForm<BuildingFormValues>({
+    resolver: zodResolver(buildingSchema) as any,
     defaultValues: {
       name: "",
-      building: "",
-      category: "",
-      size: "",
-      price: undefined,
-      description: "",
-      tenantName: "",
-      contractEndDate: "",
-      contractName: "",
-      citizenId: "",
-      contractNumber: "",
-      image: ""
+      building_type_name: "",
+      description: ""
     }
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: BuildingFormValues) => {
     setIsSubmitting(true);
-    console.log("Submitting Create Area Data:", data);
+    console.log("Submitting Create Building Data:", data);
     
-    // Simulate API Call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    methods.reset();
-    onClose();
-    alert("บันทึกข้อมูลสำเร็จ!");
+    try {
+      if (onAdd) {
+        await onAdd(data);
+      }
+      methods.reset();
+      onClose();
+      alert("บันทึกข้อมูลอาคารสำเร็จ!");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -64,7 +62,7 @@ export default function AdminAreaCreateDrawer({ open, onClose }: Props) {
       <SheetContent 
         side="right" 
         showCloseButton={false}
-        className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
+        className="w-full sm:max-w-[540px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
       >
         <FormProvider {...methods}>
           <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col h-full">
@@ -76,11 +74,11 @@ export default function AdminAreaCreateDrawer({ open, onClose }: Props) {
                 </div>
                 
                 <SheetTitle className="text-xl font-bold text-slate-900 tracking-tight">
-                  เพิ่มสถานที่ใหม่
+                  เพิ่มอาคารใหม่
                 </SheetTitle>
 
                 <SheetDescription className="sr-only">
-                  ฟอร์มสำหรับกรอกข้อมูลเพื่อเพิ่มสถานที่เช่าใหม่ในระบบ
+                  ฟอร์มสำหรับกรอกข้อมูลเพื่อเพิ่มอาคารหรือสถานที่หลักใหม่ในระบบ
                 </SheetDescription>
               </div>
 
@@ -94,11 +92,12 @@ export default function AdminAreaCreateDrawer({ open, onClose }: Props) {
               </button>
             </SheetHeader>
 
+            {/* Scrollable Form Body */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <AdminAreaFormFields />
+              <BuildingFormFields />
             </div>
 
-            {/* Sticky Footer */}
+            {/* Footer */}
             <div className="px-6 py-5 border-t border-slate-100 flex items-center gap-4 bg-white/90 backdrop-blur-md shrink-0">
               <Button 
                 type="button"

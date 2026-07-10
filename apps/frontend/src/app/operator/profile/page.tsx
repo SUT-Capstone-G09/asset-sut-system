@@ -1,7 +1,7 @@
 export default function ProfilePage() {
-    return (
+  return (
         <div className="flex justify-center min-h-screen">
             <h1>Profile Page</h1>
-        </div>
-    );
+    </div>
+  );
 }

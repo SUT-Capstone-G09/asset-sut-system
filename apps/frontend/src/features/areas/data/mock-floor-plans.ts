@@ -76,7 +76,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's1',
         name: 'ร้านก๋วยเตี๋ยวเรือ',
-        label: 'A01',
+        label: '01',
         type: 'area',
         areaType: 'shop',
         status: 'occupied',
@@ -94,7 +94,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's2',
         name: 'ร้านส้มตำจัดจ้าน',
-        label: 'A02',
+        label: '02',
         type: 'area',
         areaType: 'shop',
         status: 'occupied',
@@ -112,7 +112,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's3',
         name: 'ร้านข้าวแกง',
-        label: 'A03',
+        label: '03',
         type: 'area',
         areaType: 'shop',
         status: 'open',
@@ -130,7 +130,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's4',
         name: 'แผงว่าง',
-        label: 'A04',
+        label: '04',
         type: 'area',
         areaType: 'shop',
         status: 'open',
@@ -147,7 +147,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's5',
         name: 'ร้านชาบู & สุกี้',
-        label: 'B01',
+        label: '05',
         type: 'area',
         areaType: 'shop',
         status: 'occupied',
@@ -165,7 +165,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's6',
         name: 'แผงปิดปรับปรุง',
-        label: 'B02',
+        label: '06',
         type: 'area',
         areaType: 'shop',
         status: 'maintenance',
@@ -182,7 +182,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's7',
         name: 'ร้านเครื่องดื่ม',
-        label: 'B03',
+        label: '07',
         type: 'area',
         areaType: 'shop',
         status: 'occupied',
@@ -200,7 +200,7 @@ export const mockFloorPlans: FloorPlanData[] = [
       {
         id: 's8',
         name: 'ร้านขนมหวาน',
-        label: 'B04',
+        label: '08',
         type: 'area',
         areaType: 'shop',
         status: 'occupied',

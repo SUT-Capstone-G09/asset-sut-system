@@ -27,9 +27,10 @@ import {
 } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import Footer from "@/components/layout/footer";
-import { mockLocations } from "@/features/areas/data/locations";
-import { getCategoryIcon } from "@/features/areas/components/public/LocationCard";
-import { mockFloorPlans } from "@/features/areas/data/floor-plans";
+import { mockLocations } from "@/features/areas/data/mock-rental-spaces";
+import { mockFloorPlans } from "@/features/areas/data/mock-floor-plans";
+import { RentalSpace } from "@/features/areas/types/rental-space";
+import { FloorPlanData, MapElement } from "@/features/areas/types/floor-plan";
 
 // Dynamically load Leaflet MiniMap to prevent SSR window errors
 const MiniMap = dynamic(() => import("@/components/map/MiniMap"), {
@@ -83,7 +84,7 @@ export default function AreaDetailPage() {
     );
   }
 
-  const isCanteen = location.category === "โรงอาหาร";
+  const isCanteen = location.area === "โรงอาหาร";
 
   // Fetch stalls inside this location using mockFloorPlans data
   const floorPlan = mockFloorPlans.find(fp => fp.locationId === location.id);
@@ -98,14 +99,14 @@ export default function AreaDetailPage() {
 
   // Dynamic Building Amenities list based on category
   const buildingAmenities = [];
-  if (location.category === "โรงอาหาร") {
+  if (location.area === "โรงอาหาร") {
     buildingAmenities.push(
       { label: "โต๊ะ & ที่นั่งทานอาหาร", desc: "มีโซนพื้นที่นั่งรับประทานอาหารรวมขนาดใหญ่", icon: <Utensils size={18} /> },
       { label: "ร้านอาหารย่อยภายใน", desc: "มีตัวเลือกแผงอาหารและเครื่องดื่มบริการครบวงจร", icon: <Store size={18} /> },
       { label: "ที่จอดรถบริการ", desc: "มีจุดจอดรถยนต์และจักรยานยนต์สะดวกสบายรอบอาคาร", icon: <Car size={18} /> },
       { label: "ระบบระบายอากาศ", desc: "พัดลมและระบบหมุนเวียนอากาศกลางของโรงอาหาร", icon: <Wind size={18} /> }
     );
-  } else if (location.category === "อาคารเรียนรวม" || location.category === "หอพักนักศึกษา") {
+  } else if (location.area === "อาคารเรียนรวม" || location.area === "หอพักนักศึกษา") {
     buildingAmenities.push(
       { label: "Co-Working Space", desc: "ใกล้โซนอ่านหนังสือและจุดนั่งทำงานของนักศึกษา", icon: <Laptop size={18} /> },
       { label: "สินค้า & บริการ", desc: "ใกล้ตู้บริการอัตโนมัติหรือร้านค้าสะดวกซื้อ", icon: <ShoppingBag size={18} /> },
@@ -148,7 +149,7 @@ export default function AreaDetailPage() {
                   {location.name}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary text-xs font-bold">
-                  {location.category}
+                  {location.area}
                 </span>
               </div>
               <p className="text-xs md:text-sm text-slate-400 font-medium flex items-center gap-1">
