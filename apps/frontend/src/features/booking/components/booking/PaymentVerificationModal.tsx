@@ -27,7 +27,7 @@ import {
   Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
 import { addonService, Addon } from "@/lib/services/addon.service";
 
 interface PaymentVerificationModalProps {

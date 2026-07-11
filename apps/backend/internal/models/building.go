@@ -15,7 +15,10 @@ type Buildings struct {
 	Name           string         `gorm:"not null;unique"`
 	BuildingTypeID *uint          `gorm:"index"` // Nullable สำหรับตึกเดี่ยวๆ ที่ไม่มีการจัดกลุ่มประเภท
 	BuildingType   *BuildingTypes `gorm:"foreignKey:BuildingTypeID"`
+	Lat            *float64       `gorm:"type:decimal(10,7)"`
+	Lng            *float64       `gorm:"type:decimal(10,7)"`
+	Address        string         `gorm:"not null;default:''"`
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
 	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
-	Locations []Locations `gorm:"foreignKey:BuildingID"`
+	Locations      []Locations    `gorm:"foreignKey:BuildingID"`
 }

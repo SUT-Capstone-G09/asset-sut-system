@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useParams } from "next/navigation";
-import SpaceRentalTypeView from "@/features/space-rental/components/admin/views/SpaceRentalTypeView";
+import SpaceRentalTypeView from "@/features/space-rental/components/rental-space/SpaceRentalTypeView";
 
 export default function CategoryPage() {
   const params = useParams();

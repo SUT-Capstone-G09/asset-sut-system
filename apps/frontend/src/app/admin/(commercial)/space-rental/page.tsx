@@ -1,7 +1,7 @@
 "use client"
 
 import React, { Suspense } from "react";
-import SpaceRentalIndexView from "@/features/space-rental/components/admin/views/SpaceRentalIndexView";
+import SpaceRentalIndexView from "@/features/space-rental/components/rental-space/SpaceRentalIndexView";
 
 export default function SpaceRentalPage() {
   return (

@@ -325,7 +325,13 @@ export default function AreaDetailPage() {
                 แผนที่แสดงพิกัดที่ตั้งทรัพย์สิน (Location Coordinate)
               </h2>
               <div className="h-[300px] w-full rounded-2xl overflow-hidden shadow-sm border border-slate-100">
-                <MiniMap coordinates={location.coordinates} />
+                {location.coordinates ? (
+                  <MiniMap coordinates={location.coordinates} />
+                ) : (
+                  <div className="h-full w-full bg-slate-50 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                    ไม่มีพิกัดตำแหน่งระบุไว้
+                  </div>
+                )}
               </div>
             </section>
 

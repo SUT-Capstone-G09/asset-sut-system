@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { BookingFormValues } from "../../../schemas/booking-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
 import { mockRooms } from "../../../data/rooms";
 import { getLocations, AdminLocationDTO } from "../../../services/locationService";
 import { getHoursFromTimeSlot } from "../../../utils/time";

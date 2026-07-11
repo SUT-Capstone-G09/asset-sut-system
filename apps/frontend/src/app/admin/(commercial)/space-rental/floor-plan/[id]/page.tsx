@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { FloorPlanData } from "@/features/space-rental/types/floor-plan";
 import { mockFloorPlans } from "@/features/space-rental/data/mock-floor-plans";
 import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
-import FloorPlanEditor from "@/features/space-rental/components/admin/floor-plan/FloorPlanEditor";
+import { mockBuildings } from "@/features/space-rental/data/mock-buildings";
+import FloorPlanEditor from "@/features/space-rental/components/floor-plan/FloorPlanEditor";
 
 export default function FloorPlanEditorPage() {
   const params = useParams();
@@ -55,6 +56,8 @@ export default function FloorPlanEditorPage() {
     router.push("/admin/space-rental");
   };
 
+  const building = mockBuildings.find((b) => String(b.id) === locationId);
+
   if (!floorPlan) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
@@ -82,6 +85,7 @@ export default function FloorPlanEditorPage() {
         initialData={floorPlan} 
         onSave={handleSave} 
         onBack={handleBack} 
+        backgroundImageUrl={building?.floor_plan_image}
       />
     </div>
   );

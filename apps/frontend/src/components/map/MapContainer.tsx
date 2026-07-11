@@ -130,11 +130,13 @@ export default function MapContainer({
 
       <ZoomControl position="bottomright" />
 
-      {locations.map((loc) => (
-        <Marker
-          key={loc.id}
-          position={loc.coordinates}
-          icon={customIcon}
+      {locations
+        .filter((loc) => !!loc.coordinates)
+        .map((loc) => (
+          <Marker
+            key={loc.id}
+            position={loc.coordinates as [number, number]}
+            icon={customIcon}
           riseOnHover={true}
           ref={(el) => {
             if (el) {

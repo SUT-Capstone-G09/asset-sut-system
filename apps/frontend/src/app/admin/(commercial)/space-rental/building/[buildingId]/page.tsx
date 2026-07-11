@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useParams } from "next/navigation";
-import SpaceRentalBuildingView from "@/features/space-rental/components/admin/views/SpaceRentalBuildingView";
+import SpaceRentalBuildingView from "@/features/space-rental/components/rental-space/SpaceRentalBuildingView";
 
 function BuildingPageContent() {
   const params = useParams();

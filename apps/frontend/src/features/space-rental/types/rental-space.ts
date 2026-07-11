@@ -6,11 +6,12 @@ export interface RentalSpace {
   id: string;
   name: string;
   description: string;
-  coordinates: [number, number]; // [lat, lng]
-  address: string;
   image: string;
   area: string;      // ชื่อพื้นที่หลัก/โซนหลัก (เช่น โรงอาหาร, หอพักนักศึกษา)
   building?: string; // ชื่ออาคาร/สถานที่ย่อย (เช่น โรงอาหารกาสะลองคำ, หอพักสุรนิเวศ 1)
+  // สำหรับ backward-compat — source of truth ย้ายไปอยู่ที่ Building แล้ว
+  address?: string;
+  coordinates?: [number, number]; // [lat, lng]
   locationCategory?: CommercialCategoryType[];
   
   // ฟิลด์ส่วนขยายสำหรับงานระบบ Admin & Management
@@ -31,11 +32,11 @@ export interface BaseRentalSpace {
   id: string;
   name: string;
   description: string;
-  coordinates: [number, number];
-  address: string;
   image: string;
   area: string;
   building?: string;
+  address?: string;
+  coordinates?: [number, number];
   locationCategory?: CommercialCategoryType[];
 }
 

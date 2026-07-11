@@ -46,7 +46,7 @@ import BookingEditDrawer from "./BookingEditDrawer";
 import { mockRooms } from "../../data/rooms";
 import { addonService, Addon } from "@/lib/services/addon.service";
 import { getHoursFromTimeSlot } from "../../utils/time";
-import ImageUpload from "@/features/space-rental/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 

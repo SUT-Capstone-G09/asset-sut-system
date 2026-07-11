@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { HallFormValues } from "../../../schemas/hall-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
 import RoomRateModal from "@/features/booking/components/rooms/RoomRateModal";
 
 const BUILDINGS = [

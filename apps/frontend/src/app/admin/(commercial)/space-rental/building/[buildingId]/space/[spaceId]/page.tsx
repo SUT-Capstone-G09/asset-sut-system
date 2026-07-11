@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useParams } from "next/navigation";
-import SpaceDetailView from "@/features/space-rental/components/admin/views/SpaceDetailView";
+import SpaceDetailView from "@/features/space-rental/components/rental-space/SpaceDetailView";
 
 export default function SpaceDetailPage() {
   const params = useParams();

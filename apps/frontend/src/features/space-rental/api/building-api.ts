@@ -25,6 +25,8 @@ export const buildingApi = {
       name: data.name || "อาคารใหม่",
       building_type_id: data.building_type_id,
       building_type_name: data.building_type_name,
+      address: data.address || "",
+      coordinates: data.coordinates,
       rental_space_count: 0,
       has_floor_plan: false,
     };

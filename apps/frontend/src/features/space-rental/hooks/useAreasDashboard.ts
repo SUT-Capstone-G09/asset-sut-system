@@ -18,7 +18,7 @@ export function useAreasDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBuildingCreateOpen, setIsBuildingCreateOpen] = useState(false);
   const [buildingsList, setBuildingsList] = useState(() => [...mockBuildings]);
@@ -126,6 +126,7 @@ export function useAreasDashboard() {
       id: buildingsList.length + 1,
       name: data.name,
       building_type_name: data.building_type_name || undefined,
+      address: "",
       rental_space_count: 0,
       has_floor_plan: false,
     };
