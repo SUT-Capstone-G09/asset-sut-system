@@ -14,12 +14,14 @@ interface FloorPlanEditorProps {
   initialData: FloorPlanData;
   onSave: (data: FloorPlanData) => void;
   onBack?: () => void;
+  backgroundImageUrl?: string;
 }
 
 export default function FloorPlanEditor({
   initialData,
   onSave,
   onBack,
+  backgroundImageUrl,
 }: FloorPlanEditorProps) {
   const {
     elements,
@@ -135,6 +137,7 @@ export default function FloorPlanEditor({
             setScale={setScale}
             setPan={setPan}
             previewMode={previewMode}
+            backgroundImageUrl={backgroundImageUrl}
           />
         </div>
 

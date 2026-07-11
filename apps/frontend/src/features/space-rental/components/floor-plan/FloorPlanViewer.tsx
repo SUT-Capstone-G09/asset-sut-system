@@ -10,12 +10,14 @@ interface FloorPlanViewerProps {
   data: FloorPlanData;
   onStallClick?: (stall: FloorPlanStall) => void;
   compact?: boolean;
+  backgroundImageUrl?: string;
 }
 
 export default function FloorPlanViewer({
   data,
   onStallClick,
   compact = false,
+  backgroundImageUrl,
 }: FloorPlanViewerProps) {
   const [scale, setScale] = useState(compact ? 0.5 : 0.8);
   const [pan, setPan] = useState({ x: 20, y: -80 });
@@ -73,6 +75,7 @@ export default function FloorPlanViewer({
           setScale={setScale}
           setPan={setPan}
           previewMode={true}
+          backgroundImageUrl={backgroundImageUrl}
         />
       </div>
 

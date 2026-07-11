@@ -16,11 +16,11 @@ import {
   Building2,
   User
 } from "lucide-react";
-import { AREA_CATEGORIES, BUILDINGS, AREA_TO_BUILDINGS } from "../../../constants";
+import { AREA_CATEGORIES, BUILDINGS, AREA_TO_BUILDINGS } from "../../constants";
 import { cn } from "@/lib/utils";
-import { AreaFormValues } from "../../../schemas/area-schema";
+import { AreaFormValues } from "../../schemas/area-schema";
 
-import ImageUpload from "./ImageUpload";
+import ImageUpload from "../shared/ImageUpload";
 
 interface AdminAreaFormFieldsProps {
   isEdit?: boolean;

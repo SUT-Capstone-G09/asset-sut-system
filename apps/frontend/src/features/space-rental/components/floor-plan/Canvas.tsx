@@ -21,6 +21,7 @@ interface CanvasProps {
   setScale: (scale: number | ((prev: number) => number)) => void;
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   previewMode: boolean;
+  backgroundImageUrl?: string;
 }
 
 type DragAction = 'none' | 'pan' | 'move' | 'resize-br' | 'resize-bl' | 'resize-tr' | 'resize-tl' | 'rotate';
@@ -40,7 +41,8 @@ export default function Canvas({
   setCanvasMode,
   setScale,
   setPan,
-  previewMode
+  previewMode,
+  backgroundImageUrl
 }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragAction, setDragAction] = useState<DragAction>('none');
@@ -489,6 +491,18 @@ export default function Canvas({
             </filter>
           </defs>
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${scale})`} className="pointer-events-auto">
+             {/* 0. Blueprint Background Guideline Image */}
+            {backgroundImageUrl && (
+              <image
+                href={backgroundImageUrl}
+                x={50}
+                y={150}
+                width={935}
+                height={700}
+                opacity={0.45}
+                style={{ pointerEvents: 'none' }}
+              />
+            )}
 
             {/* 1. Filtered Wall Backgrounds Group */}
             <g filter="url(#wall-outline)">

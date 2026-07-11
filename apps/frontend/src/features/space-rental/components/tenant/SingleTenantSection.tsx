@@ -5,7 +5,7 @@ import { Calendar, User, CreditCard, FileText, Hash, Phone, Percent, ShieldCheck
 import { RentalSpace } from "@/features/space-rental/types/rental-space";
 import { generateMockTenants, MockContract } from "@/features/space-rental/data/mock-tenants";
 import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
-import { HighlightCard } from "./HighlightCard";
+import { HighlightCard } from "../shared/HighlightCard";
 import {
   Dialog,
   DialogContent,

@@ -18,8 +18,8 @@ import {
   Loader2
 } from "lucide-react";
 import { RentalSpace } from "@/features/space-rental/types/rental-space";
-import AdminAreaFormFields from "../forms/AdminAreaFormFields";
-import { areaSchema, AreaFormValues } from "../../../schemas/area-schema";
+import AdminAreaFormFields from "./AdminAreaFormFields";
+import { areaSchema, AreaFormValues } from "../../schemas/area-schema";
 
 interface Props {
   location: RentalSpace | null;

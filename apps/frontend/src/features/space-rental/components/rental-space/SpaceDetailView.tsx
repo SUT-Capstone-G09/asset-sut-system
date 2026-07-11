@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import SpaceDetailInfoTab from "./space-detail-tabs/SpaceDetailInfoTab";
-import SpaceDetailTenantTab from "./space-detail-tabs/SpaceDetailTenantTab";
-import { useSpaceDetail } from "../../../hooks/useSpaceDetail";
+import SpaceDetailInfoTab from "./SpaceDetailInfoTab";
+import SpaceDetailTenantTab from "./SpaceDetailTenantTab";
+import { useSpaceDetail } from "../../hooks/useSpaceDetail";
 import { cn } from "@/lib/utils";
 
 type TabValue = "info" | "tenant";

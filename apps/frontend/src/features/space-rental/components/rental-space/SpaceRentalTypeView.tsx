@@ -1,31 +1,29 @@
 import React, { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import BuildingCard from "../cards/BuildingCard";
-import AreaFilters from "../AreaFilters";
-import { useSpaceRentalType } from "../../../hooks/useSpaceRentalType";
-import { RentalSpace } from "../../../types/rental-space";
-import { mockLocations } from "../../../data/mock-rental-spaces";
-import { mockBuildings } from "../../../data/mock-buildings";
+import BuildingCard from "../building/BuildingCard";
+import AreaFilters from "./SpaceFilters";
+import { useSpaceRentalType } from "../../hooks/useSpaceRentalType";
+import { RentalSpace } from "../../types/rental-space";
+import { mockLocations } from "../../data/mock-rental-spaces";
+import { mockBuildings } from "../../data/mock-buildings";
 import { Button } from "@/components/ui/button";
-import { Building } from "../../../types/building";
-
+import { Building } from "../../types/building";
 
 interface SpaceRentalTypeViewProps {
   typeName: string;
 }
 
-export default function SpaceRentalTypeView({ typeName }: SpaceRentalTypeViewProps) {
+export default function SpaceRentalTypeView({
+  typeName,
+}: SpaceRentalTypeViewProps) {
   const router = useRouter();
-  const {
-    buildings,
-    totalSpacesCount,
-    isLoading,
-  } = useSpaceRentalType(typeName);
+  const { buildings, totalSpacesCount, isLoading } =
+    useSpaceRentalType(typeName);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -34,12 +32,17 @@ export default function SpaceRentalTypeView({ typeName }: SpaceRentalTypeViewPro
 
   const filteredBuildings = useMemo(() => {
     return buildings.filter((b: Building) => {
-      if (searchQuery && !b.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (
+        searchQuery &&
+        !b.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
         return false;
       }
       if (selectedStatus !== "all") {
         const stalls = mockLocations.filter((loc) => loc.building === b.name);
-        const hasStallWithStatus = stalls.some((stall) => stall.status === selectedStatus);
+        const hasStallWithStatus = stalls.some(
+          (stall) => stall.status === selectedStatus,
+        );
         if (!hasStallWithStatus) return false;
       }
       return true;
@@ -121,9 +124,15 @@ export default function SpaceRentalTypeView({ typeName }: SpaceRentalTypeViewPro
               <BuildingCard
                 key={b.id}
                 buildingName={b.name}
-                locations={mockLocations.filter((loc) => loc.building === b.name) as RentalSpace[]}
+                locations={
+                  mockLocations.filter(
+                    (loc) => loc.building === b.name,
+                  ) as RentalSpace[]
+                }
                 isSelected={false}
-                onSelect={() => router.push(`/admin/space-rental/building/${b.id}`)}
+                onSelect={() =>
+                  router.push(`/admin/space-rental/building/${b.id}`)
+                }
               />
             ))}
           </div>
@@ -132,11 +141,15 @@ export default function SpaceRentalTypeView({ typeName }: SpaceRentalTypeViewPro
             {filteredBuildings.map((b) => (
               <div
                 key={b.id}
-                onClick={() => router.push(`/admin/space-rental/building/${b.id}`)}
+                onClick={() =>
+                  router.push(`/admin/space-rental/building/${b.id}`)
+                }
                 className="group bg-white rounded-md border border-slate-200/60 p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-[#f26522]/20 transition-all duration-200"
               >
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">{b.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">
+                    {b.name}
+                  </h3>
                   <p className="text-xs text-slate-400 font-medium">
                     {b.rental_space_count} ยูนิตย่อย
                   </p>
@@ -150,8 +163,14 @@ export default function SpaceRentalTypeView({ typeName }: SpaceRentalTypeViewPro
         )
       ) : (
         <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-md border-2 border-dashed border-slate-200 animate-in fade-in duration-300">
-          <p className="text-base font-bold text-slate-700">ไม่พบตึกที่ตรงตามเงื่อนไขตัวกรอง</p>
-          <Button variant="outline" onClick={handleResetFilters} className="mt-4">
+          <p className="text-base font-bold text-slate-700">
+            ไม่พบตึกที่ตรงตามเงื่อนไขตัวกรอง
+          </p>
+          <Button
+            variant="outline"
+            onClick={handleResetFilters}
+            className="mt-4"
+          >
             ล้างตัวกรองทั้งหมด
           </Button>
         </div>

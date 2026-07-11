@@ -5,14 +5,14 @@ import React, { useState } from "react";
 import { Building2, FileText, User } from "lucide-react";
 
 // 3. Feature Components
-import CanteenStallsSection from "../../drawers/sections/CanteenStallsSection";
-import SingleTenantSection from "../../drawers/sections/SingleTenantSection";
-import AssignTenantDrawer from "../../drawers/AssignTenantDrawer";
-import CreateContractDrawer from "../../drawers/CreateContractDrawer";
+import CanteenStallsSection from "../tenant/CanteenStallsSection";
+import SingleTenantSection from "../tenant/SingleTenantSection";
+import AssignTenantDrawer from "../tenant/AssignTenantDrawer";
+import CreateContractDrawer from "../tenant/CreateContractDrawer";
 
 // 4. Types & Helpers
-import { RentalSpace } from "../../../../types/rental-space";
-import { getCanteenStallStats } from "../../../../utils/stall-helpers";
+import { RentalSpace } from "../../types/rental-space";
+import { getCanteenStallStats } from "../../utils/stall-helpers";
 import { cn } from "@/lib/utils";
 
 interface SpaceDetailTenantTabProps {

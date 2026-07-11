@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
 import { Plus, ArrowRight } from "lucide-react";
-import BuildingCard from "../cards/BuildingCard";
-import AreaStats from "../AreaStats";
-import AreaFilters from "../AreaFilters";
-import BuildingCreateDrawer from "../drawers/BuildingCreateDrawer";
-import { useAreasDashboard } from "../../../hooks/useAreasDashboard";
-import { RentalSpace } from "../../../types/rental-space";
-import { mockLocations } from "../../../data/mock-rental-spaces";
+import BuildingCard from "../building/BuildingCard";
+import AreaStats from "./AreaStats";
+import AreaFilters from "./SpaceFilters";
+import BuildingCreateDrawer from "../building/BuildingCreateDrawer";
+import { useAreasDashboard } from "../../hooks/useAreasDashboard";
+import { RentalSpace } from "../../types/rental-space";
+import { mockLocations } from "../../data/mock-rental-spaces";
 import { Button } from "@/components/ui/button";
 
 function IndexStats() {
@@ -45,7 +45,8 @@ export default function SpaceRentalIndexView() {
             พื้นที่เช่า & ร้านค้า
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            ระบบจัดการพื้นที่จัดสรรเชิงพาณิชย์ และรายชื่อผู้ประกอบการของมหาวิทยาลัย
+            ระบบจัดการพื้นที่จัดสรรเชิงพาณิชย์
+            และรายชื่อผู้ประกอบการของมหาวิทยาลัย
           </p>
         </div>
 
@@ -80,7 +81,9 @@ export default function SpaceRentalIndexView() {
       {/* Section label */}
       <div className="flex items-center gap-4">
         <div className="w-1.5 h-6 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.3)]" />
-        <h2 className="text-xl font-bold text-slate-800 tracking-tight">ประเภทพื้นที่</h2>
+        <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+          ประเภทพื้นที่
+        </h2>
       </div>
 
       {/* Dashboard Cards Grid/List */}
@@ -106,9 +109,12 @@ export default function SpaceRentalIndexView() {
                 className="group bg-white rounded-md border border-slate-200/60 p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-[#f26522]/20 transition-all duration-200"
               >
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">{card.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">
+                    {card.name}
+                  </h3>
                   <p className="text-xs text-slate-400 font-medium">
-                    {card.type === "group" ? "กลุ่มประเภทอาคาร" : "อาคารเดี่ยว"} | {card.locations.length} ยูนิตย่อย
+                    {card.type === "group" ? "กลุ่มประเภทอาคาร" : "อาคารเดี่ยว"}{" "}
+                    | {card.locations.length} ยูนิตย่อย
                   </p>
                 </div>
                 <button className="shrink-0 size-10 rounded-md bg-slate-50 text-slate-400 group-hover:bg-[#f26522] group-hover:text-white transition-all flex items-center justify-center">
@@ -120,7 +126,9 @@ export default function SpaceRentalIndexView() {
         )
       ) : (
         <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-md border-2 border-dashed border-slate-200 animate-in fade-in duration-300">
-          <p className="text-base font-bold text-slate-700">ไม่พบตึกหรือประเภทพื้นที่ที่ตรงเงื่อนไข</p>
+          <p className="text-base font-bold text-slate-700">
+            ไม่พบตึกหรือประเภทพื้นที่ที่ตรงเงื่อนไข
+          </p>
           <Button
             variant="outline"
             onClick={handleResetFilters}
@@ -130,8 +138,6 @@ export default function SpaceRentalIndexView() {
           </Button>
         </div>
       )}
-
-
 
       {/* Create Building Drawer */}
       <BuildingCreateDrawer

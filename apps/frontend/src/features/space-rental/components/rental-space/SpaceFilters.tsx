@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react";
-import { Search, Filter, RotateCcw, LayoutGrid, List } from "lucide-react";
+import { Search, Filter, RotateCcw, LayoutGrid, List, Map } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,10 +21,11 @@ interface AreaFiltersProps {
   setSelectedStatus: (val: string) => void;
   onReset: () => void;
   categories?: { value: string; label: string }[];
-  viewMode: "grid" | "list";
-  setViewMode: (mode: "grid" | "list") => void;
+  viewMode: "grid" | "list" | "map";
+  setViewMode: (mode: "grid" | "list" | "map") => void;
   showCategoryFilter?: boolean;
   showStatusFilter?: boolean;
+  hasFloorPlan?: boolean;
 }
 
 export default function AreaFilters({
@@ -40,6 +41,7 @@ export default function AreaFilters({
   setViewMode,
   showCategoryFilter = true,
   showStatusFilter = true,
+  hasFloorPlan = false,
 }: AreaFiltersProps) {
   const hasActiveFilters =
     searchQuery ||
@@ -132,6 +134,21 @@ export default function AreaFilters({
           >
             <List size={15} />
           </button>
+          {hasFloorPlan && (
+            <button
+              type="button"
+              onClick={() => setViewMode("map")}
+              title="Floor Plan view"
+              className={cn(
+                "flex items-center justify-center h-8 w-8 rounded-md transition-all duration-200",
+                viewMode === "map"
+                  ? "bg-[#f26522] text-white shadow-sm font-black"
+                  : "text-muted-foreground hover:text-foreground hover:bg-slate-200/80"
+              )}
+            >
+              <Map size={15} />
+            </button>
+          )}
         </div>
 
         {hasActiveFilters && (

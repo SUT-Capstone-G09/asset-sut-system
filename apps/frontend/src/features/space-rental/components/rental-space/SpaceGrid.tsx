@@ -3,7 +3,7 @@
 import React from "react";
 import { LayoutGrid, List, MapPin, ArrowRight, Search } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import SpaceCard from "./cards/SpaceCard";
+import SpaceCard from "./SpaceCard";
 import { SpaceGridSkeleton } from "./SpaceSkeleton";
 import { RentalSpace } from "@/features/space-rental/types/rental-space";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,8 @@ interface SpaceGridProps {
   onResetFilters: () => void;
   isLoading?: boolean;
   onUpdateLocation?: (updatedLoc: RentalSpace) => void;
-  viewMode?: "grid" | "list";
-  setViewMode?: (mode: "grid" | "list") => void;
+  viewMode?: "grid" | "list" | "map";
+  setViewMode?: (mode: "grid" | "list" | "map") => void;
 }
 
 export default function SpaceGrid({ 
