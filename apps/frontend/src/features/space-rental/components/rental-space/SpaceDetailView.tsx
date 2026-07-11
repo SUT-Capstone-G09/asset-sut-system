@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import SpaceDetailInfoTab from "./SpaceDetailInfoTab";
 import SpaceDetailTenantTab from "./SpaceDetailTenantTab";
 import { useSpaceDetail } from "../../hooks/useSpaceDetail";
@@ -14,12 +14,20 @@ interface SpaceDetailViewProps {
 
 export default function SpaceDetailView({ buildingId, spaceId }: SpaceDetailViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabQuery = searchParams.get("tab");
+  
   const { location, building, isLoading, handleUpdateLocation } = useSpaceDetail(
     buildingId,
     spaceId
   );
 
-  const [activeTab, setActiveTab] = useState<TabValue>("info");
+  const [activeTab, setActiveTab] = useState<TabValue>(() => {
+    if (tabQuery === "tenant" || tabQuery === "info") {
+      return tabQuery;
+    }
+    return "info";
+  });
 
   const handleBack = () => {
     router.push(`/admin/space-rental/building/${buildingId}`);
