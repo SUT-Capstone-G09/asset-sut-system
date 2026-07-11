@@ -196,7 +196,7 @@ export default function SpaceRentalBuildingView({
                     data={floorPlan}
                     backgroundImageUrl={building.floor_plan_image}
                     onStallClick={(stall) => {
-                      router.push(`/admin/space-rental/building/${building.id}/space/${stall.id}`);
+                      router.push(`/admin/space-rental/building/${building.id}/space/${stall.id}?tab=tenant`);
                     }}
                   />
                 </div>

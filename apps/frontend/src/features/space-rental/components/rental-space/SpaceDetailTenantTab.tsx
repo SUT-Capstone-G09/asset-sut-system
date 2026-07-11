@@ -27,7 +27,7 @@ export default function SpaceDetailTenantTab({
   const [isAssignTenantOpen, setIsAssignTenantOpen] = useState(false);
   const [isCreateContractOpen, setIsCreateContractOpen] = useState(false);
 
-  const isCanteen = location.area === "โรงอาหาร";
+  const isCanteen = location.area === "โรงอาหาร" && !location.id.includes("-");
 
   const {
     stalls,
@@ -39,7 +39,7 @@ export default function SpaceDetailTenantTab({
   } = getCanteenStallStats(location.id);
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 pl-1">
         {isCanteen ? (
           <>
