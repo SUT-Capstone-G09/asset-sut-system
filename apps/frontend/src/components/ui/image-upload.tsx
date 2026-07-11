@@ -78,7 +78,7 @@ export default function ImageUpload({
   };
 
   const defaultIcon = (
-    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-[#f26522] mb-4">
+    <div className="flex items-center justify-center w-12 h-12 rounded-md bg-orange-100 text-[#f26522] mb-4">
       <Upload className="w-6 h-6" />
     </div>
   );
@@ -95,7 +95,7 @@ export default function ImageUpload({
 
       {preview ? (
         <div className={cn(
-          "relative w-full overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm rounded-[7px]",
+          "relative w-full overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm rounded-md",
           aspectRatio
         )}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -120,7 +120,7 @@ export default function ImageUpload({
                 variant="secondary"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[7px] font-bold gap-2 shadow-lg cursor-pointer"
+                className="rounded-md font-bold gap-2 shadow-lg cursor-pointer"
               >
                 <RefreshCw size={14} />
                 เปลี่ยนรูป
@@ -130,7 +130,7 @@ export default function ImageUpload({
                 variant="destructive"
                 size="sm"
                 onClick={handleRemove}
-                className="rounded-[7px] font-bold gap-2 shadow-lg cursor-pointer"
+                className="rounded-md font-bold gap-2 shadow-lg cursor-pointer"
               >
                 <X size={14} />
                 ลบรูป
@@ -142,14 +142,14 @@ export default function ImageUpload({
         <div
           onClick={() => !uploading && fileInputRef.current?.click()}
           className={cn(
-            "border-2 border-dashed rounded-[7px] py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
+            "border-2 border-dashed rounded-md py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
             error
               ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
               : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",
             aspectRatio
           )}
         >
-          <div className="size-16 rounded-[7px] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+          <div className="size-16 rounded-md flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
             {uploading ? (
               <Loader2 size={32} className="text-[#f26522] animate-spin" />
             ) : (

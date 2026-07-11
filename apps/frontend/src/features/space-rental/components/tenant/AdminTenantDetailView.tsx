@@ -30,11 +30,13 @@ import { cn } from "@/lib/utils";
 interface AdminTenantDetailViewProps {
   location: RentalSpace;
   onCreateContractClick?: () => void;
+  onAssignTenantClick?: () => void;
 }
 
 export default function AdminTenantDetailView({
   location,
-  onCreateContractClick
+  onCreateContractClick,
+  onAssignTenantClick
 }: AdminTenantDetailViewProps) {
   const router = useRouter();
 
@@ -148,9 +150,20 @@ export default function AdminTenantDetailView({
 
   if (!location.tenantName || location.tenantName === "-") {
     return (
-      <div className="rounded-[7px] border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
-        <p className="text-[13px] font-bold text-slate-400">ยังไม่มีการทำสัญญา (พื้นที่ว่าง)</p>
-        <p className="text-[10px] text-slate-400 mt-1">สามารถทำการเพิ่มข้อมูลผู้เช่าได้โดยการมอบสิทธิ์ผู้ประกอบการ</p>
+      <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-4">
+        <div className="space-y-1">
+          <p className="text-[13px] font-bold text-slate-400">ยังไม่มีการทำสัญญา (พื้นที่ว่าง)</p>
+          <p className="text-[10px] text-slate-400">สามารถทำการเพิ่มข้อมูลผู้เช่าได้โดยการมอบสิทธิ์ผู้ประกอบการ</p>
+        </div>
+        {onAssignTenantClick && (
+          <button
+            type="button"
+            onClick={onAssignTenantClick}
+            className="inline-flex items-center justify-center px-4 py-2 bg-[#f26522] hover:bg-[#d8561d] text-white text-xs font-bold rounded-md transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+          >
+            มอบสิทธิ์ผู้เช่า
+          </button>
+        )}
       </div>
     );
   }
@@ -159,7 +172,7 @@ export default function AdminTenantDetailView({
     <div className="space-y-8 relative">
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed top-6 right-6 z-[160] flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-[7px] shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-6 right-6 z-[160] flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-md shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
           {toast.type === "success" && <CheckCircle className="text-emerald-500" size={20} />}
           {toast.type === "error" && <AlertTriangle className="text-rose-500" size={20} />}
           {toast.type === "info" && <FileText className="text-amber-500" size={20} />}
@@ -174,7 +187,7 @@ export default function AdminTenantDetailView({
         <div className="lg:col-span-5 space-y-6">
           
           {/* ข้อมูลยืนยันตัวตนผู้เช่า (Editable Card) */}
-          <div className="bg-white rounded-[7px] p-8 border border-slate-200/60 shadow-sm flex flex-col justify-between">
+          <div className="bg-white rounded-md p-8 border border-slate-200/60 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
                 <span className="text-slate-400 text-sm font-bold tracking-tight">ข้อมูลส่วนตัวผู้ประกอบการ</span>
@@ -184,14 +197,14 @@ export default function AdminTenantDetailView({
                     <button
                       type="button"
                       onClick={handleProfileCancel}
-                      className="text-xs font-bold px-3 py-1.5 rounded-[7px] bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
+                      className="text-xs font-bold px-3 py-1.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
                     >
                       ยกเลิก
                     </button>
                     <button
                       type="button"
                       onClick={handleProfileSave}
-                      className="text-xs font-bold px-3 py-1.5 rounded-[7px] bg-[#f26522] text-white hover:bg-[#d8561d] transition-all flex items-center gap-1 shadow-sm"
+                      className="text-xs font-bold px-3 py-1.5 rounded-md bg-[#f26522] text-white hover:bg-[#d8561d] transition-all flex items-center gap-1 shadow-sm"
                     >
                       <Save size={12} />
                       บันทึก
@@ -201,7 +214,7 @@ export default function AdminTenantDetailView({
                   <button
                     type="button"
                     onClick={() => setIsEditingProfile(true)}
-                    className="text-xs font-bold px-3 py-1.5 rounded-[7px] bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/60 transition-all flex items-center gap-1"
+                    className="text-xs font-bold px-3 py-1.5 rounded-md bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/60 transition-all flex items-center gap-1"
                   >
                     <Edit2 size={12} />
                     แก้ไขข้อมูล
@@ -217,7 +230,7 @@ export default function AdminTenantDetailView({
                       type="text"
                       value={ownerName}
                       onChange={(e) => setOwnerName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                     />
                   </div>
 
@@ -228,7 +241,7 @@ export default function AdminTenantDetailView({
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       />
                     </div>
                     <div className="space-y-1">
@@ -237,7 +250,7 @@ export default function AdminTenantDetailView({
                         type="text"
                         value={nationalId}
                         onChange={(e) => setNationalId(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       />
                     </div>
                   </div>
@@ -249,7 +262,7 @@ export default function AdminTenantDetailView({
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       />
                     </div>
                     <div className="space-y-1">
@@ -258,7 +271,7 @@ export default function AdminTenantDetailView({
                         type="text"
                         value={taxId}
                         onChange={(e) => setTaxId(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       />
                     </div>
                   </div>
@@ -268,7 +281,7 @@ export default function AdminTenantDetailView({
                     <textarea
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 min-h-[70px] resize-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 min-h-[70px] resize-none"
                     />
                   </div>
                 </div>
@@ -331,12 +344,12 @@ export default function AdminTenantDetailView({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="เพิ่มข้อมูลบันทึกเกี่ยวกับผู้ประกอบการ..."
-                  className="w-full text-slate-700 font-semibold text-sm border border-slate-200 rounded-[7px] p-3 pb-12 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all min-h-[80px] resize-none"
+                  className="w-full text-slate-700 font-semibold text-sm border border-slate-200 rounded-md p-3 pb-12 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all min-h-[80px] resize-none"
                 />
                 <button
                   type="button"
                   onClick={() => showToast("บันทึกโน้ตสำเร็จ", "success")}
-                  className="absolute right-2.5 bottom-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-[5px] transition-colors shadow-xs cursor-pointer"
+                  className="absolute right-2.5 bottom-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs cursor-pointer"
                 >
                   บันทึก
                 </button>
@@ -345,9 +358,9 @@ export default function AdminTenantDetailView({
           </div>
 
           {/* บัตรประชาชนตรวจสอบ (ID Verification document block) */}
-          <div className="bg-white rounded-[7px] p-6 border border-slate-200/60 shadow-sm space-y-3">
+          <div className="bg-white rounded-md p-6 border border-slate-200/60 shadow-sm space-y-3">
             <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider">เอกสารยืนยันตัวตน (สำเนาบัตรประชาชน)</span>
-            <div className="relative aspect-video w-full rounded-[6px] overflow-hidden border border-slate-200 bg-slate-950/90 group shadow-inner">
+            <div className="relative aspect-video w-full rounded-md overflow-hidden border border-slate-200 bg-slate-950/90 group shadow-inner">
               <Image
                 src="/thai_id_mock.png"
                 alt="สำเนาบัตรประชาชน"
@@ -357,9 +370,9 @@ export default function AdminTenantDetailView({
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/10" />
-              <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-[5px] border border-white/10 flex items-center justify-between">
+              <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-md border border-white/10 flex items-center justify-between">
                 <span className="text-[10px] text-white font-medium truncate max-w-[70%]">บัตรประชาชน_{ownerName || location.tenantName}.png</span>
-                <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                   ตรวจสอบแล้ว
                 </span>
               </div>
@@ -367,7 +380,7 @@ export default function AdminTenantDetailView({
           </div>
 
           {/* สรุปข้อมูลสัญญาเช่าฉบับปัจจุบัน */}
-          <div className="bg-white rounded-[7px] p-8 border border-slate-200/60 shadow-sm space-y-6">
+          <div className="bg-white rounded-md p-8 border border-slate-200/60 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="space-y-0.5">
                 <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider">สัญญาปัจจุบัน</span>
@@ -386,11 +399,11 @@ export default function AdminTenantDetailView({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50/50 p-4 rounded-[7px] border border-slate-200/60 space-y-1">
+              <div className="bg-slate-50/50 p-4 rounded-md border border-slate-200/60 space-y-1">
                 <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">วันเริ่มสัญญา</span>
                 <span className="text-slate-800 text-sm font-black">{formatThaiDate(currentContract.startDate)}</span>
               </div>
-              <div className="bg-slate-50/50 p-4 rounded-[7px] border border-slate-200/60 space-y-1">
+              <div className="bg-slate-50/50 p-4 rounded-md border border-slate-200/60 space-y-1">
                 <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">วันหมดสัญญา</span>
                 <span className="text-slate-800 text-sm font-black">{formatThaiDate(currentContract.endDate)}</span>
               </div>
@@ -413,7 +426,7 @@ export default function AdminTenantDetailView({
 
             <div className="pt-2 border-t border-slate-100 space-y-2">
               <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider">เงื่อนไขสัญญาเพิ่มเติม</span>
-              <p className="text-slate-700 text-xs font-semibold leading-relaxed bg-slate-50 p-3.5 rounded-[7px] border border-slate-200/40">
+              <p className="text-slate-700 text-xs font-semibold leading-relaxed bg-slate-50 p-3.5 rounded-md border border-slate-200/40">
                 {currentContract.terms}
               </p>
             </div>
@@ -425,10 +438,10 @@ export default function AdminTenantDetailView({
         <div className="lg:col-span-7 space-y-6">
           
           {/* ส่วนประวัติสัญญาเช่าย้อนหลัง */}
-          <div className="bg-white rounded-[7px] p-8 border border-slate-200/60 shadow-sm flex flex-col h-full min-h-[550px]">
+          <div className="bg-white rounded-md p-8 border border-slate-200/60 shadow-sm flex flex-col h-full min-h-[550px]">
             <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-[5px] bg-[#f26522]/10 text-[#f26522]">
+                <div className="p-2 rounded-md bg-[#f26522]/10 text-[#f26522]">
                   <History size={18} />
                 </div>
                 <h3 className="text-lg font-black text-slate-800 tracking-tight">ประวัติสัญญาย้อนหลัง</h3>
@@ -447,7 +460,7 @@ export default function AdminTenantDetailView({
                     <div 
                       key={contract.id} 
                       className={cn(
-                        "p-5 rounded-[7px] border transition-all relative overflow-hidden flex flex-col md:flex-row justify-between md:items-center gap-4",
+                        "p-5 rounded-md border transition-all relative overflow-hidden flex flex-col md:flex-row justify-between md:items-center gap-4",
                         isActiveOrExpiring
                           ? "bg-slate-50/70 border-[#f26522]/20 hover:border-[#f26522]/40 shadow-xs"
                           : contract.status === "expired"
@@ -507,7 +520,7 @@ export default function AdminTenantDetailView({
                       <button
                         type="button"
                         onClick={() => handleOpenPdfPreview(contract)}
-                        className="bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-[7px] px-4 py-2.5 text-xs font-black flex items-center justify-center gap-1.5 transition-all self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
+                        className="bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-md px-4 py-2.5 text-xs font-black flex items-center justify-center gap-1.5 transition-all self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
                       >
                         <FileText size={14} />
                         ดูเอกสารสัญญา
@@ -517,7 +530,7 @@ export default function AdminTenantDetailView({
                 })
               ) : (
                 // Fallback row matching initial tenant schema
-                <div className="p-5 rounded-[7px] border border-[#f26522]/20 bg-slate-50/70 flex flex-col md:flex-row justify-between md:items-center gap-4 relative">
+                <div className="p-5 rounded-md border border-[#f26522]/20 bg-slate-50/70 flex flex-col md:flex-row justify-between md:items-center gap-4 relative">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -538,7 +551,7 @@ export default function AdminTenantDetailView({
                   <button
                     type="button"
                     onClick={() => handleOpenPdfPreview(currentContract as any)}
-                    className="bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-[7px] px-4 py-2.5 text-xs font-black flex items-center justify-center gap-1.5 transition-all self-start md:self-auto shrink-0 cursor-pointer"
+                    className="bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-md px-4 py-2.5 text-xs font-black flex items-center justify-center gap-1.5 transition-all self-start md:self-auto shrink-0 cursor-pointer"
                   >
                     <FileText size={14} />
                     ดูเอกสารสัญญา
@@ -548,7 +561,7 @@ export default function AdminTenantDetailView({
             </div>
 
             {/* Quick Contract Operations Actions Panel (ต่อสัญญา / ยกเลิก) */}
-            <div className="mt-8 pt-6 border-t border-slate-100 bg-slate-50 p-6 rounded-[7px] border border-slate-200/60">
+            <div className="mt-8 pt-6 border-t border-slate-100 bg-slate-50 p-6 rounded-md border border-slate-200/60">
               <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">
                 การดำเนินการและจัดการสัญญาเช่า (Actions)
               </h4>
@@ -557,7 +570,7 @@ export default function AdminTenantDetailView({
                 <button
                   type="button"
                   onClick={() => router.push(`/admin/contracts/actions?tenantId=${tenant?.id || "fallback"}&action=renew`)}
-                  className="flex-1 bg-[#f26522] hover:bg-[#d8561d] text-white font-bold py-3.5 px-4 rounded-[7px] text-xs flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-[#f26522]/10 cursor-pointer"
+                  className="flex-1 bg-[#f26522] hover:bg-[#d8561d] text-white font-bold py-3.5 px-4 rounded-md text-xs flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-[#f26522]/10 cursor-pointer"
                 >
                   <RefreshCw size={14} />
                   ทำเรื่องต่ออายุสัญญาเช่า
@@ -566,7 +579,7 @@ export default function AdminTenantDetailView({
                 <button
                   type="button"
                   onClick={() => router.push(`/admin/contracts/actions?tenantId=${tenant?.id || "fallback"}&action=terminate`)}
-                  className="flex-1 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 font-bold py-3.5 px-4 rounded-[7px] text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                  className="flex-1 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 font-bold py-3.5 px-4 rounded-md text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <Ban size={14} />
                   บอกเลิกสัญญาเช่าปัจจุบัน
@@ -587,7 +600,7 @@ export default function AdminTenantDetailView({
             onClick={() => setIsPreviewModalOpen(false)}
           />
 
-          <div className="relative bg-white rounded-[7px] w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh] z-[160] animate-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="relative bg-white rounded-md w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh] z-[160] animate-in zoom-in-95 duration-200 overflow-hidden">
             
             {/* Modal Header Toolbar */}
             <div className="bg-slate-200 px-6 py-4 flex items-center justify-between border-b border-slate-300 shrink-0">
@@ -627,7 +640,7 @@ export default function AdminTenantDetailView({
                 </button>
                 <button
                   onClick={() => setIsPreviewModalOpen(false)}
-                  className="ml-3 p-1 bg-slate-300/40 hover:bg-slate-300 rounded-[5px] text-slate-600 transition-colors cursor-pointer"
+                  className="ml-3 p-1 bg-slate-300/40 hover:bg-slate-300 rounded-md text-slate-600 transition-colors cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -638,7 +651,7 @@ export default function AdminTenantDetailView({
             <div className="flex-1 p-8 overflow-y-auto flex justify-center bg-slate-100/90 items-start">
               <div
                 style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
-                className="bg-white w-[595px] min-h-[800px] shadow-lg border border-slate-200 p-12 transition-transform duration-200 relative flex flex-col justify-between select-none rounded-[4px]"
+                className="bg-white w-[595px] min-h-[800px] shadow-lg border border-slate-200 p-12 transition-transform duration-200 relative flex flex-col justify-between select-none rounded-md"
               >
                 
                 {/* Watermark */}
