@@ -5,7 +5,7 @@ import {
   eachDayOfInterval, isSameMonth, isToday, startOfDay, isBefore,
 } from "date-fns";
 import { th } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { DayInfo } from "@/features/bookings/types/booking-calendar";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ const DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 interface MonthlyCalendarProps {
   currentMonth: Date;
   today: Date;
+  minBookableDate: Date;
   selectedDates: string[];
   onToggleDate: (date: Date) => void;
   onPrev: () => void;
@@ -27,7 +28,7 @@ interface MonthlyCalendarProps {
 }
 
 export default function MonthlyCalendar({
-  currentMonth, today, selectedDates,
+  currentMonth, today, minBookableDate, selectedDates,
   onToggleDate, onPrev, onNext, onToday,
   onClearAll, onSelectWeekend, onSelectNextWeekdays, onSelectThisWeek,
   getDayInfo,
@@ -87,6 +88,16 @@ export default function MonthlyCalendar({
         </button>
       </div>
 
+      {/* Lead time notice */}
+      <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-700">
+        <Info size={14} className="shrink-0" />
+        <span>
+          สามารถจองล่วงหน้าได้ตั้งแต่วันที่{" "}
+          <span className="font-semibold">{format(minBookableDate, "d MMMM yyyy", { locale: th })}</span>{" "}
+          เป็นต้นไป
+        </span>
+      </div>
+
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 gap-1">
         {DOW.map((d, i) => (
@@ -109,9 +120,10 @@ export default function MonthlyCalendar({
           const selected = selectedDates.includes(dateStr);
           const isCurrentDay = isToday(day);
           const isPast = isBefore(startOfDay(day), today);
+          const isTooSoon = !isPast && isBefore(startOfDay(day), minBookableDate);
           const dow = day.getDay();
           const isWeekend = dow === 0 || dow === 6;
-          const disabled = isPast || info.status === "full" || info.status === "closed";
+          const disabled = isPast || isTooSoon || info.status === "full" || info.status === "closed";
 
           return (
             <button
@@ -131,8 +143,8 @@ export default function MonthlyCalendar({
                 info.status === "partial" && !selected && "bg-orange-50",
                 // closed
                 info.status === "closed" && !selected && "bg-gray-100 text-gray-300 cursor-not-allowed",
-                // past
-                isPast && !selected && "opacity-40 cursor-not-allowed",
+                // past / inside minimum lead time
+                (isPast || isTooSoon) && !selected && "opacity-40 cursor-not-allowed",
                 // weekend text color (when not selected)
                 !selected && isWeekend && info.status === "available" && "text-brand-primary",
               )}

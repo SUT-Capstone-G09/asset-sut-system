@@ -1,8 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, Clock, Eye, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, XCircle, Clock, Eye, RefreshCw, AlertCircle, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import BookingDrawer from "@/features/booking/components/booking/BookingDrawer";
+import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
+import { AdminLocationDTO } from "@/features/booking/services/locationService";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAdminBookings } from "@/features/bookings/hooks/useAdminBookings";
 import { updateBookingStatus } from "@/features/bookings/services/booking.service";
@@ -29,14 +49,20 @@ export default function BookingRequestsPage() {
   const { bookings, loading, error, reload } = useAdminBookings();
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selected, setSelected] = useState<BookingResponseDTO | null>(null);
+  
+  const router = useRouter();
+  const [approveModalBooking, setApproveModalBooking] = useState<BookingResponseDTO | null>(null);
 
-  const handleAction = async (id: number, statusId: number) => {
+  const handleAction = async (id: number, status: string) => {
     setActionLoading(id);
     try {
-      await updateBookingStatus(id, { status_id: statusId });
+      await updateBookingStatus(id, { status });
       reload();
     } finally {
       setActionLoading(null);
+      if (status === "approved") {
+        setApproveModalBooking(null);
+      }
     }
   };
 
@@ -53,24 +79,11 @@ export default function BookingRequestsPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {Object.entries(STATUS_STYLE).map(([key, { label, className }]) => {
-          const count = bookings.filter((b) => b.status === key).length;
-          return (
-            <div key={key} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <p className="text-xs text-gray-400 mb-1">{label}</p>
-              <p className="text-2xl font-bold text-gray-800">{count}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
+      {/* Table Section */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
+        {loading && bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">กำลังโหลด...</div>
-        ) : error ? (
+        ) : error && bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-red-400 text-sm">{error}</div>
         ) : bookings.length === 0 ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">ยังไม่มีคำขอ</div>
@@ -116,42 +129,50 @@ export default function BookingRequestsPage() {
                       ฿{b.total_price.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium", style.className)}>
+                      <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium whitespace-nowrap", style.className)}>
                         {style.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {b.status === "pending" && (
-                          <>
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 text-xs bg-green-500 hover:bg-green-600 text-white gap-1"
-                              disabled={actionLoading === b.id}
-                              onClick={() => handleAction(b.id, 2)}
-                            >
-                              <CheckCircle size={12} /> อนุมัติ
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2.5 text-xs border-red-200 text-red-500 hover:bg-red-50 gap-1"
-                              disabled={actionLoading === b.id}
-                              onClick={() => handleAction(b.id, 3)}
-                            >
-                              <XCircle size={12} /> ปฏิเสธ
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0 text-gray-400 hover:text-gray-700"
-                          onClick={() => setSelected(selected?.id === b.id ? null : b)}
-                        >
-                          <Eye size={13} />
-                        </Button>
-                      </div>
+                    <td className="px-4 py-3 text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                          <DropdownMenuItem 
+                            onClick={() => setSelected(selected?.id === b.id ? null : b)}
+                            className="text-gray-700 cursor-pointer"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            ดูรายละเอียด
+                          </DropdownMenuItem>
+                          
+                          {b.status === "pending" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setApproveModalBooking(b)}
+                                disabled={actionLoading === b.id}
+                                className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                อนุมัติ
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleAction(b.id, "rejected")}
+                                disabled={actionLoading === b.id}
+                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                ปฏิเสธ
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );
@@ -161,37 +182,78 @@ export default function BookingRequestsPage() {
         )}
       </div>
 
-      {/* Detail panel */}
-      {selected && (
-        <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-bold text-gray-900">รายละเอียด #{selected.id}</h3>
-            <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div><span className="text-gray-400">ผู้ขอ:</span> <span className="font-medium">{selected.user_name}</span></div>
-            <div><span className="text-gray-400">วัตถุประสงค์:</span> <span className="font-medium">{selected.purpose}</span></div>
-            <div><span className="text-gray-400">ราคาพื้นที่:</span> <span className="font-medium">฿{selected.base_price.toLocaleString()}</span></div>
-            <div><span className="text-gray-400">ราคาบริการเสริม:</span> <span className="font-medium">฿{selected.addon_price.toLocaleString()}</span></div>
-            <div><span className="text-gray-400">ราคารวม:</span> <span className="font-bold text-brand-primary">฿{selected.total_price.toLocaleString()}</span></div>
-            <div><span className="text-gray-400">วันที่ขอ:</span> <span className="font-medium">{formatThaiDate(selected.created_at)}</span></div>
-          </div>
-          {selected.timeslots?.length > 0 && (
-            <div className="mt-3">
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">ช่วงเวลาที่จอง</p>
-              <div className="flex flex-col gap-1.5">
-                {selected.timeslots.map((ts) => (
-                  <div key={ts.id} className="flex items-center gap-3 px-3 py-2 bg-orange-50 rounded-lg text-sm">
-                    <Clock size={13} className="text-brand-primary shrink-0" />
-                    <span className="font-medium text-gray-700">{ts.location_name}</span>
-                    <span className="text-gray-500">{formatThaiDate(ts.date)} · {formatTime(ts.start_time)}–{formatTime(ts.end_time)}</span>
-                  </div>
-                ))}
+      {/* BookingDrawer from existing booking page */}
+      <BookingDrawer
+        booking={selected ? bookingDTOToAdminBooking(selected, new Map<number, AdminLocationDTO>()) : null}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onUpdateStatus={handleAction}
+        onEdit={() => {}} // No-op for now unless requested
+        onDelete={() => {}} // No-op for now unless requested
+      />
+
+      {/* Approve Confirmation Modal */}
+      <Dialog open={!!approveModalBooking} onOpenChange={(open) => !open && setApproveModalBooking(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden z-[300]">
+          <DialogHeader className="p-6 pb-0 border-b-0">
+            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <CheckCircle className="text-emerald-500" size={24} />
+              ยืนยันการอนุมัติการจอง
+            </DialogTitle>
+          </DialogHeader>
+          
+          {approveModalBooking && (
+            <div className="p-6 pt-4 space-y-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center space-y-2">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">ยอดชำระทั้งหมด</span>
+                <span className="text-3xl font-black text-[#f26522]">
+                  {approveModalBooking.total_price === 0 
+                    ? "ไม่มีค่าใช้จ่าย" 
+                    : `฿${approveModalBooking.total_price.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                </span>
+              </div>
+
+              <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                </p>
               </div>
             </div>
           )}
-        </div>
-      )}
+
+          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+            <Button
+              variant="outline"
+              onClick={() => approveModalBooking && router.push(`/admin/booking/${approveModalBooking.id}/expenses`)}
+              className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+            >
+              จัดการค่าใช้จ่าย
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setApproveModalBooking(null)}
+                className="h-11 rounded-[7px] font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={() => approveModalBooking && handleAction(approveModalBooking.id, "approved")}
+                disabled={actionLoading === approveModalBooking?.id}
+                className="h-11 rounded-[7px] font-bold bg-[var(--color-brand-primary)] hover:opacity-90 text-white min-w-[120px]"
+              >
+                {actionLoading === approveModalBooking?.id ? (
+                  <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  "ยืนยันการอนุมัติ"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

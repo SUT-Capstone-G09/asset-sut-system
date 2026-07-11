@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Pencil, CheckCircle2, X } from "lucide-react";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import {
   Sheet,
   SheetContent,
@@ -153,3 +153,4 @@ export function EditEnvelopDocumentModal({
     </Sheet>
   );
 }
+

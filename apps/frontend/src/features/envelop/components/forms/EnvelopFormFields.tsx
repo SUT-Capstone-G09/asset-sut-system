@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -238,3 +238,4 @@ export default function EnvelopFormFields({ form, setForm, isEdit = false, exist
     </div>
   );
 }
+

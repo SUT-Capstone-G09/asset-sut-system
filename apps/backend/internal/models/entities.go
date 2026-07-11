@@ -7,6 +7,7 @@ var AllEntities = []any{
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
+	&UserSignatures{},
 
 	// Location
 	&LocationTypes{},
@@ -20,8 +21,10 @@ var AllEntities = []any{
 	&LocationAddons{},
 	&RateTypes{},
 	&LocationPricingTiers{},
+	&HallFloorPlans{},
 
-	// Area
+	// Commercial Leasing / Area
+	&BuildingTypes{},
 	&Buildings{},
 	&RentalSpaces{},
 	&RentalSpaceImages{},

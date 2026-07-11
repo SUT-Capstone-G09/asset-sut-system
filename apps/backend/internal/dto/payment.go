@@ -39,6 +39,7 @@ type PaymentTransactionResponse struct {
 	SlipDocumentID *uint      `json:"slip_document_id"`
 	VerifyBy       *uint      `json:"verify_by"`
 	VerifierName   string     `json:"verifier_name"`
+	VerifyNote     string     `json:"verify_note"`
 	PaidAt         *time.Time `json:"paid_at"`
 	CreatedAt      time.Time  `json:"created_at"`
 }
@@ -46,15 +47,38 @@ type PaymentTransactionResponse struct {
 // ── QR Payment ───────────────────────────────────────────────────────────────
 
 type GenerateQRRequest struct {
-	InvoiceID uint   `json:"invoice_id" binding:"required"`
+	BookingID uint   `json:"booking_id" binding:"required"`
 	Mode      string `json:"mode"`
 }
 
 type GenerateQRResponse struct {
-	PaymentID uint    `json:"payment_id"`
-	InvoiceID uint    `json:"invoice_id"`
+	BookingID uint    `json:"booking_id"`
 	Amount    float64 `json:"amount"`
 	Payload   string  `json:"payload"`
 	QRCodeURL string  `json:"qr_code_url"`
 	ExpiresIn int     `json:"expires_in"`
+}
+
+// ── Slip verification (EasySlip) ──────────────────────────────────────────────
+
+// VerifySlipRequest identifies the slip to verify. Provide either DocumentID (an
+// already-uploaded slip, fetched from storage) or Payload (the QR string decoded
+// from a slip, useful for testing).
+type VerifySlipRequest struct {
+	BookingID  uint   `json:"booking_id" binding:"required"`
+	DocumentID uint   `json:"document_id"`
+	Payload    string `json:"payload"`
+}
+
+type VerifySlipResponse struct {
+	TransactionID   uint     `json:"transaction_id"`
+	Status          string   `json:"status"` // auto_verified | mismatch
+	TransRef        string   `json:"trans_ref"`
+	Ref1            string   `json:"ref1"`
+	Amount          int      `json:"amount"`
+	MatchAmount     bool     `json:"match_amount"`
+	MatchRef        bool     `json:"match_ref"`
+	ReceiverMatched bool     `json:"receiver_matched"`
+	ReceiverFlag    bool     `json:"receiver_flag"` // true = payee mismatch, needs staff review
+	Reasons         []string `json:"reasons,omitempty"`
 }

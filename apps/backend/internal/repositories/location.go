@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
@@ -16,6 +17,7 @@ func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, er
 		Where("sl.user_id = ?", staffID).
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("PricingTiers.RequesterType").
 		Preload("PricingTiers.RateType").
 		Find(&locs).Error
@@ -83,6 +85,7 @@ func (r *LocationRepository) FindAll() ([]models.Locations, error) {
 	err := r.db.
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("PricingTiers.RequesterType").
 		Preload("PricingTiers.RateType").
 		Find(&locations).Error
@@ -94,6 +97,7 @@ func (r *LocationRepository) FindByID(id uint) (*models.Locations, error) {
 	err := r.db.
 		Preload("Type").
 		Preload("Status").
+		Preload("Building").
 		Preload("Equipments.Equipment").
 		Preload("Addons.ChargeType").
 		Preload("PricingTiers.RequesterType").
@@ -178,3 +182,42 @@ func (r *LocationRepository) FindUnavailabilitiesByDate(locationID uint, date ti
 	err := r.db.Where("location_id = ? AND date = ?", locationID, date.Format("2006-01-02")).Find(&items).Error
 	return items, err
 }
+
+// ── Hall Floor Plan ──────────────────────────────────────────────────────────
+
+// FindFloorPlanByLocationID คืน nil,nil ถ้ายังไม่มีผัง
+func (r *LocationRepository) FindFloorPlanByLocationID(locationID uint) (*models.HallFloorPlans, error) {
+	var fp models.HallFloorPlans
+	err := r.db.Where("location_id = ?", locationID).First(&fp).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &fp, nil
+}
+
+// SaveFloorPlan สร้างใหม่ถ้าไม่มี ID, อัปเดตทั้งชุดถ้ามี ID
+func (r *LocationRepository) SaveFloorPlan(fp *models.HallFloorPlans) error {
+	return r.db.Save(fp).Error
+}
+
+// FindFloorPlanLocationIDs คืน location_id ทั้งหมดที่มีผังแล้ว
+func (r *LocationRepository) FindFloorPlanLocationIDs() ([]uint, error) {
+	var ids []uint
+	err := r.db.Model(&models.HallFloorPlans{}).Pluck("location_id", &ids).Error
+	return ids, err
+}
+func (r *LocationRepository) FindAllGlobalAddons() ([]models.LocationAddons, error) {
+	var addons []models.LocationAddons
+	err := r.db.Where("location_id IS NULL").Find(&addons).Error
+	return addons, err
+}
+
+func (r *LocationRepository) FindAllBuildings() ([]models.Buildings, error) {
+	var buildings []models.Buildings
+	err := r.db.Find(&buildings).Error
+	return buildings, err
+}
+

@@ -45,7 +45,7 @@ export default function BookingHeader({
                 onClick={onCreateClick}
                 className={cn(
                   "h-11 px-6 rounded-[7px] font-bold text-xs text-white",
-                  "bg-[#f26522] hover:bg-[#d8561d] transition-all",
+                  "bg-primary hover:bg-brand-primary-600 transition-all",
                   "shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer"
                 )}
               >

@@ -44,7 +44,7 @@ export default function StaffTab() {
           />
         </div>
         <Button onClick={openCreate} className="h-9 bg-brand-primary hover:bg-brand-primary/90 text-white text-sm rounded-xl gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> เพิ่ม Staff
+          <Plus className="w-4 h-4" /> เพิ่ม เจ้าหน้าที่ประจำสถานที่
         </Button>
       </div>
 

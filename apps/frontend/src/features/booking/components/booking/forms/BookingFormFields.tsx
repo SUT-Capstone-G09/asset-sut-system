@@ -29,14 +29,15 @@ import {
 } from "lucide-react";
 import { BookingFormValues } from "../../../schemas/booking-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import { mockRooms } from "../../../data/rooms";
+import { getLocations, AdminLocationDTO } from "../../../services/locationService";
 import { getHoursFromTimeSlot } from "../../../utils/time";
 
 interface BookingFormFieldsProps {
   isEdit?: boolean;
   recurrenceMode?: "this" | "following" | "all";
-  type: "classroom" | "meeting";
+  type: string;
 }
 
 const CLASSROOM_CATEGORIES = ["ห้องบรรยาย", "ห้องปฏิบัติการ", "ห้องสัมมนา"];
@@ -114,21 +115,37 @@ export default function BookingFormFields({
   const watchedFrequency = useWatch({ control, name: "repeatFrequency" });
   const watchedCustomUnit = useWatch({ control, name: "repeatCustomUnit" });
   const watchedStatus = useWatch({ control, name: "status" });
+  const watchedBuilding = useWatch({ control, name: "building" });
+
+  const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
+
+  useEffect(() => {
+    getLocations()
+      .then((data) => setLocations(data))
+      .catch((err) => console.error("Failed to load locations for mapping:", err));
+  }, []);
+
+  const dynamicBuildings = Array.from(
+    new Set([
+      ...locations.map((loc) => loc.building).filter(Boolean),
+      ...(watchedBuilding ? [watchedBuilding] : []),
+    ])
+  ) as string[];
 
   // Automatically map roomName to building/category if a matching room is typed
   useEffect(() => {
     if (!watchedRoomName) return;
-    const foundRoom = mockRooms.find(
+    const foundRoom = locations.find(
       (r) =>
-        r.roomName.toLowerCase() === watchedRoomName.toLowerCase() ||
-        r.roomNumber.toLowerCase() === watchedRoomName.toLowerCase()
+        r.name.toLowerCase() === watchedRoomName.toLowerCase() ||
+        (r.room_number && String(r.room_number).toLowerCase() === watchedRoomName.toLowerCase())
     );
     if (foundRoom) {
-      setValue("building", foundRoom.building);
-      setValue("category", foundRoom.category);
-      setValue("roomNumber", foundRoom.roomNumber);
+      setValue("building", foundRoom.building ?? "");
+      setValue("category", foundRoom.type);
+      setValue("roomNumber", foundRoom.room_number ? String(foundRoom.room_number) : "");
     }
-  }, [watchedRoomName]);
+  }, [watchedRoomName, locations]);
 
   // Sync external timeSlot to local startHour/endHour states
   useEffect(() => {
@@ -192,75 +209,6 @@ export default function BookingFormFields({
         />
       </div>
 
-      {/* Section: Payment Slip (Only for Edit Mode) */}
-      {isEdit && (
-        <div className="space-y-4 text-left">
-          <div
-            className="flex items-center gap-2.5 mb-2"
-            style={{ color: themeColor }}
-          >
-            <div
-              className={cn(
-                "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
-                themeBg,
-              )}
-            >
-              <Briefcase size={18} strokeWidth={2.5} />
-            </div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
-              หลักฐานการชำระเงิน (Receipt Slip)
-            </h3>
-          </div>
-
-          <Controller
-            name="receiptImage"
-            control={control}
-            render={({ field }) => (
-              <ImageUpload
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.receiptImage?.message}
-              />
-            )}
-          />
-          <Separator className="bg-slate-100 mt-6" />
-        </div>
-      )}
-
-      {/* Section: Official Receipt (Only for Edit Mode + Approved Status) */}
-      {isEdit && watchedStatus === "approved" && (
-        <div className="space-y-4 text-left">
-          <div
-            className="flex items-center gap-2.5 mb-2"
-            style={{ color: themeColor }}
-          >
-            <div
-              className={cn(
-                "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
-                themeBg,
-              )}
-            >
-              <FileText size={18} strokeWidth={2.5} />
-            </div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
-              ใบเสร็จรับเงินอย่างเป็นทางการ (Official Receipt)
-            </h3>
-          </div>
-
-          <Controller
-            name="officialReceipt"
-            control={control}
-            render={({ field }) => (
-              <ImageUpload
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.officialReceipt?.message}
-              />
-            )}
-          />
-          <Separator className="bg-slate-100 mt-6" />
-        </div>
-      )}
 
       {/* Section: Status (Only for Edit Mode) */}
       {isEdit && (
@@ -299,10 +247,10 @@ export default function BookingFormFields({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">รออนุมัติ (Pending)</SelectItem>
-                    <SelectItem value="pending_payment">รอชำระเงิน (Pending Payment)</SelectItem>
-                    <SelectItem value="verifying_payment">รอตรวจสอบการชำระเงิน (Verifying Payment)</SelectItem>
-                    <SelectItem value="approved">อนุมัติแล้ว (Approved)</SelectItem>
+                    <SelectItem value="approved">อนุมัติ (Approved)</SelectItem>
                     <SelectItem value="rejected">ปฏิเสธ (Rejected)</SelectItem>
+                    <SelectItem value="cancelled">ยกเลิก (Cancelled)</SelectItem>
+                    <SelectItem value="completed">เสร็จสิ้น (Completed)</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -335,16 +283,51 @@ export default function BookingFormFields({
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-slate-500 ml-1">
-                ชื่อพื้นที่
+                ชื่อพื้นที่ / ห้อง
               </Label>
-              <Input
-                {...register("roomName")}
-                placeholder="เช่น ห้องบรรยาย B1101"
-                className={cn(
-                  "rounded-[7px] h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all",
-                  themeRing,
-                  errors.roomName &&
-                    "border-red-500 focus-visible:ring-red-500/30",
+              <Controller
+                name="roomName"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      const foundRoom = locations.find((r) => r.name === val);
+                      if (foundRoom) {
+                        setValue("building", foundRoom.building ?? "");
+                        setValue("category", foundRoom.type);
+                        setValue("roomNumber", foundRoom.room_number ? String(foundRoom.room_number) : "");
+                        if (foundRoom.image_url) {
+                          setValue("image", foundRoom.image_url);
+                        }
+                      }
+                    }}
+                    value={field.value}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        "rounded-[7px] h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all",
+                        themeRing,
+                        errors.roomName && "border-red-500",
+                      )}
+                    >
+                      <SelectValue placeholder="เลือกห้องที่ต้องการจอง" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      {locations
+                        .filter((loc) => categoriesList.includes(loc.type) || loc.name === watchedRoomName)
+                        .map((loc) => (
+                          <SelectItem key={loc.id} value={loc.name}>
+                            {loc.name} {loc.building ? `(${loc.building})` : ""}
+                          </SelectItem>
+                        ))}
+                      {locations.filter((loc) => categoriesList.includes(loc.type) || loc.name === watchedRoomName).length === 0 && (
+                        <div className="p-2 text-xs text-slate-400 text-center">
+                          ไม่มีห้องที่ตรงกับประเภทนี้ในฐานข้อมูล
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                 )}
               />
               {errors.roomName && (
@@ -374,12 +357,17 @@ export default function BookingFormFields({
                     >
                       <SelectValue placeholder="เลือกอาคาร" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {BUILDINGS.map((b) => (
+                    <SelectContent className="bg-white">
+                      {dynamicBuildings.map((b) => (
                         <SelectItem key={b} value={b}>
                           {b}
                         </SelectItem>
                       ))}
+                      {dynamicBuildings.length === 0 && (
+                        <div className="p-2 text-xs text-slate-400 text-center">
+                          ไม่มีข้อมูลอาคารในระบบ
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 )}
@@ -952,131 +940,9 @@ export default function BookingFormFields({
             )}
           </div>
 
-
-          <div className="space-y-2.5">
-            <Label className="text-xs font-bold text-slate-500 ml-1">
-              หมายเหตุเพิ่มเติม
-            </Label>
-            <Textarea
-              {...register("notes")}
-              placeholder="ระบุข้อความถึงผู้อนุมัติ (ถ้ามี)..."
-              className={cn(
-                "rounded-[7px] min-h-[90px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 transition-all p-4 resize-none",
-                themeRing,
-              )}
-            />
-          </div>
-
-          <Separator className="bg-slate-100 my-6" />
-
-          {/* Attached Documents Section (Visible in both Create and Edit modes) */}
-          <div className="space-y-4 text-left">
-            <div
-              className="flex items-center gap-2.5 mb-2"
-              style={{ color: themeColor }}
-            >
-              <div
-                className={cn(
-                  "size-8 rounded-[7px] flex items-center justify-center shadow-sm border border-slate-100",
-                  themeBg,
-                )}
-              >
-                <FileText size={18} strokeWidth={2.5} />
-              </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">
-                เอกสารแนบจากผู้ขอใช้พื้นที่
-              </h3>
-            </div>
-
-            <Controller
-              name="attachedDocuments"
-              control={control}
-              render={({ field }) => {
-                const docs = field.value || [];
-                const fileInputRef = useRef<HTMLInputElement>(null);
-
-                const handleFileChange = (
-                  e: React.ChangeEvent<HTMLInputElement>,
-                ) => {
-                  const files = e.target.files;
-                  if (files && files.length > 0) {
-                    const newDocNames = Array.from(files).map((f) => f.name);
-                    field.onChange([...docs, ...newDocNames]);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }
-                };
-
-                const handleRemoveDoc = (indexToRemove: number) => {
-                  field.onChange(
-                    docs.filter((_, idx) => idx !== indexToRemove),
-                  );
-                };
-
-                return (
-                  <div className="space-y-3">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      multiple
-                      accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.png,.jpg,.jpeg"
-                      className="hidden"
-                    />
-
-                    {/* Upload Button Box */}
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-slate-200 hover:border-[#f26522]/30 bg-slate-50 hover:bg-white p-6 rounded-[7px] flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group shadow-inner"
-                    >
-                      <div className="size-10 rounded-[7px] bg-white shadow-md flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                        <Plus size={20} className="text-[#f26522]" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-600 group-hover:text-slate-800">
-                        คลิกเพื่อแนบเอกสารเพิ่มเติม
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        รองรับ PDF, Word, Excel, PowerPoint, Text (สูงสุด 20MB)
-                      </span>
-                    </div>
-
-                    {/* Attached Documents List */}
-                    {docs.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                        {docs.map((doc: string, idx: number) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between p-3 rounded-[7px] bg-slate-50 border border-slate-100 hover:bg-white hover:border-[#f26522]/20 hover:shadow-sm transition-all group"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText
-                                size={14}
-                                className="text-[#6d6e70] group-hover:text-[#f26522] transition-colors shrink-0"
-                              />
-                              <span className="text-xs font-bold text-slate-600 truncate">
-                                {doc}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDoc(idx)}
-                              className="size-6 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                              title="ลบเอกสาร"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-          </div>
-
-
         </div>
       </div>
     </div>
   );
 }
+

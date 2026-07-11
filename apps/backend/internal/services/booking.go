@@ -1,7 +1,9 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
@@ -9,12 +11,15 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
+const MinBookingLeadDays = 7
+
 type BookingService struct {
 	bookingRepo    *repositories.BookingRepository
 	timeslotRepo   *repositories.TimeslotRepository
 	locationRepo   *repositories.LocationRepository
 	invoiceRepo    *repositories.InvoiceRepository
 	requesterRepo  *repositories.RequesterRepository
+	storageService *StorageService
 }
 
 func NewBookingService(
@@ -23,13 +28,15 @@ func NewBookingService(
 	locationRepo *repositories.LocationRepository,
 	invoiceRepo *repositories.InvoiceRepository,
 	requesterRepo *repositories.RequesterRepository,
+	storageService *StorageService,
 ) *BookingService {
 	return &BookingService{
-		bookingRepo:   bookingRepo,
-		timeslotRepo:  timeslotRepo,
-		locationRepo:  locationRepo,
-		invoiceRepo:   invoiceRepo,
-		requesterRepo: requesterRepo,
+		bookingRepo:    bookingRepo,
+		timeslotRepo:   timeslotRepo,
+		locationRepo:   locationRepo,
+		invoiceRepo:    invoiceRepo,
+		requesterRepo:  requesterRepo,
+		storageService: storageService,
 	}
 }
 
@@ -40,7 +47,7 @@ func (s *BookingService) GetAll() ([]dto.BookingResponse, error) {
 	}
 	var result []dto.BookingResponse
 	for _, b := range bookings {
-		result = append(result, toBookingResponse(b))
+		result = append(result, s.toBookingResponse(b))
 	}
 	return result, nil
 }
@@ -52,7 +59,7 @@ func (s *BookingService) GetByUserID(userID uint) ([]dto.BookingResponse, error)
 	}
 	var result []dto.BookingResponse
 	for _, b := range bookings {
-		result = append(result, toBookingResponse(b))
+		result = append(result, s.toBookingResponse(b))
 	}
 	return result, nil
 }
@@ -62,11 +69,20 @@ func (s *BookingService) GetByID(id uint) (*dto.BookingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := toBookingResponse(*booking)
+	res := s.toBookingResponse(*booking)
 	return &res, nil
 }
 
 func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto.BookingResponse, error) {
+	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	minBookableDate := startOfToday.AddDate(0, 0, MinBookingLeadDays)
+	for _, ts := range req.Timeslots {
+		if ts.Date.Before(minBookableDate) {
+			return nil, fmt.Errorf("ต้องจองล่วงหน้าอย่างน้อย %d วัน", MinBookingLeadDays)
+		}
+	}
+
 	pendingStatus, err := s.bookingRepo.FindStatusByName("pending")
 	if err != nil {
 		return nil, errors.New("booking status not configured")
@@ -126,6 +142,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			Date:          tsInput.Date,
 			StartTime:     tsInput.StartTime,
 			EndTime:       tsInput.EndTime,
+			IsFullDay:     tsInput.IsFullDay,
 			PriceSnapshot: priceSnapshot,
 			StatusID:      availableStatus.ID,
 		}
@@ -135,19 +152,18 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		basePrice += priceSnapshot
 
 		for _, addonID := range tsInput.AddonIDs {
-			for _, la := range location.Addons {
-				if la.ID == addonID && la.IsActive {
-					bta := &models.BookingTimeslotAddons{
-						LocationAddonID: la.ID,
-						TimeslotID:      ts.ID,
-						Name:            la.Name,
-						AppliedPrice:    la.DefaultPrice,
-						Quantity:        1,
-						TotalPrice:      la.DefaultPrice,
-					}
-					_ = s.timeslotRepo.CreateAddon(bta)
-					addonPrice += la.DefaultPrice
+			la, err := s.locationRepo.FindAddonByID(addonID)
+			if err == nil && la.IsActive && (la.LocationID == nil || *la.LocationID == location.ID) {
+				bta := &models.BookingTimeslotAddons{
+					LocationAddonID: &la.ID,
+					TimeslotID:      ts.ID,
+					Name:            la.Name,
+					AppliedPrice:    la.DefaultPrice,
+					Quantity:        1,
+					TotalPrice:      la.DefaultPrice,
 				}
+				_ = s.timeslotRepo.CreateAddon(bta)
+				addonPrice += la.DefaultPrice
 			}
 		}
 	}
@@ -176,20 +192,115 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 	if err != nil {
 		return nil, err
 	}
+
+	var targetStatusName string = req.Status
+	isVirtualStatus := false
+	originalVirtualStatus := req.Status
+
+	if targetStatusName == "pending_payment" || targetStatusName == "verifying_payment" {
+		targetStatusName = "approved"
+		isVirtualStatus = true
+	}
+
+	var targetStatusID uint
+	if req.Status != "" {
+		st, err := s.bookingRepo.FindStatusByName(targetStatusName)
+		if err != nil {
+			return nil, errors.New("invalid status name: " + req.Status)
+		}
+		targetStatusID = st.ID
+	} else if req.StatusID != 0 {
+		targetStatusID = req.StatusID
+	} else {
+		return nil, errors.New("either status or status_id is required")
+	}
+
 	oldStatusID := booking.StatusID
-	booking.StatusID = req.StatusID
+	booking.StatusID = targetStatusID
 	if err := s.bookingRepo.Update(booking); err != nil {
 		return nil, err
 	}
 	_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
 		BookingID:    booking.ID,
 		FromStatusID: &oldStatusID,
-		ToStatusID:   req.StatusID,
+		ToStatusID:   targetStatusID,
 		ChangedBy:    changedBy,
 		ChangedAt:    time.Now(),
 		Note:         req.Note,
 	})
+
+	// Update invoice status if it was a virtual payment status or if approved/rejected/cancelled
+	invoice, err := s.invoiceRepo.FindByBookingID(booking.ID)
+	if err == nil && invoice != nil {
+		var invoiceStatusName string
+		if isVirtualStatus {
+			if originalVirtualStatus == "pending_payment" {
+				invoiceStatusName = "pending"
+			}
+		} else if req.Status == "approved" {
+			invoiceStatusName = "paid"
+		} else if req.Status == "rejected" || req.Status == "cancelled" {
+			invoiceStatusName = "cancelled"
+		}
+
+		if invoiceStatusName != "" {
+			invStatus, err := s.invoiceRepo.FindStatusByName(invoiceStatusName)
+			if err == nil && invStatus != nil {
+				invoice.StatusID = invStatus.ID
+				_ = s.invoiceRepo.Update(invoice)
+			}
+		}
+	}
+
 	return s.GetByID(booking.ID)
+}
+
+func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRequest) (*dto.BookingResponse, error) {
+	booking, err := s.bookingRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(booking.Timeslots) == 0 {
+		return nil, errors.New("booking has no timeslots to attach expenses to")
+	}
+
+	var newTimeslotAddons []models.BookingTimeslotAddons
+	var addonPrice int = 0
+
+	for _, tsInput := range req.Timeslots {
+		for _, item := range tsInput.Expenses {
+			total := item.AppliedPrice * item.Quantity
+			addonPrice += total
+
+			newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
+				TimeslotID:   tsInput.TimeslotID,
+				Name:         item.AddonName,
+				AppliedPrice: item.AppliedPrice,
+				Quantity:     item.Quantity,
+				TotalPrice:   total,
+			})
+		}
+	}
+
+	// Recalculate base price in case it was 0
+	basePrice := booking.BasePrice
+	if basePrice == 0 && len(booking.Timeslots) > 0 {
+		for _, ts := range booking.Timeslots {
+			basePrice += ts.PriceSnapshot
+		}
+	}
+
+	totalPrice := basePrice + addonPrice
+	if req.IsWaived {
+		totalPrice = 0
+	}
+
+	if err := s.bookingRepo.UpdateBookingExpenses(id, newTimeslotAddons, basePrice, addonPrice, totalPrice); err != nil {
+		return nil, err
+	}
+
+	return s.GetByID(id)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -199,39 +310,112 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 		return 0
 	}
 
+	// Full-day booking: use the flat daily tier if the location has one configured.
+	if ts.IsFullDay {
+		for _, tier := range location.PricingTiers {
+			if tier.RequesterTypeID == requesterTypeID &&
+				tier.RateType != nil && tier.RateType.Type == "daily" {
+				return tier.Price
+			}
+		}
+	}
+
 	hours := ts.EndTime.Sub(ts.StartTime).Hours()
 	if hours <= 0 {
 		hours = 1
 	}
 
-	// Find hourly tier matching user's requester type
+	// 1. Try to match the exact requesterTypeID
+	if requesterTypeID != 0 {
+		// If booking exceeds 4 hours, try to use the daily rate
+		if hours > 4 {
+			for _, tier := range location.PricingTiers {
+				if tier.RequesterTypeID == requesterTypeID &&
+					tier.RateType != nil && tier.RateType.Type == "daily" {
+					return tier.Price
+				}
+			}
+		}
+
+		// Find hourly tier matching user's requester type
+		for _, tier := range location.PricingTiers {
+			if tier.RequesterTypeID == requesterTypeID &&
+				tier.RateType != nil && tier.RateType.Type == "hourly" {
+				return int(hours) * tier.Price
+			}
+		}
+	}
+
+	// 2. Fallback if no exact tier found or requesterTypeID is 0 (e.g. Admin booking)
+	if hours > 4 {
+		for _, tier := range location.PricingTiers {
+			if tier.RateType != nil && tier.RateType.Type == "daily" {
+				return tier.Price
+			}
+		}
+	}
+
 	for _, tier := range location.PricingTiers {
-		if tier.RequesterTypeID == requesterTypeID &&
-			tier.RateType != nil && tier.RateType.Type == "hourly" {
+		if tier.RateType != nil && tier.RateType.Type == "hourly" {
 			return int(hours) * tier.Price
 		}
 	}
 
-	// Fallback to first tier
+	// Ultimate fallback to first tier
 	return int(hours) * location.PricingTiers[0].Price
 }
 
-func toBookingResponse(b models.Bookings) dto.BookingResponse {
+func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingResponse {
 	res := dto.BookingResponse{
 		ID:         b.ID,
 		UserID:     b.UserID,
 		Purpose:    b.Purpose,
-		BasePrice:  b.BasePrice,
-		AddonPrice: b.AddonPrice,
-		TotalPrice: b.TotalPrice,
-		StatusID:   b.StatusID,
-		CreatedAt:  b.CreatedAt,
+		BasePrice:     b.BasePrice,
+		AddonPrice:    b.AddonPrice,
+		TotalPrice:    b.TotalPrice,
+		StatusID:      b.StatusID,
+		CreatedAt:     b.CreatedAt,
 	}
 	if b.Status != nil {
 		res.Status = b.Status.Status
 	}
 	if b.User != nil {
 		res.UserName = b.User.Email
+		res.ContactEmail = b.User.Email
+
+		if b.User.Profiles != nil {
+			res.RequesterName = b.User.Profiles.FirstName + " " + b.User.Profiles.LastName
+			res.ContactPhone = b.User.Profiles.Phone
+
+			isAdmin := false
+			isStaff := false
+			for _, role := range b.User.Roles {
+				if role.Name == "admin" {
+					isAdmin = true
+				} else if role.Name == "staff" {
+					isStaff = true
+				}
+			}
+
+			if isAdmin {
+				res.RequesterType = "admin"
+				res.RequesterID = fmt.Sprintf("A-%d", b.User.Profiles.ID)
+			} else if isStaff {
+				res.RequesterType = "staff"
+				res.RequesterID = fmt.Sprintf("S-%d", b.User.Profiles.ID)
+			} else {
+				res.RequesterID = fmt.Sprintf("R-%d", b.User.Profiles.ID)
+				if b.User.Profiles.RequesterType != nil && b.User.Profiles.RequesterType.Type != "" {
+					res.RequesterType = b.User.Profiles.RequesterType.Type
+				} else {
+					res.RequesterType = "student"
+				}
+			}
+		} else {
+			res.RequesterName = b.User.Email
+			res.RequesterID = fmt.Sprintf("U-%d", b.UserID)
+			res.RequesterType = "external"
+		}
 	}
 	for _, ts := range b.Timeslots {
 		tsRes := dto.TimeslotResponse{
@@ -240,6 +424,7 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 			Date:          ts.Date,
 			StartTime:     ts.StartTime,
 			EndTime:       ts.EndTime,
+			IsFullDay:     ts.IsFullDay,
 			PriceSnapshot: ts.PriceSnapshot,
 		}
 		if ts.Location != nil {
@@ -277,6 +462,43 @@ func toBookingResponse(b models.Bookings) dto.BookingResponse {
 			logRes.ChangedByName = log.ChangedByUser.Email
 		}
 		res.StatusLogs = append(res.StatusLogs, logRes)
+	}
+	res.BookingAddons = make([]dto.BookingAddonResponse, 0)
+	for _, ts := range b.Timeslots {
+		for _, bta := range ts.Addons {
+			res.BookingAddons = append(res.BookingAddons, dto.BookingAddonResponse{
+				ID:           bta.ID,
+				AddonName:    bta.Name,
+				AppliedPrice: bta.AppliedPrice,
+				Quantity:     bta.Quantity,
+				TotalPrice:   bta.TotalPrice,
+			})
+		}
+	}
+	res.Documents = make([]dto.DocumentResponse, 0)
+	for _, doc := range b.Documents {
+		docRes := dto.DocumentResponse{
+			ID:             doc.ID,
+			BookingID:      doc.BookingID,
+			DocumentTypeID: doc.DocumentTypeID,
+			FileName:       doc.FileName,
+			FileURL:        doc.FileURL,
+			ContentType:    doc.ContentType,
+			CreatedAt:      doc.CreatedAt,
+		}
+		
+		// Generate fresh presigned URL
+		if freshURL, err := s.storageService.PresignedURL(context.Background(), doc.ObjectKey); err == nil {
+			docRes.FileURL = freshURL
+		}
+
+		if doc.DocumentType != nil {
+			docRes.DocumentType = doc.DocumentType.Type
+		}
+		if doc.Method != nil {
+			docRes.Method = doc.Method.Method
+		}
+		res.Documents = append(res.Documents, docRes)
 	}
 	return res
 }

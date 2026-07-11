@@ -7,6 +7,7 @@ const MODULE_LABELS: Record<string, string> = {
   booking: "การจอง",
   payment: "การชำระเงิน",
   upload_doc: "อัพโหลดเอกสาร",
+  location_mgmt: "จัดการสถานที่",
 };
 
 const ACTION_LABELS: Record<string, string> = {

@@ -11,9 +11,12 @@ interface PaymentSummaryCardProps {
   location: string;
   bookingDate: string;
   bookingTime: string;
-  hourlyRate: number;
-  hours: number;
   totalPrice: number;
+  expenses?: {
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
 }
 
 export function PaymentSummaryCard({
@@ -21,9 +24,8 @@ export function PaymentSummaryCard({
   location,
   bookingDate,
   bookingTime,
-  hourlyRate,
-  hours,
   totalPrice,
+  expenses,
 }: PaymentSummaryCardProps) {
   const [detailed, setDetailed] = useState(true);
 
@@ -72,38 +74,31 @@ export function PaymentSummaryCard({
         </button>
       </div>
 
-      <div className="flex flex-col gap-2 text-sm">
-        {detailed ? (
-          <>
-            <div className="flex justify-between text-gray-500">
-              <span>
-                ฿
-                {hourlyRate.toLocaleString("th-TH", {
-                  minimumFractionDigits: 2,
-                })}{" "}
-                × {hours} ชั่วโมง
-              </span>
-              <span className="font-semibold text-gray-800">
-                ฿
-                {totalPrice.toLocaleString("th-TH", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-            <div className="flex justify-between text-gray-500">
-              <span>ค่าบริการ</span>
-              <span className="font-semibold text-gray-800">฿0.00</span>
-            </div>
-          </>
+      <div className="flex flex-col gap-3 text-sm">
+        {expenses && expenses.length > 0 ? (
+          expenses.map((exp, idx) => {
+            const amount = exp.price * exp.quantity;
+            const isDiscount = amount < 0 || exp.name.includes("ส่วนลด");
+            return (
+              <div key={idx} className={`flex justify-between ${isDiscount ? "text-emerald-600" : "text-gray-500"}`}>
+                <span>
+                  {exp.name}
+                  {exp.quantity > 1 && !isDiscount && ` (x${exp.quantity})`}
+                </span>
+                <span className={`font-semibold ${isDiscount ? "text-emerald-600" : "text-gray-800"}`}>
+                  {isDiscount && amount > 0 ? "-" : ""}
+                  {amount < 0 ? "-" : ""}฿
+                  {Math.abs(amount).toLocaleString("th-TH", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            );
+          })
         ) : (
           <div className="flex justify-between text-gray-500">
-            <span>ค่าบำรุงสถานที่</span>
-            <span className="font-semibold text-gray-800">
-              ฿
-              {totalPrice.toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-              })}
-            </span>
+            <span>ไม่มีรายละเอียดค่าใช้จ่าย</span>
+            <span className="font-semibold text-gray-800">฿0.00</span>
           </div>
         )}
       </div>

@@ -8,14 +8,23 @@ import (
 	"gorm.io/gorm"
 )
 
-var sampleInvoices = []models.Invoices{
-	{BookingID: 1, StatusID: 1, TotalAmount: 150},
-	{BookingID: 2, StatusID: 1, TotalAmount: 2500},
-}
-
+// seedInvoices creates one pending invoice per booking, deriving the amount from
+// the booking's total_price so the two never drift apart (the QR and slip
+// verification both read the booking amount).
 func seedInvoices(db *gorm.DB, cfg *config.Config) error {
-	for _, inv := range sampleInvoices {
-		if err := db.FirstOrCreate(&inv, models.Invoices{BookingID: inv.BookingID}).Error; err != nil {
+	var pending models.InvoiceStatuses
+	if err := db.Where("status = ?", "pending").First(&pending).Error; err != nil {
+		return err
+	}
+
+	var bookings []models.Bookings
+	if err := db.Find(&bookings).Error; err != nil {
+		return err
+	}
+
+	for _, b := range bookings {
+		inv := models.Invoices{BookingID: b.ID, StatusID: pending.ID, TotalAmount: b.TotalPrice}
+		if err := db.FirstOrCreate(&inv, models.Invoices{BookingID: b.ID}).Error; err != nil {
 			return err
 		}
 	}
