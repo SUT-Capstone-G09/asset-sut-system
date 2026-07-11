@@ -6,7 +6,7 @@ import { Building2, FileText, User } from "lucide-react";
 
 // 3. Feature Components
 import CanteenStallsSection from "../tenant/CanteenStallsSection";
-import SingleTenantSection from "../tenant/SingleTenantSection";
+import AdminTenantDetailView from "../tenant/AdminTenantDetailView";
 import AssignTenantDrawer from "../tenant/AssignTenantDrawer";
 import CreateContractDrawer from "../tenant/CreateContractDrawer";
 
@@ -66,7 +66,7 @@ export default function SpaceDetailTenantTab({
         />
       ) : (
         <div className="space-y-6">
-          <SingleTenantSection
+          <AdminTenantDetailView
             location={location}
             onCreateContractClick={() => setIsCreateContractOpen(true)}
           />

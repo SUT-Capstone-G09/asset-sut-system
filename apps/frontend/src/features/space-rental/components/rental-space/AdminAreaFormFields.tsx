@@ -20,7 +20,7 @@ import { AREA_CATEGORIES, BUILDINGS, AREA_TO_BUILDINGS } from "../../constants";
 import { cn } from "@/lib/utils";
 import { AreaFormValues } from "../../schemas/area-schema";
 
-import ImageUpload from "../shared/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 
 interface AdminAreaFormFieldsProps {
   isEdit?: boolean;

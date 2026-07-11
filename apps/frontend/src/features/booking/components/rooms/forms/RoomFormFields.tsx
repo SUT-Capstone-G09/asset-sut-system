@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { RoomFormValues } from "../../../schemas/room-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import RoomRateModal from "../RoomRateModal";
 import {
   getLocations,

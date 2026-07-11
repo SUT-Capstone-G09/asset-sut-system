@@ -21,7 +21,7 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/space-rental/components/shared/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import { PaymentTransactionDTO, verifyPayment } from "@/features/payment/services/payment.service";
 import { getBookingById, BookingResponseDTO } from "@/features/bookings/services/booking.service";
 import { getDocumentById, createDocument, DocumentDTO } from "@/features/payment/services/document.service";

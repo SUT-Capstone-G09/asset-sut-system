@@ -27,15 +27,15 @@ import { generateMockTenants, MockContract, MockTenant } from "@/features/space-
 import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import { cn } from "@/lib/utils";
 
-interface SingleTenantSectionProps {
+interface AdminTenantDetailViewProps {
   location: RentalSpace;
   onCreateContractClick?: () => void;
 }
 
-export default function SingleTenantSection({
+export default function AdminTenantDetailView({
   location,
   onCreateContractClick
-}: SingleTenantSectionProps) {
+}: AdminTenantDetailViewProps) {
   const router = useRouter();
 
   // Load all mock tenants deterministic list

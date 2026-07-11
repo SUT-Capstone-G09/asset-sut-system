@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { UploadCloud, X, RefreshCw, Loader2, Upload } from "lucide-react";
+import { Upload, X, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -10,13 +10,17 @@ import {
   UploadFolder,
 } from "@/lib/services/upload";
 
-interface ImageUploadProps {
+export interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
   folder?: UploadFolder | string;
   error?: string;
   label?: string;
+  description?: string;
   icon?: React.ReactNode;
+  aspectRatio?: string; // e.g., "aspect-video", "aspect-square", "h-40 w-40 rounded-full"
+  objectFit?: "object-contain" | "object-cover" | "object-fill";
+  className?: string;
 }
 
 export default function ImageUpload({
@@ -24,6 +28,12 @@ export default function ImageUpload({
   onChange,
   folder = UPLOAD_FOLDERS.LOCATION_PICS,
   error,
+  label = "คลิกเพื่ออัปโหลดรูปภาพ",
+  description = "รองรับ JPG, PNG (สูงสุด 10MB)",
+  icon,
+  aspectRatio = "aspect-video",
+  objectFit = "object-contain",
+  className,
 }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(value || null);
@@ -47,8 +57,8 @@ export default function ImageUpload({
     try {
       const result = await uploadFile(file, folder);
       URL.revokeObjectURL(localUrl);
-      setPreview(result.url); // ใช้ URL สำหรับ preview เท่านั้น
-      onChange(result.object_key); // เก็บ object_key ลง DB (backend จะ generate URL ใหม่ตอน fetch)
+      setPreview(result.url); // Use URL for previewing only
+      onChange(result.object_key); // Store object_key in DB (backend generates new URL on fetch)
     } catch (err) {
       URL.revokeObjectURL(localUrl);
       setPreview(null);
@@ -68,11 +78,13 @@ export default function ImageUpload({
   };
 
   const defaultIcon = (
-    <Upload size={28} className="text-[#f26522]" />
+    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-[#f26522] mb-4">
+      <Upload className="w-6 h-6" />
+    </div>
   );
 
   return (
-    <div className="w-full space-y-2">
+    <div className={cn("w-full space-y-2", className)}>
       <input
         type="file"
         ref={fileInputRef}
@@ -82,13 +94,17 @@ export default function ImageUpload({
       />
 
       {preview ? (
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm">
+        <div className={cn(
+          "relative w-full overflow-hidden border border-slate-200 group bg-slate-50 flex items-center justify-center shadow-sm rounded-[7px]",
+          aspectRatio
+        )}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
             alt="Preview"
             className={cn(
-              "object-contain w-full h-full transition-opacity duration-300",
+              "w-full h-full transition-opacity duration-300",
+              objectFit,
               uploading ? "opacity-50 blur-sm" : "opacity-100 group-hover:opacity-90"
             )}
           />
@@ -104,7 +120,7 @@ export default function ImageUpload({
                 variant="secondary"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg font-bold gap-2 shadow-lg"
+                className="rounded-[7px] font-bold gap-2 shadow-lg cursor-pointer"
               >
                 <RefreshCw size={14} />
                 เปลี่ยนรูป
@@ -114,7 +130,7 @@ export default function ImageUpload({
                 variant="destructive"
                 size="sm"
                 onClick={handleRemove}
-                className="rounded-lg font-bold gap-2 shadow-lg"
+                className="rounded-[7px] font-bold gap-2 shadow-lg cursor-pointer"
               >
                 <X size={14} />
                 ลบรูป
@@ -126,19 +142,18 @@ export default function ImageUpload({
         <div
           onClick={() => !uploading && fileInputRef.current?.click()}
           className={cn(
-            "border-2 border-dashed rounded-2xl py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
+            "border-2 border-dashed rounded-[7px] py-12 px-6 flex flex-col items-center justify-center gap-5 transition-all cursor-pointer group shadow-sm",
             error
               ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
               : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#f26522]/30",
+            aspectRatio
           )}
         >
           <div className="size-16 rounded-[7px] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
             {uploading ? (
               <Loader2 size={32} className="text-[#f26522] animate-spin" />
             ) : (
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-100 text-brand-primary mb-4">
-                <Upload className="w-6 h-6" />
-              </div>
+              icon || defaultIcon
             )}
           </div>
           <div className="text-center space-y-1">
@@ -148,11 +163,13 @@ export default function ImageUpload({
                 error ? "text-red-600" : "text-slate-900",
               )}
             >
-              {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพ"}
+              {uploading ? "กำลังอัปโหลด..." : label}
             </p>
-            <p className="text-xs text-slate-400 font-medium">
-              รองรับ JPG, PNG (สูงสุด 10MB)
-            </p>
+            {description && (
+              <p className="text-xs text-slate-400 font-medium">
+                {description}
+              </p>
+            )}
           </div>
         </div>
       )}
