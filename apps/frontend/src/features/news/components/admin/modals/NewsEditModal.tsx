@@ -1,5 +1,6 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,10 +8,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { NewsBasicInfo } from "./NewsBasicInfo";
-import { NewsContractInfo } from "./NewsContractInfo";
-import { NewsUploads } from "./NewsUploads";
+import { NewsBasicInfo } from "../form/NewsBasicInfo";
+import { NewsContractInfo } from "../form/NewsContractInfo";
+import { NewsUploads } from "../form/NewsUploads";
 
 interface NewsEditModalProps {
   isOpen: boolean;

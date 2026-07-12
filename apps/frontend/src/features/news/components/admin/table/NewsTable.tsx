@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-import { History, Pencil, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { History, Pencil, Trash2, ChevronLeft, ChevronRight, Eye, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -11,23 +18,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MOCK_NEWS } from "@/features/news/data/mocknews";
-import { NewsEditModal } from "@/features/news/components/admin/NewsEditModal";
-import { NewsDeleteModal } from "@/features/news/components/admin/NewsDeleteModal";
+import { NewsEditModal } from "../modals/NewsEditModal";
+import { NewsDeleteModal } from "../modals/NewsDeleteModal";
 
-export const NewsTable = () => {
+interface NewsTableProps {
+  activeTab?: string;
+}
+
+export const NewsTable = ({ activeTab = "ทั้งหมด" }: NewsTableProps) => {
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedNews, setSelectedNews] = useState<any>(null);
 
   const handleEditClick = (news: any) => {
-    setSelectedNews(news);
-    setIsEditModalOpen(true);
+    router.push(`/admin/news-management/${news.id}/edit`);
   };
 
   const handleDeleteClick = (news: any) => {
     setSelectedNews(news);
     setIsDeleteModalOpen(true);
   };
+
+  const filteredNews = activeTab === "ทั้งหมด"
+    ? MOCK_NEWS
+    : MOCK_NEWS.filter((news) => news.category === activeTab);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -44,7 +59,7 @@ export const NewsTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_NEWS.map((news) => (
+            {filteredNews.map((news) => (
               <TableRow key={news.id} className="hover:bg-gray-50/50 transition-colors group">
                 <TableCell className="py-4">
                   <div className="flex gap-4 items-center">
@@ -94,32 +109,58 @@ export const NewsTable = () => {
                       news.status === 'Draft' ? 'bg-yellow-500' :
                       'bg-gray-400'
                     }`} />
-                    {news.status}
+                    {news.status === 'Published' ? 'เผยแพร่แล้ว' :
+                     news.status === 'Draft' ? 'แบบร่าง' :
+                     'เก็บถาวร'}
                   </div>
                 </TableCell>
                 <TableCell className="py-4 text-right pr-6">
-                  <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {news.status === 'Archived' ? (
-                      <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors" title="Restore">
-                        <History className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => handleEditClick(news)}
-                        className="p-1.5 text-gray-400 hover:text-[#C2410C] rounded-md hover:bg-orange-50 transition-colors" 
-                        title="Edit"
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 bg-white border border-gray-150 shadow-md rounded-xl p-1 z-50">
+                      {/* View Details Option */}
+                      <DropdownMenuItem 
+                        onClick={() => router.push(`/admin/news-management/${news.id}`)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
                       >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => handleDeleteClick(news)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors" 
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                        <Eye className="h-4 w-4 text-gray-500" />
+                        <span>ดูรายละเอียด</span>
+                      </DropdownMenuItem>
+
+                      {/* Edit Option */}
+                      {news.status !== 'Archived' ? (
+                        <DropdownMenuItem 
+                          onClick={() => handleEditClick(news)}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <Pencil className="h-4 w-4 text-gray-500" />
+                          <span>แก้ไข</span>
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem 
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                          title="Restore"
+                        >
+                          <History className="h-4 w-4 text-gray-500" />
+                          <span>คืนค่า</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* Delete Option */}
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteClick(news)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <span>ลบ</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

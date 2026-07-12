@@ -6,7 +6,6 @@ import Link from "next/link";
 export const NewsManagementHeader = () => {
     return (
         <div>
-
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>

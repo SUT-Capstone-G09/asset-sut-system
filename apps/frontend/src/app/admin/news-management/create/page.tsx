@@ -1,12 +1,12 @@
 "use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { NewsCreateHeader } from "@/features/news/components/admin/NewsCreateHeader"
-import { NewsBasicInfo } from "@/features/news/components/admin/NewsBasicInfo"
-import { NewsQualificationsInfo } from "@/features/news/components/admin/NewsQualificationsInfo"
-import { NewsContractInfo } from "@/features/news/components/admin/NewsContractInfo"
-import { NewsUploads } from "@/features/news/components/admin/NewsUploads"
-import { NewsPreview } from "@/features/news/components/admin/NewsPreview"
+import { NewsCreateHeader } from "@/features/news/components/admin/layout/NewsCreateHeader"
+import { NewsBasicInfo } from "@/features/news/components/admin/form/NewsBasicInfo"
+import { NewsQualificationsInfo } from "@/features/news/components/admin/form/NewsQualificationsInfo"
+import { NewsContractInfo } from "@/features/news/components/admin/form/NewsContractInfo"
+import { NewsUploads } from "@/features/news/components/admin/form/NewsUploads"
+import { NewsPreview } from "@/features/news/components/admin/preview/NewsPreview"
 
 export default function NewsManagementPage() {
   const [formData, setFormData] = useState<{

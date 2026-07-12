@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PageContainer from "@/components/layout/PageContainer";
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
-import { NewsTable } from "@/features/news/components/admin/NewsTable";
-import { NewsManagementHeader } from "@/features/news/components/admin/NewsManagementHeader";
-import { NewsFilterTabs, TabItem } from "@/features/news/components/admin/NewsFilterTabs";
+import { NewsTable } from "@/features/news/components/admin/table/NewsTable";
+import { NewsManagementHeader } from "@/features/news/components/admin/layout/NewsManagementHeader";
+import { NewsFilterTabs, TabItem } from "@/features/news/components/admin/table/NewsFilterTabs";
 
 const NewsManagementPage = () => {
     const [activeTab, setActiveTab] = useState("ทั้งหมด");
@@ -35,7 +35,7 @@ const NewsManagementPage = () => {
             />
 
             {/* News Table Component */}
-            <NewsTable />
+            <NewsTable activeTab={activeTab} />
         </div>
     );
 };
