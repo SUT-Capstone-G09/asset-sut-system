@@ -3,6 +3,7 @@ package repositories
 import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PaymentRepository struct {
@@ -18,7 +19,8 @@ func (r *PaymentRepository) FindByID(id uint) (*models.PaymentTransactions, erro
 	err := r.db.
 		Preload("Method").
 		Preload("Status").
-		Preload("Verifier").
+		Preload("Verifier.Profiles").
+		Preload("Invoice.Booking.User.Profiles").
 		First(&tx, id).Error
 	return &tx, err
 }
@@ -29,7 +31,7 @@ func (r *PaymentRepository) FindByInvoiceID(invoiceID uint) ([]models.PaymentTra
 		Where("invoice_id = ?", invoiceID).
 		Preload("Method").
 		Preload("Status").
-		Preload("Verifier").
+		Preload("Verifier.Profiles").
 		Find(&txs).Error
 	return txs, err
 }
@@ -38,8 +40,15 @@ func (r *PaymentRepository) Create(tx *models.PaymentTransactions) error {
 	return r.db.Create(tx).Error
 }
 
+// Save (not Updates) so zero-value field changes persist — but a plain Save
+// also re-upserts any preloaded association (Status, Verifier, ...), and when
+// that association object is stale relative to a just-changed FK column (e.g.
+// StatusID reassigned while the preloaded Status still points at the old
+// row), GORM writes the association back and overwrites the FK with the
+// stale value. Omit(clause.Associations) keeps Save scoped to tx's own
+// columns.
 func (r *PaymentRepository) Update(tx *models.PaymentTransactions) error {
-	return r.db.Omit("Method", "Status", "Verifier", "Invoice").Save(tx).Error
+	return r.db.Omit(clause.Associations).Save(tx).Error
 }
 
 func (r *PaymentRepository) FindStatusByName(name string) (*models.PaymentStatuses, error) {
@@ -73,8 +82,8 @@ func (r *PaymentRepository) FindAll() ([]models.PaymentTransactions, error) {
 	err := r.db.
 		Preload("Method").
 		Preload("Status").
-		Preload("Verifier").
-		Preload("Invoice.Booking.User").
+		Preload("Verifier.Profiles").
+		Preload("Invoice.Booking.User.Profiles").
 		Preload("Invoice.Booking.Timeslots.Location").
 		Order("created_at DESC").
 		Find(&txs).Error

@@ -2,11 +2,18 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, MapPin, Calendar, Store, MoreHorizontal, User, X, Plus, FileText, UploadCloud, CheckCircle } from "lucide-react";
+import { Search, MapPin, Calendar, Store, MoreHorizontal, User, X, Plus, FileText, UploadCloud, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-react";
 import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
 import { generateMockTenants, MockTenant } from "@/features/tenants/data/mock-tenants";
 import { cn } from "@/lib/utils";
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const mockUsers = [
   { id: "user_01", name: "คุณ สมชาย แข็งขัน", email: "somchai.k@sut.ac.th" },
@@ -44,6 +51,18 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
   const [startDate, setStartDate] = useState("2026-07-01");
   const [endDate, setEndDate] = useState("2028-06-30");
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
+
+  // Excel & Wizard states (เพิ่มใหม่)
+  const [phone, setPhone] = useState("");
+  const [nationalId, setNationalId] = useState("");
+  const [deposit, setDeposit] = useState("10000");
+  const [scholarship, setScholarship] = useState("2000");
+  const [terms, setTerms] = useState("");
+  const [note, setNote] = useState("");
+  const [uploadedVerificationFile, setUploadedVerificationFile] = useState<{ name: string; size: string } | null>(null);
+
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const businessTypeFilter = searchParams.get("businessType");
 
@@ -93,12 +112,17 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
     }, 4500);
   };
 
-  const handleCreateContractSubmit = (e: React.FormEvent) => {
+  const handleCreateContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName || !taxId || !registeredAddress || !startDate || !endDate) {
-      showToast("กรุณากรอกข้อมูลให้ครบถ้วน", "error");
+    if (!businessName || !taxId || !registeredAddress || !startDate || !endDate || !phone || !nationalId) {
+      showToast("กรุณากรอกข้อมูลหลักให้ครบถ้วน", "error");
       return;
     }
+
+    setIsSubmitting(true);
+    // จำลองการเรียก API (1.5 วินาที)
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsSubmitting(false);
 
     const userObj = mockUsers.find(u => u.id === selectedUser);
     const ownerName = userObj ? userObj.name : "ผู้เช่ารายใหม่";
@@ -137,6 +161,14 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
       ownerName,
       contractEndDate: endDate,
       bannerUrl,
+      phone,
+      nationalId,
+      deposit: parseFloat(deposit) || 0,
+      scholarship: parseFloat(scholarship) || 0,
+      terms,
+      note,
+      contractStartDate: startDate,
+      taxId,
     };
 
     setTenantsList((prev) => [newTenant, ...prev]);
@@ -152,7 +184,40 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
     setBusinessName("");
     setTaxId("");
     setRegisteredAddress("");
+    setPhone("");
+    setNationalId("");
+    setDeposit("10000");
+    setScholarship("2000");
+    setTerms("");
+    setNote("");
     setUploadedFile(null);
+    setUploadedVerificationFile(null);
+  };
+
+  const handleModalCloseAttempt = () => {
+    const isDirty = !!(businessName || taxId || phone || nationalId || registeredAddress || terms || note);
+    if (isDirty) {
+      setShowCloseConfirm(true);
+    } else {
+      setIsCreateModalOpen(false);
+    }
+  };
+
+  const handleForceClose = () => {
+    setIsCreateModalOpen(false);
+    setShowCloseConfirm(false);
+    // Reset all form inputs to prevent lingering dirty states
+    setBusinessName("");
+    setTaxId("");
+    setRegisteredAddress("");
+    setPhone("");
+    setNationalId("");
+    setDeposit("10000");
+    setScholarship("2000");
+    setTerms("");
+    setNote("");
+    setUploadedFile(null);
+    setUploadedVerificationFile(null);
   };
 
   return (
@@ -167,18 +232,10 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
 
       {/* Header Section */}
       <div className="flex flex-col gap-6">
-        <AssetBreadcrumb
-          items={[
-            { label: "Admin", href: "/admin" },
-            { label: "ผู้ประกอบการ", href: backHref },
-            { label: area.name },
-          ]}
-        />
-
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-linear-to-br from-card to-card/50 p-8 rounded-3xl border border-border/60 shadow-sm relative overflow-hidden">
           {/* Decorative background circle */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl" />
-          
+
           <div className="flex items-start gap-5 relative z-10">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-primary text-white shadow-lg shadow-brand-primary/20 ring-4 ring-brand-primary/10">
               <area.icon size={32} strokeWidth={2.5} />
@@ -213,15 +270,6 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                 className="w-full pl-10 pr-4 py-2.5 border border-border/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all text-sm bg-background shadow-sm h-10"
               />
             </div>
-
-            {/* Create Contract Button */}
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary/90 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-all active:scale-[0.98] h-10 whitespace-nowrap"
-            >
-              <Plus size={16} />
-              สร้างสัญญาใหม่
-            </button>
           </div>
         </div>
       </div>
@@ -285,7 +333,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-full animate-in fade-in slide-in-from-bottom-1 duration-300" />
           )}
         </button>
-        
+
         {area.subLocations.map((sub) => {
           const count = tenantsList.filter((t) => t.subLocation === sub).length;
           return (
@@ -338,7 +386,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                 ) : (
                   <div className="w-full h-full bg-linear-to-r from-slate-100 to-slate-50" />
                 )}
-                
+
                 {/* Overlay for action button */}
                 <div className="absolute inset-0 p-3 flex justify-end items-start bg-linear-to-b from-black/10 to-transparent">
                   <button
@@ -365,7 +413,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                     {tenant.name}
                   </h3>
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">
                   <MapPin size={12} />
                   {tenant.subLocation}
@@ -414,44 +462,56 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
         )}
       </div>
 
-      {/* CREATE CONTRACT MODAL */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-110 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
-            onClick={() => setIsCreateModalOpen(false)}
-          />
-
-          <div className="relative bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-10 transform transition-all animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[90vh] z-120">
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="absolute right-8 top-8 text-slate-300 hover:text-slate-555 transition-colors"
-            >
-              <X size={24} />
-            </button>
-
-            <form onSubmit={handleCreateContractSubmit} className="space-y-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-brand-primary text-white rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-lg shadow-brand-primary/10">
-                  <FileText size={28} />
+      {/* CREATE CONTRACT DRAWER (สอดคล้องกับหน้า admin/areas) */}
+      <Sheet open={isCreateModalOpen} onOpenChange={handleModalCloseAttempt}>
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl z-120 animate-in slide-in-from-right duration-300"
+        >
+          <form onSubmit={handleCreateContractSubmit} className="flex flex-col h-full">
+            {/* Header */}
+            <SheetHeader className="px-6 py-5 border-b border-slate-100 flex flex-row items-center justify-between space-y-0 shrink-0 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-[7px] bg-[#f26522]/10 flex items-center justify-center">
+                  <FileText size={20} className="text-[#f26522]" strokeWidth={3} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-800">
+
+                <SheetTitle className="text-xl font-bold text-slate-900 tracking-tight">
                   สร้างสัญญาใหม่
-                </h3>
-                <p className="text-slate-400 text-sm mt-1">
-                  กรอกข้อมูลสัญญาเช่าเพื่ออัปเดตสิทธิ์ผู้เช่าโดยอัตโนมัติ
-                </p>
+                </SheetTitle>
+
+                <SheetDescription className="sr-only">
+                  กรอกข้อมูลสัญญาเช่าเพื่ออัปเดตสิทธิ์ผู้ประกอบการ
+                </SheetDescription>
               </div>
 
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={handleModalCloseAttempt}
+                className="size-9 rounded-[7px] bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center justify-center group"
+              >
+                <X size={18} className="transition-transform group-hover:rotate-90" />
+              </button>
+            </SheetHeader>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+
+              {/* ส่วนที่ 1: ข้อมูลผู้ประกอบการ */}
               <div className="space-y-4">
+                <h4 className="text-sm font-bold text-slate-800 border-l-4 border-[#f26522] pl-2.5">
+                  ข้อมูลส่วนตัวผู้ประกอบการ
+                </h4>
+
                 {/* Select User (Owner) */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เลือกผู้ใช้งานที่จะเป็นคู่สัญญา (User)</label>
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                   >
                     {mockUsers.map((u) => (
                       <option key={u.id} value={u.id}>
@@ -470,7 +530,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                       placeholder="เช่น ข้าวมันไก่เฮียอ้วน"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 placeholder:text-slate-300"
                       required
                     />
                   </div>
@@ -483,7 +543,35 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                       placeholder="เลข 13 หลัก"
                       value={taxId}
                       onChange={(e) => setTaxId(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เบอร์โทรศัพท์ติดต่อ</label>
+                    <input
+                      type="tel"
+                      placeholder="เช่น 0812345678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      required
+                    />
+                  </div>
+
+                  {/* National ID */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เลขบัตรประชาชน (13 หลัก)</label>
+                    <input
+                      type="text"
+                      placeholder="เลขบัตรประชาชนผู้ประกอบการ"
+                      value={nationalId}
+                      onChange={(e) => setNationalId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 placeholder:text-slate-300"
                       required
                     />
                   </div>
@@ -496,10 +584,46 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                     placeholder="กรอกที่อยู่จดทะเบียนร้านค้า..."
                     value={registeredAddress}
                     onChange={(e) => setRegisteredAddress(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 min-h-[70px] resize-none placeholder:text-slate-300"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 min-h-[60px] resize-none placeholder:text-slate-300"
                     required
                   />
                 </div>
+
+                {/* Upload Verification Document */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เอกสารตรวจสอบ (สำเนาบัตรประชาชน)</label>
+                  <div
+                    onClick={() => document.getElementById("verification-file-upload")?.click()}
+                    className="border-2 border-dashed border-slate-200 hover:border-[#f26522]/40 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50/50 transition-all flex flex-col items-center justify-center gap-1 min-h-[100px]"
+                  >
+                    <UploadCloud className="text-slate-400" size={22} />
+                    <span className="text-xs font-bold text-slate-650 truncate max-w-full px-4">
+                      {uploadedVerificationFile ? uploadedVerificationFile.name : "แนบสำเนาบัตรประชาชน"}
+                    </span>
+                    <span className="text-[10px] text-slate-400">PDF หรือรูปภาพ ไม่เกิน 5MB</span>
+                    <input
+                      type="file"
+                      id="verification-file-upload"
+                      accept="application/pdf,image/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          setUploadedVerificationFile({
+                            name: e.target.files[0].name,
+                            size: `${(e.target.files[0].size / 1024 / 1024).toFixed(2)} MB`
+                          });
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ส่วนที่ 2: รายละเอียดพื้นที่และสัญญา */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h4 className="text-sm font-bold text-slate-800 border-l-4 border-[#f26522] pl-2.5">
+                  รายละเอียดพื้นที่และระยะเวลาสัญญา
+                </h4>
 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Select Sub-location */}
@@ -508,7 +632,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                     <select
                       value={selectedSubLocation}
                       onChange={(e) => setSelectedSubLocation(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                     >
                       {area.subLocations.map((sub) => (
                         <option key={sub} value={sub}>
@@ -524,7 +648,7 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                     <select
                       value={selectedBusinessType}
                       onChange={(e) => setSelectedBusinessType(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                     >
                       {area.businessTypes.map((type) => (
                         <option key={type} value={type}>
@@ -535,54 +659,42 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Monthly Rental */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ค่าเช่า (บาท/เดือน)</label>
-                    <input
-                      type="number"
-                      value={monthlyRental}
-                      onChange={(e) => setMonthlyRental(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                      required
-                    />
-                  </div>
-
+                <div className="grid grid-cols-2 gap-4">
                   {/* Start Date */}
-                  <div className="space-y-1.5 col-span-1">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เริ่มสัญญา</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">วันที่เริ่มสัญญา</label>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       required
                     />
                   </div>
 
                   {/* End Date */}
-                  <div className="space-y-1.5 col-span-1">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">สิ้นสุดสัญญา</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">วันที่สิ้นสุดสัญญา</label>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Upload File Zone */}
+                {/* Upload File Zone (Contract) */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เอกสารสัญญาเช่า (PDF)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เอกสารสัญญาเช่าหลัก (PDF)</label>
                   <div
                     onClick={() => document.getElementById("contract-file-upload")?.click()}
-                    className="border-2 border-dashed border-slate-200 hover:border-brand-primary/40 rounded-2xl p-5 text-center cursor-pointer hover:bg-slate-50/50 transition-all flex flex-col items-center justify-center gap-1.5"
+                    className="border-2 border-dashed border-slate-200 hover:border-[#f26522]/40 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50/50 transition-all flex flex-col items-center justify-center gap-1 min-h-[100px]"
                   >
-                    <UploadCloud className="text-slate-400" size={24} />
-                    <span className="text-xs font-bold text-slate-600">
-                      {uploadedFile ? uploadedFile.name : "ลากไฟล์มาวาง หรือ คลิกเพื่ออัปโหลดไฟล์"}
+                    <UploadCloud className="text-slate-400" size={22} />
+                    <span className="text-xs font-bold text-slate-650 truncate max-w-full px-4">
+                      {uploadedFile ? uploadedFile.name : "แนบเอกสารสัญญาที่เซ็นแล้ว (PDF)"}
                     </span>
                     <span className="text-[10px] text-slate-400">PDF ขนาดไม่เกิน 5MB</span>
                     <input
@@ -603,22 +715,136 @@ export default function AdminTenantSubAreaView({ areaId }: { areaId: string }) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-primary/10 transition-all active:scale-[0.98]"
-                >
-                  ยืนยันการสร้างสัญญาและอัปเดตสิทธิ์
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="w-full text-slate-400 font-bold py-2 hover:text-slate-600 transition-all text-sm"
-                >
-                  ยกเลิก
-                </button>
+              {/* ส่วนที่ 3: ข้อตกลงการเงินและหมายเหตุ */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h4 className="text-sm font-bold text-slate-800 border-l-4 border-[#f26522] pl-2.5">
+                  ข้อตกลงการเงินและเงื่อนไขเพิ่มเติม
+                </h4>
+
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Monthly Rental */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ค่าบำรุง/เดือน</label>
+                    <input
+                      type="number"
+                      value={monthlyRental}
+                      onChange={(e) => setMonthlyRental(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                      required
+                    />
+                  </div>
+
+                  {/* Security Deposit */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">หลักประกัน (บาท)</label>
+                    <input
+                      type="number"
+                      value={deposit}
+                      onChange={(e) => setDeposit(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                      required
+                    />
+                  </div>
+
+                  {/* Scholarship */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ทุนการศึกษา (บาท)</label>
+                    <input
+                      type="number"
+                      value={scholarship}
+                      onChange={(e) => setScholarship(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Terms */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">เงื่อนไขเพิ่มเติม</label>
+                    <textarea
+                      placeholder="เงื่อนไขการใช้พื้นที่..."
+                      value={terms}
+                      onChange={(e) => setTerms(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 min-h-[60px] resize-none placeholder:text-slate-300"
+                    />
+                  </div>
+
+                  {/* Note */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">หมายเหตุ</label>
+                    <textarea
+                      placeholder="บันทึกเพิ่มเติม..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f26522]/20 focus:border-[#f26522] transition-all font-semibold text-slate-700 min-h-[60px] resize-none placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
               </div>
-            </form>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="px-6 py-5 border-t border-slate-100 flex items-center gap-4 bg-white/90 backdrop-blur-md shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleModalCloseAttempt}
+                disabled={isSubmitting}
+                className="flex-1 h-12 rounded-[7px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                ยกเลิก
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 h-12 rounded-[7px] bg-[#f26522] hover:bg-[#d8561d] text-white font-bold shadow-lg shadow-[#f26522]/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
+              >
+                {isSubmitting ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Save size={18} />
+                )}
+                {isSubmitting ? "กำลังบันทึก..." : "บันทึกสัญญา"}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      {/* ACCIDENTAL EXIT CONFIRMATION ALERT (เพื่อลดข้อผิดพลาด) */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-130 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-300"
+            onClick={() => setShowCloseConfirm(false)}
+          />
+          <div className="relative bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 text-center animate-in zoom-in-95 duration-200 z-140">
+            <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-4 mx-auto">
+              <AlertTriangle size={24} />
+            </div>
+            <h4 className="text-lg font-bold text-slate-855 mb-2">ยืนยันการยกเลิก</h4>
+            <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+              คุณต้องการปิดหน้าต่างนี้ใช่หรือไม่? ข้อมูลสัญญาเช่าและไฟล์ที่คุณแนบไว้ทั้งหมดจะสูญหาย
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleForceClose}
+                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+              >
+                ยืนยันปิดฟอร์ม
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(false)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors"
+              >
+                กรอกข้อมูลต่อ
+              </button>
+            </div>
           </div>
         </div>
       )}

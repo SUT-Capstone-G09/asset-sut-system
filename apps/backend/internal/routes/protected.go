@@ -12,6 +12,7 @@ func SetupProtectedRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	{
 		protected.GET("/me", deps.AuthController.GetMe)
 		protected.PUT("/me/password", deps.AuthController.ChangePassword)
+		protected.POST("/me/verify-password", deps.AuthController.VerifyPassword)
 
 		protected.GET("/me/admin", middleware.RequireRole("admin"), deps.AdminController.GetMyProfile)
 		protected.GET("/me/staff", middleware.RequireRole("staff"), deps.StaffController.GetMyProfile)

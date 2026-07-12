@@ -80,6 +80,7 @@ export const evalTableHeaders = [
   { id: "image", label: "รูปภาพ", className: "w-[100px]" },
   { id: "storeName", label: "ชื่อร้านค้า", className: "" },
   { id: "location", label: "สถานที่", className: "" },
+  { id: "lastAuditDate", label: "วันที่ตรวจล่าสุด", className: "text-center" },
   { id: "score", label: "คะแนน (100)", className: "text-center" },
   { id: "status", label: "สถานะ", className: "" },
   { id: "warning", label: "ต่ำกว่าเกณฑ์", className: "text-center" },

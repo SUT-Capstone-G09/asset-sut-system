@@ -14,19 +14,20 @@ import {
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { MyBooking, BookingStatus } from "@/features/bookings/data/mock-my-bookings";
 import { useMyBookings } from "@/features/bookings/hooks/useMyBookings";
 
-type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "ที่ผ่านมา" | "ยกเลิก";
+type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "เสร็จสิ้น" | "ยกเลิก";
 
 const STATUS_STYLE: Record<BookingStatus, { label: string; className: string }> = {
   รออนุมัติ: { label: "รออนุมัติ", className: "bg-orange-100 text-orange-600" },
   รอชำระเงิน: { label: "รอชำระเงิน", className: "bg-sky-100 text-sky-600" },
   รอตรวจสอบการชำระเงิน: { label: "รอตรวจสอบการชำระเงิน", className: "bg-indigo-100 text-indigo-600" },
   อนุมัติแล้ว: { label: "อนุมัติแล้ว", className: "bg-blue-100 text-blue-600" },
-  ที่ผ่านมา: { label: "ที่ผ่านมา", className: "bg-gray-100 text-gray-500" },
-  ยกเลิก: { label: "ยกเลิก", className: "bg-red-100 text-red-500" },
+  เสร็จสิ้น: { label: "เสร็จสิ้น", className: "bg-gray-100 text-gray-500" },
+  ยกเลิก: { label: "ยกเลิก", className: "bg-gray-100 text-gray-600" },
   ปฏิเสธ: { label: "ปฏิเสธ", className: "bg-red-100 text-red-500" },
 };
 
@@ -57,7 +58,7 @@ export default function MyBookingsView() {
     cancelled: bookings.filter((b) => b.status === "ยกเลิก" || b.status === "ปฏิเสธ").length,
   };
 
-  const tabs: TabKey[] = ["ทั้งหมด", "รออนุมัติ", "อนุมัติแล้ว", "ที่ผ่านมา", "ยกเลิก"];
+  const tabs: TabKey[] = ["ทั้งหมด", "รออนุมัติ", "อนุมัติแล้ว", "เสร็จสิ้น", "ยกเลิก"];
 
   const filtered = filterByTab(bookings, activeTab);
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -123,7 +124,7 @@ export default function MyBookingsView() {
         <StatCard label="ทั้งหมด" value={stats.total} valueClass="text-gray-900" />
         <StatCard label="รอดำเนินการ" value={stats.pending} valueClass="text-orange-500" dotClass="bg-orange-400" />
         <StatCard label="อนุมัติแล้ว" value={stats.approved} valueClass="text-blue-500" dotClass="bg-blue-400" />
-        <StatCard label="ยกเลิก/ปฏิเสธ" value={stats.cancelled} valueClass="text-red-500" dotClass="bg-red-400" />
+        <StatCard label="ยกเลิก/ปฏิเสธ" value={stats.cancelled} valueClass="text-gray-500" dotClass="bg-gray-400" />
       </div>
 
       {/* Upcoming */}
@@ -171,30 +172,28 @@ export default function MyBookingsView() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-6 py-3 w-[100px]">เลขที่</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3">ห้อง</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 w-[160px]">วันที่จอง</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 w-[130px]">เวลา</th>
-                <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 w-[100px]">ราคา</th>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 w-[150px]">สถานะ</th>
-                <th className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wide px-6 py-3 w-[72px]">การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center text-gray-400 text-sm">ไม่มีรายการ</td>
-                </tr>
-              ) : (
-                paginated.map((b) => <BookingRow key={b.id} booking={b} />)
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50 border-b border-gray-100 hover:bg-gray-50">
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-6 w-[100px]">เลขที่</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4">ห้อง</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 w-[160px]">วันที่จอง</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 w-[130px]">เวลา</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 w-[100px] text-right">ราคา</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 w-[150px]">สถานะ</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-6 w-[72px] text-center">การจัดการ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginated.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-16 text-center text-gray-400 text-sm">ไม่มีรายการ</TableCell>
+              </TableRow>
+            ) : (
+              paginated.map((b) => <BookingRow key={b.id} booking={b} />)
+            )}
+          </TableBody>
+        </Table>
 
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
@@ -287,14 +286,12 @@ function UpcomingCard({ booking }: { booking: MyBooking }) {
 function BookingRow({ booking }: { booking: MyBooking }) {
   const style = STATUS_STYLE[booking.status] || { label: booking.status, className: "bg-gray-100 text-gray-500" };
   return (
-    <tr className="hover:bg-gray-50/60 transition-colors">
-      {/* ID */}
-      <td className="px-6 py-4 align-middle">
+    <TableRow className="hover:bg-gray-50/60">
+      <TableCell className="px-6 py-4">
         <span className="text-xs font-mono text-gray-400">#{booking.id}</span>
-      </td>
+      </TableCell>
 
-      {/* Room */}
-      <td className="px-4 py-4 align-middle">
+      <TableCell className="px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gray-100">
             <img src={booking.room.image} alt={booking.room.name} className="w-full h-full object-cover" />
@@ -304,10 +301,9 @@ function BookingRow({ booking }: { booking: MyBooking }) {
             <p className="text-xs text-gray-400 mt-0.5">{booking.room.building}</p>
           </div>
         </div>
-      </td>
+      </TableCell>
 
-      {/* Date */}
-      <td className="px-4 py-4 align-middle">
+      <TableCell className="px-4 py-4">
         {booking.dateEnd ? (
           <>
             <p className="text-sm text-gray-700">{booking.date}</p>
@@ -317,22 +313,19 @@ function BookingRow({ booking }: { booking: MyBooking }) {
         ) : (
           <p className="text-sm text-gray-700">{booking.date}</p>
         )}
-      </td>
+      </TableCell>
 
-      {/* Time */}
-      <td className="px-4 py-4 align-middle">
+      <TableCell className="px-4 py-4">
         <span className="text-sm text-gray-700 whitespace-nowrap">
           {booking.startTime} – {booking.endTime}
         </span>
-      </td>
+      </TableCell>
 
-      {/* Price */}
-      <td className="px-4 py-4 align-middle text-right">
+      <TableCell className="px-4 py-4 text-right">
         <span className="text-sm font-semibold text-gray-800">฿{booking.price.toLocaleString()}</span>
-      </td>
+      </TableCell>
 
-      {/* Status */}
-      <td className="px-4 py-4 align-middle">
+      <TableCell className="px-4 py-4">
         <div className="flex flex-col gap-1.5">
           <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full w-fit", style.className)}>
             {style.label}
@@ -347,10 +340,9 @@ function BookingRow({ booking }: { booking: MyBooking }) {
             </span>
           )}
         </div>
-      </td>
+      </TableCell>
 
-      {/* Action */}
-      <td className="px-6 py-4 align-middle text-center">
+      <TableCell className="px-6 py-4 text-center">
         <div className="flex items-center justify-center gap-1.5">
           <Link
             href={`/my-bookings/${booking.bookingId}`}
@@ -368,7 +360,7 @@ function BookingRow({ booking }: { booking: MyBooking }) {
             </Link>
           )}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

@@ -101,6 +101,20 @@ func (c *AuthController) ChangePassword(ctx *gin.Context) {
 	response.OK(ctx, gin.H{"message": "password changed"})
 }
 
+func (c *AuthController) VerifyPassword(ctx *gin.Context) {
+	userID := ctx.GetUint("user_id")
+	var req dto.VerifyPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	if err := c.authService.VerifyPassword(userID, req.Password); err != nil {
+		response.Unauthorized(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, gin.H{"verified": true})
+}
+
 func (c *AuthController) setRefreshCookie(ctx *gin.Context, token string) {
 	c.setRefreshCookieByName(ctx, c.cookieName(ctx), token)
 }

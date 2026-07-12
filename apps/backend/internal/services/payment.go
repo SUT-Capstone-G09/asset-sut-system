@@ -97,6 +97,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 	}
 	tx.StatusID = req.StatusID
 	tx.VerifyBy = &verifierID
+	tx.VerifyNote = req.Note
 	tx.Status = nil
 	if err := s.paymentRepo.Update(tx); err != nil {
 		return nil, err
@@ -113,25 +114,22 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 				invoice.Status = nil
 				_ = s.invoiceRepo.Update(invoice)
 			}
-			// Also update booking status to completed
-			booking, err := s.bookingRepo.FindByID(invoice.BookingID)
-			if err == nil && booking != nil {
-				completedStatus, err := s.bookingRepo.FindStatusByName("completed")
-				if err == nil {
+
+			if completedStatus, err := s.bookingRepo.FindStatusByName("completed"); err == nil {
+				if booking, err := s.bookingRepo.FindByID(invoice.BookingID); err == nil {
 					oldStatusID := booking.StatusID
 					booking.StatusID = completedStatus.ID
 					booking.Status = nil
-					_ = s.bookingRepo.Update(booking)
-
-					// Log the booking status change
-					_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
-						BookingID:    booking.ID,
-						FromStatusID: &oldStatusID,
-						ToStatusID:   completedStatus.ID,
-						ChangedBy:    verifierID,
-						ChangedAt:    time.Now(),
-						Note:         "Payment verified and approved",
-					})
+					if err := s.bookingRepo.Update(booking); err == nil {
+						_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
+							BookingID:    booking.ID,
+							FromStatusID: &oldStatusID,
+							ToStatusID:   completedStatus.ID,
+							ChangedBy:    verifierID,
+							ChangedAt:    time.Now(),
+							Note:         "ชำระเงินสำเร็จ",
+						})
+					}
 				}
 			}
 		}
@@ -157,6 +155,7 @@ func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResp
 		StatusID:       tx.StatusID,
 		SlipDocumentID: tx.SlipDocumentID,
 		VerifyBy:       tx.VerifyBy,
+		VerifyNote:     tx.VerifyNote,
 		PaidAt:         tx.PaidAt,
 		CreatedAt:      tx.CreatedAt,
 	}
@@ -166,15 +165,19 @@ func toPaymentResponse(tx models.PaymentTransactions) dto.PaymentTransactionResp
 	if tx.Status != nil {
 		res.Status = tx.Status.Status
 	}
-	if tx.Verifier != nil {
-		res.VerifierName = tx.Verifier.FirstName + " " + tx.Verifier.LastName
+	if tx.Verifier != nil && tx.Verifier.Profiles != nil {
+		res.VerifierName = tx.Verifier.Profiles.FirstName + " " + tx.Verifier.Profiles.LastName
 	}
 	if tx.Invoice != nil {
 		res.BookingID = tx.Invoice.BookingID
 		if tx.Invoice.Booking != nil {
 			b := tx.Invoice.Booking
 			if b.User != nil {
-				res.UserName = b.User.Email
+				if b.User.Profiles != nil {
+					res.UserName = b.User.Profiles.FirstName + " " + b.User.Profiles.LastName
+				} else {
+					res.UserName = b.User.Email
+				}
 			}
 			if len(b.Timeslots) > 0 && b.Timeslots[0].Location != nil {
 				res.LocationName = b.Timeslots[0].Location.Name

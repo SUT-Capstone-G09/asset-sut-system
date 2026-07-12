@@ -7,14 +7,17 @@ import (
 
 // SetupPaymentRoutes registers payment endpoints for authenticated users.
 func SetupPaymentRoutes(rg *gin.RouterGroup, deps *Dependencies) {
+	auth := middleware.AuthMiddleware(deps.Config.JWT.Secret)
+	pc := deps.PaymentController
+
 	payments := rg.Group("/payments")
-	payments.Use(middleware.AuthMiddleware(deps.Config.JWT.Secret))
+	payments.Use(auth)
 	{
-		payments.POST("/qr", deps.PaymentController.GenerateQR)
-		payments.POST("/verify-slip", deps.PaymentController.VerifySlip)
-		payments.POST("", deps.PaymentController.Create)
-		payments.GET("", deps.PaymentController.GetAll)
-		payments.POST("/:id/verify", deps.PaymentController.Verify)
-		payments.PUT("/:id/slip/:docId", deps.PaymentController.AttachSlip)
+		payments.POST("/qr", pc.GenerateQR)
+		payments.POST("/verify-slip", pc.VerifySlip)
+		payments.POST("", pc.Create)
+		payments.GET("", pc.GetAll)
+		payments.POST("/:id/verify", pc.Verify)
+		payments.PUT("/:id/slip/:docId", pc.AttachSlip)
 	}
 }

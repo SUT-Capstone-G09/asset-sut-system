@@ -39,6 +39,7 @@ type PaymentTransactionResponse struct {
 	SlipDocumentID *uint      `json:"slip_document_id"`
 	VerifyBy       *uint      `json:"verify_by"`
 	VerifierName   string     `json:"verifier_name"`
+	VerifyNote     string     `json:"verify_note"`
 	PaidAt         *time.Time `json:"paid_at"`
 	CreatedAt      time.Time  `json:"created_at"`
 }

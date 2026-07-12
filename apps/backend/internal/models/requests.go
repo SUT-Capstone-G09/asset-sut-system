@@ -1,5 +1,7 @@
 package models
 
+import "github.com/lib/pq"
+
 type Requests struct {
 	Base
 	UserID        uint           `gorm:"not null" json:"user_id"`
@@ -12,9 +14,11 @@ type Requests struct {
 	Location      string         `gorm:"not null" json:"location"`
 	StatusID      uint           `gorm:"not null" json:"status_id"`
 	Status        *RequestStatus `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	EvidenceUrls  []string       `gorm:"not null" json:"evidence_urls"`
-	StaffID       uint           `gorm:"not null" json:"staff_id"`
+	EvidenceUrls  pq.StringArray `gorm:"type:text[]" json:"evidence_urls"`
+	StaffID       *uint          `json:"staff_id"`
 	Staff         *Users         `gorm:"foreignKey:StaffID" json:"staff,omitempty"`
+	ContactInfo   string         `gorm:"not null" json:"contact_info"`
+	IncidentDate  *string        `json:"incident_date"`
 }
 
 type ActionHistories struct {

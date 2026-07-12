@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
@@ -96,9 +97,15 @@ func (s *PaymentVerifyService) VerifySlip(ctx context.Context, req dto.VerifySli
 		EasySlipRaw:  result.Raw,
 		ReceiverFlag: !verdict.receiverMatched,
 	}
+	// paid_at reflects when the money actually moved: the bank transaction time
+	// read from the slip, falling back to submission time if the slip carried none.
 	if !result.Date.IsZero() {
 		d := result.Date
 		tx.SlipPaidAt = &d
+		tx.PaidAt = &d
+	} else {
+		now := time.Now()
+		tx.PaidAt = &now
 	}
 	if req.DocumentID != 0 {
 		docID := req.DocumentID

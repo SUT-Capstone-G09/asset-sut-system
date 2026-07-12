@@ -75,7 +75,7 @@ export default function PaymentVerificationModal({
   }, [selectedBookingId, bookings]);
 
   const handleAddExpenseItem = () => {
-    setEditedExpenses((prev) => [...prev, { name: "", amount: 0 }]);
+    setEditedExpenses((prev) => [...prev, { name: "", unitPrice: 0, quantity: 1, amount: 0 }]);
   };
 
   const handleRemoveExpenseItem = (index: number) => {
