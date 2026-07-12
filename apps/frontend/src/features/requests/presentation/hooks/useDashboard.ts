@@ -49,6 +49,23 @@ export const useDashboard = () => {
     return { all, requests, inquiries };
   }, [items]);
 
+  const [visibleCount, setVisibleCount] = useState(2);
+
+  // Reset pagination on tab change or search
+  useEffect(() => {
+    setVisibleCount(2);
+  }, [activeTab, searchTerm]);
+
+  // Sliced items for display
+  const visibleItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
+
+  const loadMore = () => setVisibleCount(prev => prev + 2);
+  const showLess = () => setVisibleCount(2);
+  const hasMore = filteredItems.length > visibleCount;
+  const canShowLess = visibleCount > 2;
+
   return {
     isMounted,
     activeTab,
@@ -56,7 +73,12 @@ export const useDashboard = () => {
     searchTerm,
     setSearchTerm,
     filteredItems,
+    visibleItems,
     counts,
-    isLoading
+    isLoading,
+    loadMore,
+    showLess,
+    hasMore,
+    canShowLess
   };
 };
