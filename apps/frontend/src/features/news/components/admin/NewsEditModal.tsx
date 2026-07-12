@@ -35,6 +35,10 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
     resultTimeline: "",
     qualifications: [] as { id: string; text: string }[],
     documents: [] as { id: string; name: string; isPreset: boolean; checked?: boolean }[],
+    mainImagePreview: null as string | null,
+    mainImageName: null as string | null,
+    mainImageSize: null as number | null,
+    attachedFiles: [] as { file: File; id: string }[],
   });
 
   const [contractData, setContractData] = useState({
@@ -57,6 +61,10 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
         resultTimeline: selectedNews.resultTimeline || "",
         qualifications: selectedNews.qualifications || [],
         documents: selectedNews.documents || [],
+        mainImagePreview: selectedNews.mainImagePreview || null,
+        mainImageName: selectedNews.mainImageName || null,
+        mainImageSize: selectedNews.mainImageSize || null,
+        attachedFiles: selectedNews.attachedFiles || [],
       });
       setContractData({
         contractDuration: selectedNews.contractDuration || "",
@@ -90,7 +98,13 @@ export const NewsEditModal: React.FC<NewsEditModalProps> = ({
             
             <div className="space-y-3">
               <Label className="text-base font-bold">เอกสารและรูปภาพแนบ</Label>
-              <NewsUploads />
+              <NewsUploads
+                mainImagePreview={basicData.mainImagePreview}
+                mainImageName={basicData.mainImageName}
+                mainImageSize={basicData.mainImageSize}
+                attachedFiles={basicData.attachedFiles}
+                onChange={handleBasicChange}
+              />
             </div>
           </div>
         )}

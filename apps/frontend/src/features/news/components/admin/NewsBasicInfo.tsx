@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sparkles, Plus, ChevronDown, X, Check, Pin } from "lucide-react"
+import { DatePickerThai } from "./DatePickerThai"
 
 interface QualificationItem {
   id: string
@@ -46,6 +47,7 @@ interface NewsBasicInfoProps {
 const DEFAULT_CATEGORIES = [
   "เช่าร้านอาหาร",
   "พื้นที่ร้านค้าปลีก",
+  "ร้านค้า",
   "สำนักงาน",
   "ห้องประชุม",
   "โรงจอดรถ",
@@ -277,24 +279,22 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-sm font-bold">
-                วันเวลาที่เริ่มประกาศ
+                วันที่เริ่มประกาศ
               </Label>
-              <Input
-                type="datetime-local"
-                className="border-zinc-300"
+              <DatePickerThai
                 value={data.startDate}
-                onChange={(e) => onChange("startDate", e.target.value)}
+                onChange={(val) => onChange("startDate", val)}
+                placeholder="เลือกวันที่เริ่มประกาศ"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-bold">
-                วันเวลาที่สิ้นสุดประกาศ
+                วันที่สิ้นสุดประกาศ
               </Label>
-              <Input
-                type="datetime-local"
-                className="border-zinc-300"
+              <DatePickerThai
                 value={data.endDate}
-                onChange={(e) => onChange("endDate", e.target.value)}
+                onChange={(val) => onChange("endDate", val)}
+                placeholder="เลือกวันที่สิ้นสุดประกาศ"
               />
             </div>
           </div>

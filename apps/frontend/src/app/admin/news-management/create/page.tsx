@@ -24,6 +24,10 @@ export default function NewsManagementPage() {
     contractDuration: string
     areaSize: string
     entranceFee: string
+    mainImagePreview: string | null
+    mainImageName: string | null
+    mainImageSize: number | null
+    attachedFiles: { file: File; id: string }[]
   }>({
     title: "",
     category: "shop-rental",
@@ -46,6 +50,10 @@ export default function NewsManagementPage() {
     contractDuration: "",
     areaSize: "",
     entranceFee: "",
+    mainImagePreview: null,
+    mainImageName: null,
+    mainImageSize: null,
+    attachedFiles: [],
   })
 
   const handleChange = (field: string, value: unknown) => {
@@ -64,7 +72,13 @@ export default function NewsManagementPage() {
           onChange={handleChange}
         />
         <NewsContractInfo data={formData} onChange={handleChange} />
-        <NewsUploads />
+        <NewsUploads
+          mainImagePreview={formData.mainImagePreview}
+          mainImageName={formData.mainImageName}
+          mainImageSize={formData.mainImageSize}
+          attachedFiles={formData.attachedFiles}
+          onChange={handleChange}
+        />
 
         {/* Action Buttons */}
         <div className="border-t-2 border-brand-secondary/20 pt-6 flex justify-end gap-3">
