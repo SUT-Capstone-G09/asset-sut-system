@@ -9,6 +9,8 @@ export type CriterionItem = {
   id: string
   text: string
   score: number | null
+  maxScore?: number
+  description?: string
   note?: string
   section?: string // optional section separator label
 }
@@ -31,20 +33,20 @@ export const DEFAULT_EVAL_TABS: CriteriaTab[] = [
 
 export const DEFAULT_EVAL_CRITERIA: Record<string, CriterionItem[]> = {
   hygiene: [
-    { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: null, note: "" },
-    { id: "h2", text: "2. การแต่งกายและสุขอนามัยของผู้สัมผัสอาหาร (ถุงมือ/ผ้ากันเปื้อน)", score: null, note: "" },
-    { id: "h3", text: "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี", score: null, note: "" },
-    { id: "h4", text: "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย", score: null, note: "" },
-    { id: "h5", text: "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน", score: null, note: "" },
+    { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: null, note: "", maxScore: 8, description: "การรักษาความสะอาดและสภาพพื้นที่ของสถานที่จัดเตรียมอาหารและอุปกรณ์ต่าง ๆ" },
+    { id: "h2", text: "2. การแต่งกายและสุขอนามัยของผู้สัมผัสอาหาร (ถุงมือ/ผ้ากันเปื้อน)", score: null, note: "", maxScore: 5, description: "ความเรียบร้อยและสุขอนามัยของผู้ให้บริการ เช่น การสวมผ้ากันเปื้อนและถุงมือ" },
+    { id: "h3", text: "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี", score: null, note: "", maxScore: 5, description: "ความถูกต้องเหมาะสมในการเก็บรักษาวัตถุดิบแต่ละประเภทตามมาตรฐาน" },
+    { id: "h4", text: "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย", score: null, note: "", maxScore: 5, description: "ระบบระบายน้ำทิ้งและการคัดแยกเศษอาหารขยะมูลฝอยอย่างเป็นระเบียบ" },
+    { id: "h5", text: "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน", score: null, note: "", maxScore: 5, description: "มาตรการป้องกันและควบคุมการแพร่ระบาดของแมลงหรือสัตว์พาหะ" },
   ],
   payment: [
-    { id: "p1", text: "6. ความตรงต่อเวลาในการชำระเงิน", score: null, note: "", section: "หัวข้อ: ประวัติการชำระเงิน" },
-    { id: "p2", text: "7. ความถูกต้องของเอกสารใบแจ้งหนี้", score: null, note: "" },
-    { id: "p3", text: "8. การบริหารจัดการยอดค้างชำระ", score: null, note: "" },
+    { id: "p1", text: "6. ความตรงต่อเวลาในการชำระเงิน", score: null, note: "", maxScore: 5, section: "หัวข้อ: ประวัติการชำระเงิน", description: "ประวัติประพฤติการชำระเงินค่าส่วนต่างหรือค่าเช่าตามกรอบเวลาที่ตกลง" },
+    { id: "p2", text: "7. ความถูกต้องของเอกสารใบแจ้งหนี้", score: null, note: "", maxScore: 5, description: "การจัดทำและยืนยันเอกสารรายงานการชำระหรือรายรับอย่างรอบคอบ" },
+    { id: "p3", text: "8. การบริหารจัดการยอดค้างชำระ", score: null, note: "", maxScore: 5, description: "ประสิทธิภาพในการชดเชยและเคลียร์ยอดเงินค้างชำระตามข้อกำหนด" },
   ],
   other: [
-    { id: "o1", text: "9. การปฏิบัติตามกฎระเบียบของสถานที่", score: null, note: "" },
-    { id: "o2", text: "10. ความร่วมมือกับเจ้าหน้าที่ในการตรวจสอบ", score: null, note: "" },
+    { id: "o1", text: "9. การปฏิบัติตามกฎระเบียบของสถานที่", score: null, note: "", maxScore: 5, description: "การรักษาความมีระเบียบวินัยและทำตามข้อตกลงพื้นที่เช่าส่วนกลาง" },
+    { id: "o2", text: "10. ความร่วมมือกับเจ้าหน้าที่ในการตรวจสอบ", score: null, note: "", maxScore: 5, description: "ระดับความอำนวยความสะดวกและยินดีให้ความร่วมมือแก่เจ้าหน้าที่" },
   ],
 }
 
@@ -53,15 +55,19 @@ export const DEFAULT_EVAL_CRITERIA: Record<string, CriterionItem[]> = {
 function ScoreButtons({
   value,
   onChange,
+  maxScore = 5,
   readOnly = false,
 }: {
   value: number | null
   onChange: (score: number) => void
+  maxScore?: number
   readOnly?: boolean
 }) {
+  const scores = Array.from({ length: maxScore }, (_, i) => i + 1)
+
   return (
     <div className={`flex items-center gap-2 flex-shrink-0 ${readOnly ? "pointer-events-none" : ""}`}>
-      {[1, 2, 3, 4, 5].map((n) => (
+      {scores.map((n) => (
         <label key={n} className={readOnly ? "cursor-default" : "cursor-pointer"}>
           <input
             type="radio"
@@ -216,7 +222,7 @@ export function EvalAssessmentCriteria({
         {/* ── Column headers ── */}
         <div className="flex items-center justify-between rounded-md bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 border border-slate-100">
           <span>รายละเอียดเกณฑ์การประเมิน</span>
-          <span className="tracking-widest">คะแนน (1-5)</span>
+          <span className="tracking-widest">เลือกคะแนน</span>
         </div>
 
         {/* ── Rows ── */}
@@ -236,31 +242,23 @@ export function EvalAssessmentCriteria({
               )}
 
               {/* Row */}
-              <div className="flex flex-col gap-3 border-b border-slate-100 py-5 last:border-b-0 group">
-                <div className="flex items-center justify-between gap-6">
-                  {/* Criterion text */}
-                  <div className="flex-1 flex items-start gap-2 min-w-0">
-                    {readOnly ? (
-                      <p className="text-sm font-medium text-slate-700 leading-6">{item.text}</p>
-                    ) : (
-                      <input
-                        value={item.text}
-                        onChange={(e) => handleTextChange(item.id, e.target.value)}
-                        placeholder="ระบุรายละเอียดเกณฑ์การประเมิน..."
-                        className="flex-1 text-sm text-slate-700 font-medium leading-6 bg-transparent border-none outline-none focus:bg-slate-50 rounded px-1 -ml-1 placeholder:text-zinc-300"
-                      />
-                    )}
+              <div className="flex flex-col gap-2.5 border-b border-slate-100 py-5 last:border-b-0 group">
+                {/* Criterion text */}
+                <div className="w-full flex flex-col gap-1">
+                  <p className="text-sm font-medium text-slate-800 leading-6">{item.text}</p>
+                  {item.description && (
+                    <p className="text-xs text-slate-500 font-normal leading-relaxed">{item.description}</p>
+                  )}
+                </div>
 
-                  </div>
-
-                  {/* Score buttons */}
-                  <div className="flex shrink-0 gap-2">
-                    <ScoreButtons
-                      value={item.score}
-                      onChange={(score) => handleScoreChange(item.id, score)}
-                      readOnly={readOnly}
-                    />
-                  </div>
+                {/* Score buttons */}
+                <div className="flex shrink-0 gap-2 pt-1 pl-1">
+                  <ScoreButtons
+                    value={item.score}
+                    onChange={(score) => handleScoreChange(item.id, score)}
+                    maxScore={item.maxScore}
+                    readOnly={readOnly}
+                  />
                 </div>
 
                 {/* Note input/display for this criterion */}
@@ -290,7 +288,7 @@ export function EvalAssessmentCriteria({
         <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
           <p className="text-xs text-orange-700">
             <span className="font-bold">หมายเหตุ:</span>{" "}
-            ให้คะแนนตามระดับความสำคัญ โดย 1 = ต่ำมาก, 5 = สูงมาก
+            ให้คะแนนตามเกณฑ์ โดย 1 = ต่ำสุด และคะแนนสูงสุดคือเกณฑ์ที่ดีที่สุด
           </p>
         </div>
 

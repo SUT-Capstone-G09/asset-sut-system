@@ -12,8 +12,8 @@ const DEFAULT_CATEGORIES: (Category & { operatorTypes: string[] })[] = [
     nameTh: "เกณฑ์ด้านสุขอนามัย",
     operatorTypes: ["food", "drink"],
     criteria: [
-      { id: "c1", nameTh: "ความสะอาดของสถานที่", description: "การรักษาความสะอาดและสภาพพื้นที่" },
-      { id: "c2", nameTh: "การแต่งกายของพนักงาน", description: "ความเป็นระเบียบเรียบร้อยและสะอาดของพนักงาน" },
+      { id: "c1", nameTh: "ความสะอาดของสถานที่", description: "การรักษาความสะอาดและสภาพพื้นที่", maxScore: 5 },
+      { id: "c2", nameTh: "การแต่งกายของพนักงาน", description: "ความเป็นระเบียบเรียบร้อยและสะอาดของพนักงาน", maxScore: 5 },
     ],
   },
   {
@@ -21,8 +21,8 @@ const DEFAULT_CATEGORIES: (Category & { operatorTypes: string[] })[] = [
     nameTh: "คุณภาพการบริการ",
     operatorTypes: ["food", "snack", "general"],
     criteria: [
-      { id: "c3", nameTh: "ความรวดเร็วในการให้บริการ", description: "เวลาที่ใช้ในการตอบสนองต่อลูกค้า" },
-      { id: "c4", nameTh: "ความสุภาพและอัธยาศัย", description: "กิริยาท่าทางและมนุษยสัมพันธ์กับผู้มาใช้บริการ" },
+      { id: "c3", nameTh: "ความรวดเร็วในการให้บริการ", description: "เวลาที่ใช้ในการตอบสนองต่อลูกค้า", maxScore: 5 },
+      { id: "c4", nameTh: "ความสุภาพและอัธยาศัย", description: "กิริยาท่าทางและมนุษยสัมพันธ์กับผู้มาใช้บริการ", maxScore: 5 },
     ],
   },
   {
@@ -30,7 +30,7 @@ const DEFAULT_CATEGORIES: (Category & { operatorTypes: string[] })[] = [
     nameTh: "มาตรฐานการชำระเงิน",
     operatorTypes: ["general"],
     criteria: [
-      { id: "c5", nameTh: "ความตรงต่อเวลาในการชำระค่าธรรมเนียม", description: "ประวัติการชำระเงินตามกำหนด" },
+      { id: "c5", nameTh: "ความตรงต่อเวลาในการชำระค่าธรรมเนียม", description: "ประวัติการชำระเงินตามกำหนด", maxScore: 5 },
     ],
   },
 ]
