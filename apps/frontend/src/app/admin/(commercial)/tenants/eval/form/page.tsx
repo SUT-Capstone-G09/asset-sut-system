@@ -1,6 +1,6 @@
 import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
-import { AdminEvalForm } from "@/features/evaluations/components/AdminEvalForm";
-import { AdminEvalFormHeader } from "@/features/evaluations/components/AdminEvalFormHeader";
+import { AdminEvalForm } from "@/features/evaluations/components/records/AdminEvalForm";
+import { AdminEvalFormHeader } from "@/features/evaluations/components/records/AdminEvalFormHeader";
 
 export default function EvaluationFormPage() {
   return (

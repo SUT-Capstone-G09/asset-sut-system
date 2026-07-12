@@ -9,6 +9,7 @@ import AdminAreaCategoryCard, { categoryIconMap } from "@/features/areas/compone
 import { useAreaFilters } from "@/features/areas/hooks/useAreaFilters";
 import { mockLocations } from "@/features/areas/data/locations";
 import { Button } from "@/components/ui/button";
+import { AREA_CATEGORIES } from "@/features/areas/constants";
 
 function AdminAreasPageContent() {
   const {
@@ -22,8 +23,19 @@ function AdminAreasPageContent() {
   } = useAreaFilters();
 
   const visibleCategories = useMemo(() => {
-    return Array.from(new Set(filteredLocations.map((loc) => loc.category)));
-  }, [filteredLocations]);
+    if (!searchQuery) return AREA_CATEGORIES;
+    const q = searchQuery.toLowerCase();
+    const activeCategories = new Set(
+      mockLocations
+        .filter((loc) => 
+          loc.name.toLowerCase().includes(q) ||
+          (loc.building ?? "").toLowerCase().includes(q) ||
+          (loc.description ?? "").toLowerCase().includes(q)
+        )
+        .map((loc) => loc.category)
+    );
+    return AREA_CATEGORIES.filter((cat) => activeCategories.has(cat.value));
+  }, [searchQuery]);
 
   const CategoryIcon = selectedCategory !== "all" ? (categoryIconMap[selectedCategory] || Building2) : Building2;
   const isDetailView = selectedCategory !== "all";
@@ -91,16 +103,16 @@ function AdminAreasPageContent() {
           </div>
 
           {visibleCategories.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {visibleCategories.map((cat) => {
-                const catLocations = mockLocations.filter((loc) => loc.category === cat);
+                const catLocations = mockLocations.filter((loc) => loc.category === cat.value);
                 return (
                   <AdminAreaCategoryCard
-                    key={cat}
-                    categoryName={cat}
+                    key={cat.value}
+                    categoryName={cat.label}
                     locations={catLocations}
                     isSelected={false}
-                    onSelect={() => setSelectedCategory(cat)}
+                    onSelect={() => setSelectedCategory(cat.value)}
                   />
                 );
               })}

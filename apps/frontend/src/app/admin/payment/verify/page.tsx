@@ -44,7 +44,6 @@ export default function AdminPaymentVerifyPage() {
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
     }, []);
-    console.log("data: ", payments);
 
   useEffect(() => {
     load();

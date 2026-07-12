@@ -1,5 +1,4 @@
 import { tenantAreaSummary } from "@/features/tenants/data/tenant-areas";
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 import { StatCard } from "@/components/ui/StatCard";
 import { MapPin, Store, Building2 } from "lucide-react";
 
@@ -8,14 +7,6 @@ export default function AdminTenantAreaHeader() {
     <div className="flex flex-col gap-6 mb-8">
       {/* Title */}
       <div className="space-y-6">
-        <AssetBreadcrumb
-          items={[
-            { label: "Admin", href: "/admin" },
-            { label: "ผู้ประกอบการ", href: "/admin/tenants/lists" },
-            { label: "รายชื่อสถานที่" },
-          ]}
-        />
-
         <div className="space-y-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
             เลือกพื้นที่ประกอบการ

@@ -49,6 +49,15 @@ export default function AdminAreaCategoryCard({
 
   // Calculate statistics across all locations in this category
   const stats = React.useMemo(() => {
+    if (locations.length === 0) {
+      // Mock stats for categories with 0 mock locations
+      const seed = categoryName.charCodeAt(0) + categoryName.length;
+      const totalUnits = (seed % 10) + 4; // 4 to 13
+      const vacant = (seed % 3) + 1; // 1 to 3
+      const occupied = totalUnits - vacant;
+      return { totalUnits, occupied, vacant };
+    }
+
     let totalUnits = 0;
     let occupied = 0;
     let vacant = 0;
@@ -56,9 +65,10 @@ export default function AdminAreaCategoryCard({
     locations.forEach((loc) => {
       const floorPlan = mockFloorPlans.find((fp) => fp.locationId === loc.id);
       if (floorPlan) {
-        totalUnits += floorPlan.stalls.length;
-        occupied += floorPlan.stalls.filter((s) => s.status === "occupied").length;
-        vacant += floorPlan.stalls.filter((s) => s.status === "vacant").length;
+        const shops = floorPlan.elements.filter((el) => el.type === "area" && el.areaType === "shop");
+        totalUnits += shops.length;
+        occupied += shops.filter((s) => s.status === "occupied").length;
+        vacant += shops.filter((s) => s.status === "open").length;
       } else {
         if (loc.category === "โรงอาหาร") {
           const count = loc.subStallCount || 0;
@@ -78,7 +88,7 @@ export default function AdminAreaCategoryCard({
     });
 
     return { totalUnits, occupied, vacant };
-  }, [locations]);
+  }, [locations, categoryName]);
 
   // List View
   if (viewMode === "list") {
@@ -109,7 +119,7 @@ export default function AdminAreaCategoryCard({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-800 truncate">{categoryName}</p>
           <p className="text-xs text-slate-400 truncate mt-0.5">
-            มี {locations.length} สถานที่ย่อย
+            มี {locations.length > 0 ? locations.length : Math.max(1, Math.floor(stats.totalUnits / 4))} สถานที่ย่อย
             {locations.length > 0 && ` (${locations.map(l => l.name).slice(0, 2).join(", ")})`}
           </p>
         </div>
@@ -117,12 +127,12 @@ export default function AdminAreaCategoryCard({
         {/* Stats */}
         <div className="hidden sm:flex items-center gap-6 shrink-0 px-6 border-r border-slate-100 mr-2">
           <div className="text-right">
-            <span className="text-xs text-slate-400 block leading-none mb-0.5">มีผู้เช่า</span>
-            <span className="text-sm font-bold text-emerald-600">{stats.occupied} ยูนิต</span>
+            <span className="text-xs text-slate-400 block leading-none mb-0.5">พื้นที่ทั้งหมด</span>
+            <span className="text-sm font-bold text-slate-800">{stats.totalUnits} ยูนิต</span>
           </div>
           <div className="text-right">
             <span className="text-xs text-slate-400 block leading-none mb-0.5">ว่าง</span>
-            <span className="text-sm font-bold text-amber-500">{stats.vacant} ยูนิต</span>
+            <span className="text-sm font-bold text-brand-primary">{stats.vacant} ยูนิต</span>
           </div>
         </div>
 
@@ -198,19 +208,19 @@ export default function AdminAreaCategoryCard({
             {/* Total Locations tag */}
             <div className="flex flex-wrap gap-1.5">
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                {locations.length} สถานที่ย่อย
+                {locations.length > 0 ? locations.length : Math.max(1, Math.floor(stats.totalUnits / 4))} สถานที่ย่อย
               </span>
             </div>
 
-            {/* Occupied vs Vacant stat line */}
+            {/* Total vs Vacant stat line */}
             <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">มีผู้เช่า</span>
-                <span className="text-lg font-black text-emerald-600">{stats.occupied} <span className="text-[10px] font-bold text-slate-400">ยูนิต</span></span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">พื้นที่ทั้งหมด</span>
+                <span className="text-lg font-black text-slate-800">{stats.totalUnits} <span className="text-[10px] font-bold text-slate-400">ยูนิต</span></span>
               </div>
               <div className="space-y-0.5">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">ว่าง</span>
-                <span className="text-lg font-black text-amber-500">{stats.vacant} <span className="text-[10px] font-bold text-slate-400">ยูนิต</span></span>
+                <span className="text-lg font-black text-brand-primary">{stats.vacant} <span className="text-[10px] font-bold text-slate-400">ยูนิต</span></span>
               </div>
             </div>
           </div>

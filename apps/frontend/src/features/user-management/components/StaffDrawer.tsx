@@ -95,7 +95,7 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h2 className="text-base font-bold text-gray-900">{isEdit ? "แก้ไขข้อมูล Staff" : "เพิ่ม Staff ใหม่"}</h2>
+            <h2 className="text-base font-bold text-gray-900">{isEdit ? "แก้ไขข้อมูล เจ้าหน้าที่ประจำสถานที่" : "เพิ่ม เจ้าหน้าที่ประจำสถานที่ ใหม่"}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{isEdit ? staff?.email : "กรอกข้อมูลและกำหนดสิทธิ์"}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
@@ -227,7 +227,7 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
           <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex gap-3">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-10 rounded-xl">ยกเลิก</Button>
             <Button type="submit" disabled={loading} className="flex-1 h-10 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? "บันทึกการเปลี่ยนแปลง" : "เพิ่ม Staff"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? "บันทึกการเปลี่ยนแปลง" : "เพิ่ม เจ้าหน้าที่ประจำสถานที่"}
             </Button>
           </div>
         </form>
