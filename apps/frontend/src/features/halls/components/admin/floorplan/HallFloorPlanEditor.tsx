@@ -1,6 +1,12 @@
-"use client"
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Upload,
   Ruler,
@@ -24,7 +30,10 @@ import { toast } from "sonner";
 
 type Mode = "upload" | "scale" | "frame" | "block";
 type Axis = "x" | "y";
-interface Pt { x: number; y: number } // normalized 0..1
+interface Pt {
+  x: number;
+  y: number;
+} // normalized 0..1
 
 interface Props {
   initial: HallFloorPlan;
@@ -33,7 +42,8 @@ interface Props {
 }
 
 const keyOf = (r: number, c: number) => `${r},${c}`;
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+const clamp = (v: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, v));
 
 export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   const { confirm, notify, dialog } = useAppDialog();
@@ -55,22 +65,33 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   const [pxPerMY, setPxPerMY] = useState<number | undefined>(initial.pxPerMY);
 
   const [blocked, setBlocked] = useState<Set<string>>(
-    () => new Set(initial.blockedCells.map(([r, c]) => keyOf(r, c)))
+    () => new Set(initial.blockedCells.map(([r, c]) => keyOf(r, c))),
   );
 
-  const [mode, setMode] = useState<Mode>(initial.topViewImageUrl ? "scale" : "upload");
+  const [mode, setMode] = useState<Mode>(
+    initial.topViewImageUrl ? "scale" : "upload",
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // ── Scale state ──
   const [axis, setAxis] = useState<Axis>("x");
-  const [metersX, setMetersX] = useState(initial.realWidthM ? String(initial.realWidthM) : "");
-  const [metersY, setMetersY] = useState(initial.realLengthM ? String(initial.realLengthM) : "");
+  const [metersX, setMetersX] = useState(
+    initial.realWidthM ? String(initial.realWidthM) : "",
+  );
+  const [metersY, setMetersY] = useState(
+    initial.realLengthM ? String(initial.realLengthM) : "",
+  );
   const [tempPts, setTempPts] = useState<Pt[]>([]);
   const [lineX, setLineX] = useState<[Pt, Pt] | null>(null);
   const [lineY, setLineY] = useState<[Pt, Pt] | null>(null);
 
   // ── Frame drag ──
-  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    ox: number;
+    oy: number;
+  } | null>(null);
 
   // ── Block paint ──
   const paintValRef = useRef<boolean>(true);
@@ -81,18 +102,26 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   // กรอกความกว้างจริง → จำนวนคอลัมน์ = กว้าง ÷ ขนาดช่อง (เปลี่ยนขนาดช่องแล้วแปลงค่าอัตโนมัติ)
   useEffect(() => {
     const w = parseFloat(metersX);
-    if (w > 0 && cellSizeM > 0) setGridCols(clamp(Math.round(w / cellSizeM), 1, 100));
+    if (w > 0 && cellSizeM > 0)
+      setGridCols(clamp(Math.round(w / cellSizeM), 1, 100));
   }, [metersX, cellSizeM]);
 
   // กรอกความยาวจริง → จำนวนแถว = ยาว ÷ ขนาดช่อง
   useEffect(() => {
     const l = parseFloat(metersY);
-    if (l > 0 && cellSizeM > 0) setGridRows(clamp(Math.round(l / cellSizeM), 1, 100));
+    if (l > 0 && cellSizeM > 0)
+      setGridRows(clamp(Math.round(l / cellSizeM), 1, 100));
   }, [metersY, cellSizeM]);
 
   // ล็อกขนาดกรอบอัตโนมัติจากสเกลจริง เมื่อ calibrate แล้ว
   useEffect(() => {
-    if (pxPerMX === undefined || pxPerMY === undefined || !naturalW || !naturalH) return;
+    if (
+      pxPerMX === undefined ||
+      pxPerMY === undefined ||
+      !naturalW ||
+      !naturalH
+    )
+      return;
     const w = (gridCols * cellSizeM * pxPerMX) / naturalW;
     const h = (gridRows * cellSizeM * pxPerMY) / naturalH;
     setOverlay((prev) => ({
@@ -135,7 +164,10 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
         setAxis("x");
         setMode("scale");
       } catch {
-        notify({ message: "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", variant: "danger" });
+        notify({
+          message: "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+          variant: "danger",
+        });
       } finally {
         URL.revokeObjectURL(localUrl);
         if (fileInputRef.current) fileInputRef.current.value = ""; // ให้เลือกไฟล์เดิมซ้ำได้
@@ -157,20 +189,31 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     // ครบ 2 จุด
     const meters = parseFloat(axis === "x" ? metersX : metersY);
     if (!meters || meters <= 0) {
-      notify({ message: "กรุณากรอกระยะจริง (เมตร) ให้ถูกต้องก่อนวัด", variant: "danger" });
+      notify({
+        message: "กรุณากรอกระยะจริง (เมตร) ให้ถูกต้องก่อนวัด",
+        variant: "danger",
+      });
       setTempPts([]);
       return;
     }
     const [a, b] = next;
     if (axis === "x") {
       const dxPx = Math.abs(b.x - a.x) * naturalW;
-      if (dxPx <= 0) { notify({ message: "จุดสองจุดต้องห่างกันในแนวนอน", variant: "danger" }); setTempPts([]); return; }
+      if (dxPx <= 0) {
+        notify({ message: "จุดสองจุดต้องห่างกันในแนวนอน", variant: "danger" });
+        setTempPts([]);
+        return;
+      }
       setPxPerMX(dxPx / meters);
       setLineX([a, b]);
       setAxis("y");
     } else {
       const dyPx = Math.abs(b.y - a.y) * naturalH;
-      if (dyPx <= 0) { notify({ message: "จุดสองจุดต้องห่างกันในแนวตั้ง", variant: "danger" }); setTempPts([]); return; }
+      if (dyPx <= 0) {
+        notify({ message: "จุดสองจุดต้องห่างกันในแนวตั้ง", variant: "danger" });
+        setTempPts([]);
+        return;
+      }
       setPxPerMY(dyPx / meters);
       setLineY([a, b]);
     }
@@ -182,7 +225,12 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     if (mode !== "frame") return;
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startY: e.clientY, ox: overlay.x, oy: overlay.y };
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      ox: overlay.x,
+      oy: overlay.y,
+    };
   };
   const onOverlayPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
@@ -197,7 +245,9 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       y: clamp(d.oy + dy, 0, Math.max(0, 1 - prev.h)),
     }));
   };
-  const onOverlayPointerUp = () => { dragRef.current = null; };
+  const onOverlayPointerUp = () => {
+    dragRef.current = null;
+  };
 
   // ── Block paint ──
   const applyCell = (r: number, c: number, val: boolean) => {
@@ -223,12 +273,18 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       Array.from(blocked)
         .map((k) => k.split(",").map(Number) as [number, number])
         .filter(([r, c]) => r < gridRows && c < gridCols), // ตัดช่องที่หลุดขอบเมื่อกริดเล็กลง
-    [blocked, gridRows, gridCols]
+    [blocked, gridRows, gridCols],
   );
 
   // ── Save / Reset ──
   const handleSave = async () => {
-    if (!imageUrl) { notify({ message: "กรุณาอัปโหลดรูปผัง top-view ก่อน", variant: "danger" }); return; }
+    if (!imageUrl) {
+      notify({
+        message: "กรุณาอัปโหลดรูปผัง top-view ก่อน",
+        variant: "danger",
+      });
+      return;
+    }
     setIsSaving(true);
     const fp: HallFloorPlan = {
       hallId: initial.hallId,
@@ -252,7 +308,10 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       toast.success("บันทึกผังพื้นที่เรียบร้อยแล้ว");
     } catch (err) {
       console.error(err);
-      notify({ message: "บันทึกผังไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", variant: "danger" });
+      notify({
+        message: "บันทึกผังไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+        variant: "danger",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -262,7 +321,8 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   const handleReset = async () => {
     const ok = await confirm({
       title: "ล้างผังทั้งหมด?",
-      message: "ล้างรูป, สเกล, กริด และช่องห้ามจองทั้งหมดเพื่อเริ่มใหม่\nข้อมูลที่บันทึกไว้ใน DB จะยังไม่ถูกลบจนกว่าจะกดบันทึก",
+      message:
+        "ล้างรูป, สเกล, กริด และช่องห้ามจองทั้งหมดเพื่อเริ่มใหม่\nข้อมูลที่บันทึกไว้ใน DB จะยังไม่ถูกลบจนกว่าจะกดบันทึก",
       confirmText: "ล้างทั้งหมด",
       variant: "danger",
     });
@@ -287,7 +347,12 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     setMode("upload");
   };
 
-  const tools: { mode: Mode; label: string; icon: React.ElementType; disabled?: boolean }[] = [
+  const tools: {
+    mode: Mode;
+    label: string;
+    icon: React.ElementType;
+    disabled?: boolean;
+  }[] = [
     { mode: "upload", label: "อัปโหลดผัง", icon: ImageIcon },
     { mode: "scale", label: "ตั้งสเกล", icon: Ruler, disabled: !imageUrl },
     { mode: "frame", label: "ปรับกรอบ", icon: Move, disabled: !imageUrl },
@@ -313,7 +378,7 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                 t.disabled && "opacity-40 cursor-not-allowed",
                 mode === t.mode
                   ? "bg-[#f26522] text-white shadow-lg shadow-[#f26522]/20"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border border-slate-200/60"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border border-slate-200/60",
               )}
             >
               <t.icon size={15} strokeWidth={2.5} />
@@ -330,7 +395,11 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
               disabled={uploading}
               className="h-9 px-3 rounded-[7px] gap-1.5 text-xs font-bold border-slate-200 text-slate-600 hover:text-[#f26522] hover:border-[#f26522]/40"
             >
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              {uploading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <RefreshCw size={14} />
+              )}
               เปลี่ยนรูปผัง
             </Button>
           )}
@@ -347,7 +416,11 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
             disabled={isSaving}
             className="h-9 px-5 rounded-[7px] font-bold text-xs text-white gap-2 bg-primary hover:bg-brand-primary-600 shadow-lg shadow-[#f26522]/20"
           >
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {isSaving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Save size={14} />
+            )}
             {isSaving ? "กำลังบันทึก..." : "บันทึกผัง"}
           </Button>
         </div>
@@ -358,17 +431,39 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
         <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">
           <Grid3X3 size={14} className="text-slate-300" /> ตั้งค่ากริด
         </div>
-        <NumField label="คอลัมน์ (auto)" value={gridCols} min={1} max={100} onChange={setGridCols} />
-        <NumField label="แถว (auto)" value={gridRows} min={1} max={100} onChange={setGridRows} />
-        <NumField label="ขนาดช่อง (ม.)" value={cellSizeM} min={0.1} step={0.1} onChange={setCellSizeM} />
-        <p className="w-full text-[10px] font-bold text-slate-400 order-last">
+        <NumField
+          label="คอลัมน์ (auto)"
+          value={gridCols}
+          min={1}
+          max={100}
+          onChange={setGridCols}
+        />
+        <NumField
+          label="แถว (auto)"
+          value={gridRows}
+          min={1}
+          max={100}
+          onChange={setGridRows}
+        />
+        <NumField
+          label="ขนาดช่อง (ม.)"
+          value={cellSizeM}
+          min={0.1}
+          step={0.1}
+          onChange={setCellSizeM}
+        />
+        {/* <p className="w-full text-[10px] font-bold text-slate-400 order-last">
           * คอลัมน์/แถวคำนวณจากความกว้าง/ยาวจริง ÷ ขนาดช่อง (กรอกในโหมด “ตั้งสเกล”) — เปลี่ยนขนาดช่องแล้วค่าจะแปลงอัตโนมัติ
-        </p>
+        </p> */}
         <div className="text-[11px] font-bold text-slate-400">
           {calibrated ? (
-            <span className="text-emerald-600">✓ ตั้งสเกลแล้ว — กรอบล็อกตามระยะจริง</span>
+            <span className="text-emerald-600">
+              ✓ ตั้งสเกลแล้ว — กรอบล็อกตามระยะจริง
+            </span>
           ) : (
-            <span className="text-amber-500">ยังไม่ได้ตั้งสเกล (กรอบปรับขนาดอิสระ)</span>
+            <span className="text-amber-500">
+              ยังไม่ได้ตั้งสเกล (กรอบปรับขนาดอิสระ)
+            </span>
           )}
         </div>
       </div>
@@ -377,15 +472,20 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       {mode === "scale" && imageUrl && (
         <div className="bg-white p-4 rounded-[7px] shadow-sm border border-slate-100 space-y-3">
           <p className="text-xs font-bold text-slate-600">
-            กรอกความกว้าง/ยาวจริง (เมตร) → ระบบคำนวณจำนวนคอลัมน์/แถวให้อัตโนมัติ (= เมตร ÷ ขนาดช่อง) และคลิก 2 จุดบนรูปเพื่อล็อกสเกลกรอบให้ตรงพื้นที่จริง (
-            <span className={axis === "x" ? "text-blue-600" : "text-emerald-600"}>
+            กรอกความกว้าง/ยาวจริง (เมตร) → คลิก 2
+            จุดบนรูปเพื่อล็อกสเกลกรอบให้ตรงพื้นที่จริง (
+            <span
+              className={axis === "x" ? "text-blue-600" : "text-emerald-600"}
+            >
               กำลังวัด: {axis === "x" ? "แกนกว้าง (นอน)" : "แกนยาว (ตั้ง)"}
             </span>
             )
           </p>
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-blue-600">ความกว้างจริง (ม.)</Label>
+              <Label className="text-[10px] font-bold text-blue-600">
+                ความกว้างจริง (ม.)
+              </Label>
               <Input
                 type="number"
                 value={metersX}
@@ -395,7 +495,9 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-emerald-600">ความยาวจริง (ม.)</Label>
+              <Label className="text-[10px] font-bold text-emerald-600">
+                ความยาวจริง (ม.)
+              </Label>
               <Input
                 type="number"
                 value={metersY}
@@ -406,14 +508,20 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
             </div>
             <Button
               variant="outline"
-              onClick={() => { setAxis("x"); setTempPts([]); }}
+              onClick={() => {
+                setAxis("x");
+                setTempPts([]);
+              }}
               className="h-9 rounded-[7px] text-xs font-bold"
             >
               วัดแกนกว้างใหม่
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setAxis("y"); setTempPts([]); }}
+              onClick={() => {
+                setAxis("y");
+                setTempPts([]);
+              }}
               className="h-9 rounded-[7px] text-xs font-bold"
             >
               วัดแกนยาวใหม่
@@ -440,9 +548,13 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
             </div>
             <div className="text-center space-y-1">
               <p className="text-base font-bold text-slate-900">
-                {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปผัง top-view"}
+                {uploading
+                  ? "กำลังอัปโหลด..."
+                  : "คลิกเพื่ออัปโหลดรูปผัง top-view"}
               </p>
-              <p className="text-xs text-slate-400 font-medium">ภาพผังมองจากด้านบน สำหรับตั้งสเกลและวางกริด</p>
+              <p className="text-xs text-slate-400 font-medium">
+                ภาพผังมองจากด้านบน สำหรับตั้งสเกลและวางกริด
+              </p>
             </div>
           </div>
         ) : (
@@ -451,26 +563,60 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
               ref={containerRef}
               className={cn(
                 "relative inline-block select-none max-w-full",
-                mode === "scale" && "cursor-crosshair"
+                mode === "scale" && "cursor-crosshair",
               )}
               onClick={handleScaleClick}
               onPointerMove={onOverlayPointerMove}
-              onPointerUp={() => { onOverlayPointerUp(); setPainting(false); }}
-              onPointerLeave={() => { onOverlayPointerUp(); setPainting(false); }}
+              onPointerUp={() => {
+                onOverlayPointerUp();
+                setPainting(false);
+              }}
+              onPointerLeave={() => {
+                onOverlayPointerUp();
+                setPainting(false);
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="floor plan" className="block max-w-full h-auto pointer-events-none" />
+              <img
+                src={imageUrl}
+                alt="floor plan"
+                className="block max-w-full h-auto pointer-events-none"
+              />
 
               {/* Scale lines (SVG) */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+              >
                 {lineX && (
-                  <line x1={lineX[0].x * 100} y1={lineX[0].y * 100} x2={lineX[1].x * 100} y2={lineX[1].y * 100} stroke="#2563eb" strokeWidth={0.5} />
+                  <line
+                    x1={lineX[0].x * 100}
+                    y1={lineX[0].y * 100}
+                    x2={lineX[1].x * 100}
+                    y2={lineX[1].y * 100}
+                    stroke="#2563eb"
+                    strokeWidth={0.5}
+                  />
                 )}
                 {lineY && (
-                  <line x1={lineY[0].x * 100} y1={lineY[0].y * 100} x2={lineY[1].x * 100} y2={lineY[1].y * 100} stroke="#059669" strokeWidth={0.5} />
+                  <line
+                    x1={lineY[0].x * 100}
+                    y1={lineY[0].y * 100}
+                    x2={lineY[1].x * 100}
+                    y2={lineY[1].y * 100}
+                    stroke="#059669"
+                    strokeWidth={0.5}
+                  />
                 )}
                 {tempPts.map((p, i) => (
-                  <circle key={i} cx={p.x * 100} cy={p.y * 100} r={0.8} fill={axis === "x" ? "#2563eb" : "#059669"} />
+                  <circle
+                    key={i}
+                    cx={p.x * 100}
+                    cy={p.y * 100}
+                    r={0.8}
+                    fill={axis === "x" ? "#2563eb" : "#059669"}
+                  />
                 ))}
               </svg>
 
@@ -482,7 +628,9 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                     "absolute border-2 border-[#f26522]",
                     mode === "frame" && "cursor-move bg-[#f26522]/5",
                     // block mode: เปิด pointer events เพื่อให้ cell ลูกรับคลิกได้; โหมดอื่นปิดเพื่อให้คลิกทะลุไป container
-                    mode !== "frame" && mode !== "block" && "pointer-events-none"
+                    mode !== "frame" &&
+                      mode !== "block" &&
+                      "pointer-events-none",
                   )}
                   style={{
                     left: `${overlay.x * 100}%`,
@@ -499,16 +647,26 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                         return (
                           <div
                             key={keyOf(r, c)}
-                            onPointerDown={mode === "block" ? () => onCellDown(r, c) : undefined}
-                            onPointerEnter={mode === "block" ? () => onCellEnter(r, c) : undefined}
+                            onPointerDown={
+                              mode === "block"
+                                ? () => onCellDown(r, c)
+                                : undefined
+                            }
+                            onPointerEnter={
+                              mode === "block"
+                                ? () => onCellEnter(r, c)
+                                : undefined
+                            }
                             className={cn(
                               "absolute border transition-colors duration-100",
-                              mode === "block" ? "pointer-events-auto cursor-pointer" : "pointer-events-none",
+                              mode === "block"
+                                ? "pointer-events-auto cursor-pointer"
+                                : "pointer-events-none",
                               isBlocked
                                 ? "bg-red-500/70 border-red-600/80" // เลือกห้ามจองแล้ว = แดงเข้ม
                                 : mode === "block"
                                   ? "bg-white/5 border-white/50 hover:bg-red-500/30" // hover = preview แดงจาง
-                                  : "bg-transparent border-white/40"
+                                  : "bg-transparent border-white/40",
                             )}
                             style={{
                               left: `${(c / gridCols) * 100}%`,
@@ -518,7 +676,7 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                             }}
                           />
                         );
-                      })
+                      }),
                     )}
                 </div>
               )}
@@ -529,16 +687,38 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
         {/* Legend */}
         {imageUrl && (
           <div className="flex items-center gap-4 mt-4 flex-wrap text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            <span>กริด {gridCols}×{gridRows}</span>
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-red-500/70" /> ช่องห้ามจอง ({blocked.size})</span>
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm border-2 border-[#f26522]" /> กรอบพื้นที่</span>
-            {mode === "frame" && <span className="text-[#f26522]">ลากกรอบเพื่อวางทับมุมเริ่มพื้นที่</span>}
-            {mode === "block" && <span className="text-[#f26522]">คลิก/ลากช่องเพื่อสลับห้ามจอง</span>}
+            <span>
+              กริด {gridCols}×{gridRows}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-sm bg-red-500/70" /> ช่องห้ามจอง
+              ({blocked.size})
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-sm border-2 border-[#f26522]" />{" "}
+              กรอบพื้นที่
+            </span>
+            {mode === "frame" && (
+              <span className="text-[#f26522]">
+                ลากกรอบเพื่อวางทับมุมเริ่มพื้นที่
+              </span>
+            )}
+            {mode === "block" && (
+              <span className="text-[#f26522]">
+                คลิก/ลากช่องเพื่อสลับห้ามจอง
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFile}
+      />
 
       {dialog}
     </div>
@@ -546,8 +726,20 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
 }
 
 function NumField({
-  label, value, onChange, min, max, step = 1,
-}: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number }) {
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+}) {
   return (
     <div className="space-y-1">
       <Label className="text-[10px] font-bold text-slate-500">{label}</Label>

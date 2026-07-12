@@ -101,9 +101,6 @@ func (r *RecipientRepository) userIDsByRoles(names []string) ([]uint, error) {
 }
 
 func (r *RecipientRepository) Search(q string, limit int) ([]dto.Recipient, error) {
-	if limit <= 0 {
-		limit = 20
-	}
 	query := r.baseQuery()
 	if q = strings.TrimSpace(q); q != "" {
 		like := "%" + strings.ToLower(q) + "%"
@@ -114,8 +111,13 @@ func (r *RecipientRepository) Search(q string, limit int) ([]dto.Recipient, erro
 			like, like, like,
 		)
 	}
+	query = query.Order("u.id")
+	// limit <= 0 means "no cap" — used to list every user when browsing the picker.
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
 	var rows []recipientRow
-	if err := query.Order("u.id").Limit(limit).Scan(&rows).Error; err != nil {
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	return toRecipients(rows), nil
