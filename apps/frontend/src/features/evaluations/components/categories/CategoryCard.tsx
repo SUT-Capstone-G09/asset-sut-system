@@ -81,7 +81,7 @@ export function CategoryCard({
   }
 
   const addCriterion = () => {
-    const newCrit: Criterion = { id: `crit-${Date.now()}`, nameTh: "", description: "" }
+    const newCrit: Criterion = { id: `crit-${Date.now()}`, nameTh: "", description: "", maxScore: 5 }
     onUpdate({ ...category, criteria: [...category.criteria, newCrit] })
   }
 

@@ -67,9 +67,14 @@ export function CriterionRow({
           </div>
         </td>
         <td className="px-4 py-3 text-center">
-          <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg border-2 border-slate-200 text-sm font-semibold text-slate-400 bg-slate-50">
-            5
-          </span>
+          <Input
+            type="number"
+            value={draft.maxScore ?? 5}
+            onChange={(e) => setDraft({ ...draft, maxScore: Number(e.target.value) })}
+            placeholder="5"
+            className="w-16 h-8 text-center text-sm font-semibold focus-visible:ring-orange-500/50 bg-slate-100 border-none rounded-[7px] mx-auto"
+            min={1}
+          />
         </td>
         <td className="px-4 py-3 text-right">
           <div className="flex items-center justify-end gap-1">
@@ -100,7 +105,7 @@ export function CriterionRow({
       </td>
       <td className="px-4 py-4 text-center">
         <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg border-2 border-slate-200 text-sm font-semibold text-slate-500">
-          5
+          {criterion.maxScore ?? 5}
         </span>
       </td>
       <td className="px-4 py-4 text-right relative">

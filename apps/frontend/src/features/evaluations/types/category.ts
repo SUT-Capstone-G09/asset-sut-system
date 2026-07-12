@@ -4,6 +4,7 @@ export type Criterion = {
   id: string
   nameTh: string
   description: string
+  maxScore?: number
 }
 
 export type Category = {

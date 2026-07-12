@@ -7,8 +7,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { InfoIcon, MessageSquareQuoteIcon, CheckCircle2 } from "lucide-react"
+import { InfoIcon, MessageSquareQuoteIcon, CheckCircle2, CalendarIcon } from "lucide-react"
 import { EvalAssessmentCriteria } from "@/features/evaluations/components/records/EvalAssessmentCriteria"
+import { format } from "date-fns"
+import { th } from "date-fns/locale"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
 
 // ข้อมูลจำลองร้านค้าแยกตามสถานที่
 const STORES_BY_LOCATION: Record<string, { id: string; name: string }[]> = {
@@ -27,6 +32,7 @@ const STORES_BY_LOCATION: Record<string, { id: string; name: string }[]> = {
 export function AdminEvalForm() {
   const [selectedLocation, setSelectedLocation] = useState<string>("")
   const [selectedStore, setSelectedStore] = useState<string>("")
+  const [date, setDate] = useState<Date | undefined>(new Date())
 
   // หาร้านค้าทั้งหมดแบบแบน (Flat List)
   const allStores = Object.entries(STORES_BY_LOCATION).flatMap(([locId, stores]) =>
@@ -99,9 +105,35 @@ export function AdminEvalForm() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="date">วันที่ประเมิน</Label>
-            <Input id="date" type="date" className="w-full bg-slate-100 border-none rounded-[7px]" />
+          <div className="space-y-2 flex flex-col justify-end">
+            <Label htmlFor="date" className="mb-1">วันที่ประเมิน</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-slate-100 border-none rounded-[7px] h-10 hover:bg-slate-200/50",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
+                  {date ? (
+                    `${format(date, "dd/MM")}/${date.getFullYear() + 543}`
+                  ) : (
+                    <span>เลือกวันที่</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  locale={th}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </CardContent>
       </Card>
