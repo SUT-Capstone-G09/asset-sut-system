@@ -51,11 +51,12 @@ func main() {
 	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
 	recipientRepo := repositories.NewRecipientRepository(db)
 	signatureRepo := repositories.NewSignatureRepository(db)
+	tenantRepo := repositories.NewTenantRepository(db)
 
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
-	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
+	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, tenantRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
 	adminService := services.NewAdminService(userRepo, adminRepo, roleRepo)
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
