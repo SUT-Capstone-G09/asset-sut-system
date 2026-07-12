@@ -522,8 +522,8 @@ export default function AdminBookingCalendar() {
                     // Decide background styles based on status
                     let badgeClass = "";
                     if (booking.status === "approved") {
-                      // Blue Style for Approved
-                      badgeClass = "bg-blue-50 text-blue-700 border-blue-200/60 hover:bg-blue-100/80 shadow-sm";
+                      // Sky Style for Approved
+                      badgeClass = "bg-sky-50 text-sky-700 border-sky-200/60 hover:bg-sky-100/80 shadow-sm";
                     } else if (booking.status === "pending") {
                       // Amber Style for Pending
                       badgeClass = "bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100/80 shadow-sm";
@@ -531,11 +531,11 @@ export default function AdminBookingCalendar() {
                       // Red Style for Rejected
                       badgeClass = "bg-red-50 text-red-600 border-red-200/60 hover:bg-red-100/80 shadow-sm";
                     } else if (booking.status === "cancelled") {
-                      // Slate Style for Cancelled
-                      badgeClass = "bg-slate-100 text-slate-500 border-slate-200/60 hover:bg-slate-200/80 shadow-sm";
+                      // Red Style for Cancelled
+                      badgeClass = "bg-red-50 text-red-500 border-red-200/60 hover:bg-red-100/80 shadow-sm";
                     } else if (booking.status === "completed") {
-                      // Teal Style for Completed
-                      badgeClass = "bg-teal-50 text-teal-700 border-teal-200/60 hover:bg-teal-100/80 shadow-sm";
+                      // Green Style for Completed
+                      badgeClass = "bg-green-50 text-green-700 border-green-200/60 hover:bg-green-100/80 shadow-sm";
                     } else {
                       // Gray Style for default
                       badgeClass = "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 shadow-sm";
@@ -565,7 +565,7 @@ export default function AdminBookingCalendar() {
         {/* Legends bar */}
         <div className="bg-slate-50/30 p-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-bold text-slate-500 select-none">
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-blue-500 border border-blue-600/10 shadow-sm" />
+            <span className="size-3 rounded-full bg-sky-500 border border-sky-600/10 shadow-sm" />
             <span>อนุมัติแล้ว (Approved)</span>
           </div>
           <div className="flex items-center gap-2">
@@ -573,11 +573,11 @@ export default function AdminBookingCalendar() {
             <span>รออนุมัติ (Pending)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-slate-400 border border-slate-500/10 shadow-sm" />
+            <span className="size-3 rounded-full bg-red-400 border border-red-500/10 shadow-sm" />
             <span>ยกเลิก (Cancelled)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-teal-500 border border-teal-600/10 shadow-sm" />
+            <span className="size-3 rounded-full bg-green-500 border border-green-600/10 shadow-sm" />
             <span>เสร็จสิ้น (Completed)</span>
           </div>
         </div>
