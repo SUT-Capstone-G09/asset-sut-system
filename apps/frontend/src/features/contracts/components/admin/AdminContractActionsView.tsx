@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import TenantProfileSummary from "./TenantProfileSummary";
 import ActiveContractSummary from "./ActiveContractSummary";
 import { useContractActions } from "../../hooks/useContractActions";
+import { mockBuildings } from "@/features/space-rental/data/mock-buildings";
+import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,7 +111,27 @@ export default function AdminContractActionsView() {
 
           <div className="flex flex-col gap-2.5 pt-4 border-t border-slate-100">
             <Button
-              onClick={() => router.push(`/admin/tenants/lists/${areaId}/${tenant.id}`)}
+              onClick={() => {
+                const parts = tenant.id.split("-");
+                const subLocationIndex = Number(parts[1]);
+                const area = tenantAreaOptions.find((a) => a.id === areaId);
+                const subLocationName = area?.subLocations[subLocationIndex];
+                
+                const building = mockBuildings.find((b) => b.name === subLocationName);
+                if (building) {
+                  const space = mockLocations.find(
+                    (l) => l.building === subLocationName && 
+                    (l.tenantName === tenant.name || l.name === tenant.name)
+                  );
+                  if (space) {
+                    router.push(`/admin/space-rental/building/${building.id}/space/${space.id}`);
+                  } else {
+                    router.push(`/admin/space-rental/building/${building.id}`);
+                  }
+                } else {
+                  router.push("/admin/space-rental");
+                }
+              }}
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium h-11 rounded-[7px] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               กลับหน้ารายละเอียดและประวัติผู้ประกอบการ

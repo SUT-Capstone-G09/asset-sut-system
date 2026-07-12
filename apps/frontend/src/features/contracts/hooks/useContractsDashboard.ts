@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
-import { generateMockTenants, MockTenant } from "@/features/tenants/data/mock-tenants";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
+import { generateMockTenants, MockTenant } from "@/features/space-rental/data/mock-tenants";
+import { mockBuildings } from "@/features/space-rental/data/mock-buildings";
+import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
 import { ContractItem } from "../types/contract";
 
 export function useContractsDashboard() {
@@ -171,7 +173,31 @@ export function useContractsDashboard() {
 
   // Navigate helpers
   const handleViewTenant = (areaId: string, tenantId: string) => {
-    router.push(`/admin/tenants/lists/${areaId}/${tenantId}`);
+    const parts = tenantId.split("-");
+    const subLocationIndex = Number(parts[1]);
+    
+    const area = tenantAreaOptions.find((a) => a.id === areaId);
+    const subLocationName = area?.subLocations[subLocationIndex];
+    
+    const building = mockBuildings.find((b) => b.name === subLocationName);
+    
+    if (building) {
+      const tenant = tenantsList.find((t) => t.id === tenantId);
+      const tenantName = tenant?.name;
+      
+      const space = mockLocations.find(
+        (l) => l.building === subLocationName && 
+        (l.tenantName === tenantName || l.name === tenantName)
+      );
+      
+      if (space) {
+        router.push(`/admin/space-rental/building/${building.id}/space/${space.id}`);
+      } else {
+        router.push(`/admin/space-rental/building/${building.id}`);
+      }
+    } else {
+      router.push("/admin/space-rental");
+    }
   };
 
   const handleManageContract = (tenantId: string, contractId: string, action?: "renew" | "terminate") => {
@@ -203,3 +229,4 @@ export function useContractsDashboard() {
     handleManageContract,
   };
 }
+

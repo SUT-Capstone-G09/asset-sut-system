@@ -15,9 +15,6 @@ type CreateRentalSpaceRequest struct {
 	BuildingID  *uint    `json:"building_id"`
 	Name        string   `json:"name" binding:"required"`
 	Description *string  `json:"description"`
-	Lat         float64  `json:"lat" binding:"required,min=-90,max=90"`
-	Lng         float64  `json:"lng" binding:"required,min=-180,max=180"`
-	Address     string   `json:"address" binding:"required"`
 	Size        *string  `json:"size"`
 	AreaCode    *string  `json:"area_code"`
 	BasePrice   *float64 `json:"base_price" binding:"omitempty,min=0"`
@@ -29,9 +26,6 @@ type UpdateRentalSpaceRequest struct {
 	BuildingID  *uint    `json:"building_id"`
 	Name        *string  `json:"name"`
 	Description *string  `json:"description"`
-	Lat         *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
-	Lng         *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
-	Address     *string  `json:"address"`
 	Size        *string  `json:"size"`
 	AreaCode    *string  `json:"area_code"`
 	BasePrice   *float64 `json:"base_price" binding:"omitempty,min=0"`
@@ -44,8 +38,6 @@ type RentalSpaceResponse struct {
 	BuildingName *string                    `json:"building_name,omitempty"`
 	Name         string                     `json:"name"`
 	Description  *string                    `json:"description"`
-	Coordinates  [2]float64                 `json:"coordinates"` // [lat, lng]
-	Address      string                     `json:"address"`
 	Size         *string                    `json:"size"`
 	AreaCode     *string                    `json:"area_code"`
 	BasePrice    *float64                   `json:"base_price"`

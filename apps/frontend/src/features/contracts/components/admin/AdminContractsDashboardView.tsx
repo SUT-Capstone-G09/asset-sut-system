@@ -1,6 +1,6 @@
 import React from "react";
 import { CheckCircle, Plus } from "lucide-react";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import ContractStats from "./ContractStats";
 import ContractFilters from "./ContractFilters";
 import ContractTable from "./ContractTable";
@@ -100,3 +100,4 @@ export default function AdminContractsDashboardView() {
     </div>
   );
 }
+

@@ -7,14 +7,11 @@ import "github.com/google/uuid"
 // ตัวอย่าง: A01, A02, พื้นที่ร้านกาแฟ, พื้นที่ร้านสะดวกซื้อ
 type RentalSpaces struct {
 	Base
-	BuildingID  *uint               
+	BuildingID  *uint
 	Building    *Buildings          `gorm:"foreignKey:BuildingID"`
 	Name        string              `gorm:"not null"`
 	Description *string
 	// หมายเหตุ: ไม่มี Category เพราะประเภทธุรกิจเป็นของ Tenant/Contract ไม่ใช่ของพื้นที่
-	Lat         float64             `gorm:"type:decimal(10,7);not null"`
-	Lng         float64             `gorm:"type:decimal(10,7);not null"`
-	Address     string              `gorm:"not null"`
 	Size        *string
 	AreaCode    *string             `gorm:"unique"`
 	BasePrice   *float64            `gorm:"type:decimal(12,2)"`

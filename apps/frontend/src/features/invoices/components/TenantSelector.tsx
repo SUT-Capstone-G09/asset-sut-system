@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 
 interface TenantSelectorProps {
   onSelect: (tenant: Tenant) => void;
@@ -174,3 +174,4 @@ export function TenantSelector({ onSelect, selectedTenantId }: TenantSelectorPro
     </div>
   );
 }
+

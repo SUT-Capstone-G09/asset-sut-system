@@ -1,6 +1,6 @@
 import React from "react";
 import { X, FileText, UploadCloud, CheckCircle, Save, Loader2, AlertTriangle } from "lucide-react";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -541,3 +541,4 @@ export default function CreateContractDrawer({
     </>
   );
 }
+

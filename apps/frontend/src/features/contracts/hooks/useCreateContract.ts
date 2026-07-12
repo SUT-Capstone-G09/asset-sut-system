@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { tenantAreaOptions } from "@/features/tenants/data/tenant-areas";
-import { MockTenant } from "@/features/tenants/data/mock-tenants";
+import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
+import { MockTenant } from "@/features/space-rental/data/mock-tenants";
 import { mockUsers } from "../data/mock-users";
 import { defaultContractTerms, defaultContractNote } from "../data/contract-constants";
 
@@ -193,3 +193,4 @@ export function useCreateContract({
     resetFormFields,
   };
 }
+
