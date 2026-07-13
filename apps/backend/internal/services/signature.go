@@ -1,14 +1,67 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"image"
+	"image/png"
+	"io"
 	"mime/multipart"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
+
+// pngMagic is the fixed 8-byte signature every valid PNG file starts with.
+// The client-supplied Content-Type header is not trustworthy on its own —
+// anyone calling the API directly can set it to whatever they like.
+var pngMagic = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+
+// validateSignaturePNG re-opens the uploaded file and checks it is a genuine
+// PNG with at least one non-opaque pixel — mirroring the check the frontend
+// does in the browser, which a direct API call bypasses entirely.
+func validateSignaturePNG(fh *multipart.FileHeader) error {
+	f, err := fh.Open()
+	if err != nil {
+		return errors.New("could not read uploaded file")
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return errors.New("could not read uploaded file")
+	}
+
+	if !bytes.HasPrefix(data, pngMagic) {
+		return errors.New("signature must be a genuine PNG file")
+	}
+
+	img, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		return errors.New("could not decode PNG image")
+	}
+
+	if !hasTransparentPixel(img) {
+		return errors.New("signature PNG must have a transparent background")
+	}
+
+	return nil
+}
+
+func hasTransparentPixel(img image.Image) bool {
+	bounds := img.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			_, _, _, a := img.At(x, y).RGBA()
+			if a < 0xffff {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // SignatureFolder is the private storage folder holding saved user signatures.
 const SignatureFolder = "signatures"
@@ -25,8 +78,8 @@ func NewSignatureService(repo *repositories.SignatureRepository, storage *Storag
 // Save stores a new signature image, replacing any previously saved one for
 // this user (both the DB record and the old object in storage).
 func (s *SignatureService) Save(ctx context.Context, userID uint, fh *multipart.FileHeader) (dto.SignatureResponse, error) {
-	if fh.Header.Get("Content-Type") != "image/png" {
-		return dto.SignatureResponse{}, errors.New("signature must be a PNG file")
+	if err := validateSignaturePNG(fh); err != nil {
+		return dto.SignatureResponse{}, err
 	}
 
 	result, err := s.storage.UploadMultipart(ctx, SignatureFolder, fh)
