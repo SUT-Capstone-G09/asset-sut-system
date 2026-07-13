@@ -1,5 +1,5 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
-import { useThaiAddress } from "use-thai-address";
+import { thaiAddressData } from "@/features/bookings/data/thaiAddressData";
 
 export interface AddressFormFields {
   subdistrict: string;
@@ -20,13 +20,11 @@ export function useThaiAddressAutofill<T extends AddressFormFields>(
   form: T,
   setForm: Dispatch<SetStateAction<T>>
 ) {
-  const { data: thaiAddressData } = useThaiAddress();
-
   const postalMatches = useMemo(
-    () => (form.postalCode.length === 5 && thaiAddressData
+    () => (form.postalCode.length === 5
       ? thaiAddressData.filter((m) => m.zipCode === form.postalCode)
       : []),
-    [thaiAddressData, form.postalCode]
+    [form.postalCode]
   );
 
   // District dropdown narrows the subdistrict dropdown to just its own
@@ -47,7 +45,7 @@ export function useThaiAddressAutofill<T extends AddressFormFields>(
   const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const value = e.target.value;
     setForm((p) => {
-      const matches = value.length === 5 && thaiAddressData ? thaiAddressData.filter((m) => m.zipCode === value) : [];
+      const matches = value.length === 5 ? thaiAddressData.filter((m) => m.zipCode === value) : [];
       if (matches.length === 0) return { ...p, postalCode: value };
       const [first, ...rest] = matches;
       const sameProvince = rest.every((m) => m.province === first.province);
