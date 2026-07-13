@@ -55,6 +55,7 @@ export default function MyBookingsView() {
     total: bookings.length,
     pending: bookings.filter((b) => b.status === "รออนุมัติ").length,
     approved: bookings.filter((b) => b.status === "อนุมัติแล้ว").length,
+    completed: bookings.filter((b) => b.status === "เสร็จสิ้น").length,
     cancelled: bookings.filter((b) => b.status === "ยกเลิก" || b.status === "ปฏิเสธ").length,
   };
 
@@ -120,11 +121,12 @@ export default function MyBookingsView() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatCard label="ทั้งหมด" value={stats.total} valueClass="text-gray-900" />
         <StatCard label="รอดำเนินการ" value={stats.pending} valueClass="text-orange-500" dotClass="bg-orange-400" />
         <StatCard label="อนุมัติแล้ว" value={stats.approved} valueClass="text-blue-500" dotClass="bg-blue-400" />
-        <StatCard label="ยกเลิก/ปฏิเสธ" value={stats.cancelled} valueClass="text-gray-500" dotClass="bg-gray-400" />
+        <StatCard label="เสร็จสิ้น" value={stats.completed} valueClass="text-gray-600" dotClass="bg-gray-400" />
+        <StatCard label="ยกเลิก/ปฏิเสธ" value={stats.cancelled} valueClass="text-red-400" dotClass="bg-red-300" />
       </div>
 
       {/* Upcoming */}
