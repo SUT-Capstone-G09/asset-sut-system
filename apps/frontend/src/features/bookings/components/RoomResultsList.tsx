@@ -17,7 +17,6 @@ interface RoomResultsListProps {
   onSortChange: (v: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (v: ViewMode) => void;
-  dayCount: number;
 }
 
 const SORT_OPTIONS: { label: string; value: SortOption }[] = [
@@ -32,7 +31,6 @@ export default function RoomResultsList({
   onSortChange,
   viewMode,
   onViewModeChange,
-  dayCount,
 }: RoomResultsListProps) {
   const currentSort = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "";
 
@@ -120,7 +118,7 @@ export default function RoomResultsList({
           )}
         >
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} dayCount={dayCount} />
+            <RoomCard key={room.id} room={room} />
           ))}
         </div>
       )}

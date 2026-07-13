@@ -14,12 +14,9 @@ const BADGE_STYLES: Record<string, string> = {
 
 interface RoomCardProps {
   room: Room;
-  dayCount: number;
 }
 
-export default function RoomCard({ room, dayCount }: RoomCardProps) {
-  const totalPrice = room.pricePerHour * 2 * dayCount; // 2h slot × days
-
+export default function RoomCard({ room }: RoomCardProps) {
   const capacityLabel =
     room.capacityMin === room.capacityMax
       ? `${room.capacityMax} คน`
@@ -81,9 +78,6 @@ export default function RoomCard({ room, dayCount }: RoomCardProps) {
             <p className="text-brand-primary font-bold text-lg">
               ฿{room.pricePerHour.toLocaleString()}
               <span className="text-sm font-normal text-gray-500">/ชม.</span>
-            </p>
-            <p className="text-xs text-gray-400">
-              = ฿{totalPrice.toLocaleString()} รวม {dayCount} วัน
             </p>
           </div>
           <Link href={`/bookings/${room.id}`}>

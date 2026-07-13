@@ -30,7 +30,6 @@ function BookingSearchContent() {
     setSortBy,
     viewMode,
     setViewMode,
-    getDayCount,
   } = useRoomSearch(category);
 
   return (
@@ -49,7 +48,6 @@ function BookingSearchContent() {
             onSortChange={setSortBy}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            dayCount={getDayCount()}
           />
         ) : (
           <RoomRecommendations category={category} />

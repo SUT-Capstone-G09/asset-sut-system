@@ -52,7 +52,7 @@ export default function RoomRecommendations({ category }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {rooms.map((room) => (
-          <RoomCard key={room.id} room={room} dayCount={1} />
+          <RoomCard key={room.id} room={room} />
         ))}
       </div>
     </div>
