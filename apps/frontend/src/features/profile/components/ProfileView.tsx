@@ -163,9 +163,20 @@ function SignatureSection() {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadSaved = () => {
+    setLoadError(false);
+    setLoading(true);
+    getSavedSignature()
+      .then(setSaved)
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    getSavedSignature().then(setSaved).finally(() => setLoading(false));
+    loadSaved();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFile = async (file: File | undefined) => {
@@ -212,6 +223,14 @@ function SignatureSection() {
       <p className="text-xs text-gray-400 mb-3">
         ใช้สำหรับเซ็นเอกสารคำขออนุญาตใช้สถานที่โดยไม่ต้องวาดใหม่ทุกครั้ง — เฉพาะไฟล์ PNG พื้นหลังโปร่งใส ขนาด {MIN_SIGNATURE_KB}–{MAX_SIGNATURE_KB} KB
       </p>
+      {loadError && (
+        <div className="flex items-center justify-between gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3 max-w-xs">
+          <span>โหลดลายเซ็นที่บันทึกไว้ไม่สำเร็จ</span>
+          <button type="button" onClick={loadSaved} className="font-semibold underline underline-offset-2 shrink-0">
+            ลองใหม่
+          </button>
+        </div>
+      )}
       {loading ? (
         <Skeleton className="h-20 w-full max-w-xs" />
       ) : (

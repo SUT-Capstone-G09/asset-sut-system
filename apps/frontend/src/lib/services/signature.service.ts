@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient, ApiError } from "./api-client";
 
 export interface SignatureResult {
   url: string;
@@ -8,8 +8,12 @@ export interface SignatureResult {
 export async function getSavedSignature(): Promise<SignatureResult | null> {
   try {
     return await apiClient.get<SignatureResult>("/me/signature");
-  } catch {
-    return null; // no saved signature yet
+  } catch (err) {
+    // 404 = genuinely no signature saved yet, not an error.
+    // Anything else (network blip, 5xx, expired session) should surface
+    // to the caller instead of silently looking like "no signature".
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
   }
 }
 

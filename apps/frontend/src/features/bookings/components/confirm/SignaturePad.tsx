@@ -64,16 +64,24 @@ export default function SignaturePad({ onChange, onModeChange }: { onChange: (ur
   const [savingSig, setSavingSig] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [deletingSaved, setDeletingSaved] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadSaved = () => {
+    setLoadError(false);
+    getSavedSignature()
+      .then((result) => {
+        if (result) {
+          setSaved(result);
+          setMode("saved");
+          onChange(result.url);
+          onModeChange?.("saved");
+        }
+      })
+      .catch(() => setLoadError(true));
+  };
 
   useEffect(() => {
-    getSavedSignature().then((result) => {
-      if (result) {
-        setSaved(result);
-        setMode("saved");
-        onChange(result.url);
-        onModeChange?.("saved");
-      }
-    });
+    loadSaved();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -205,6 +213,15 @@ export default function SignaturePad({ onChange, onModeChange }: { onChange: (ur
           </button>
         )}
       </div>
+
+      {loadError && (
+        <div className="flex items-center justify-between gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mb-1.5">
+          <span>โหลดลายเซ็นที่บันทึกไว้ไม่สำเร็จ</span>
+          <button type="button" onClick={loadSaved} className="font-semibold underline underline-offset-2 shrink-0">
+            ลองใหม่
+          </button>
+        </div>
+      )}
 
       {/* Mode tabs */}
       <div className="flex gap-1.5 mb-1.5">

@@ -1,6 +1,15 @@
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 function isAdminApp(): boolean {
   if (typeof window === "undefined") return false;
   return window.location.port === "3001";
@@ -105,7 +114,7 @@ async function request<T>(
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(body?.error ?? `Request failed: ${res.status}`);
+    throw new ApiError(body?.error ?? `Request failed: ${res.status}`, res.status);
   }
 
   return body.data as T;
@@ -134,7 +143,7 @@ async function uploadRequest<T>(path: string, formData: FormData, retry = true):
   }
 
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body?.error ?? `Request failed: ${res.status}`);
+  if (!res.ok) throw new ApiError(body?.error ?? `Request failed: ${res.status}`, res.status);
   return body.data as T;
 }
 
