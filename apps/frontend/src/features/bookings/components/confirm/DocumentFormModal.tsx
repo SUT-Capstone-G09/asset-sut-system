@@ -40,11 +40,9 @@ interface FormData {
   postalCode: string;
   phone: string;
   attendees: string;
-  buildingType: string;
-  otherBuilding: string;
+  venue: string;
+  taxId: string;
 }
-
-const BUILDING_OPTIONS = ["อาคาร 80 พรรษา", "อาคารเรียนรวม 1", "สนามกีฬา", "อื่น ๆ"];
 
 export default function DocumentFormModal({ room, timeslots, purpose, onClose, onGenerated, onPurposeChange }: DocumentFormModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
@@ -70,8 +68,8 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
     postalCode: "",
     phone: "",
     attendees: "",
-    buildingType: "อื่น ๆ",
-    otherBuilding: room.name,
+    venue: room.name,
+    taxId: "",
   });
 
   const set = (f: keyof FormData) =>
@@ -159,8 +157,9 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
   const phoneValid = form.phone ? /^0\d{8,9}$/.test(form.phone.replace(/[-\s]/g, "")) : false;
   const attendeesNum = parseInt(form.attendees);
   const attendeesValid = !form.attendees || (!isNaN(attendeesNum) && attendeesNum > 0 && attendeesNum <= room.capacityMax);
+  const taxIdValid = !form.taxId || /^\d{13}$/.test(form.taxId.replace(/[-\s]/g, ""));
 
-  const isValid = !!(form.prefix && form.firstName.trim() && form.lastName.trim() && form.position.trim() && form.department.trim() && phoneValid && attendeesValid && purpose.trim() && sig !== null);
+  const isValid = !!(form.prefix && form.firstName.trim() && form.lastName.trim() && form.position.trim() && form.department.trim() && phoneValid && attendeesValid && taxIdValid && form.venue.trim() && purpose.trim() && sig !== null);
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm py-8 px-4">
@@ -203,6 +202,12 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                   ที่อยู่
                   <span className="border-b border-dotted border-gray-700 inline-block min-w-[300px] mx-1 align-bottom">
                     {[form.houseNo, form.road, form.subdistrict, form.district, form.province, form.postalCode].filter(Boolean).join(" ")}
+                  </span>
+                </p>
+                <p>
+                  เลขประจำตัวผู้เสียภาษี
+                  <span className="border-b border-dotted border-gray-700 inline-block min-w-[140px] mx-1 align-bottom text-center">
+                    {form.taxId}
                   </span>
                 </p>
                 <p>
@@ -249,22 +254,11 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                   {form.phone}
                 </span>
               </p>
-              <p>มีความประสงค์จะขออนุญาตใช้อาคารสถานที่</p>
-
-              {/* Building checkboxes */}
-              <div className="flex flex-wrap gap-x-6 gap-y-0.5 ml-8 mb-1">
-                {BUILDING_OPTIONS.map((opt) => (
-                  <span key={opt} className="flex items-center gap-1">
-                    <span className="text-base">{form.buildingType === opt ? "☑" : "□"}</span>
-                    {opt === "อื่น ๆ"
-                      ? <>อื่น ๆ
-                          <span className="border-b border-dotted border-gray-700 inline-block min-w-[80px] mx-1 align-bottom text-center text-[11px]">
-                            {form.buildingType === "อื่น ๆ" ? form.otherBuilding : ""}
-                          </span>
-                        </>
-                      : opt}
-                  </span>
-                ))}
+              <div className="flex items-baseline gap-1">
+                <span className="shrink-0">มีความประสงค์จะขออนุญาตใช้อาคารสถานที่</span>
+                <span className="flex-1 border-b border-dotted border-gray-700 text-center">
+                  {form.venue}
+                </span>
               </div>
 
               {/* Purpose on one line */}
@@ -418,6 +412,27 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
+                  เลขประจำตัวผู้เสียภาษี
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.taxId}
+                  onChange={set("taxId")}
+                  placeholder="เลข 13 หลัก (ถ้ามี)"
+                  maxLength={13}
+                  className={cn(
+                    "w-full border rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30",
+                    form.taxId && !taxIdValid ? "border-red-200" : "border-gray-200"
+                  )}
+                />
+                {form.taxId && !taxIdValid && (
+                  <p className="text-xs text-red-500 mt-1">รูปแบบไม่ถูกต้อง — ต้องเป็นตัวเลข 13 หลัก</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
                   จำนวนผู้เข้าร่วม (คน)
                 </label>
                 <input
@@ -437,29 +452,13 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 )}
               </div>
 
-              {/* Building type */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">อาคารสถานที่ที่ขอใช้</label>
-                <div className="flex flex-wrap gap-2">
-                  {BUILDING_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, buildingType: opt }))}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs border transition-colors",
-                        form.buildingType === opt ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
-                      )}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-                {form.buildingType === "อื่น ๆ" && (
-                  <input type="text" value={form.otherBuilding} onChange={set("otherBuilding")} placeholder="ระบุสถานที่"
-                    className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
-                )}
-              </div>
+              <FField
+                label="อาคารสถานที่ที่ขอใช้"
+                placeholder="ระบุสถานที่"
+                value={form.venue}
+                onChange={set("venue")}
+                required
+              />
 
               {/* Purpose */}
               <div>
