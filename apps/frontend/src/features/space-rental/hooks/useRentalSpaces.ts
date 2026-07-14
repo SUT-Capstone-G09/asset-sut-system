@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { RentalSpace } from "../types/rental-space";
 import { rentalSpaceApi } from "../api/rental-space-api";
+import { mockFloorPlans } from "../data/mock-floor-plans";
+import { mockLocations } from "../data/mock-rental-spaces";
 
 export function useRentalSpaces(buildingName: string, buildingId: number) {
   const [rentalSpaces, setRentalSpaces] = useState<RentalSpace[]>([]);
@@ -54,10 +56,55 @@ export function useRentalSpaces(buildingName: string, buildingId: number) {
     }
   };
 
+  const addRentalSpace = async (newSpace: RentalSpace) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const fp = mockFloorPlans.find((f) => f.locationId === String(buildingId));
+      if (fp) {
+        // Convert to visual MapElement on the building floor plan
+        const newId = String(Date.now());
+        const newElement = {
+          id: newId,
+          name: newSpace.name,
+          label: newSpace.areaCode || newSpace.name,
+          type: "area" as const,
+          areaType: "shop" as const,
+          status: "open" as const,
+          x: 350,
+          y: 330,
+          width: 140,
+          height: 120,
+          rotation: 0,
+          layerId: "shops",
+          zone: "Food Zone",
+          tenant: undefined,
+          fillColor: "#d1fae5",
+          strokeColor: "#059669"
+        };
+        fp.elements.push(newElement);
+      } else {
+        mockLocations.push(newSpace);
+      }
+
+      // Reload
+      const result = await rentalSpaceApi.getByBuilding(buildingName, buildingId);
+      setRentalSpaces(result);
+    } catch (err) {
+      console.error("Failed to add rental space:", err);
+      setError("ไม่สามารถเพิ่มยูนิตเช่าได้");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     rentalSpaces,
     isLoading,
     error,
     updateRentalSpace,
+    addRentalSpace,
   };
 }

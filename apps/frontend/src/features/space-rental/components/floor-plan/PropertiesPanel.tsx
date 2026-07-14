@@ -220,26 +220,32 @@ export default function PropertiesPanel({
           </div>
 
           {/* W / H grid */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-3">
             <Field label="กว้าง (px)">
-              <input
-                type="number"
-                value={element.width}
-                onChange={(e) => set('width', Math.max(10, Number(e.target.value)))}
-                className={inputCls}
-                step={5}
-                min={10}
-              />
+              <div className="space-y-1">
+                <input
+                  type="number"
+                  value={element.width}
+                  onChange={(e) => set('width', Math.max(10, Number(e.target.value)))}
+                  className={inputCls}
+                  step={5}
+                  min={10}
+                />
+                <span className="text-[9px] text-[#f26522] font-black block pl-1">~ {(element.width / 20).toFixed(1)} ม. (Scale 1:20)</span>
+              </div>
             </Field>
             <Field label="สูง (px)">
-              <input
-                type="number"
-                value={element.height}
-                onChange={(e) => set('height', Math.max(10, Number(e.target.value)))}
-                className={inputCls}
-                step={5}
-                min={10}
-              />
+              <div className="space-y-1">
+                <input
+                  type="number"
+                  value={element.height}
+                  onChange={(e) => set('height', Math.max(10, Number(e.target.value)))}
+                  className={inputCls}
+                  step={5}
+                  min={10}
+                />
+                <span className="text-[9px] text-[#f26522] font-black block pl-1">~ {(element.height / 20).toFixed(1)} ม. (Scale 1:20)</span>
+              </div>
             </Field>
             <Field label="พิกัด X (px)">
               <input
@@ -259,6 +265,12 @@ export default function PropertiesPanel({
                 step={5}
               />
             </Field>
+            {element.type === 'area' && (
+              <div className="col-span-2 bg-slate-50 border border-slate-100 rounded-lg p-2 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">พื้นที่คำนวณจริง:</span>
+                <span className="text-[11px] font-black text-slate-700">{((element.width / 20) * (element.height / 20)).toFixed(1)} ตร.ม.</span>
+              </div>
+            )}
           </div>
 
           {/* Rotation */}

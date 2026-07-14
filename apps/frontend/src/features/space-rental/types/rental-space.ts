@@ -19,7 +19,7 @@ export interface RentalSpace {
   subStallCount?: number;
   price?: number;
   size?: string;
-  roomNumber?: string;
+  areaCode?: string;
   tenantName?: string;
   contractEndDate?: string;
   contractName?: string;
@@ -45,7 +45,7 @@ export interface AdminRentalSpace extends BaseRentalSpace {
   subStallCount?: number;
   price: number;                            
   size: string;                              
-  roomNumber: string;                        
+  areaCode: string;                        
   tenantName?: string;
   contractEndDate?: string;
   contractName?: string;

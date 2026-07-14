@@ -7,7 +7,8 @@ export interface Building {
   address?: string;
   rental_space_count: number;
   has_floor_plan: boolean;
-  floor_plan_image?: string; // พิกัดรูปแปลน static ของอาคาร
+  floor_plan_image?: string; // พิกัดรูปแปลน static ของอาคาร (ย้อนหลัง)
+  blueprint_url?: string; // พิกัดรูปแปลนพิมพ์เขียวอาคาร (ซิงก์ตรงกับ Go backend)
   created_at?: string;
   updated_at?: string;
 }

@@ -16,7 +16,7 @@ import {
   Save,
   Loader2
 } from "lucide-react";
-import AdminAreaFormFields from "./AdminAreaFormFields";
+import AreaFormFields from "./AreaFormFields";
 import { areaSchema, AreaFormValues } from "../../schemas/area-schema";
 import React, { useState, useEffect } from "react";
 
@@ -26,6 +26,8 @@ interface Props {
   onAdd?: (newLoc: any) => void;
   defaultBuildingName?: string;
   defaultAreaName?: string;
+  defaultCoordinates?: [number, number];
+  defaultAddress?: string;
   isLockedContext?: boolean;
 }
 
@@ -35,24 +37,24 @@ export default function SpaceCreateDrawer({
   onAdd,
   defaultBuildingName = "",
   defaultAreaName = "",
+  defaultCoordinates,
+  defaultAddress = "",
   isLockedContext = false
 }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<AreaFormValues>({
     resolver: zodResolver(areaSchema) as any,
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
+      areaCode: "",
       building: defaultBuildingName,
       area: defaultAreaName,
       size: "",
       price: undefined,
       description: "",
-      tenantName: "",
-      contractEndDate: "",
-      contractName: "",
-      citizenId: "",
-      contractNumber: "",
       image: ""
     }
   });
@@ -61,20 +63,16 @@ export default function SpaceCreateDrawer({
     if (open) {
       methods.reset({
         name: "",
+        areaCode: "",
         building: defaultBuildingName,
         area: defaultAreaName,
         size: "",
         price: undefined,
         description: "",
-        tenantName: "",
-        contractEndDate: "",
-        contractName: "",
-        citizenId: "",
-        contractNumber: "",
         image: ""
       });
     }
-  }, [open, defaultBuildingName, defaultAreaName, methods]);
+  }, [open, defaultBuildingName, defaultAreaName, defaultCoordinates, methods]);
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -83,9 +81,12 @@ export default function SpaceCreateDrawer({
     // Simulate API Call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    const finalCoordinates = defaultCoordinates || [14.8804616, 102.0161729];
+
     const newArea = {
       id: String(Date.now()),
       name: data.name,
+      areaCode: data.areaCode,
       building: data.building,
       area: data.area,
       size: data.size,
@@ -93,8 +94,8 @@ export default function SpaceCreateDrawer({
       description: data.description || "",
       image: data.image || "https://beta.sut.ac.th/damt/wp-content/uploads/sites/189/2021/01/1-2.jpg",
       status: "vacant",
-      coordinates: [14.8804616, 102.0161729],
-      address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
+      coordinates: finalCoordinates,
+      address: defaultAddress || "มหาวิทยาลัยเทคโนโลยีสุรนารี",
       tenantName: "",
       citizenId: "",
       contractNumber: "",
@@ -109,6 +110,7 @@ export default function SpaceCreateDrawer({
     onClose();
     alert("บันทึกข้อมูลสำเร็จ!");
   };
+
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -146,7 +148,7 @@ export default function SpaceCreateDrawer({
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <AdminAreaFormFields isLockedContext={isLockedContext} />
+              <AreaFormFields isLockedContext={isLockedContext} />
             </div>
 
             {/* Sticky Footer */}
