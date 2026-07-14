@@ -103,6 +103,24 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		}
 	}
 
+	// Hall booking: คำนวณ+ตรวจราคาวัตถุประสงค์ก่อนสร้างอะไร (เสนอราคาต่ำกว่าเกณฑ์จะถูก reject ตรงนี้ ไม่มี booking ค้าง)
+	isHall := len(req.Purposes) > 0
+	var hallLines []models.BookingPurposes
+	var purposeBase, purposeAddon int
+	if isHall {
+		// 1 booking = 1 สถานที่
+		locationID := req.Timeslots[0].LocationID
+		for _, ts := range req.Timeslots {
+			if ts.LocationID != locationID {
+				return nil, errors.New("การจองพื้นที่โถงต้องเป็นสถานที่เดียวต่อการจอง")
+			}
+		}
+		hallLines, purposeBase, purposeAddon, err = s.priceHallPurposes(locationID, distinctDateCount(req.Timeslots), req.Purposes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	booking := &models.Bookings{
 		UserID:   userID,
 		Purpose:  req.Purpose,
@@ -134,7 +152,11 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			return nil, err
 		}
 
-		priceSnapshot := calculatePrice(location, tsInput, requesterTypeID)
+		// การจองโถงคิดราคาจากวัตถุประสงค์ (base/addon) ไม่ใช่ pricing tier รายชั่วโมง/วัน → snapshot = 0
+		priceSnapshot := 0
+		if !isHall {
+			priceSnapshot = calculatePrice(location, tsInput, requesterTypeID)
+		}
 
 		ts := &models.Timeslots{
 			LocationID:    tsInput.LocationID,
@@ -168,6 +190,18 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		}
 	}
 
+	// Hall booking: บันทึกวัตถุประสงค์ (ผูก BookingID) แล้วม้วนราคาเข้า base/addon
+	if isHall {
+		for i := range hallLines {
+			hallLines[i].BookingID = booking.ID
+		}
+		if err := s.bookingRepo.CreatePurposes(hallLines); err != nil {
+			return nil, err
+		}
+		basePrice += purposeBase
+		addonPrice += purposeAddon
+	}
+
 	booking.BasePrice = basePrice
 	booking.AddonPrice = addonPrice
 	booking.TotalPrice = basePrice + addonPrice
@@ -182,6 +216,80 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			TotalAmount: booking.TotalPrice,
 		}
 		_ = s.invoiceRepo.Create(invoice)
+	}
+
+	return s.GetByID(booking.ID)
+}
+
+// Revise ให้เจ้าของ booking แก้ไขวัตถุประสงค์แล้วส่งใหม่ ทำได้เฉพาะสถานะ needs_revision
+// คำนวณราคาใหม่ (validate ราคาเสนอซ้ำ), แทนที่ purposes เดิม, อัปเดตยอด+invoice, กลับเป็น pending
+func (s *BookingService) Revise(bookingID, userID uint, req dto.ReviseBookingRequest) (*dto.BookingResponse, error) {
+	booking, err := s.bookingRepo.FindByID(bookingID)
+	if err != nil {
+		return nil, err
+	}
+	if booking.UserID != userID {
+		return nil, errors.New("ไม่มีสิทธิ์แก้ไขการจองนี้")
+	}
+	if booking.Status == nil || booking.Status.Status != "needs_revision" {
+		return nil, errors.New("แก้ไขได้เฉพาะรายการที่ถูกตีกลับให้แก้ไข (needs_revision) เท่านั้น")
+	}
+	if len(booking.Timeslots) == 0 {
+		return nil, errors.New("การจองนี้ไม่มีวันที่จอง")
+	}
+
+	// location + จำนวนวัน มาจาก timeslots เดิม (v1: วันไม่เปลี่ยน)
+	locationID := booking.Timeslots[0].LocationID
+	days := distinctDateCountModel(booking.Timeslots)
+
+	lines, base, addon, err := s.priceHallPurposes(locationID, days, req.Purposes)
+	if err != nil {
+		return nil, err
+	}
+
+	// แทนที่ purposes เดิมด้วยชุดใหม่
+	if err := s.bookingRepo.DeletePurposesByBookingID(booking.ID); err != nil {
+		return nil, err
+	}
+	for i := range lines {
+		lines[i].BookingID = booking.ID
+	}
+	if err := s.bookingRepo.CreatePurposes(lines); err != nil {
+		return nil, err
+	}
+
+	if req.Purpose != nil && *req.Purpose != "" {
+		booking.Purpose = *req.Purpose
+	}
+
+	// ยอดของการจองโถงมาจากวัตถุประสงค์ล้วน (timeslot snapshot = 0)
+	booking.BasePrice = base
+	booking.AddonPrice = addon
+	booking.TotalPrice = base + addon
+
+	pending, err := s.bookingRepo.FindStatusByName("pending")
+	if err != nil {
+		return nil, errors.New("booking status not configured")
+	}
+	fromStatusID := booking.StatusID
+	booking.StatusID = pending.ID
+	if err := s.bookingRepo.Update(booking); err != nil {
+		return nil, err
+	}
+
+	_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
+		BookingID:    booking.ID,
+		FromStatusID: &fromStatusID,
+		ToStatusID:   pending.ID,
+		ChangedBy:    userID,
+		ChangedAt:    time.Now(),
+		Note:         "ผู้ขอแก้ไขและส่งใหม่",
+	})
+
+	// อัปเดตยอดในใบแจ้งหนี้ให้ตรง
+	if invoice, ierr := s.invoiceRepo.FindByBookingID(booking.ID); ierr == nil && invoice != nil {
+		invoice.TotalAmount = booking.TotalPrice
+		_ = s.invoiceRepo.Update(invoice)
 	}
 
 	return s.GetByID(booking.ID)
@@ -365,16 +473,104 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 	return int(hours) * location.PricingTiers[0].Price
 }
 
+// priceHallPurposes คำนวณ+ตรวจราคาวัตถุประสงค์ของการจองพื้นที่โถง สำหรับ location + จำนวนวันที่กำหนด
+// เรทมาจากอาคารของ location, ขนาดเซลล์มาจากผังของโถง ; ใช้ได้ทั้งตอน Create และ Revise
+func (s *BookingService) priceHallPurposes(locationID uint, days int, purposeInputs []dto.BookingPurposeInput) ([]models.BookingPurposes, int, int, error) {
+	location, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	// ราคาโถงของอาคารนี้ (ราย วัตถุประสงค์) — single source of truth แทน Building.RatePerSqm เดิม
+	pricingByPurpose := make(map[uint]*models.BuildingHallPricings)
+	if location.Building != nil {
+		pricings, perr := s.bookingRepo.FindBuildingHallPricings(location.Building.ID)
+		if perr != nil {
+			return nil, 0, 0, perr
+		}
+		for i := range pricings {
+			pricingByPurpose[pricings[i].HallUsagePurposeID] = &pricings[i]
+		}
+	}
+
+	// ขนาดเซลล์จากผังของโถง (ถ้ายังไม่มีผัง cellSize = 0 → วัตถุประสงค์แบบตั้งบูธจะ error ตอนคำนวณ)
+	var cellSize float64
+	if fp, ferr := s.locationRepo.FindFloorPlanByLocationID(locationID); ferr == nil && fp != nil {
+		cellSize = fp.CellSizeM
+	}
+
+	// โหลด master data ของวัตถุประสงค์ที่เลือก
+	ids := make([]uint, 0, len(purposeInputs))
+	for _, p := range purposeInputs {
+		ids = append(ids, p.HallUsagePurposeID)
+	}
+	purposes, err := s.bookingRepo.FindHallPurposesByIDs(ids)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	byID := make(map[uint]*models.HallUsagePurposes, len(purposes))
+	for i := range purposes {
+		byID[purposes[i].ID] = &purposes[i]
+	}
+
+	inputs := make([]HallPurposeInput, 0, len(purposeInputs))
+	for _, p := range purposeInputs {
+		purpose := byID[p.HallUsagePurposeID]
+		if purpose == nil {
+			return nil, 0, 0, fmt.Errorf("ไม่พบวัตถุประสงค์การขอใช้พื้นที่ (id=%d)", p.HallUsagePurposeID)
+		}
+		// ราคาต่อหน่วย: ใช้ราคาของอาคารถ้าตั้งไว้ ; ไม่งั้น fallback เป็น DefaultPrice ของ purpose
+		// ถ้าอาคารปิดวัตถุประสงค์นี้ (IsActive=false) → ปฏิเสธทันที
+		unitPrice := purpose.DefaultPrice
+		if pr := pricingByPurpose[purpose.ID]; pr != nil {
+			if !pr.IsActive {
+				return nil, 0, 0, fmt.Errorf("อาคารนี้ไม่เปิดให้ขอใช้พื้นที่เพื่อ %q", purpose.Name)
+			}
+			unitPrice = pr.Price
+		}
+		inputs = append(inputs, HallPurposeInput{
+			Purpose:          purpose,
+			UnitPrice:        unitPrice,
+			SelectedCells:    p.SelectedCells,
+			CellSizeM:        cellSize,
+			ProductTypeCount: p.ProductTypeCount,
+			ProposedPrice:    p.ProposedPrice,
+		})
+	}
+
+	return CalculateHallPurposes(inputs, days)
+}
+
+// distinctDateCount นับจำนวนวันไม่ซ้ำจากช่วงเวลาที่ผู้ขอส่งมา
+func distinctDateCount(slots []dto.TimeslotInput) int {
+	seen := make(map[string]struct{}, len(slots))
+	for _, ts := range slots {
+		y, m, d := ts.Date.Date()
+		seen[fmt.Sprintf("%04d-%02d-%02d", y, m, d)] = struct{}{}
+	}
+	return len(seen)
+}
+
+// distinctDateCountModel นับจำนวนวันไม่ซ้ำจาก timeslots ที่บันทึกไว้แล้ว (ใช้ตอน revise)
+func distinctDateCountModel(slots []models.Timeslots) int {
+	seen := make(map[string]struct{}, len(slots))
+	for _, ts := range slots {
+		y, m, d := ts.Date.Date()
+		seen[fmt.Sprintf("%04d-%02d-%02d", y, m, d)] = struct{}{}
+	}
+	return len(seen)
+}
+
 func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingResponse {
 	res := dto.BookingResponse{
 		ID:         b.ID,
 		UserID:     b.UserID,
 		Purpose:    b.Purpose,
-		BasePrice:     b.BasePrice,
-		AddonPrice:    b.AddonPrice,
-		TotalPrice:    b.TotalPrice,
-		StatusID:      b.StatusID,
-		CreatedAt:     b.CreatedAt,
+		BasePrice:  b.BasePrice,
+		AddonPrice: b.AddonPrice,
+		TotalPrice: b.TotalPrice,
+		StatusID:   b.StatusID,
+		CreatedAt:  b.CreatedAt,
 	}
 	if b.Status != nil {
 		res.Status = b.Status.Status
@@ -475,6 +671,26 @@ func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingRespons
 			})
 		}
 	}
+	res.Purposes = make([]dto.BookingPurposeResponse, 0, len(b.Purposes))
+	for _, p := range b.Purposes {
+		pr := dto.BookingPurposeResponse{
+			ID:                 p.ID,
+			HallUsagePurposeID: p.HallUsagePurposeID,
+			PricingModel:       p.PricingModel,
+			SelectedCells:      p.SelectedCells,
+			AreaSqm:            p.AreaSqm,
+			ProductTypeCount:   p.ProductTypeCount,
+			UnitPriceSnapshot:  p.UnitPriceSnapshot,
+			ComputedPrice:      p.ComputedPrice,
+			ProposedPrice:      p.ProposedPrice,
+			TotalPrice:         p.TotalPrice,
+		}
+		if p.HallUsagePurpose != nil {
+			pr.PurposeName = p.HallUsagePurpose.Name
+		}
+		res.Purposes = append(res.Purposes, pr)
+	}
+
 	res.Documents = make([]dto.DocumentResponse, 0)
 	for _, doc := range b.Documents {
 		docRes := dto.DocumentResponse{
@@ -486,7 +702,7 @@ func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingRespons
 			ContentType:    doc.ContentType,
 			CreatedAt:      doc.CreatedAt,
 		}
-		
+
 		// Generate fresh presigned URL
 		if freshURL, err := s.storageService.PresignedURL(context.Background(), doc.ObjectKey); err == nil {
 			docRes.FileURL = freshURL

@@ -35,6 +35,73 @@ func (c *LocationController) GetBuildings(ctx *gin.Context) {
 	response.OK(ctx, buildings)
 }
 
+// GetHallUsagePurposes คืน master data วัตถุประสงค์การขอใช้พื้นที่โถง
+// ?include_inactive=true → คืนทั้งหมด (หน้าจัดการ) ; ค่าปกติคืนเฉพาะที่เปิดใช้งาน
+func (c *LocationController) GetHallUsagePurposes(ctx *gin.Context) {
+	includeInactive := ctx.Query("include_inactive") == "true"
+	purposes, err := c.locationService.GetHallUsagePurposes(includeInactive)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purposes)
+}
+
+// CreateHallUsagePurpose เพิ่มวัตถุประสงค์การขอใช้พื้นที่โถงใหม่
+func (c *LocationController) CreateHallUsagePurpose(ctx *gin.Context) {
+	var req dto.CreateHallUsagePurposeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	purpose, err := c.locationService.CreateHallUsagePurpose(req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purpose)
+}
+
+// UpdateHallUsagePurpose แก้วัตถุประสงค์ (ชื่อ/รายละเอียด/ราคาตั้งต้น/เปิด-ปิด/ลำดับ)
+func (c *LocationController) UpdateHallUsagePurpose(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateHallUsagePurposeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	purpose, err := c.locationService.UpdateHallUsagePurpose(id, req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purpose)
+}
+
+// UpdateBuildingHallPricings ตั้ง/แก้ราคาโถงของอาคาร (bulk upsert รายวัตถุประสงค์)
+func (c *LocationController) UpdateBuildingHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateBuildingHallPricingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	building, err := c.locationService.UpdateBuildingHallPricings(id, req)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, building)
+}
+
 func (c *LocationController) GetAll(ctx *gin.Context) {
 	role := ctx.GetString("role")
 	userID := ctx.GetUint("user_id")

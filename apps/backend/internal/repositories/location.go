@@ -217,7 +217,92 @@ func (r *LocationRepository) FindAllGlobalAddons() ([]models.LocationAddons, err
 
 func (r *LocationRepository) FindAllBuildings() ([]models.Buildings, error) {
 	var buildings []models.Buildings
-	err := r.db.Find(&buildings).Error
+	err := r.db.
+		Preload("HallPricings.HallUsagePurpose").
+		Order("name asc").
+		Find(&buildings).Error
 	return buildings, err
+}
+
+// FindBuildingByID โหลดอาคารเดียวพร้อมราคาโถง (ใช้คืนค่าหลังอัปเดตราคา)
+func (r *LocationRepository) FindBuildingByID(id uint) (*models.Buildings, error) {
+	var building models.Buildings
+	err := r.db.
+		Preload("HallPricings.HallUsagePurpose").
+		First(&building, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &building, nil
+}
+
+// FindActiveHallUsagePurposes คืน master data วัตถุประสงค์ที่เปิดใช้งาน เรียงตาม sort_order
+func (r *LocationRepository) FindActiveHallUsagePurposes() ([]models.HallUsagePurposes, error) {
+	var purposes []models.HallUsagePurposes
+	err := r.db.Where("is_active = ?", true).Order("sort_order asc").Find(&purposes).Error
+	return purposes, err
+}
+
+// FindAllHallUsagePurposes คืนวัตถุประสงค์ทั้งหมด (รวมที่ปิดใช้งาน) สำหรับหน้าจัดการ
+func (r *LocationRepository) FindAllHallUsagePurposes() ([]models.HallUsagePurposes, error) {
+	var purposes []models.HallUsagePurposes
+	err := r.db.Order("sort_order asc").Find(&purposes).Error
+	return purposes, err
+}
+
+// FindHallUsagePurposeByID โหลดวัตถุประสงค์เดียว
+func (r *LocationRepository) FindHallUsagePurposeByID(id uint) (*models.HallUsagePurposes, error) {
+	var p models.HallUsagePurposes
+	if err := r.db.First(&p, id).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// HallUsagePurposeNameExists ตรวจว่ามีชื่อวัตถุประสงค์นี้อยู่แล้วหรือไม่ (ยกเว้น id ที่กำหนด — ใช้ตอน update)
+func (r *LocationRepository) HallUsagePurposeNameExists(name string, exceptID uint) (bool, error) {
+	var count int64
+	q := r.db.Model(&models.HallUsagePurposes{}).Where("name = ?", name)
+	if exceptID != 0 {
+		q = q.Where("id <> ?", exceptID)
+	}
+	err := q.Count(&count).Error
+	return count > 0, err
+}
+
+// MaxHallPurposeSortOrder คืนค่า sort_order สูงสุดปัจจุบัน (0 ถ้ายังไม่มี) ใช้ต่อท้ายอัตโนมัติ
+func (r *LocationRepository) MaxHallPurposeSortOrder() (int, error) {
+	var result struct{ Max int }
+	err := r.db.Model(&models.HallUsagePurposes{}).
+		Select("COALESCE(MAX(sort_order), 0) AS max").
+		Scan(&result).Error
+	return result.Max, err
+}
+
+// CreateHallUsagePurpose บันทึกวัตถุประสงค์ใหม่
+func (r *LocationRepository) CreateHallUsagePurpose(p *models.HallUsagePurposes) error {
+	return r.db.Create(p).Error
+}
+
+// UpdateHallUsagePurpose บันทึกการแก้ไขวัตถุประสงค์
+func (r *LocationRepository) UpdateHallUsagePurpose(p *models.HallUsagePurposes) error {
+	return r.db.Save(p).Error
+}
+
+// UpsertBuildingHallPricing สร้างหรืออัปเดตราคาโถง 1 แถว (อ้าง unique building_id + hall_usage_purpose_id)
+func (r *LocationRepository) UpsertBuildingHallPricing(p *models.BuildingHallPricings) error {
+	var existing models.BuildingHallPricings
+	err := r.db.
+		Where("building_id = ? AND hall_usage_purpose_id = ?", p.BuildingID, p.HallUsagePurposeID).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return r.db.Create(p).Error
+	}
+	if err != nil {
+		return err
+	}
+	existing.Price = p.Price
+	existing.IsActive = p.IsActive
+	return r.db.Save(&existing).Error
 }
 

@@ -9,14 +9,12 @@ import {
   createLocation,
   updateLocation,
   deleteLocation,
-  savePricingTiers,
 } from "../services/hallService";
-import { AdminLocationDTO, StatusMeta } from "@/features/booking/services/locationService";
+import { StatusMeta } from "@/features/booking/services/locationService";
 import { getCurrentUser } from "@/lib/utils/auth";
 
 export function useHalls() {
   const [halls, setHalls] = useState<Hall[]>([]);
-  const [locationDTOs, setLocationDTOs] = useState<Map<string, AdminLocationDTO>>(new Map());
   const [statusMeta, setStatusMeta] = useState<StatusMeta[]>([]);
   const [typeId, setTypeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,10 +32,6 @@ export function useHalls() {
       const [data, tId] = await Promise.all([getHalls(), getHallTypeId()]);
       setHalls(data.map(locationToHall));
       setTypeId(tId);
-
-      const dtoMap = new Map<string, AdminLocationDTO>();
-      data.forEach((loc) => dtoMap.set(String(loc.id), loc));
-      setLocationDTOs(dtoMap);
 
       const statusMap = new Map<number, string>();
       data.forEach((loc) => statusMap.set(loc.status_id, loc.status));
@@ -87,10 +81,7 @@ export function useHalls() {
       capacity: 0, // โถงไม่มีความจุ แต่ backend ต้องการค่า
       status_id: statusId,
     });
-    await savePricingTiers(created.id, newHall.rates);
-    const createdHall = locationToHall(created);
-    setHalls((prev) => [{ ...createdHall, rates: newHall.rates }, ...prev]);
-    setLocationDTOs((prev) => new Map(prev).set(String(created.id), created));
+    setHalls((prev) => [locationToHall(created), ...prev]);
   };
 
   const handleUpdateHallStatus = async (id: string, status: "available" | "maintenance") => {
@@ -103,8 +94,6 @@ export function useHalls() {
 
   const handleEditHall = async (updatedHall: Hall) => {
     const statusId = statusMeta.find((s) => s.status === updatedHall.status)?.status_id;
-    const existingDTO = locationDTOs.get(updatedHall.id);
-    const existingTierIds = existingDTO?.pricing_tiers?.map((t) => t.id) ?? [];
 
     // ส่ง image_url เฉพาะเมื่อเป็น object_key ใหม่ (ไม่ใช่ presigned URL เดิม)
     const newImageKey =
@@ -117,14 +106,7 @@ export function useHalls() {
       capacity: 0,
       ...(statusId && { status_id: statusId }),
     });
-    await savePricingTiers(Number(updatedHall.id), updatedHall.rates, existingTierIds);
     setHalls((prev) => prev.map((h) => (h.id === updatedHall.id ? updatedHall : h)));
-    setLocationDTOs((prev) => {
-      const next = new Map(prev);
-      const old = next.get(updatedHall.id);
-      if (old) next.set(updatedHall.id, { ...old, building: updatedHall.building, pricing_tiers: [] });
-      return next;
-    });
   };
 
   const handleDeleteHall = async (id: string) => {

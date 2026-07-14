@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
@@ -32,14 +33,177 @@ func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
 	}
 	var res []dto.BuildingResponse
 	for _, b := range buildings {
-		res = append(res, dto.BuildingResponse{
-			ID:        b.ID,
-			Name:      b.Name,
-			CreatedAt: b.CreatedAt,
-			UpdatedAt: b.UpdatedAt,
-		})
+		res = append(res, toBuildingResponse(b))
 	}
 	return res, nil
+}
+
+// toBuildingResponse map อาคาร + ราคาโถง (ราย วัตถุประสงค์) เป็น response
+func toBuildingResponse(b models.Buildings) dto.BuildingResponse {
+	pricings := make([]dto.BuildingHallPricingResponse, 0, len(b.HallPricings))
+	for _, hp := range b.HallPricings {
+		pr := dto.BuildingHallPricingResponse{
+			HallUsagePurposeID: hp.HallUsagePurposeID,
+			Price:              hp.Price,
+			IsActive:           hp.IsActive,
+		}
+		if hp.HallUsagePurpose != nil {
+			pr.PurposeName = hp.HallUsagePurpose.Name
+			pr.PricingModel = hp.HallUsagePurpose.PricingModel
+		}
+		pricings = append(pricings, pr)
+	}
+	return dto.BuildingResponse{
+		ID:           b.ID,
+		Name:         b.Name,
+		HallPricings: pricings,
+		CreatedAt:    b.CreatedAt,
+		UpdatedAt:    b.UpdatedAt,
+	}
+}
+
+func toHallPurposeResponse(p models.HallUsagePurposes) dto.HallUsagePurposeResponse {
+	return dto.HallUsagePurposeResponse{
+		ID:           p.ID,
+		Name:         p.Name,
+		Description:  p.Description,
+		PricingModel: p.PricingModel,
+		DefaultPrice: p.DefaultPrice,
+		IsActive:     p.IsActive,
+		SortOrder:    p.SortOrder,
+	}
+}
+
+// GetHallUsagePurposes คืน master data วัตถุประสงค์การขอใช้พื้นที่โถง
+// includeInactive=false → เฉพาะที่เปิดใช้งาน (ใช้ในหน้าตั้งราคา/หน้าจอง) ; true → ทั้งหมด (หน้าจัดการ)
+func (s *LocationService) GetHallUsagePurposes(includeInactive bool) ([]dto.HallUsagePurposeResponse, error) {
+	var purposes []models.HallUsagePurposes
+	var err error
+	if includeInactive {
+		purposes, err = s.locationRepo.FindAllHallUsagePurposes()
+	} else {
+		purposes, err = s.locationRepo.FindActiveHallUsagePurposes()
+	}
+	if err != nil {
+		return nil, err
+	}
+	res := make([]dto.HallUsagePurposeResponse, 0, len(purposes))
+	for _, p := range purposes {
+		res = append(res, toHallPurposeResponse(p))
+	}
+	return res, nil
+}
+
+// CreateHallUsagePurpose เพิ่มวัตถุประสงค์ใหม่ (pricing_model จำกัด 2 แบบเดิม เพื่อไม่กระทบ logic การคิดเงิน)
+func (s *LocationService) CreateHallUsagePurpose(req dto.CreateHallUsagePurposeRequest) (*dto.HallUsagePurposeResponse, error) {
+	if req.PricingModel != models.HallPricingPerSqm && req.PricingModel != models.HallPricingPerTypePerDay {
+		return nil, errors.New("รูปแบบการคิดราคาไม่ถูกต้อง")
+	}
+	exists, err := s.locationRepo.HallUsagePurposeNameExists(req.Name, 0)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.New("มีชื่อวัตถุประสงค์นี้อยู่แล้ว")
+	}
+
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	} else {
+		max, merr := s.locationRepo.MaxHallPurposeSortOrder()
+		if merr != nil {
+			return nil, merr
+		}
+		sortOrder = max + 1
+	}
+
+	p := &models.HallUsagePurposes{
+		Name:         req.Name,
+		Description:  req.Description,
+		PricingModel: req.PricingModel,
+		DefaultPrice: req.DefaultPrice,
+		IsActive:     true,
+		SortOrder:    sortOrder,
+	}
+	if err := s.locationRepo.CreateHallUsagePurpose(p); err != nil {
+		return nil, err
+	}
+	res := toHallPurposeResponse(*p)
+	return &res, nil
+}
+
+// UpdateHallUsagePurpose แก้วัตถุประสงค์ (แก้ pricing_model ไม่ได้)
+func (s *LocationService) UpdateHallUsagePurpose(id uint, req dto.UpdateHallUsagePurposeRequest) (*dto.HallUsagePurposeResponse, error) {
+	p, err := s.locationRepo.FindHallUsagePurposeByID(id)
+	if err != nil {
+		return nil, errors.New("ไม่พบวัตถุประสงค์")
+	}
+	if req.Name != nil {
+		exists, eerr := s.locationRepo.HallUsagePurposeNameExists(*req.Name, id)
+		if eerr != nil {
+			return nil, eerr
+		}
+		if exists {
+			return nil, errors.New("มีชื่อวัตถุประสงค์นี้อยู่แล้ว")
+		}
+		p.Name = *req.Name
+	}
+	if req.Description != nil {
+		p.Description = *req.Description
+	}
+	if req.DefaultPrice != nil {
+		p.DefaultPrice = *req.DefaultPrice
+	}
+	if req.IsActive != nil {
+		p.IsActive = *req.IsActive
+	}
+	if req.SortOrder != nil {
+		p.SortOrder = *req.SortOrder
+	}
+	if err := s.locationRepo.UpdateHallUsagePurpose(p); err != nil {
+		return nil, err
+	}
+	res := toHallPurposeResponse(*p)
+	return &res, nil
+}
+
+// UpdateBuildingHallPricings ตั้ง/แก้ราคาโถงของอาคารหนึ่ง (bulk upsert รายวัตถุประสงค์) แล้วคืนอาคารพร้อมราคาล่าสุด
+func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.UpdateBuildingHallPricingsRequest) (*dto.BuildingResponse, error) {
+	if _, err := s.locationRepo.FindBuildingByID(buildingID); err != nil {
+		return nil, errors.New("ไม่พบอาคาร")
+	}
+
+	// ตรวจว่า purpose id ที่ส่งมามีจริง (กัน FK พังเงียบ)
+	purposes, err := s.locationRepo.FindActiveHallUsagePurposes()
+	if err != nil {
+		return nil, err
+	}
+	valid := make(map[uint]bool, len(purposes))
+	for _, p := range purposes {
+		valid[p.ID] = true
+	}
+
+	for _, in := range req.Pricings {
+		if !valid[in.HallUsagePurposeID] {
+			return nil, fmt.Errorf("ไม่พบวัตถุประสงค์การขอใช้พื้นที่ (id=%d)", in.HallUsagePurposeID)
+		}
+		if err := s.locationRepo.UpsertBuildingHallPricing(&models.BuildingHallPricings{
+			BuildingID:         buildingID,
+			HallUsagePurposeID: in.HallUsagePurposeID,
+			Price:              in.Price,
+			IsActive:           in.IsActive,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	building, err := s.locationRepo.FindBuildingByID(buildingID)
+	if err != nil {
+		return nil, err
+	}
+	res := toBuildingResponse(*building)
+	return &res, nil
 }
 
 func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
@@ -384,7 +548,6 @@ func (s *LocationService) GetAddonByID(id uint) (*dto.AddonResponse, error) {
 	return &res, nil
 }
 
-
 // ── Pricing Tiers ─────────────────────────────────────────────────────────────
 
 func (s *LocationService) CreatePricingTier(locationID uint, req dto.CreatePricingTierRequest) (*dto.PricingTierResponse, error) {
@@ -589,6 +752,7 @@ func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.Hal
 		BlockedCells:    blocked,
 	}
 }
+
 // ── Global Addon Services ───────────────────────────────────────────────────
 
 func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
@@ -602,7 +766,3 @@ func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
 	}
 	return result, nil
 }
-
-
-
-

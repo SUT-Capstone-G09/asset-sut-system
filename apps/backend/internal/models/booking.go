@@ -10,18 +10,19 @@ type BookingStatuses struct {
 
 type Bookings struct {
 	Base
-	UserID      uint             `gorm:"not null" json:"user_id"`
-	User        *Users           `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Purpose     string           `gorm:"not null" json:"purpose"`
-	BasePrice     int              `gorm:"not null;default:0" json:"base_price"`
-	AddonPrice    int              `gorm:"not null;default:0" json:"addon_price"`
-	TotalPrice    int              `gorm:"not null;default:0" json:"total_price"`
-	StatusID    uint             `gorm:"not null" json:"status_id"`
-	Status      *BookingStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	Timeslots   []Timeslots      `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`
-	StatusLogs  []BookingStatusLogs `gorm:"foreignKey:BookingID" json:"status_logs,omitempty"`
-	Documents   []Documents      `gorm:"foreignKey:BookingID" json:"documents,omitempty"`
-	Invoice     *Invoices        `gorm:"foreignKey:BookingID" json:"invoice,omitempty"`
+	UserID     uint                `gorm:"not null" json:"user_id"`
+	User       *Users              `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Purpose    string              `gorm:"not null" json:"purpose"`
+	BasePrice  int                 `gorm:"not null;default:0" json:"base_price"`
+	AddonPrice int                 `gorm:"not null;default:0" json:"addon_price"`
+	TotalPrice int                 `gorm:"not null;default:0" json:"total_price"`
+	StatusID   uint                `gorm:"not null" json:"status_id"`
+	Status     *BookingStatuses    `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	Timeslots  []Timeslots         `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`
+	StatusLogs []BookingStatusLogs `gorm:"foreignKey:BookingID" json:"status_logs,omitempty"`
+	Documents  []Documents         `gorm:"foreignKey:BookingID" json:"documents,omitempty"`
+	Invoice    *Invoices           `gorm:"foreignKey:BookingID" json:"invoice,omitempty"`
+	Purposes   []BookingPurposes   `gorm:"foreignKey:BookingID" json:"purposes,omitempty"`
 }
 
 type BookingStatusLogs struct {

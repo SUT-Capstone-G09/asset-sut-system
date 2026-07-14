@@ -87,6 +87,26 @@ func (c *BookingController) UpdateStatus(ctx *gin.Context) {
 	response.OK(ctx, booking)
 }
 
+func (c *BookingController) Revise(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	userID := ctx.GetUint("user_id")
+	var req dto.ReviseBookingRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	booking, err := c.bookingService.Revise(id, userID, req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, booking)
+}
+
 func (c *BookingController) GetInvoice(ctx *gin.Context) {
 	id, err := parseID(ctx)
 	if err != nil {

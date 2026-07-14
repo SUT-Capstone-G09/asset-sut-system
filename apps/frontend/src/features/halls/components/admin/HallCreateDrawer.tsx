@@ -31,6 +31,9 @@ const FIELD_LABELS: Record<string, string> = {
 export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  );
 
   const methods = useForm<HallFormValues>({
     resolver: zodResolver(hallSchema) as any,
@@ -40,12 +43,6 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
       image: "",
       status: "available",
       notes: "",
-      rates: {
-        hourlyInternal: 0,
-        hourlyExternal: 0,
-        dailyInternal: 0,
-        dailyExternal: 0,
-      },
     },
   });
 
@@ -61,7 +58,6 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
         image: data.image,
         status: data.status,
         notes: data.notes,
-        rates: data.rates,
       };
       await onSave(newHall);
       methods.reset();
@@ -88,6 +84,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
+        ref={setPortalContainer}
         side="right"
         showCloseButton={false}
         className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
@@ -131,7 +128,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <HallFormFields />
+              <HallFormFields portalContainer={portalContainer} />
             </div>
 
             <div className="px-6 py-5 border-t border-slate-100 flex flex-col gap-3 bg-white/90 backdrop-blur-md shrink-0">

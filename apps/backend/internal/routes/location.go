@@ -12,6 +12,22 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 	rg.GET("/buildings", lc.GetBuildings)
 	rg.GET("/location-types", lc.GetTypes)
+	rg.GET("/hall-usage-purposes", lc.GetHallUsagePurposes)
+
+	// ตั้ง/แก้ราคาโถงราย อาคาร (staff/admin) — ราคาใช้ร่วมทุกโถงในอาคารเดียวกัน
+	buildingsMgmt := rg.Group("/buildings")
+	buildingsMgmt.Use(auth, middleware.RequireRole("staff", "admin"))
+	{
+		buildingsMgmt.PUT("/:id/hall-pricings", middleware.RequirePermission("location_mgmt", "update"), lc.UpdateBuildingHallPricings)
+	}
+
+	// จัดการวัตถุประสงค์การขอใช้พื้นที่โถง (เพิ่ม/แก้/เปิด-ปิด) — staff/admin
+	purposesMgmt := rg.Group("/hall-usage-purposes")
+	purposesMgmt.Use(auth, middleware.RequireRole("staff", "admin"))
+	{
+		purposesMgmt.POST("", middleware.RequirePermission("location_mgmt", "update"), lc.CreateHallUsagePurpose)
+		purposesMgmt.PUT("/:id", middleware.RequirePermission("location_mgmt", "update"), lc.UpdateHallUsagePurpose)
+	}
 
 	// รายการ location_id ที่มีผังพื้นที่แล้ว (แยก path ออกจาก /locations/:id กันชนกับ param route)
 	rg.GET("/hall-floor-plans", auth, middleware.RequireRole("staff", "admin"), lc.GetFloorPlanIDs)

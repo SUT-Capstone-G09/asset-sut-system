@@ -1,15 +1,8 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload,
-  Ruler,
   Move,
   Ban,
   RotateCcw,
@@ -28,22 +21,60 @@ import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 import { useAppDialog } from "../../../hooks/useAppDialog";
 import { toast } from "sonner";
 
-type Mode = "upload" | "scale" | "frame" | "block";
-type Axis = "x" | "y";
-interface Pt {
-  x: number;
-  y: number;
-} // normalized 0..1
+type Mode = "upload" | "frame" | "block";
+// จุดที่กำลังลาก: ย้ายทั้งกรอบ (move) หรือปรับขนาดจาก 8 จุด (มุม 4 + กึ่งกลางขอบ 4)
+type DragKind = "move" | "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+const keyOf = (r: number, c: number) => `${r},${c}`;
+const clamp = (v: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, v));
+
+// ขนาดกรอบขั้นต่ำ (สัดส่วนของรูป) กันไม่ให้ลากจนกรอบหาย
+const MIN_FRAME = 0.03;
+
+// 8 จุดปรับขนาด: ตำแหน่ง (% ของกรอบ) + cursor ที่เหมาะกับทิศทาง
+const HANDLES: { kind: DragKind; left: string; top: string; cursor: string }[] =
+  [
+    { kind: "nw", left: "0%", top: "0%", cursor: "nwse-resize" },
+    { kind: "n", left: "50%", top: "0%", cursor: "ns-resize" },
+    { kind: "ne", left: "100%", top: "0%", cursor: "nesw-resize" },
+    { kind: "e", left: "100%", top: "50%", cursor: "ew-resize" },
+    { kind: "se", left: "100%", top: "100%", cursor: "nwse-resize" },
+    { kind: "s", left: "50%", top: "100%", cursor: "ns-resize" },
+    { kind: "sw", left: "0%", top: "100%", cursor: "nesw-resize" },
+    { kind: "w", left: "0%", top: "50%", cursor: "ew-resize" },
+  ];
+
+// คำนวณกรอบใหม่จากการลาก: ย้าย (move) หรือขยับขอบตามจุดที่จับ (dx,dy = สัดส่วนของรูป)
+function resizeFrame(
+  kind: DragKind,
+  box: Overlay,
+  dx: number,
+  dy: number,
+): Overlay {
+  if (kind === "move") {
+    return {
+      ...box,
+      x: clamp(box.x + dx, 0, Math.max(0, 1 - box.w)),
+      y: clamp(box.y + dy, 0, Math.max(0, 1 - box.h)),
+    };
+  }
+  let left = box.x;
+  let right = box.x + box.w;
+  let top = box.y;
+  let bottom = box.y + box.h;
+  if (kind.includes("w")) left = clamp(left + dx, 0, right - MIN_FRAME);
+  if (kind.includes("e")) right = clamp(right + dx, left + MIN_FRAME, 1);
+  if (kind.includes("n")) top = clamp(top + dy, 0, bottom - MIN_FRAME);
+  if (kind.includes("s")) bottom = clamp(bottom + dy, top + MIN_FRAME, 1);
+  return { x: left, y: top, w: right - left, h: bottom - top };
+}
 
 interface Props {
   initial: HallFloorPlan;
   // topViewImageKey = object_key ของรูปที่เพิ่งอัปโหลดในเซสชันนี้ (ถ้าไม่ได้เปลี่ยนรูป = undefined)
   onSave: (fp: HallFloorPlan, topViewImageKey?: string) => void | Promise<void>;
 }
-
-const keyOf = (r: number, c: number) => `${r},${c}`;
-const clamp = (v: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, v));
 
 export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   const { confirm, notify, dialog } = useAppDialog();
@@ -61,41 +92,49 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
   const [cellSizeM, setCellSizeM] = useState(initial.cellSizeM);
 
   const [overlay, setOverlay] = useState<Overlay>(initial.overlay);
-  const [pxPerMX, setPxPerMX] = useState<number | undefined>(initial.pxPerMX);
-  const [pxPerMY, setPxPerMY] = useState<number | undefined>(initial.pxPerMY);
 
   const [blocked, setBlocked] = useState<Set<string>>(
     () => new Set(initial.blockedCells.map(([r, c]) => keyOf(r, c))),
   );
 
   const [mode, setMode] = useState<Mode>(
-    initial.topViewImageUrl ? "scale" : "upload",
+    initial.topViewImageUrl ? "frame" : "upload",
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── Scale state ──
-  const [axis, setAxis] = useState<Axis>("x");
+  // ── ขนาดพื้นที่จริง (เมตร) — ใช้คำนวณกริด และมาตราส่วน (px/เมตร) ร่วมกับกรอบ ──
   const [metersX, setMetersX] = useState(
     initial.realWidthM ? String(initial.realWidthM) : "",
   );
   const [metersY, setMetersY] = useState(
     initial.realLengthM ? String(initial.realLengthM) : "",
   );
-  const [tempPts, setTempPts] = useState<Pt[]>([]);
-  const [lineX, setLineX] = useState<[Pt, Pt] | null>(null);
-  const [lineY, setLineY] = useState<[Pt, Pt] | null>(null);
 
-  // ── Frame drag ──
+  // ── Frame drag/resize ──
   const dragRef = useRef<{
+    kind: DragKind;
     startX: number;
     startY: number;
-    ox: number;
-    oy: number;
+    box: Overlay;
   } | null>(null);
 
   // ── Block paint ──
   const paintValRef = useRef<boolean>(true);
   const [painting, setPainting] = useState(false);
+
+  // มาตราส่วนคำนวณจากกรอบ: กว้างกรอบ(px) ÷ กว้างจริง(ม.) — ไม่ต้องคลิกจุดวัดอีกต่อไป
+  const pxPerMX = useMemo(() => {
+    const w = parseFloat(metersX);
+    return w > 0 && naturalW && overlay.w > 0
+      ? (overlay.w * naturalW) / w
+      : undefined;
+  }, [metersX, naturalW, overlay.w]);
+  const pxPerMY = useMemo(() => {
+    const l = parseFloat(metersY);
+    return l > 0 && naturalH && overlay.h > 0
+      ? (overlay.h * naturalH) / l
+      : undefined;
+  }, [metersY, naturalH, overlay.h]);
 
   const calibrated = pxPerMX !== undefined && pxPerMY !== undefined;
 
@@ -113,34 +152,6 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       setGridRows(clamp(Math.round(l / cellSizeM), 1, 100));
   }, [metersY, cellSizeM]);
 
-  // ล็อกขนาดกรอบอัตโนมัติจากสเกลจริง เมื่อ calibrate แล้ว
-  useEffect(() => {
-    if (
-      pxPerMX === undefined ||
-      pxPerMY === undefined ||
-      !naturalW ||
-      !naturalH
-    )
-      return;
-    const w = (gridCols * cellSizeM * pxPerMX) / naturalW;
-    const h = (gridRows * cellSizeM * pxPerMY) / naturalH;
-    setOverlay((prev) => ({
-      x: clamp(prev.x, 0, Math.max(0, 1 - w)),
-      y: clamp(prev.y, 0, Math.max(0, 1 - h)),
-      w: Math.min(w, 1),
-      h: Math.min(h, 1),
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pxPerMX, pxPerMY, gridCols, gridRows, cellSizeM, naturalW, naturalH]);
-
-  const relPoint = useCallback((clientX: number, clientY: number): Pt => {
-    const rect = containerRef.current!.getBoundingClientRect();
-    return {
-      x: clamp((clientX - rect.left) / rect.width, 0, 1),
-      y: clamp((clientY - rect.top) / rect.height, 0, 1),
-    };
-  }, []);
-
   // ── Upload (อ่านขนาดจริง + อัปโหลดไป MinIO เก็บ object_key) ──
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,14 +166,7 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
         const res = await uploadFile(file, UPLOAD_FOLDERS.LOCATION_PICS);
         setImageUrl(res.url); // presigned URL สำหรับ preview
         setImageKey(res.object_key); // เก็บ key ไว้ส่งตอนบันทึก
-        // เปลี่ยนรูปใหม่ → สเกลเดิม (px/เมตร) ใช้ไม่ได้เพราะขนาดรูปต่างกัน ต้องตั้งสเกลใหม่
-        setPxPerMX(undefined);
-        setPxPerMY(undefined);
-        setLineX(null);
-        setLineY(null);
-        setTempPts([]);
-        setAxis("x");
-        setMode("scale");
+        setMode("frame");
       } catch {
         notify({
           message: "อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
@@ -177,75 +181,28 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     img.src = localUrl;
   };
 
-  // ── Scale clicks ──
-  const handleScaleClick = (e: React.MouseEvent) => {
-    if (mode !== "scale") return;
-    const p = relPoint(e.clientX, e.clientY);
-    const next = [...tempPts, p];
-    if (next.length < 2) {
-      setTempPts(next);
-      return;
-    }
-    // ครบ 2 จุด
-    const meters = parseFloat(axis === "x" ? metersX : metersY);
-    if (!meters || meters <= 0) {
-      notify({
-        message: "กรุณากรอกระยะจริง (เมตร) ให้ถูกต้องก่อนวัด",
-        variant: "danger",
-      });
-      setTempPts([]);
-      return;
-    }
-    const [a, b] = next;
-    if (axis === "x") {
-      const dxPx = Math.abs(b.x - a.x) * naturalW;
-      if (dxPx <= 0) {
-        notify({ message: "จุดสองจุดต้องห่างกันในแนวนอน", variant: "danger" });
-        setTempPts([]);
-        return;
-      }
-      setPxPerMX(dxPx / meters);
-      setLineX([a, b]);
-      setAxis("y");
-    } else {
-      const dyPx = Math.abs(b.y - a.y) * naturalH;
-      if (dyPx <= 0) {
-        notify({ message: "จุดสองจุดต้องห่างกันในแนวตั้ง", variant: "danger" });
-        setTempPts([]);
-        return;
-      }
-      setPxPerMY(dyPx / meters);
-      setLineY([a, b]);
-    }
-    setTempPts([]);
-  };
-
-  // ── Frame drag ──
-  const onOverlayPointerDown = (e: React.PointerEvent) => {
+  // ── Frame drag/resize ──
+  const startDrag = (kind: DragKind, e: React.PointerEvent) => {
     if (mode !== "frame") return;
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = {
+      kind,
       startX: e.clientX,
       startY: e.clientY,
-      ox: overlay.x,
-      oy: overlay.y,
+      box: { ...overlay },
     };
   };
-  const onOverlayPointerMove = (e: React.PointerEvent) => {
+  const onCanvasPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
-    if (mode !== "frame" || !d || !containerRef.current) return;
+    if (!d || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const dx = (e.clientX - d.startX) / rect.width;
     const dy = (e.clientY - d.startY) / rect.height;
-    // ใช้ค่า local (d) ใน updater เพื่อไม่ให้ dereference ref ที่อาจเป็น null (กัน crash ตอน StrictMode เรียก updater ซ้ำ)
-    setOverlay((prev) => ({
-      ...prev,
-      x: clamp(d.ox + dx, 0, Math.max(0, 1 - prev.w)),
-      y: clamp(d.oy + dy, 0, Math.max(0, 1 - prev.h)),
-    }));
+    // คำนวณจากกรอบ "ตอนเริ่มลาก" (d.box) แบบ absolute เพื่อกัน drift และกัน crash ตอน StrictMode
+    setOverlay(resizeFrame(d.kind, d.box, dx, dy));
   };
-  const onOverlayPointerUp = () => {
+  const endDrag = () => {
     dragRef.current = null;
   };
 
@@ -335,15 +292,9 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     setGridRows(8);
     setCellSizeM(1);
     setOverlay({ x: 0, y: 0, w: 1, h: 1 });
-    setPxPerMX(undefined);
-    setPxPerMY(undefined);
     setBlocked(new Set());
     setMetersX("");
     setMetersY("");
-    setLineX(null);
-    setLineY(null);
-    setTempPts([]);
-    setAxis("x");
     setMode("upload");
   };
 
@@ -354,14 +305,14 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
     disabled?: boolean;
   }[] = [
     { mode: "upload", label: "อัปโหลดผัง", icon: ImageIcon },
-    { mode: "scale", label: "ตั้งสเกล", icon: Ruler, disabled: !imageUrl },
-    { mode: "frame", label: "ปรับกรอบ", icon: Move, disabled: !imageUrl },
+    {
+      mode: "frame",
+      label: "ปรับกรอบพื้นที่",
+      icon: Move,
+      disabled: !imageUrl,
+    },
     { mode: "block", label: "ช่องห้ามจอง", icon: Ban, disabled: !imageUrl },
   ];
-
-  // grid cells geometry (percent of container)
-  const cellW = overlay.w / gridCols;
-  const cellH = overlay.h / gridRows;
 
   return (
     <div className="space-y-6">
@@ -426,11 +377,42 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
         </div>
       </div>
 
-      {/* Grid params */}
+      {/* ขนาดพื้นที่จริง & กริด */}
       <div className="bg-white p-4 rounded-[7px] shadow-sm border border-slate-100 flex flex-wrap items-end gap-4">
-        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">
-          <Grid3X3 size={14} className="text-slate-300" /> ตั้งค่ากริด
+        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest w-full">
+          <Grid3X3 size={14} className="text-slate-300" /> ขนาดพื้นที่ & กริด
         </div>
+        <div className="space-y-1">
+          <Label className="text-[10px] font-bold text-blue-600">
+            ความกว้างจริง (ม.)
+          </Label>
+          <Input
+            type="number"
+            value={metersX}
+            onChange={(e) => setMetersX(e.target.value)}
+            className="h-9 w-28 rounded-[7px] bg-slate-50"
+            placeholder="เช่น 10"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[10px] font-bold text-emerald-600">
+            ความยาวจริง (ม.)
+          </Label>
+          <Input
+            type="number"
+            value={metersY}
+            onChange={(e) => setMetersY(e.target.value)}
+            className="h-9 w-28 rounded-[7px] bg-slate-50"
+            placeholder="เช่น 8"
+          />
+        </div>
+        <NumField
+          label="ขนาดช่อง (ม.)"
+          value={cellSizeM}
+          min={0.1}
+          step={0.1}
+          onChange={setCellSizeM}
+        />
         <NumField
           label="คอลัมน์ (auto)"
           value={gridCols}
@@ -445,88 +427,34 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
           max={100}
           onChange={setGridRows}
         />
-        <NumField
-          label="ขนาดช่อง (ม.)"
-          value={cellSizeM}
-          min={0.1}
-          step={0.1}
-          onChange={setCellSizeM}
-        />
-        {/* <p className="w-full text-[10px] font-bold text-slate-400 order-last">
-          * คอลัมน์/แถวคำนวณจากความกว้าง/ยาวจริง ÷ ขนาดช่อง (กรอกในโหมด “ตั้งสเกล”) — เปลี่ยนขนาดช่องแล้วค่าจะแปลงอัตโนมัติ
-        </p> */}
         <div className="text-[11px] font-bold text-slate-400">
           {calibrated ? (
             <span className="text-emerald-600">
-              ✓ ตั้งสเกลแล้ว — กรอบล็อกตามระยะจริง
+              ✓ มาตราส่วนพร้อม — คำนวณจากขนาดกรอบ
             </span>
           ) : (
             <span className="text-amber-500">
-              ยังไม่ได้ตั้งสเกล (กรอบปรับขนาดอิสระ)
+              กรอกความกว้าง/ยาวจริง แล้วลากกรอบให้พอดีพื้นที่
             </span>
           )}
         </div>
       </div>
 
-      {/* Scale controls */}
-      {mode === "scale" && imageUrl && (
-        <div className="bg-white p-4 rounded-[7px] shadow-sm border border-slate-100 space-y-3">
-          <p className="text-xs font-bold text-slate-600">
-            กรอกความกว้าง/ยาวจริง (เมตร) → คลิก 2
-            จุดบนรูปเพื่อล็อกสเกลกรอบให้ตรงพื้นที่จริง (
-            <span
-              className={axis === "x" ? "text-blue-600" : "text-emerald-600"}
-            >
-              กำลังวัด: {axis === "x" ? "แกนกว้าง (นอน)" : "แกนยาว (ตั้ง)"}
-            </span>
-            )
-          </p>
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-blue-600">
-                ความกว้างจริง (ม.)
-              </Label>
-              <Input
-                type="number"
-                value={metersX}
-                onChange={(e) => setMetersX(e.target.value)}
-                className="h-9 w-32 rounded-[7px] bg-slate-50"
-                placeholder="เช่น 10"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-emerald-600">
-                ความยาวจริง (ม.)
-              </Label>
-              <Input
-                type="number"
-                value={metersY}
-                onChange={(e) => setMetersY(e.target.value)}
-                className="h-9 w-32 rounded-[7px] bg-slate-50"
-                placeholder="เช่น 8"
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAxis("x");
-                setTempPts([]);
-              }}
-              className="h-9 rounded-[7px] text-xs font-bold"
-            >
-              วัดแกนกว้างใหม่
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAxis("y");
-                setTempPts([]);
-              }}
-              className="h-9 rounded-[7px] text-xs font-bold"
-            >
-              วัดแกนยาวใหม่
-            </Button>
+      {/* คำแนะนำโหมดปรับกรอบ */}
+      {mode === "frame" && imageUrl && (
+        <div className="bg-white p-4 rounded-[7px] shadow-sm border border-slate-100 flex items-center gap-3">
+          <div className="size-8 shrink-0 rounded-[7px] bg-[#f26522]/10 flex items-center justify-center">
+            <Move size={16} className="text-[#f26522]" strokeWidth={2.5} />
           </div>
+          <p className="text-xs font-medium text-slate-600 leading-relaxed">
+            ลาก<span className="font-bold text-slate-800">กลางกรอบ</span>
+            เพื่อย้ายตำแหน่ง และลาก
+            <span className="font-bold text-slate-800">
+              จุดปรับขนาด 8 จุด
+            </span>{" "}
+            เพื่อครอบพื้นที่จริงของโถงให้พอดี —
+            มาตราส่วนจะคำนวณจากขนาดกรอบเทียบกับความกว้าง/ยาวจริงที่กรอกไว้อัตโนมัติ
+          </p>
         </div>
       )}
 
@@ -561,18 +489,14 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
           <div className="flex justify-center">
             <div
               ref={containerRef}
-              className={cn(
-                "relative inline-block select-none max-w-full",
-                mode === "scale" && "cursor-crosshair",
-              )}
-              onClick={handleScaleClick}
-              onPointerMove={onOverlayPointerMove}
+              className="relative inline-block select-none max-w-full"
+              onPointerMove={onCanvasPointerMove}
               onPointerUp={() => {
-                onOverlayPointerUp();
+                endDrag();
                 setPainting(false);
               }}
               onPointerLeave={() => {
-                onOverlayPointerUp();
+                endDrag();
                 setPainting(false);
               }}
             >
@@ -583,47 +507,10 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                 className="block max-w-full h-auto pointer-events-none"
               />
 
-              {/* Scale lines (SVG) */}
-              <svg
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-              >
-                {lineX && (
-                  <line
-                    x1={lineX[0].x * 100}
-                    y1={lineX[0].y * 100}
-                    x2={lineX[1].x * 100}
-                    y2={lineX[1].y * 100}
-                    stroke="#2563eb"
-                    strokeWidth={0.5}
-                  />
-                )}
-                {lineY && (
-                  <line
-                    x1={lineY[0].x * 100}
-                    y1={lineY[0].y * 100}
-                    x2={lineY[1].x * 100}
-                    y2={lineY[1].y * 100}
-                    stroke="#059669"
-                    strokeWidth={0.5}
-                  />
-                )}
-                {tempPts.map((p, i) => (
-                  <circle
-                    key={i}
-                    cx={p.x * 100}
-                    cy={p.y * 100}
-                    r={0.8}
-                    fill={axis === "x" ? "#2563eb" : "#059669"}
-                  />
-                ))}
-              </svg>
-
               {/* Overlay frame */}
               {imageUrl && overlay.w > 0 && overlay.h > 0 && (
                 <div
-                  onPointerDown={onOverlayPointerDown}
+                  onPointerDown={(e) => startDrag("move", e)}
                   className={cn(
                     "absolute border-2 border-[#f26522]",
                     mode === "frame" && "cursor-move bg-[#f26522]/5",
@@ -678,6 +565,23 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                         );
                       }),
                     )}
+
+                  {/* จุดปรับขนาด 8 จุด (มุม 4 + กึ่งกลางขอบ 4) — เฉพาะโหมดปรับกรอบ */}
+                  {mode === "frame" &&
+                    HANDLES.map((h) => (
+                      <div
+                        key={h.kind}
+                        onPointerDown={(e) => startDrag(h.kind, e)}
+                        className="absolute size-3 rounded-xs bg-white border-2 border-[#f26522] shadow-sm pointer-events-auto hover:scale-125 transition-transform"
+                        style={{
+                          left: h.left,
+                          top: h.top,
+                          transform: "translate(-50%, -50%)",
+                          cursor: h.cursor,
+                          touchAction: "none",
+                        }}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -700,7 +604,7 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
             </span>
             {mode === "frame" && (
               <span className="text-[#f26522]">
-                ลากกรอบเพื่อวางทับมุมเริ่มพื้นที่
+                ลากกลางกรอบเพื่อย้าย • ลากจุด 8 จุดเพื่อปรับขนาด
               </span>
             )}
             {mode === "block" && (

@@ -64,12 +64,43 @@ func (r *BookingRepository) FindByID(id uint) (*models.Bookings, error) {
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
 		Preload("Documents").
+		Preload("Purposes.HallUsagePurpose").
 		First(&booking, id).Error
 	return &booking, err
 }
 
 func (r *BookingRepository) Create(booking *models.Bookings) error {
 	return r.db.Create(booking).Error
+}
+
+// FindHallPurposesByIDs โหลด master data ของวัตถุประสงค์ตาม id ที่ผู้ขอเลือก
+func (r *BookingRepository) FindHallPurposesByIDs(ids []uint) ([]models.HallUsagePurposes, error) {
+	var purposes []models.HallUsagePurposes
+	if len(ids) == 0 {
+		return purposes, nil
+	}
+	err := r.db.Where("id IN ?", ids).Find(&purposes).Error
+	return purposes, err
+}
+
+// FindBuildingHallPricings โหลดตารางราคาโถงของอาคารหนึ่ง (ทุกวัตถุประสงค์) เพื่อ resolve ราคาต่อหน่วยตอนคิดเงิน
+func (r *BookingRepository) FindBuildingHallPricings(buildingID uint) ([]models.BuildingHallPricings, error) {
+	var pricings []models.BuildingHallPricings
+	err := r.db.Where("building_id = ?", buildingID).Find(&pricings).Error
+	return pricings, err
+}
+
+// CreatePurposes บันทึกแถว BookingPurposes ที่คำนวณราคาแล้ว
+func (r *BookingRepository) CreatePurposes(purposes []models.BookingPurposes) error {
+	if len(purposes) == 0 {
+		return nil
+	}
+	return r.db.Create(&purposes).Error
+}
+
+// DeletePurposesByBookingID soft-delete วัตถุประสงค์เดิมของ booking (ใช้ตอน revise; เก็บเป็นประวัติ)
+func (r *BookingRepository) DeletePurposesByBookingID(bookingID uint) error {
+	return r.db.Where("booking_id = ?", bookingID).Delete(&models.BookingPurposes{}).Error
 }
 
 func (r *BookingRepository) Update(booking *models.Bookings) error {
@@ -143,9 +174,9 @@ func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []model
 
 		// 4. Update the booking prices
 		if err := tx.Model(&models.Bookings{}).Where("id = ?", bookingID).Updates(map[string]interface{}{
-			"base_price":     basePrice,
-			"addon_price":    addonPrice,
-			"total_price":    totalPrice,
+			"base_price":  basePrice,
+			"addon_price": addonPrice,
+			"total_price": totalPrice,
 		}).Error; err != nil {
 			return err
 		}
