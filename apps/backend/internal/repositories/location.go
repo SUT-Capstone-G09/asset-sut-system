@@ -6,6 +6,7 @@ import (
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ── Staff Locations ───────────────────────────────────────────────────────────
@@ -100,6 +101,24 @@ func (r *LocationRepository) FindByID(id uint) (*models.Locations, error) {
 		Preload("Building").
 		Preload("Equipments.Equipment").
 		Preload("Addons.ChargeType").
+		Preload("PricingTiers.RequesterType").
+		Preload("PricingTiers.RateType").
+		First(&location, id).Error
+	return &location, err
+}
+
+// LockByID takes a SELECT ... FOR UPDATE row lock on the location before
+// returning it, with pricing tiers preloaded for callers that need to price
+// a booking. Used to serialize concurrent booking attempts on the same
+// location: a plain "FOR UPDATE" on Timeslots only locks rows that already
+// exist, so two transactions racing to book the same still-empty slot would
+// each see zero conflicts. Locking the parent Locations row (which always
+// exists) forces the second transaction to wait for the first to commit or
+// roll back before it can even run its own overlap check.
+func (r *LocationRepository) LockByID(id uint) (*models.Locations, error) {
+	var location models.Locations
+	err := r.db.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Preload("PricingTiers.RequesterType").
 		Preload("PricingTiers.RateType").
 		First(&location, id).Error

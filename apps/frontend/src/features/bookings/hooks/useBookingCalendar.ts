@@ -6,6 +6,7 @@ import {
 import { Room } from "@/features/bookings/types";
 import { DayBookingTime, DayInfo } from "@/features/bookings/types/booking-calendar";
 import { getMonthlyAvailability, MonthlyAvailabilityMap } from "@/features/bookings/services/location.service";
+import { calculateSlotPrice } from "@/features/bookings/utils/pricing";
 
 function calcHours(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
@@ -166,10 +167,12 @@ export function useBookingCalendar(room: Room) {
       const h = calcHours(t.startTime, t.endTime);
       totalHours += h;
       const useDaily = (fullDayDates[dateStr] || matchesFullDay(t)) && room.pricePerDay !== undefined;
-      totalPrice += useDaily ? room.pricePerDay! : h * room.pricePerHour;
+      totalPrice += useDaily
+        ? room.pricePerDay!
+        : calculateSlotPrice(t.startTime, t.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour);
     }
     return { totalHours, totalPrice };
-  }, [selectedDates, dayTimes, sameTimeForAll, globalTime, fullDayDates, room.pricePerHour, room.pricePerDay]);
+  }, [selectedDates, dayTimes, sameTimeForAll, globalTime, fullDayDates, room.pricePerHour, room.pricePerHourOffPeak, room.pricePerDay]);
 
   return {
     today,

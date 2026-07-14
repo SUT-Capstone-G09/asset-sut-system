@@ -11,6 +11,8 @@ export const hallSchema = z.object({
   rates: z.object({
     hourlyInternal: z.coerce.number().min(0),
     hourlyExternal: z.coerce.number().min(0),
+    hourlyOffPeakInternal: z.coerce.number().optional(),
+    hourlyOffPeakExternal: z.coerce.number().optional(),
     dailyInternal: z.coerce.number().min(0),
     dailyExternal: z.coerce.number().min(0),
   }),

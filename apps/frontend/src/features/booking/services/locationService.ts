@@ -65,6 +65,12 @@ export function locationToRoom(loc: AdminLocationDTO): Room {
   const externalDaily = loc.pricing_tiers?.find(
     (t) => t.requester_type?.includes("ภายนอก") && t.rate_type === "daily"
   )?.price ?? 0;
+  const internalOffPeak = loc.pricing_tiers?.find(
+    (t) => t.requester_type?.includes("ภายใน") && t.rate_type === "hourly_offpeak"
+  )?.price ?? 0;
+  const externalOffPeak = loc.pricing_tiers?.find(
+    (t) => t.requester_type?.includes("ภายนอก") && t.rate_type === "hourly_offpeak"
+  )?.price ?? 0;
 
   return {
     id: String(loc.id),
@@ -81,6 +87,8 @@ export function locationToRoom(loc: AdminLocationDTO): Room {
     rates: {
       hourlyInternal: internalHourly,
       hourlyExternal: externalHourly,
+      hourlyOffPeakInternal: internalOffPeak,
+      hourlyOffPeakExternal: externalOffPeak,
       dailyInternal: internalDaily,
       dailyExternal: externalDaily,
     },
@@ -149,17 +157,42 @@ export async function setStaffLocations(staffUserId: number, locationIds: number
   await apiClient.put(`/staffs/${staffUserId}/locations`, { location_ids: locationIds });
 }
 
-// requester_type_id: 1=ภายใน, 2=ภายนอก | rate_type_id: 1=hourly, 2=daily
+// requester_type_id: 1=ภายใน, 2=ภายนอก | rate_type_id: 1=hourly, 2=daily, 4=hourly_offpeak
+// (3=fixed, seeded but unused here; hourly_offpeak was appended last so it got id 4 — confirm
+// against GET /rate-types or the DB if the seed order ever changes)
 export async function savePricingTiers(
   locationId: number,
-  rates: { hourlyInternal: number; hourlyExternal: number; dailyInternal: number; dailyExternal: number },
+  rates: {
+    hourlyInternal: number;
+    hourlyExternal: number;
+    hourlyOffPeakInternal?: number;
+    hourlyOffPeakExternal?: number;
+    dailyInternal: number;
+    dailyExternal: number;
+  },
   existingTierIds: number[] = []
 ): Promise<void> {
   await Promise.all(existingTierIds.map((tid) => deletePricingTier(locationId, tid)));
-  await Promise.all([
+
+  const creates = [
     createPricingTier(locationId, { requester_type_id: 1, rate_type_id: 1, price: rates.hourlyInternal }),
     createPricingTier(locationId, { requester_type_id: 2, rate_type_id: 1, price: rates.hourlyExternal }),
     createPricingTier(locationId, { requester_type_id: 1, rate_type_id: 2, price: rates.dailyInternal }),
     createPricingTier(locationId, { requester_type_id: 2, rate_type_id: 2, price: rates.dailyExternal }),
-  ]);
+  ];
+  // Only persist an off-peak tier when the admin actually configured one —
+  // the backend's calculatePrice treats "no off-peak tier" as "bill at the
+  // office rate," and always writing a price: 0 row here would defeat that
+  // fallback for every location that hasn't opted into off-peak pricing.
+  if (rates.hourlyOffPeakInternal) {
+    creates.push(
+      createPricingTier(locationId, { requester_type_id: 1, rate_type_id: 4, price: rates.hourlyOffPeakInternal })
+    );
+  }
+  if (rates.hourlyOffPeakExternal) {
+    creates.push(
+      createPricingTier(locationId, { requester_type_id: 2, rate_type_id: 4, price: rates.hourlyOffPeakExternal })
+    );
+  }
+  await Promise.all(creates);
 }

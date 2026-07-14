@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
+import { calculateSlotPrice } from "@/features/bookings/utils/pricing";
 import { cn } from "@/lib/utils";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
@@ -131,7 +132,10 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const { fullDay: fullDaySlots, hourly: hourlySlots } = splitByType(draft.timeslots, room.pricePerDay);
   const fullDayTotal = fullDaySlots.length * (room.pricePerDay ?? 0);
   const hourlyHours = calcTotalHours(hourlySlots);
-  const hourlyTotal = hourlyHours * room.pricePerHour;
+  const hourlyTotal = hourlySlots.reduce(
+    (sum, ts) => sum + calculateSlotPrice(ts.startTime, ts.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour),
+    0
+  );
   const totalHours = calcTotalHours(draft.timeslots);
   const totalPrice = fullDayTotal + hourlyTotal;
 
@@ -163,11 +167,17 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      // Send explicit +07:00 (Bangkok) offsets instead of converting through
+      // the browser's local timezone via toISOString() — the backend reads
+      // the clock-time component directly (see calculatePrice/minutesOfDay
+      // in booking.go) to decide office-hours vs. off-peak pricing, so the
+      // wire format must preserve the Thai wall-clock hour the user picked
+      // regardless of what timezone the browser itself is running in.
       const timeslots = draft.timeslots.map((ts) => ({
         location_id: Number(draft.locationId),
-        date: new Date(`${ts.date}T00:00:00`).toISOString(),
-        start_time: new Date(`${ts.date}T${ts.startTime}:00`).toISOString(),
-        end_time: new Date(`${ts.date}T${ts.endTime}:00`).toISOString(),
+        date: `${ts.date}T00:00:00+07:00`,
+        start_time: `${ts.date}T${ts.startTime}:00+07:00`,
+        end_time: `${ts.date}T${ts.endTime}:00+07:00`,
         is_full_day: !!ts.isFullDay,
       }));
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });

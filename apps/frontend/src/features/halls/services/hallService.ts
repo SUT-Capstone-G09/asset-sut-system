@@ -30,6 +30,8 @@ export function locationToHall(loc: AdminLocationDTO): Hall {
     rates: {
       hourlyInternal: pick("ภายใน", "hourly"),
       hourlyExternal: pick("ภายนอก", "hourly"),
+      hourlyOffPeakInternal: pick("ภายใน", "hourly_offpeak"),
+      hourlyOffPeakExternal: pick("ภายนอก", "hourly_offpeak"),
       dailyInternal: pick("ภายใน", "daily"),
       dailyExternal: pick("ภายนอก", "daily"),
     },

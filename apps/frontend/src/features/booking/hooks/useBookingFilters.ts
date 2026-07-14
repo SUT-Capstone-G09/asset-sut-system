@@ -240,16 +240,20 @@ export function useBookingFilters(type: BookingTypeFilter) {
       const startTimeStr = timeMatch[1];
       const endTimeStr = timeMatch[2];
 
-      const dateStr = newBooking.date; 
-      const startTimeISO = new Date(`${dateStr}T${startTimeStr}:00`).toISOString();
-      const endTimeISO = new Date(`${dateStr}T${endTimeStr}:00`).toISOString();
+      const dateStr = newBooking.date;
+      // Explicit +07:00 (Bangkok) offset — see BookingConfirmView.tsx for why:
+      // the backend reads the clock-time component directly to decide
+      // office-hours vs. off-peak pricing, so this must not go through the
+      // browser's local timezone via toISOString().
+      const startTimeISO = `${dateStr}T${startTimeStr}:00+07:00`;
+      const endTimeISO = `${dateStr}T${endTimeStr}:00+07:00`;
 
       const payload: CreateBookingPayload = {
         purpose: newBooking.purpose,
         timeslots: [
           {
             location_id: location.id,
-            date: new Date(`${dateStr}T00:00:00`).toISOString(),
+            date: `${dateStr}T00:00:00+07:00`,
             start_time: startTimeISO,
             end_time: endTimeISO,
             addon_ids: [],

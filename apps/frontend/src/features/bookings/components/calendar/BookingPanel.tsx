@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Room } from "@/features/bookings/types";
 import { DayBookingTime } from "@/features/bookings/types/booking-calendar";
+import { calculateSlotPrice } from "@/features/bookings/utils/pricing";
 import { cn } from "@/lib/utils";
 
 const TIME_OPTIONS: string[] = [];
@@ -215,7 +216,9 @@ export default function BookingPanel({
                 const isFull = fullDayDates[dateStr] && isFullDayAvailable;
                 const time = getEffectiveTime(dateStr);
                 const hours = calcHours(time.startTime, time.endTime);
-                const price = isFull ? (room.pricePerDay as number) : hours * room.pricePerHour;
+                const price = isFull
+                  ? (room.pricePerDay as number)
+                  : calculateSlotPrice(time.startTime, time.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour);
 
                 return (
                   <div key={dateStr} className="border border-gray-100 rounded-xl p-3 flex flex-col gap-2">

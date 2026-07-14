@@ -5,6 +5,7 @@ import (
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TimeslotRepository struct {
@@ -30,15 +31,25 @@ func (r *TimeslotRepository) FindByLocationAndDate(locationID uint, date time.Ti
 	return slots, err
 }
 
-// IsSlotTaken returns true if any existing booking overlaps [startTime, endTime).
-// Uses start_time/end_time (timestamptz) directly — avoids the unreliable date column.
-func (r *TimeslotRepository) IsSlotTaken(locationID uint, startTime, endTime time.Time) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Timeslots{}).
-		Where(`location_id = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ?`,
-			locationID, endTime, startTime).
-		Count(&count).Error
-	return count > 0, err
+// LockOverlapping returns (and row-locks) any existing, booked timeslots for
+// locationID on date that overlap [startTime, endTime). Intended for use
+// inside a transaction that already holds the parent location's FOR UPDATE
+// lock (see LocationRepository.LockByID) — that lock is what actually closes
+// the race; this lock is defense-in-depth and satisfies "SELECT ... FOR
+// UPDATE during the overlap check" directly.
+//
+// start_time/end_time are stored as `type:time` (clock-time only, no date
+// component), so the date column must be filtered explicitly here — without
+// it, two bookings on entirely different dates whose clock-times happen to
+// overlap would be reported as conflicting.
+func (r *TimeslotRepository) LockOverlapping(locationID uint, date, startTime, endTime time.Time) ([]models.Timeslots, error) {
+	var slots []models.Timeslots
+	err := r.db.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where(`location_id = ? AND date = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ?`,
+			locationID, date.Format("2006-01-02"), endTime, startTime).
+		Find(&slots).Error
+	return slots, err
 }
 
 func (r *TimeslotRepository) Create(ts *models.Timeslots) error {

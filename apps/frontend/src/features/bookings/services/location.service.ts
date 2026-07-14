@@ -115,6 +115,17 @@ function pickDailyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: n
   );
 }
 
+// Returns undefined when the location has no off-peak hourly tier configured
+// (callers should fall back to the normal hourly rate in that case).
+function pickOffPeakHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number | undefined {
+  const isExternal = requesterTypeId === 2;
+  const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";
+  return (
+    tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "hourly_offpeak")?.price ??
+    tiers?.find((t) => t.rate_type === "hourly_offpeak")?.price
+  );
+}
+
 export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room {
   return {
     id: String(loc.id),
@@ -124,6 +135,7 @@ export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerHourOffPeak: pickOffPeakHourlyPrice(loc.pricing_tiers, requesterTypeId),
     pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: [],
     image: loc.image_url ?? DEFAULT_IMAGE,
@@ -140,6 +152,7 @@ export function locationDetailToRoom(loc: LocationDetailDTO, requesterTypeId?: n
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerHourOffPeak: pickOffPeakHourlyPrice(loc.pricing_tiers, requesterTypeId),
     pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: loc.equipments?.map((e) => e.name) ?? [],
     image: loc.image_url ?? DEFAULT_IMAGE,

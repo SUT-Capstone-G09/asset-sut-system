@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
+	"gorm.io/gorm"
 )
 
 const MinBookingLeadDays = 7
@@ -82,109 +85,170 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			return nil, fmt.Errorf("ต้องจองล่วงหน้าอย่างน้อย %d วัน", MinBookingLeadDays)
 		}
 	}
-
-	pendingStatus, err := s.bookingRepo.FindStatusByName("pending")
-	if err != nil {
-		return nil, errors.New("booking status not configured")
-	}
-	availableStatus, err := s.timeslotRepo.FindStatusByName("available")
-	if err != nil {
-		return nil, errors.New("timeslot status not configured")
+	if len(req.Timeslots) == 0 {
+		return nil, errors.New("at least one timeslot is required")
 	}
 
-	// Check all slots are free before creating anything
-	for _, ts := range req.Timeslots {
-		taken, err := s.timeslotRepo.IsSlotTaken(ts.LocationID, ts.StartTime, ts.EndTime)
+	var bookingID uint
+
+	err := s.bookingRepo.DB().Transaction(func(tx *gorm.DB) error {
+		bookingRepo := repositories.NewBookingRepository(tx)
+		timeslotRepo := repositories.NewTimeslotRepository(tx)
+		locationRepo := repositories.NewLocationRepository(tx)
+		invoiceRepo := repositories.NewInvoiceRepository(tx)
+		requesterRepo := repositories.NewRequesterRepository(tx)
+
+		pendingStatus, err := bookingRepo.FindStatusByName("pending")
 		if err != nil {
-			return nil, err
+			return errors.New("booking status not configured")
 		}
-		if taken {
-			return nil, errors.New("one or more timeslots are already taken")
+		availableStatus, err := timeslotRepo.FindStatusByName("available")
+		if err != nil {
+			return errors.New("timeslot status not configured")
 		}
-	}
 
-	booking := &models.Bookings{
-		UserID:   userID,
-		Purpose:  req.Purpose,
-		StatusID: pendingStatus.ID,
-	}
-	if err := s.bookingRepo.Create(booking); err != nil {
+		// Lock every distinct location touched by this request, in a fixed
+		// (ascending ID) order, before checking or creating any timeslot for
+		// it. See LocationRepository.LockByID for why this — not the
+		// per-timeslot lock below — is what actually prevents concurrent
+		// double-booking. The fixed order prevents deadlocks between two
+		// transactions that both touch the same two locations.
+		locationIDs := make([]uint, 0, len(req.Timeslots))
+		seen := make(map[uint]bool, len(req.Timeslots))
+		for _, ts := range req.Timeslots {
+			if !seen[ts.LocationID] {
+				seen[ts.LocationID] = true
+				locationIDs = append(locationIDs, ts.LocationID)
+			}
+		}
+		sort.Slice(locationIDs, func(i, j int) bool { return locationIDs[i] < locationIDs[j] })
+
+		locations := make(map[uint]*models.Locations, len(locationIDs))
+		for _, id := range locationIDs {
+			loc, err := locationRepo.LockByID(id)
+			if err != nil {
+				return fmt.Errorf("location %d: %w", id, err)
+			}
+			locations[id] = loc
+		}
+
+		// Range-overlap check — race-free now because we hold each
+		// location's lock, so any concurrent booking attempt on the same
+		// location is either fully committed (and visible here) or blocked
+		// waiting for us to finish.
+		for i, ts := range req.Timeslots {
+			overlapping, err := timeslotRepo.LockOverlapping(ts.LocationID, ts.Date, ts.StartTime, ts.EndTime)
+			if err != nil {
+				return err
+			}
+			if len(overlapping) > 0 {
+				return errors.New("one or more timeslots are already taken")
+			}
+
+			// None of this request's own timeslots exist in the DB yet, so
+			// the query above can't catch two overlapping slots submitted
+			// together in the same request — check those pairwise here.
+			for j := i + 1; j < len(req.Timeslots); j++ {
+				other := req.Timeslots[j]
+				if ts.LocationID == other.LocationID && sameDate(ts.Date, other.Date) &&
+					ts.StartTime.Before(other.EndTime) && other.StartTime.Before(ts.EndTime) {
+					return errors.New("one or more timeslots in this request overlap each other")
+				}
+			}
+		}
+
+		booking := &models.Bookings{
+			UserID:   userID,
+			Purpose:  req.Purpose,
+			StatusID: pendingStatus.ID,
+		}
+		if err := bookingRepo.Create(booking); err != nil {
+			return err
+		}
+
+		if err := bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
+			BookingID:  booking.ID,
+			ToStatusID: pendingStatus.ID,
+			ChangedBy:  userID,
+			ChangedAt:  time.Now(),
+		}); err != nil {
+			return err
+		}
+
+		// Determine requester type for pricing
+		var requesterTypeID uint
+		if requester, err := requesterRepo.FindByUserID(userID); err == nil && requester.RequesterTypeID != nil {
+			requesterTypeID = *requester.RequesterTypeID
+		}
+
+		var basePrice, addonPrice int
+
+		for _, tsInput := range req.Timeslots {
+			location := locations[tsInput.LocationID]
+			priceSnapshot := calculatePrice(location, tsInput, requesterTypeID)
+
+			ts := &models.Timeslots{
+				LocationID:    tsInput.LocationID,
+				BookingID:     &booking.ID,
+				Date:          tsInput.Date,
+				StartTime:     tsInput.StartTime,
+				EndTime:       tsInput.EndTime,
+				IsFullDay:     tsInput.IsFullDay,
+				PriceSnapshot: priceSnapshot,
+				StatusID:      availableStatus.ID,
+			}
+			if err := timeslotRepo.Create(ts); err != nil {
+				return err
+			}
+			basePrice += priceSnapshot
+
+			for _, addonID := range tsInput.AddonIDs {
+				la, err := locationRepo.FindAddonByID(addonID)
+				if err == nil && la.IsActive && (la.LocationID == nil || *la.LocationID == location.ID) {
+					bta := &models.BookingTimeslotAddons{
+						LocationAddonID: &la.ID,
+						TimeslotID:      ts.ID,
+						Name:            la.Name,
+						AppliedPrice:    la.DefaultPrice,
+						Quantity:        1,
+						TotalPrice:      la.DefaultPrice,
+					}
+					if err := timeslotRepo.CreateAddon(bta); err != nil {
+						return err
+					}
+					addonPrice += la.DefaultPrice
+				}
+			}
+		}
+
+		booking.BasePrice = basePrice
+		booking.AddonPrice = addonPrice
+		booking.TotalPrice = basePrice + addonPrice
+		if err := bookingRepo.Update(booking); err != nil {
+			return err
+		}
+
+		// Create invoice
+		invoicePendingStatus, err := invoiceRepo.FindStatusByName("pending")
+		if err == nil {
+			invoice := &models.Invoices{
+				BookingID:   booking.ID,
+				StatusID:    invoicePendingStatus.ID,
+				TotalAmount: booking.TotalPrice,
+			}
+			if err := invoiceRepo.Create(invoice); err != nil {
+				return err
+			}
+		}
+
+		bookingID = booking.ID
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	// Log initial status
-	_ = s.bookingRepo.CreateStatusLog(&models.BookingStatusLogs{
-		BookingID:  booking.ID,
-		ToStatusID: pendingStatus.ID,
-		ChangedBy:  userID,
-		ChangedAt:  time.Now(),
-	})
-
-	// Determine requester type for pricing
-	var requesterTypeID uint
-	if requester, err := s.requesterRepo.FindByUserID(userID); err == nil && requester.RequesterTypeID != nil {
-		requesterTypeID = *requester.RequesterTypeID
-	}
-
-	var basePrice, addonPrice int
-
-	for _, tsInput := range req.Timeslots {
-		location, err := s.locationRepo.FindByID(tsInput.LocationID)
-		if err != nil {
-			return nil, err
-		}
-
-		priceSnapshot := calculatePrice(location, tsInput, requesterTypeID)
-
-		ts := &models.Timeslots{
-			LocationID:    tsInput.LocationID,
-			BookingID:     &booking.ID,
-			Date:          tsInput.Date,
-			StartTime:     tsInput.StartTime,
-			EndTime:       tsInput.EndTime,
-			IsFullDay:     tsInput.IsFullDay,
-			PriceSnapshot: priceSnapshot,
-			StatusID:      availableStatus.ID,
-		}
-		if err := s.timeslotRepo.Create(ts); err != nil {
-			return nil, err
-		}
-		basePrice += priceSnapshot
-
-		for _, addonID := range tsInput.AddonIDs {
-			la, err := s.locationRepo.FindAddonByID(addonID)
-			if err == nil && la.IsActive && (la.LocationID == nil || *la.LocationID == location.ID) {
-				bta := &models.BookingTimeslotAddons{
-					LocationAddonID: &la.ID,
-					TimeslotID:      ts.ID,
-					Name:            la.Name,
-					AppliedPrice:    la.DefaultPrice,
-					Quantity:        1,
-					TotalPrice:      la.DefaultPrice,
-				}
-				_ = s.timeslotRepo.CreateAddon(bta)
-				addonPrice += la.DefaultPrice
-			}
-		}
-	}
-
-	booking.BasePrice = basePrice
-	booking.AddonPrice = addonPrice
-	booking.TotalPrice = basePrice + addonPrice
-	_ = s.bookingRepo.Update(booking)
-
-	// Create invoice
-	invoicePendingStatus, err := s.invoiceRepo.FindStatusByName("pending")
-	if err == nil {
-		invoice := &models.Invoices{
-			BookingID:   booking.ID,
-			StatusID:    invoicePendingStatus.ID,
-			TotalAmount: booking.TotalPrice,
-		}
-		_ = s.invoiceRepo.Create(invoice)
-	}
-
-	return s.GetByID(booking.ID)
+	return s.GetByID(bookingID)
 }
 
 func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingStatusRequest) (*dto.BookingResponse, error) {
@@ -305,6 +369,61 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// sameDate reports whether a and b fall on the same calendar day.
+func sameDate(a, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
+}
+
+// Office hours: 08:30–16:30. Time inside this window bills at the "hourly" tier;
+// time outside it (earlier or later, including bookings that straddle the boundary)
+// bills at the "hourly_offpeak" tier, prorated by the exact minutes on each side.
+const (
+	officeStartMinute = 8*60 + 30
+	officeEndMinute   = 16*60 + 30
+)
+
+// findTierPrice returns the price of the first tier matching rateType, preferring
+// an exact requesterTypeID match and falling back to any tier of that rate type.
+func findTierPrice(tiers []models.LocationPricingTiers, requesterTypeID uint, rateType string) (int, bool) {
+	if requesterTypeID != 0 {
+		for _, tier := range tiers {
+			if tier.RequesterTypeID == requesterTypeID &&
+				tier.RateType != nil && tier.RateType.Type == rateType {
+				return tier.Price, true
+			}
+		}
+	}
+	for _, tier := range tiers {
+		if tier.RateType != nil && tier.RateType.Type == rateType {
+			return tier.Price, true
+		}
+	}
+	return 0, false
+}
+
+// minutesOfDay converts a time.Time's clock component to minutes since midnight.
+func minutesOfDay(t time.Time) int {
+	return t.Hour()*60 + t.Minute()
+}
+
+// overlapMinutes returns how many minutes of [aStart, aEnd) fall inside [bStart, bEnd).
+func overlapMinutes(aStart, aEnd, bStart, bEnd int) int {
+	start := aStart
+	if bStart > start {
+		start = bStart
+	}
+	end := aEnd
+	if bEnd < end {
+		end = bEnd
+	}
+	if end <= start {
+		return 0
+	}
+	return end - start
+}
+
 func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterTypeID uint) int {
 	if len(location.PricingTiers) == 0 {
 		return 0
@@ -312,11 +431,8 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 
 	// Full-day booking: use the flat daily tier if the location has one configured.
 	if ts.IsFullDay {
-		for _, tier := range location.PricingTiers {
-			if tier.RequesterTypeID == requesterTypeID &&
-				tier.RateType != nil && tier.RateType.Type == "daily" {
-				return tier.Price
-			}
+		if price, ok := findTierPrice(location.PricingTiers, requesterTypeID, "daily"); ok {
+			return price
 		}
 	}
 
@@ -325,44 +441,37 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 		hours = 1
 	}
 
-	// 1. Try to match the exact requesterTypeID
-	if requesterTypeID != 0 {
-		// If booking exceeds 4 hours, try to use the daily rate
-		if hours > 4 {
-			for _, tier := range location.PricingTiers {
-				if tier.RequesterTypeID == requesterTypeID &&
-					tier.RateType != nil && tier.RateType.Type == "daily" {
-					return tier.Price
-				}
-			}
-		}
-
-		// Find hourly tier matching user's requester type
-		for _, tier := range location.PricingTiers {
-			if tier.RequesterTypeID == requesterTypeID &&
-				tier.RateType != nil && tier.RateType.Type == "hourly" {
-				return int(hours) * tier.Price
-			}
-		}
-	}
-
-	// 2. Fallback if no exact tier found or requesterTypeID is 0 (e.g. Admin booking)
+	// Bookings longer than 4 hours use the flat daily rate regardless of time of day.
 	if hours > 4 {
-		for _, tier := range location.PricingTiers {
-			if tier.RateType != nil && tier.RateType.Type == "daily" {
-				return tier.Price
-			}
+		if price, ok := findTierPrice(location.PricingTiers, requesterTypeID, "daily"); ok {
+			return price
 		}
 	}
 
-	for _, tier := range location.PricingTiers {
-		if tier.RateType != nil && tier.RateType.Type == "hourly" {
-			return int(hours) * tier.Price
-		}
+	officeRate, hasOffice := findTierPrice(location.PricingTiers, requesterTypeID, "hourly")
+	if !hasOffice {
+		// Ultimate fallback: no hourly tier configured at all, use the first tier flat.
+		return int(math.Round(hours * float64(location.PricingTiers[0].Price)))
+	}
+	offPeakRate, hasOffPeak := findTierPrice(location.PricingTiers, requesterTypeID, "hourly_offpeak")
+	if !hasOffPeak {
+		// No off-peak tier configured for this location yet — bill all minutes at the office rate.
+		offPeakRate = officeRate
 	}
 
-	// Ultimate fallback to first tier
-	return int(hours) * location.PricingTiers[0].Price
+	startMin := minutesOfDay(ts.StartTime)
+	endMin := minutesOfDay(ts.EndTime)
+	if endMin <= startMin {
+		// EndTime's clock component didn't advance past StartTime's (e.g. differing
+		// date components on otherwise same-day time-only values) — fall back to duration.
+		endMin = startMin + int(math.Round(hours*60))
+	}
+
+	officeMinutes := overlapMinutes(startMin, endMin, officeStartMinute, officeEndMinute)
+	offPeakMinutes := (endMin - startMin) - officeMinutes
+
+	price := float64(officeMinutes)/60*float64(officeRate) + float64(offPeakMinutes)/60*float64(offPeakRate)
+	return int(math.Round(price))
 }
 
 func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingResponse {

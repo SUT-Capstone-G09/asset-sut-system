@@ -11,23 +11,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, X, Clock, Calendar } from "lucide-react";
+import { CreditCard, X, Clock, Calendar, Moon } from "lucide-react";
+
+interface RoomRates {
+  hourlyInternal: number;
+  hourlyExternal: number;
+  hourlyOffPeakInternal: number;
+  hourlyOffPeakExternal: number;
+  dailyInternal: number;
+  dailyExternal: number;
+}
+
+// Off-peak fields are optional on input — older/unset rooms may not have them yet.
+type RoomRatesInput = Omit<RoomRates, "hourlyOffPeakInternal" | "hourlyOffPeakExternal"> &
+  Partial<Pick<RoomRates, "hourlyOffPeakInternal" | "hourlyOffPeakExternal">>;
 
 interface RoomRateModalProps {
   open: boolean;
   onClose: () => void;
-  initialRates: {
-    hourlyInternal: number;
-    hourlyExternal: number;
-    dailyInternal: number;
-    dailyExternal: number;
-  };
-  onSave: (rates: {
-    hourlyInternal: number;
-    hourlyExternal: number;
-    dailyInternal: number;
-    dailyExternal: number;
-  }) => void;
+  initialRates: RoomRatesInput;
+  onSave: (rates: RoomRates) => void;
 }
 
 export default function RoomRateModal({
@@ -36,15 +39,21 @@ export default function RoomRateModal({
   initialRates,
   onSave,
 }: RoomRateModalProps) {
-  const [rates, setRates] = useState(initialRates);
+  const normalize = (r: RoomRatesInput): RoomRates => ({
+    ...r,
+    hourlyOffPeakInternal: r.hourlyOffPeakInternal ?? 0,
+    hourlyOffPeakExternal: r.hourlyOffPeakExternal ?? 0,
+  });
+
+  const [rates, setRates] = useState<RoomRates>(normalize(initialRates));
 
   useEffect(() => {
     if (open) {
-      setRates(initialRates);
+      setRates(normalize(initialRates));
     }
   }, [open, initialRates]);
 
-  const handleChange = (field: keyof typeof initialRates, value: string) => {
+  const handleChange = (field: keyof RoomRates, value: string) => {
     const numValue = value === "" ? 0 : Number(value);
     setRates((prev) => ({
       ...prev,
@@ -119,6 +128,47 @@ export default function RoomRateModal({
                     onChange={(e) => handleChange("hourlyExternal", e.target.value)}
                     placeholder="500"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#f26522]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
+                    min="0"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">฿</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Off-Peak Hourly Rate */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-l-[3px] border-[#6d28d9] pl-2.5">
+              <Moon size={16} className="text-[#6d28d9]" />
+              <h4 className="text-sm font-black text-slate-800">รายชั่วโมงนอกเวลาราชการ (Off-Peak Rate)</h4>
+            </div>
+            <p className="text-[11px] text-slate-400 -mt-2">นอกช่วง 08:30–16:30 น. — คิดตามสัดส่วนเวลาจริงที่คาบเกี่ยว</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-400">บุคลากรภายใน (SUT INTERNAL)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={rates.hourlyOffPeakInternal || ""}
+                    onChange={(e) => handleChange("hourlyOffPeakInternal", e.target.value)}
+                    placeholder="300"
+                    className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#6d28d9]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
+                    min="0"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">฿</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-400">บุคคลภายนอก (EXTERNAL)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={rates.hourlyOffPeakExternal || ""}
+                    onChange={(e) => handleChange("hourlyOffPeakExternal", e.target.value)}
+                    placeholder="750"
+                    className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#6d28d9]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
                     min="0"
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">฿</span>

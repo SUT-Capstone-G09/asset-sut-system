@@ -1,6 +1,8 @@
 export interface HallRates {
   hourlyInternal: number;
   hourlyExternal: number;
+  hourlyOffPeakInternal?: number;
+  hourlyOffPeakExternal?: number;
   dailyInternal: number;
   dailyExternal: number;
 }
