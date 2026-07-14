@@ -18,7 +18,7 @@ import {
   Loader2
 } from "lucide-react";
 import { RentalSpace } from "@/features/space-rental/types/rental-space";
-import AdminAreaFormFields from "./AdminAreaFormFields";
+import AreaFormFields from "./AreaFormFields";
 import { areaSchema, AreaFormValues } from "../../schemas/area-schema";
 
 interface Props {
@@ -33,18 +33,16 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
 
   const methods = useForm<AreaFormValues>({
     resolver: zodResolver(areaSchema) as any,
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
+      areaCode: "",
       building: "",
       area: "",
       size: "",
       price: undefined,
       description: "",
-      tenantName: "",
-      contractEndDate: "",
-      contractName: "",
-      citizenId: "",
-      contractNumber: "",
       image: ""
     }
   });
@@ -54,16 +52,12 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
     if (location) {
       methods.reset({
         name: location.name || "",
+        areaCode: location.areaCode || "",
         building: location.building || "",
         area: location.area || "",
         size: location.size || "",
         price: location.price || undefined,
         description: location.description || "",
-        tenantName: location.tenantName || "",
-        contractEndDate: location.contractEndDate || "",
-        contractName: location.contractName || "",
-        citizenId: location.citizenId || "",
-        contractNumber: location.contractNumber || "",
         image: location.image || ""
       });
     }
@@ -80,12 +74,14 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
     const updatedLocation = {
       ...location,
       name: data.name,
+      areaCode: data.areaCode,
       building: data.building,
       area: data.area,
       size: data.size,
       price: data.price ? Number(data.price) : undefined,
       description: data.description || "",
       image: data.image || location.image,
+      coordinates: location.coordinates
     };
 
     onUpdateLocation?.(updatedLocation);
@@ -109,8 +105,8 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
             {/* Header */}
             <SheetHeader className="px-6 py-5 border-b border-slate-100 flex flex-row items-center justify-between space-y-0 shrink-0 bg-white">
               <div className="flex items-center gap-3">
-                <div className="size-9 rounded-[7px] bg-[#f26522]/10 flex items-center justify-center">
-                  <Pencil size={20} className="text-[#f26522]" strokeWidth={2.5} />
+                <div className="size-9 rounded-md bg-brand-primary/10 flex items-center justify-center">
+                  <Pencil size={20} className="text-brand-primary" strokeWidth={2.5} />
                 </div>
                 
                 <div>
@@ -131,14 +127,14 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
               <button
                 type="button"
                 onClick={onClose}
-                className="size-9 rounded-[7px] bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center justify-center group"
+                className="size-9 rounded-md bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center justify-center group"
               >
                 <X size={18} className="transition-transform group-hover:rotate-90" />
               </button>
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <AdminAreaFormFields isEdit />
+              <AreaFormFields isEdit />
             </div>
 
             {/* Sticky Footer */}
@@ -148,7 +144,7 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
                 variant="ghost" 
                 onClick={onClose} 
                 disabled={isSubmitting}
-                className="flex-1 h-12 rounded-[7px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                className="flex-1 h-12 rounded-md font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
               >
                 ยกเลิก
               </Button>
@@ -156,7 +152,7 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
               <Button 
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 h-12 rounded-[7px] bg-[#f26522] hover:bg-[#d8561d] text-white font-bold shadow-lg shadow-[#f26522]/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
+                className="flex-1 h-12 rounded-md bg-brand-primary hover:bg-brand-primary/85 text-white font-bold shadow-lg shadow-brand-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
               >
                 {isSubmitting ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -172,3 +168,4 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
     </Sheet>
   );
 }
+

@@ -28,6 +28,7 @@ export default function SpaceRentalBuildingView({
     dynamicCategories,
     isLoading,
     updateRentalSpace,
+    addRentalSpace,
   } = useSpaceRentalBuilding(buildingId);
 
   // สเตตระดับ UI จัดการแยกตามคำแนะนำที่ถูกต้อง
@@ -53,6 +54,10 @@ export default function SpaceRentalBuildingView({
     }
   };
 
+  const handleAddSpaceClick = () => {
+    setIsCreateOpen(true);
+  };
+
   // กรองข้อมูลด้วย useMemo
   const filteredSpaces = useMemo(() => {
     return rentalSpaces.filter((space: RentalSpace) => {
@@ -60,7 +65,7 @@ export default function SpaceRentalBuildingView({
         const q = searchQuery.toLowerCase();
         if (
           !space.name.toLowerCase().includes(q) &&
-          !(space.roomNumber ?? "").toLowerCase().includes(q) &&
+          !(space.areaCode ?? "").toLowerCase().includes(q) &&
           !(space.tenantName ?? "").toLowerCase().includes(q) &&
           !(space.description ?? "").toLowerCase().includes(q)
         )
@@ -116,7 +121,7 @@ export default function SpaceRentalBuildingView({
         {/* Action Button */}
         <div className="flex items-center gap-3 shrink-0">
           <button
-            onClick={() => setIsCreateOpen(true)}
+            onClick={handleAddSpaceClick}
             className="h-11 px-6 rounded-md font-bold text-xs text-white bg-[#f26522] hover:bg-[#d8561d] transition-all shadow-lg shadow-[#f26522]/20 flex items-center gap-2 cursor-pointer"
           >
             <Plus size={18} strokeWidth={3} />
@@ -228,11 +233,14 @@ export default function SpaceRentalBuildingView({
       <SpaceCreateDrawer
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onAdd={() => {}}
+        onAdd={addRentalSpace}
         defaultBuildingName={building.name}
         defaultAreaName={building.building_type_name || "อื่นๆ"}
+        defaultCoordinates={building.coordinates}
+        defaultAddress={building.address}
         isLockedContext={true}
       />
     </div>
+
   );
 }

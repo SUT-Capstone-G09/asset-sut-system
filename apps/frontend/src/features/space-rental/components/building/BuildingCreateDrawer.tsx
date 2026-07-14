@@ -31,10 +31,18 @@ export default function BuildingCreateDrawer({ open, onClose, onAdd }: Props) {
 
   const methods = useForm<BuildingFormValues>({
     resolver: zodResolver(buildingSchema) as any,
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       building_type_name: "",
-      description: ""
+      address: "",
+      lat: null,
+      lng: null,
+      description: "",
+      has_floor_plan: false,
+      floor_plan_type: "image",
+      blueprint_url: ""
     }
   });
 

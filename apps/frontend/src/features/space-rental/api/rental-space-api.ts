@@ -37,7 +37,7 @@ export const rentalSpaceApi = {
           status: shop.status === "open" ? "available" : shop.status === "occupied" ? "occupied" : "maintenance",
           price: contract?.price || 5000,
           size: "15 ตร.ม.",
-          roomNumber: shop.label || shop.name,
+          areaCode: shop.label || shop.name,
           tenantName: contract?.tenantName || "-",
           contractNumber: contract?.contractNumber || "",
           contractEndDate: contract?.endDate || "",
