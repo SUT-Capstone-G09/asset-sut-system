@@ -50,7 +50,7 @@ pipeline {
                     steps {
                         echo 'Building Frontend...'
                         dir("${env.FRONTEND_PATH}") {
-                            sh 'pwd'
+                            sh 'pwd && ls -la'
                             sh 'docker build -t $FE_IMAGE:$IMAGE_TAG .'
                         }
                     }
@@ -59,7 +59,7 @@ pipeline {
                     steps {
                         echo 'Building Backend...'
                         dir("${env.BACKEND_PATH}") {
-                            sh 'pwd'
+                            sh 'pwd && ls -la'
                             sh 'docker build -t $BE_IMAGE:$IMAGE_TAG .'
                         }
                     }
