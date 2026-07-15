@@ -34,11 +34,6 @@ pipeline {
                         passwordVariable: 'GITHUB_TOKEN'
                     )
                 ]) {
-                    echo 'Cloning repository...'
-                    echo "Repository: ${GITHUB_REPO}"
-                    echo "Organization: ${GITHUB_ORG}"
-                    echo "Username: ${GITHUB_USERNAME}"
-                    echo "Token: ${GITHUB_TOKEN}"
                     sh  '''
                         git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${GITHUB_REPO}.git
                         '''
@@ -46,7 +41,7 @@ pipeline {
             }
         }
         
-        /*
+        
         // ==================== Stage: Build Parallel ====================
         stage('Build Parallel') {
             parallel {
@@ -63,7 +58,7 @@ pipeline {
                     steps {
                         checkout scm
                         echo 'Building Backend...'
-                        /*dir("${env.BACKEND_PATH}") {
+                        dir("${env.BACKEND_PATH}") {
                             sh 'docker build -t $BE_IMAGE:$IMAGE_TAG .'
                         }
                     }
@@ -72,7 +67,7 @@ pipeline {
         }
 
         // ==================== Stage: Push to Docker Hub ====================
-        stage('Push to Docker Hub') {
+        /*stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-token',
                     usernameVariable: 'DOCKER_USERNAME', 
@@ -94,7 +89,7 @@ pipeline {
                     //sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
                 }
             }
-        }
+        }*/
 
         // ==================== Stage: Cleanup ====================
         stage('Cleanup') {
@@ -102,16 +97,16 @@ pipeline {
                 echo 'Cleaning up local Docker images...'
 
                 sh "docker rmi $DOCKER_USERNAME/$DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG || true"
-                //sh "docker rmi $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG || true"
+                sh "docker rmi $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG || true"
 
                 sh "docker rmi -f $FE_IMAGE:$IMAGE_TAG || true"
-                //sh "docker rmi -f $BE_IMAGE:$IMAGE_TAG || true"
+                sh "docker rmi -f $BE_IMAGE:$IMAGE_TAG || true"
 
                 sh "docker images | grep $FE_IMAGE-$IMAGE_TAG || echo \"No local image for $FE_IMAGE-$IMAGE_TAG\""
-                //sh "docker images | grep $BE_IMAGE-$IMAGE_TAG || echo \"No local image for $BE_IMAGE-$IMAGE_TAG\""
+                sh "docker images | grep $BE_IMAGE-$IMAGE_TAG || echo \"No local image for $BE_IMAGE-$IMAGE_TAG\""
 
-                sh 'docker logout'
+                //sh 'docker logout'
             }
-        }*/
+        }
     }
 }
