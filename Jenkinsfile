@@ -8,6 +8,7 @@ pipeline {
         GITHUB_ORG = 'SUT-Capstone-G09'  // Replace with your GitHub organization or username
 
         // Docker
+        DOCKER_USERNAME = 'worawut2547' // Replace with your Docker Hub username
         DOCKER_REPO = 'asset-sut'
         FE_IMAGE = 'frontend'
         BE_IMAGE = 'backend'
