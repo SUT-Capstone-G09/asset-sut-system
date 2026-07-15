@@ -36,7 +36,7 @@ pipeline {
                     )
                 ]) {
                     sh  '''
-                        git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${GITHUB_REPO}.git
+                        git clone -b deploy-v1 https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${GITHUB_REPO}.git
                         '''
                 }
             }
