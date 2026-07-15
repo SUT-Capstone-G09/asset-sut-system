@@ -4,6 +4,7 @@ var AllEntities = []any{
 	// User management
 	&Users{},
 	&RequesterTypes{},
+	&Profiles{},
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
