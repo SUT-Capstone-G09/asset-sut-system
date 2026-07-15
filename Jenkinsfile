@@ -8,7 +8,7 @@ pipeline {
         GITHUB_ORG = 'SUT-Capstone-G09'  // Replace with your GitHub organization or username
 
         // Docker
-        DOCKER_REPO = 'asset-sut-system'
+        DOCKER_REPO = 'asset-sut'
         FE_IMAGE = 'frontend'
         BE_IMAGE = 'backend'
         IMAGE_TAG = "v${env.BUILD_NUMBER}" // Tag images with the build number
@@ -68,9 +68,9 @@ pipeline {
         }
 
         // ==================== Stage: Push to Docker Hub ====================
-        /*stage('Push to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-token',
+                withCredentials([usernamePassword(credentialsId: 'asset-sut-token-docker',
                     usernameVariable: 'DOCKER_USERNAME', 
                     passwordVariable: 'DOCKER_PASSWORD'
                 )]) {
@@ -83,14 +83,14 @@ pipeline {
                     // Frontend
                     sh 'docker tag $FE_IMAGE:$IMAGE_TAG $DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
                     // Backend
-                    //sh 'docker tag $BE_IMAGE:$IMAGE_TAG $DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
+                    sh 'docker tag $BE_IMAGE:$IMAGE_TAG $DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
 
                     echo 'Pushing images to Docker Hub...'
                     sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$FE_IMAGE-$IMAGE_TAG'
-                    //sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
+                    sh 'docker push $DOCKER_USERNAME/$DOCKER_REPO:$BE_IMAGE-$IMAGE_TAG'
                 }
             }
-        }*/
+        }
 
         // ==================== Stage: Cleanup ====================
         stage('Cleanup') {
@@ -106,7 +106,7 @@ pipeline {
                 sh "docker images | grep $FE_IMAGE-$IMAGE_TAG || echo \"No local image for $FE_IMAGE-$IMAGE_TAG\""
                 sh "docker images | grep $BE_IMAGE-$IMAGE_TAG || echo \"No local image for $BE_IMAGE-$IMAGE_TAG\""
 
-                //sh 'docker logout'
+                sh 'docker logout'
             }
         }
     }
