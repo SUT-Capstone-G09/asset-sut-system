@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-myapp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  backend_init:
+    image: worawut2547/asset-sut:backend-v9
+    container_name: backend_init
+    volumes:
+      - ./.env:/app/.env:ro
+      - postgres_data:/flag_data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -f /flag_data/init.lock ]; then
+          echo "database already initialized. skipping."
+        else
+          echo "running database init..."
+          ./init-db && touch /flag_data/init.lock
+        fi
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    image: worawut2547/asset-sut:backend-v9
+    container_name: backend_api
+    restart: always
+    volumes:
+      - local_bucket:/app/uploads
+      - ./.env:/app/.env:ro
+    environment:
+      GIN_MODE: release
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend_init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+    driver: local
+  local_bucket:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge

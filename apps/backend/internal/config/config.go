@@ -185,7 +185,8 @@ func LoadConfig() (*Config, error) {
 func loadEnvFile() error {
 	envPath, err := findEnvFile()
 	if err != nil {
-		return fmt.Errorf("failed to find .env file: %w", err)
+		fmt.Println("[INFO] No .env file found, falling back to system environment variables.")
+		return nil
 	}
 
 	if err := godotenv.Load(envPath); err != nil {
