@@ -47,7 +47,6 @@ pipeline {
             parallel {
                 stage('Build Frontend') {
                     steps {
-                        checkout scm
                         echo 'Building Frontend...'
                         dir("${env.FRONTEND_PATH}") {
                             sh 'docker build -t $FE_IMAGE:$IMAGE_TAG .'
@@ -56,7 +55,6 @@ pipeline {
                 }
                 stage('Build Backend') {
                     steps {
-                        checkout scm
                         echo 'Building Backend...'
                         dir("${env.BACKEND_PATH}") {
                             sh 'docker build -t $BE_IMAGE:$IMAGE_TAG .'
