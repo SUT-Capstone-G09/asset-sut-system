@@ -26,6 +26,15 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 	response.OK(ctx, types)
 }
 
+func (c *LocationController) GetRateTypes(ctx *gin.Context) {
+	rateTypes, err := c.locationService.GetRateTypes()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, rateTypes)
+}
+
 func (c *LocationController) GetBuildings(ctx *gin.Context) {
 	buildings, err := c.locationService.GetBuildings()
 	if err != nil {

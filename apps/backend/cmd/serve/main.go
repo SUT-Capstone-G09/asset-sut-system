@@ -64,7 +64,7 @@ func main() {
 	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
-	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo, storageService)
+	bookingService := services.NewBookingService(bookingRepo, invoiceRepo, storageService)
 	paymentQRService := services.NewPaymentQRService(bookingRepo, invoiceRepo, storageService, cfg.Payment)
 	easySlipClient := easyslip.New(cfg.EasySlip.APIKey, cfg.EasySlip.VerifyURL)
 	paymentVerifyService := services.NewPaymentVerifyService(easySlipClient, paymentRepo, invoiceRepo, documentRepo, storageService, cfg.Payment)
@@ -90,7 +90,7 @@ func main() {
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService, paymentVerifyService)
-	documentCtrl := controllers.NewDocumentController(documentService)
+	documentCtrl := controllers.NewDocumentController(documentService, bookingService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
 	var driveService *services.DriveService

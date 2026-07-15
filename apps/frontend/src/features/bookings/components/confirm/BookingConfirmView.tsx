@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createBooking } from "@/features/bookings/services/booking.service";
+import { calendarDraftKey } from "@/features/bookings/hooks/useBookingCalendar";
 import { createDocument } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
@@ -133,7 +134,15 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const fullDayTotal = fullDaySlots.length * (room.pricePerDay ?? 0);
   const hourlyHours = calcTotalHours(hourlySlots);
   const hourlyTotal = hourlySlots.reduce(
-    (sum, ts) => sum + calculateSlotPrice(ts.startTime, ts.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour),
+    (sum, ts) =>
+      sum +
+      calculateSlotPrice(
+        ts.startTime,
+        ts.endTime,
+        room.pricePerHour,
+        room.pricePerHourOffPeak ?? room.pricePerHour,
+        room.pricePerDay
+      ),
     0
   );
   const totalHours = calcTotalHours(draft.timeslots);
@@ -164,6 +173,17 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
   const handleConfirm = async () => {
     if (!draft || !purpose.trim()) return;
+
+    // Guard against degenerate slots (end ≤ start) so we never submit a request
+    // the backend will reject anyway — full-day slots always carry start < end.
+    const hasInvalidSlot = draft.timeslots.some((ts) => !isFullDaySlot(ts) && ts.endTime <= ts.startTime);
+    if (hasInvalidSlot) {
+      const msg = "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม";
+      setSubmitError(msg);
+      toast.error(msg);
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -182,15 +202,20 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
       }));
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);
+      sessionStorage.removeItem(calendarDraftKey(room.id));
 
       // Upload each document — ส่งวันที่จองและชื่อสถานที่เพื่อตั้งชื่อไฟล์และจัด folder
       const bookingDate = draft.timeslots[0]?.date; // "YYYY-MM-DD"
+      let uploadFailures = 0;
       for (const { file } of documents) {
         try {
           const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, room.name, booking.id);
           await createDocument({
             booking_id: booking.id,
-            document_type_id: file.type === "application/pdf" ? 2 : 4,
+            // "other" (4) — this generic upload slot has no reliable way to tell
+            // a booking form from an ID card scan etc. from MIME type alone, so
+            // guessing "booking_form" for any PDF mislabeled non-form PDFs too.
+            document_type_id: 4,
             file_name: uploaded.file_name,
             bucket_name: uploaded.bucket_name,
             object_key: uploaded.object_key,
@@ -199,11 +224,19 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             method_id: 1,
           });
         } catch {
-          toast.warning(`อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว`);
+          uploadFailures++;
+          toast.error(
+            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว แต่ต้องอัปโหลดเอกสารนี้ใหม่ในหน้ารายละเอียดการจอง`,
+            { duration: 10000 }
+          );
         }
       }
 
-      router.push("/my-bookings");
+      // A document is required to submit (see the disabled-button guard
+      // below), so if every upload failed, the booking now sits with none —
+      // land the user on the detail page where "อัปโหลดเอกสารเพิ่มเติม" lets
+      // them fix it, instead of the generic list where the gap is invisible.
+      router.push(uploadFailures > 0 ? `/my-bookings/${booking.id}` : "/my-bookings");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
     } finally {

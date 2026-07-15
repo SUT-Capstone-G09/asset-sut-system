@@ -12,6 +12,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 	rg.GET("/buildings", lc.GetBuildings)
 	rg.GET("/location-types", lc.GetTypes)
+	rg.GET("/rate-types", lc.GetRateTypes)
 
 	// รายการ location_id ที่มีผังพื้นที่แล้ว (แยก path ออกจาก /locations/:id กันชนกับ param route)
 	rg.GET("/hall-floor-plans", auth, middleware.RequireRole("staff", "admin"), lc.GetFloorPlanIDs)

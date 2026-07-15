@@ -18,10 +18,25 @@ function overlapMinutes(aStart: number, aEnd: number, bStart: number, bEnd: numb
 
 // Prorated price for a single "HH:mm"–"HH:mm" slot given the office-hours rate
 // and the off-peak rate. Pass the same value for both if no off-peak rate applies.
-export function calculateSlotPrice(startTime: string, endTime: string, officeRate: number, offPeakRate: number): number {
+// Pass dailyRate when the location has one configured — bookings longer than 4
+// hours bill at that flat rate instead of being prorated hourly, mirroring
+// calculatePrice()'s ">4h → daily tier" rule in booking.go exactly. Omitting
+// dailyRate (or passing undefined) skips that override, which will disagree
+// with what the backend actually charges for any slot over 4 hours.
+export function calculateSlotPrice(
+  startTime: string,
+  endTime: string,
+  officeRate: number,
+  offPeakRate: number,
+  dailyRate?: number
+): number {
   const startMin = toMinutes(startTime);
   const endMin = toMinutes(endTime);
   if (endMin <= startMin) return 0;
+
+  if (dailyRate != null && (endMin - startMin) / 60 > 4) {
+    return dailyRate;
+  }
 
   const officeMinutes = overlapMinutes(startMin, endMin, OFFICE_START_MIN, OFFICE_END_MIN);
   const offPeakMinutes = (endMin - startMin) - officeMinutes;

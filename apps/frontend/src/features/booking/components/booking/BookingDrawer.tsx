@@ -95,6 +95,18 @@ const getRecurrenceText = (booking: Booking): string => {
   return `${freq}${end}`;
 };
 
+// Mirrors validBookingTransitions in apps/backend/internal/services/booking.go —
+// keeps the dropdown from offering a move the backend will reject anyway.
+// rejected/cancelled/completed are terminal; approved can only move forward
+// to completed (or be cancelled, which isn't one of this dropdown's options).
+const VALID_NEXT_BOOKING_STATUS: Record<string, string[]> = {
+  pending: ["approved", "rejected"],
+  approved: ["completed"],
+  rejected: [],
+  cancelled: [],
+  completed: [],
+};
+
 interface Props {
   booking: Booking | null;
   open: boolean;
@@ -107,7 +119,7 @@ interface Props {
       | "rejected"
       | "cancelled"
       | "completed",
-  ) => void;
+  ) => Promise<void> | void;
   onEdit: (updated: Booking, mode: "this" | "following" | "all") => void;
   onDelete: (
     idOrFilter:
@@ -320,6 +332,10 @@ export default function BookingDrawer({
   const currentStatus =
     BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
 
+  const validNextStatuses = VALID_NEXT_BOOKING_STATUS[booking.status] ?? [];
+  const isStatusSelectable = (status: string) =>
+    status === booking.status || validNextStatuses.includes(status);
+
   const infoItems = [
     {
       icon: MapPin,
@@ -415,11 +431,19 @@ export default function BookingDrawer({
                 <div className="flex items-center gap-1.5 text-left">
                   <Select
                     value={booking.status}
-                    onValueChange={(val) => {
+                    onValueChange={async (val) => {
                       if (val === "approved" && booking.status === "pending") {
                         setShowApproveModal(true);
-                      } else {
-                        onUpdateStatus(booking.id, val as any);
+                        return;
+                      }
+                      try {
+                        await onUpdateStatus(booking.id, val as any);
+                      } catch (err) {
+                        alert(
+                          err instanceof Error
+                            ? err.message
+                            : "เปลี่ยนสถานะไม่สำเร็จ"
+                        );
                       }
                     }}
                   >
@@ -435,6 +459,7 @@ export default function BookingDrawer({
                     <SelectContent className="bg-white z-[200]">
                       <SelectItem
                         value="pending"
+                        disabled={!isStatusSelectable("pending")}
                         className="text-xs font-bold text-amber-700 focus:bg-amber-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -444,6 +469,7 @@ export default function BookingDrawer({
                       </SelectItem>
                       <SelectItem
                         value="approved"
+                        disabled={!isStatusSelectable("approved")}
                         className="text-xs font-bold text-emerald-700 focus:bg-emerald-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -453,6 +479,7 @@ export default function BookingDrawer({
                       </SelectItem>
                       <SelectItem
                         value="rejected"
+                        disabled={!isStatusSelectable("rejected")}
                         className="text-xs font-bold text-red-600 focus:bg-red-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -463,6 +490,7 @@ export default function BookingDrawer({
 
                       <SelectItem
                         value="completed"
+                        disabled={!isStatusSelectable("completed")}
                         className="text-xs font-bold text-teal-700 focus:bg-teal-50"
                       >
                         <div className="flex items-center gap-1.5">

@@ -109,7 +109,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.hourlyInternal || ""}
+                    value={rates.hourlyInternal ?? ""}
                     onChange={(e) => handleChange("hourlyInternal", e.target.value)}
                     placeholder="200"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#f26522]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
@@ -124,7 +124,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.hourlyExternal || ""}
+                    value={rates.hourlyExternal ?? ""}
                     onChange={(e) => handleChange("hourlyExternal", e.target.value)}
                     placeholder="500"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#f26522]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
@@ -150,7 +150,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.hourlyOffPeakInternal || ""}
+                    value={rates.hourlyOffPeakInternal ?? ""}
                     onChange={(e) => handleChange("hourlyOffPeakInternal", e.target.value)}
                     placeholder="300"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#6d28d9]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
@@ -165,7 +165,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.hourlyOffPeakExternal || ""}
+                    value={rates.hourlyOffPeakExternal ?? ""}
                     onChange={(e) => handleChange("hourlyOffPeakExternal", e.target.value)}
                     placeholder="750"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#6d28d9]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
@@ -190,7 +190,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.dailyInternal || ""}
+                    value={rates.dailyInternal ?? ""}
                     onChange={(e) => handleChange("dailyInternal", e.target.value)}
                     placeholder="1500"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#f26522]/30 pr-10 font-bold text-slate-700 transition-all pl-3"
@@ -205,7 +205,7 @@ export default function RoomRateModal({
                 <div className="relative">
                   <Input
                     type="number"
-                    value={rates.dailyExternal || ""}
+                    value={rates.dailyExternal ?? ""}
                     onChange={(e) => handleChange("dailyExternal", e.target.value)}
                     placeholder="3500"
                     className="rounded-lg h-11 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-[#f26522]/30 pr-10 font-bold text-slate-700 transition-all pl-3"

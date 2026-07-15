@@ -95,3 +95,41 @@ func TestCalculatePrice_OverFourHours_UsesDailyFlatRegardlessOfTimeOfDay(t *test
 		t.Errorf("got %d, want 1200 (daily flat rate)", got)
 	}
 }
+
+func TestCalculatePrice_IsFullDayFlagIgnored_ShortSlotNotBilledDailyRate(t *testing.T) {
+	loc := testLocation(true)
+	// Client claims IsFullDay on a 1-hour slot — must be billed as a normal
+	// 1h office-hours booking, not the 1200 daily flat rate.
+	ts := dto.TimeslotInput{StartTime: clockTime(9, 0), EndTime: clockTime(10, 0), IsFullDay: true}
+	got := calculatePrice(loc, ts, testRequesterTypeID)
+	want := officeRatePrice
+	if got != want {
+		t.Errorf("got %d, want %d (IsFullDay flag must not override actual duration)", got, want)
+	}
+}
+
+func TestCalculatePrice_ActualFullDayWindow_UsesDailyRateEvenIfFlagFalse(t *testing.T) {
+	loc := testLocation(true)
+	// Times span exactly 07:00-21:00 but the client didn't set IsFullDay —
+	// full-day pricing must still be derived from the actual time span.
+	ts := dto.TimeslotInput{StartTime: clockTime(7, 0), EndTime: clockTime(21, 0), IsFullDay: false}
+	got := calculatePrice(loc, ts, testRequesterTypeID)
+	if got != 1200 {
+		t.Errorf("got %d, want 1200 (daily flat rate derived from time span)", got)
+	}
+}
+
+func TestCalculatePrice_NoHourlyTierConfigured_ReturnsZeroNotArbitraryTier(t *testing.T) {
+	daily := &models.RateTypes{Type: "daily"}
+	loc := &models.Locations{PricingTiers: []models.LocationPricingTiers{
+		{RequesterTypeID: testRequesterTypeID, RateType: daily, Price: 1200},
+	}}
+	// 2h booking, but the location only has a "daily" tier — no "hourly" tier
+	// to prorate against. Must not silently bill the daily price as if it
+	// were an hourly rate.
+	ts := dto.TimeslotInput{StartTime: clockTime(9, 0), EndTime: clockTime(11, 0)}
+	got := calculatePrice(loc, ts, testRequesterTypeID)
+	if got != 0 {
+		t.Errorf("got %d, want 0 (no hourly tier configured)", got)
+	}
+}

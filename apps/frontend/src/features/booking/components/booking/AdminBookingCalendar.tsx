@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { 
   format, 
   startOfMonth, 
@@ -31,7 +31,11 @@ import Link from "next/link";
 
 import { Booking } from "../../types/booking";
 import BookingDrawer from "./BookingDrawer";
-import { getAllBookings } from "@/features/bookings/services/booking.service";
+import {
+  getAllBookings,
+  updateBookingStatus,
+  updateBookingExpenses,
+} from "@/features/bookings/services/booking.service";
 import { getLocations, AdminLocationDTO } from "@/features/booking/services/locationService";
 import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
 import { 
@@ -85,24 +89,28 @@ export default function AdminBookingCalendar() {
   // Merge classroom and meeting bookings, then inject extra bookings to populate calendar like mockup
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  React.useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [bookingsData, locationsData] = await Promise.all([
-          getAllBookings(),
-          getLocations(),
-        ]);
-        setLocations(locationsData);
-        const locMap = new Map<number, AdminLocationDTO>();
-        locationsData.forEach((loc) => locMap.set(loc.id, loc));
-        const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
-        setBookings(mappedBookings);
-      } catch (err) {
-        console.error("Failed to fetch calendar bookings:", err);
-      }
-    };
-    fetchAll();
+  // Pulled out of the effect so drawer actions (status/expense updates) can
+  // re-fetch and reconcile local state with what the server actually saved,
+  // instead of only mutating setBookings() locally and drifting from the DB.
+  const fetchAll = useCallback(async () => {
+    try {
+      const [bookingsData, locationsData] = await Promise.all([
+        getAllBookings(),
+        getLocations(),
+      ]);
+      setLocations(locationsData);
+      const locMap = new Map<number, AdminLocationDTO>();
+      locationsData.forEach((loc) => locMap.set(loc.id, loc));
+      const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
+      setBookings(mappedBookings);
+    } catch (err) {
+      console.error("Failed to fetch calendar bookings:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   // Drawer state
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -146,44 +154,39 @@ export default function AdminBookingCalendar() {
     return calendarBookings.filter((b) => b.status === "pending").length;
   }, [calendarBookings]);
 
-  // Booking updates from drawer
-  const handleUpdateStatus = (id: string, status: Booking["status"]) => {
-    setBookings((prev) => 
-      prev.map((b) => b.id === id ? { ...b, status } : b)
-    );
+  // Booking updates from drawer — must actually persist to the backend, not
+  // just mutate local state, otherwise a refresh (or the requester's own
+  // "my bookings" view) silently reverts every approve/reject/edit made here.
+  const handleUpdateStatus = async (id: string, status: Booking["status"]) => {
+    await updateBookingStatus(Number(id), { status });
+    await fetchAll();
   };
 
-  const handleEditBooking = (updatedBooking: Booking, mode: "this" | "following" | "all" = "this") => {
-    setBookings((prev) => {
-      if (!updatedBooking.recurringGroupId || mode === "this") {
-        const target = updatedBooking.recurringGroupId && mode === "this"
-          ? { ...updatedBooking, recurringGroupId: undefined }
-          : updatedBooking;
-        return prev.map((b) => b.id === target.id ? target : b);
-      }
-
-      const originalBooking = prev.find((b) => b.id === updatedBooking.id);
-      const originalDate = originalBooking ? originalBooking.date : updatedBooking.date;
-
-      return prev.map((b) => {
-        if (b.recurringGroupId === updatedBooking.recurringGroupId) {
-          const shouldUpdate =
-            mode === "all" ||
-            (mode === "following" && b.date >= originalDate);
-
-          if (shouldUpdate) {
-            return {
-              ...updatedBooking,
-              id: b.id,      // Keep original ID
-              date: b.date,  // Keep original Date
-            };
-          }
-        }
-        return b;
-      });
+  // Recurring-booking "following"/"all" edits aren't supported by the
+  // backend (there's no recurringGroupId concept server-side) — this only
+  // ever updates the single booking being edited, regardless of `mode`.
+  const handleEditBooking = async (updatedBooking: Booking) => {
+    await updateBookingStatus(Number(updatedBooking.id), { status: updatedBooking.status });
+    await updateBookingExpenses(Number(updatedBooking.id), {
+      is_waived: false,
+      timeslots: (updatedBooking.timeslots && updatedBooking.timeslots.length > 0
+        ? updatedBooking.timeslots
+        : [{ id: 0, expenses: updatedBooking.expenses || [] }]
+      ).map((ts) => ({
+        timeslot_id: ts.id,
+        expenses: ts.expenses.map((exp) => ({
+          addon_name: exp.name,
+          applied_price: exp.unitPrice,
+          quantity: exp.quantity,
+        })),
+      })),
     });
+    await fetchAll();
   };
 
+  // No backend delete endpoint exists for bookings (see the same gap in
+  // useBookingFilters.ts) — this can only remove the row from local view,
+  // it does NOT persist. A refresh brings the booking back.
   const handleDeleteBooking = (
     idOrFilter: string | { id: string; recurringGroupId: string; mode: "this" | "following" | "all"; date: string }
   ) => {

@@ -142,7 +142,7 @@ func (c *PaymentController) Create(ctx *gin.Context) {
 		return
 	}
 
-	resp, err := c.paymentService.Create(req)
+	resp, err := c.paymentService.Create(ctx.GetUint("user_id"), ctx.GetString("role"), req)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return

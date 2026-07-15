@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/services/api-client";
-import { Room } from "@/features/bookings/types";
+import { AvailabilityStatus, Room } from "@/features/bookings/types";
 
 export interface LocationDTO {
   id: number;
@@ -90,6 +90,50 @@ export async function getMonthlyAvailability(
   return apiClient.get<MonthlyAvailabilityMap>(
     `/locations/${locationId}/monthly-availability?year=${year}&month=${month}`
   );
+}
+
+// Real (booking-derived) availability badge for the current month, from today
+// onward — replaces the old "loc.status === available" heuristic, which only
+// reflects whether the room is in service, not whether it's actually booked.
+export async function getRoomAvailabilityBadge(locationId: number): Promise<AvailabilityStatus> {
+  const now = new Date();
+  const map = await getMonthlyAvailability(locationId, now.getFullYear(), now.getMonth() + 1);
+  const todayStr = now.toISOString().slice(0, 10);
+  const hasBookedDay = Object.entries(map).some(
+    ([dateStr, day]) => dateStr >= todayStr && day.status !== "available"
+  );
+  return hasBookedDay ? "ว่างบางวัน" : "ว่างทุกวัน";
+}
+
+// Checks whether a room is free for every date in `dates` (each "yyyy-MM-dd").
+// A "full" day always blocks. A "partial" day only blocks when it overlaps
+// the requested [startTime, endTime) — if no time was given, partial days are
+// treated as available since some free time exists (the room's own calendar
+// lets the user pick around it).
+export async function isRoomAvailableForRequest(
+  locationId: number,
+  dates: string[],
+  startTime?: string,
+  endTime?: string
+): Promise<boolean> {
+  if (dates.length === 0) return true;
+
+  const months = Array.from(new Set(dates.map((d) => d.slice(0, 7))));
+  const mapEntries = await Promise.all(
+    months.map(async (ym): Promise<[string, MonthlyAvailabilityMap]> => {
+      const [year, month] = ym.split("-").map(Number);
+      return [ym, await getMonthlyAvailability(locationId, year, month)];
+    })
+  );
+  const mapByMonth = new Map(mapEntries);
+
+  return dates.every((dateStr) => {
+    const day = mapByMonth.get(dateStr.slice(0, 7))?.[dateStr];
+    if (!day || day.status === "available") return true;
+    if (day.status === "full") return false;
+    if (!startTime || !endTime) return true;
+    return !(day.booked_ranges ?? []).some(([rs, re]) => startTime < re && endTime > rs);
+  });
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";

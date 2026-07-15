@@ -17,6 +17,7 @@ interface RoomResultsListProps {
   onSortChange: (v: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (v: ViewMode) => void;
+  checkingAvailability?: boolean;
 }
 
 const SORT_OPTIONS: { label: string; value: SortOption }[] = [
@@ -31,6 +32,7 @@ export default function RoomResultsList({
   onSortChange,
   viewMode,
   onViewModeChange,
+  checkingAvailability,
 }: RoomResultsListProps) {
   const currentSort = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "";
 
@@ -41,7 +43,13 @@ export default function RoomResultsList({
         <div>
           <h2 className="text-xl font-bold text-gray-900">ห้องที่ว่าง</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            พบ <span className="font-semibold text-gray-700">{rooms.length} ห้อง</span>
+            {checkingAvailability ? (
+              "กำลังตรวจสอบห้องว่าง..."
+            ) : (
+              <>
+                พบ <span className="font-semibold text-gray-700">{rooms.length} ห้อง</span>
+              </>
+            )}
           </p>
         </div>
 

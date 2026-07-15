@@ -239,6 +239,9 @@ export function useBookingFilters(type: BookingTypeFilter) {
       }
       const startTimeStr = timeMatch[1];
       const endTimeStr = timeMatch[2];
+      if (endTimeStr <= startTimeStr) {
+        throw new Error("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม");
+      }
 
       const dateStr = newBooking.date;
       // Explicit +07:00 (Bangkok) offset — see BookingConfirmView.tsx for why:

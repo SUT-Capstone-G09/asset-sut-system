@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"log"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
@@ -13,6 +15,14 @@ import (
 )
 
 const maxUploadSize = 10 << 20 // 10 MB
+
+// allowedUploadExts mirrors the `accept` attribute on every document upload
+// input in the frontend — enforced here too since the client-side attribute
+// is only a UI hint and is trivially bypassed (renamed file, direct API call).
+var allowedUploadExts = map[string]bool{
+	".pdf": true, ".doc": true, ".docx": true,
+	".png": true, ".jpg": true, ".jpeg": true,
+}
 
 type UploadController struct {
 	minio       *services.StorageService
@@ -32,6 +42,7 @@ func NewUploadController(
 // ถ้า doc type รู้จัก → ใช้ docpath naming, อัปโหลดไปทุก storage ที่ระบุ
 // ถ้าไม่รู้จัก → fallback ไป MinIO ด้วย path เดิม
 func (c *UploadController) Upload(ctx *gin.Context) {
+	userID := ctx.GetUint("user_id")
 	fh, err := ctx.FormFile("file")
 	if err != nil {
 		response.BadRequest(ctx, "missing form-data file field 'file'")
@@ -39,6 +50,10 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	}
 	if fh.Size > maxUploadSize {
 		response.BadRequest(ctx, "file too large (max 10MB)")
+		return
+	}
+	if ext := strings.ToLower(filepath.Ext(fh.Filename)); !allowedUploadExts[ext] {
+		response.BadRequest(ctx, "unsupported file type")
 		return
 	}
 
@@ -57,7 +72,7 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	dt, known := docpath.DocTypes[folder]
 	if !known {
 		// Unknown folder → legacy MinIO path (sanitized)
-		result, err := c.minio.UploadMultipart(ctx.Request.Context(), folder, fh)
+		result, err := c.minio.UploadMultipart(ctx.Request.Context(), folder, fh, userID)
 		if err != nil {
 			response.InternalError(ctx, err.Error())
 			return
@@ -79,7 +94,7 @@ func (c *UploadController) Upload(ctx *gin.Context) {
 	// ── MinIO ────────────────────────────────────────────────────────────────
 	var minioResult services.UploadResult
 	if dt.StoreMinio {
-		minioResult, err = c.minio.UploadWithKey(ctx.Request.Context(), objectKey, fh)
+		minioResult, err = c.minio.UploadWithKey(ctx.Request.Context(), objectKey, fh, userID)
 		if err != nil {
 			response.InternalError(ctx, "minio upload failed: "+err.Error())
 			return

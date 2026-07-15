@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Room } from "@/features/bookings/types";
 import { DayBookingTime } from "@/features/bookings/types/booking-calendar";
+import { matchesFullDay } from "@/features/bookings/hooks/useBookingCalendar";
 import { calculateSlotPrice } from "@/features/bookings/utils/pricing";
 import { cn } from "@/lib/utils";
 
@@ -27,14 +28,18 @@ function calcHours(start: string, end: string) {
   return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  checked, onChange, disabled,
+}: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
-        checked ? "bg-brand-primary" : "bg-gray-200"
+        checked ? "bg-brand-primary" : "bg-gray-200",
+        disabled && "opacity-40 cursor-not-allowed"
       )}
     >
       <span
@@ -88,6 +93,7 @@ interface BookingPanelProps {
   removeDate: (dateStr: string) => void;
   fullDayDates: Record<string, boolean>;
   toggleFullDay: (dateStr: string) => void;
+  hasExistingBooking: (dateStr: string) => boolean;
   isFullDayAvailable: boolean;
   allFullDay: boolean;
   setAllFullDay: (v: boolean) => void;
@@ -102,7 +108,7 @@ interface BookingPanelProps {
 
 export default function BookingPanel({
   room, selectedDates, getEffectiveTime, updateDayTime, removeDate,
-  fullDayDates, toggleFullDay, isFullDayAvailable, allFullDay, setAllFullDay,
+  fullDayDates, toggleFullDay, hasExistingBooking, isFullDayAvailable, allFullDay, setAllFullDay,
   sameTimeForAll, setSameTimeForAll, globalTime, updateGlobalTime, totalStats, onConfirm,
   getTimeConflict,
 }: BookingPanelProps) {
@@ -110,6 +116,7 @@ export default function BookingPanel({
     const t = getEffectiveTime(dateStr);
     return getTimeConflict(dateStr, t.startTime, t.endTime) !== null;
   });
+  const someSelectedDayHasBooking = selectedDates.some(hasExistingBooking);
 
   return (
     <div className="flex flex-col gap-4">
@@ -174,8 +181,17 @@ export default function BookingPanel({
                   <span className="text-gray-400 text-xs">
                     (฿{room.pricePerDay?.toLocaleString()}/วัน)
                   </span>
+                  {someSelectedDayHasBooking && (
+                    <span className="block text-xs text-amber-600">
+                      บางวันมีการจองอยู่แล้ว จะข้ามวันนั้น
+                    </span>
+                  )}
                 </span>
-                <Toggle checked={allFullDay} onChange={setAllFullDay} />
+                <Toggle
+                  checked={allFullDay}
+                  onChange={setAllFullDay}
+                  disabled={!allFullDay && selectedDates.every(hasExistingBooking)}
+                />
               </div>
             )}
 
@@ -186,7 +202,13 @@ export default function BookingPanel({
                   <TimeDropdown
                     label="เวลาเริ่ม"
                     value={globalTime.startTime}
-                    onChange={(v) => updateGlobalTime("startTime", v)}
+                    onChange={(v) => {
+                      updateGlobalTime("startTime", v);
+                      if (v >= globalTime.endTime) {
+                        const next = TIME_OPTIONS.find((t) => t > v);
+                        if (next) updateGlobalTime("endTime", next);
+                      }
+                    }}
                   />
                   <span className="text-gray-400 mt-4">-</span>
                   <TimeDropdown
@@ -213,12 +235,12 @@ export default function BookingPanel({
               {selectedDates.map((dateStr) => {
                 const date = parseISO(dateStr);
                 const label = format(date, "EEEE, d MMM.", { locale: th });
-                const isFull = fullDayDates[dateStr] && isFullDayAvailable;
                 const time = getEffectiveTime(dateStr);
+                const isFull = (fullDayDates[dateStr] || matchesFullDay(time)) && isFullDayAvailable;
                 const hours = calcHours(time.startTime, time.endTime);
                 const price = isFull
                   ? (room.pricePerDay as number)
-                  : calculateSlotPrice(time.startTime, time.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour);
+                  : calculateSlotPrice(time.startTime, time.endTime, room.pricePerHour, room.pricePerHourOffPeak ?? room.pricePerHour, room.pricePerDay);
 
                 return (
                   <div key={dateStr} className="border border-gray-100 rounded-xl p-3 flex flex-col gap-2">
@@ -232,15 +254,21 @@ export default function BookingPanel({
                       </button>
                     </div>
 
-                    {isFullDayAvailable && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">
-                          จองเต็มวัน{" "}
-                          <span className="text-gray-400">(฿{room.pricePerDay?.toLocaleString()})</span>
-                        </span>
-                        <Toggle checked={isFull} onChange={() => toggleFullDay(dateStr)} />
-                      </div>
-                    )}
+                    {isFullDayAvailable && (() => {
+                      const blocked = !isFull && hasExistingBooking(dateStr);
+                      return (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">
+                            จองเต็มวัน{" "}
+                            <span className="text-gray-400">(฿{room.pricePerDay?.toLocaleString()})</span>
+                            {blocked && (
+                              <span className="block text-amber-600">มีการจองอยู่แล้วในวันนี้</span>
+                            )}
+                          </span>
+                          <Toggle checked={isFull} onChange={() => toggleFullDay(dateStr)} disabled={blocked} />
+                        </div>
+                      );
+                    })()}
 
                     {!isFull && !sameTimeForAll && (() => {
                       const conflict = getTimeConflict(dateStr, time.startTime, time.endTime);
@@ -249,7 +277,13 @@ export default function BookingPanel({
                           <div className="flex items-center gap-2">
                             <TimeDropdown
                               value={time.startTime}
-                              onChange={(v) => updateDayTime(dateStr, "startTime", v)}
+                              onChange={(v) => {
+                                updateDayTime(dateStr, "startTime", v);
+                                if (v >= time.endTime) {
+                                  const next = TIME_OPTIONS.find((t) => t > v);
+                                  if (next) updateDayTime(dateStr, "endTime", next);
+                                }
+                              }}
                             />
                             <span className="text-gray-400">-</span>
                             <TimeDropdown

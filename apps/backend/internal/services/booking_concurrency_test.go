@@ -154,10 +154,7 @@ func seedConcurrencyFixture(t *testing.T, db *gorm.DB, userCount int) concurrenc
 func newConcurrencyBookingService(db *gorm.DB) *BookingService {
 	return NewBookingService(
 		repositories.NewBookingRepository(db),
-		repositories.NewTimeslotRepository(db),
-		repositories.NewLocationRepository(db),
 		repositories.NewInvoiceRepository(db),
-		repositories.NewRequesterRepository(db),
 		nil, // storage service is only used for document presigned URLs; this
 		// booking never attaches documents, so it's never dereferenced.
 	)

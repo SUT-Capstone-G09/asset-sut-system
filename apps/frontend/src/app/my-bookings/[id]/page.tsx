@@ -603,7 +603,10 @@ function BookingDocsTab({ bookingId, bookingDate, locationName }: { bookingId: n
       const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, locationName, bookingId);
       await createDocument({
         booking_id: bookingId,
-        document_type_id: file.type === "application/pdf" ? 2 : 4,
+        // "other" (4) — this generic upload slot has no reliable way to tell
+        // a booking form from an ID card scan etc. from MIME type alone, so
+        // guessing "booking_form" for any PDF mislabeled non-form PDFs too.
+        document_type_id: 4,
         file_name: uploaded.file_name,
         bucket_name: uploaded.bucket_name,
         object_key: uploaded.object_key,

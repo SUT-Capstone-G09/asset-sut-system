@@ -81,6 +81,12 @@ func (r *LocationRepository) FindAllTypes() ([]models.LocationTypes, error) {
 	return types, err
 }
 
+func (r *LocationRepository) FindAllRateTypes() ([]models.RateTypes, error) {
+	var rateTypes []models.RateTypes
+	err := r.db.Find(&rateTypes).Error
+	return rateTypes, err
+}
+
 func (r *LocationRepository) FindAll() ([]models.Locations, error) {
 	var locations []models.Locations
 	err := r.db.

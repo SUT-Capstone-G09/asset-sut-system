@@ -47,6 +47,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
             removeDate={cal.removeDate}
             fullDayDates={cal.fullDayDates}
             toggleFullDay={cal.toggleFullDay}
+            hasExistingBooking={cal.hasExistingBooking}
             isFullDayAvailable={cal.isFullDayAvailable}
             allFullDay={cal.allFullDay}
             setAllFullDay={cal.setAllFullDay}

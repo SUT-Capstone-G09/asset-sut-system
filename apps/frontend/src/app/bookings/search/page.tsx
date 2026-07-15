@@ -26,6 +26,7 @@ function BookingSearchContent() {
     handleSearch,
     results,
     hasSearched,
+    checkingAvailability,
     sortBy,
     setSortBy,
     viewMode,
@@ -48,6 +49,7 @@ function BookingSearchContent() {
             onSortChange={setSortBy}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            checkingAvailability={checkingAvailability}
           />
         ) : (
           <RoomRecommendations category={category} />

@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
@@ -23,6 +25,10 @@ func NewLocationService(locationRepo *repositories.LocationRepository, timeslotR
 
 func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
 	return s.locationRepo.FindAllTypes()
+}
+
+func (s *LocationService) GetRateTypes() ([]models.RateTypes, error) {
+	return s.locationRepo.FindAllRateTypes()
 }
 
 func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
@@ -269,10 +275,16 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 	if err != nil {
 		return nil, err
 	}
+	blocks, err := s.locationRepo.FindUnavailabilities(locationID)
+	if err != nil {
+		return nil, err
+	}
 
 	type dayData struct {
-		hours  float64
-		ranges [][2]string
+		hours   float64
+		booked  [][2]int // booking-only [startMin, endMin) — basis for the "full" decision
+		ranges  [][2]string
+		blocked bool
 	}
 	days := make(map[string]*dayData)
 
@@ -283,17 +295,37 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 		}
 		hours := slot.EndTime.Sub(slot.StartTime).Hours()
 		days[dateStr].hours += hours
+		if startMin, endMin := minutesOfDay(slot.StartTime), minutesOfDay(slot.EndTime); endMin > startMin {
+			days[dateStr].booked = append(days[dateStr].booked, [2]int{startMin, endMin})
+		}
 		days[dateStr].ranges = append(days[dateStr].ranges, [2]string{
 			slot.StartTime.Format("15:04"),
 			slot.EndTime.Format("15:04"),
 		})
 	}
 
-	const fullThreshold = 8.0
+	// Staff-configured unavailability windows (maintenance, closures, etc.)
+	// block the whole day in the calendar, same as a fully-booked day, so the
+	// frontend's existing "full" handling hides it without any FE change.
+	for _, b := range blocks {
+		if int(b.Date.Year()) != year || b.Date.Month() != time.Month(month) {
+			continue
+		}
+		dateStr := b.Date.Format("2006-01-02")
+		if days[dateStr] == nil {
+			days[dateStr] = &dayData{}
+		}
+		days[dateStr].blocked = true
+		days[dateStr].ranges = append(days[dateStr].ranges, [2]string{
+			b.StartTime.Format("15:04"),
+			b.EndTime.Format("15:04"),
+		})
+	}
+
 	result := make(dto.MonthlyAvailabilityResponse)
 	for dateStr, d := range days {
 		status := "partial"
-		if d.hours >= fullThreshold {
+		if d.blocked || freeMinutesInWindow(d.booked) < minBookableFreeMinutes {
 			status = "full"
 		}
 		result[dateStr] = dto.DayAvailability{
@@ -303,6 +335,48 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 		}
 	}
 	return result, nil
+}
+
+// minBookableFreeMinutes: a day counts as "full" once less than this much
+// genuinely free time is left in the bookable window (fullDayStartMinute..
+// fullDayEndMinute, defined in booking.go) — matches the 30-minute step
+// every time picker in the app uses, so a smaller leftover gap isn't
+// practically bookable.
+const minBookableFreeMinutes = 30
+
+// freeMinutesInWindow merges booked [start,end) minute intervals (clipped to
+// the bookable window) and returns how many minutes of the window remain
+// free. Summing booked *hours* alone is the wrong signal for "full": four
+// disjoint 2h meetings total 8h booked but still leave 6h genuinely free, and
+// shouldn't lock out the whole day.
+func freeMinutesInWindow(booked [][2]int) int {
+	type interval struct{ start, end int }
+	intervals := make([]interval, 0, len(booked))
+	for _, b := range booked {
+		start, end := b[0], b[1]
+		if start < fullDayStartMinute {
+			start = fullDayStartMinute
+		}
+		if end > fullDayEndMinute {
+			end = fullDayEndMinute
+		}
+		if end > start {
+			intervals = append(intervals, interval{start, end})
+		}
+	}
+	sort.Slice(intervals, func(i, j int) bool { return intervals[i].start < intervals[j].start })
+
+	covered, cursor := 0, fullDayStartMinute
+	for _, iv := range intervals {
+		if iv.start > cursor {
+			cursor = iv.start
+		}
+		if iv.end > cursor {
+			covered += iv.end - cursor
+			cursor = iv.end
+		}
+	}
+	return (fullDayEndMinute - fullDayStartMinute) - covered
 }
 
 // ── Equipments ───────────────────────────────────────────────────────────────

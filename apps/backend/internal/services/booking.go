@@ -18,27 +18,22 @@ const MinBookingLeadDays = 7
 
 type BookingService struct {
 	bookingRepo    *repositories.BookingRepository
-	timeslotRepo   *repositories.TimeslotRepository
-	locationRepo   *repositories.LocationRepository
 	invoiceRepo    *repositories.InvoiceRepository
-	requesterRepo  *repositories.RequesterRepository
 	storageService *StorageService
 }
 
+// NewBookingService only keeps the repos BookingService actually uses through
+// s.*; Create() builds its own transaction-bound repos (timeslot/location/
+// requester) inside the tx closure, so holding non-tx copies as fields would
+// only invite silent out-of-transaction access via s.xxxRepo.
 func NewBookingService(
 	bookingRepo *repositories.BookingRepository,
-	timeslotRepo *repositories.TimeslotRepository,
-	locationRepo *repositories.LocationRepository,
 	invoiceRepo *repositories.InvoiceRepository,
-	requesterRepo *repositories.RequesterRepository,
 	storageService *StorageService,
 ) *BookingService {
 	return &BookingService{
 		bookingRepo:    bookingRepo,
-		timeslotRepo:   timeslotRepo,
-		locationRepo:   locationRepo,
 		invoiceRepo:    invoiceRepo,
-		requesterRepo:  requesterRepo,
 		storageService: storageService,
 	}
 }
@@ -83,6 +78,11 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 	for _, ts := range req.Timeslots {
 		if ts.Date.Before(minBookableDate) {
 			return nil, fmt.Errorf("ต้องจองล่วงหน้าอย่างน้อย %d วัน", MinBookingLeadDays)
+		}
+		// Reject degenerate slots up front so pricing never has to guess at a
+		// zero/negative duration (full-day slots still carry real start<end times).
+		if !ts.EndTime.After(ts.StartTime) {
+			return nil, errors.New("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม")
 		}
 	}
 	if len(req.Timeslots) == 0 {
@@ -153,6 +153,20 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 				if ts.LocationID == other.LocationID && sameDate(ts.Date, other.Date) &&
 					ts.StartTime.Before(other.EndTime) && other.StartTime.Before(ts.EndTime) {
 					return errors.New("one or more timeslots in this request overlap each other")
+				}
+			}
+
+			// Reject slots that fall inside a staff-configured unavailability
+			// window (maintenance, closures, etc.) for this location/date.
+			blocks, err := locationRepo.FindUnavailabilitiesByDate(ts.LocationID, ts.Date)
+			if err != nil {
+				return err
+			}
+			tsStart, tsEnd := minutesOfDay(ts.StartTime), minutesOfDay(ts.EndTime)
+			for _, b := range blocks {
+				bStart, bEnd := minutesOfDay(b.StartTime), minutesOfDay(b.EndTime)
+				if tsStart < bEnd && bStart < tsEnd {
+					return errors.New("สถานที่ไม่พร้อมให้บริการในช่วงเวลานี้")
 				}
 			}
 		}
@@ -251,6 +265,32 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 	return s.GetByID(bookingID)
 }
 
+// validBookingTransitions enumerates which status changes UpdateStatus allows.
+// rejected/cancelled/completed are terminal — once a booking reaches one of
+// those, this endpoint can't move it anywhere else. "completed" is normally
+// reached via PaymentService.Verify (payment confirmed), not through here,
+// but staff can still force it from "approved" for edge cases (e.g. cash
+// paid in person and reconciled manually).
+var validBookingTransitions = map[string][]string{
+	"pending":   {"approved", "rejected", "cancelled"},
+	"approved":  {"cancelled", "completed"},
+	"rejected":  {},
+	"cancelled": {},
+	"completed": {},
+}
+
+func isValidBookingTransition(from, to string) bool {
+	if from == "" || from == to {
+		return false
+	}
+	for _, s := range validBookingTransitions[from] {
+		if s == to {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingStatusRequest) (*dto.BookingResponse, error) {
 	booking, err := s.bookingRepo.FindByID(id)
 	if err != nil {
@@ -275,8 +315,23 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 		targetStatusID = st.ID
 	} else if req.StatusID != 0 {
 		targetStatusID = req.StatusID
+		st, err := s.bookingRepo.FindStatusByID(targetStatusID)
+		if err != nil {
+			return nil, errors.New("invalid status_id")
+		}
+		targetStatusName = st.Status
 	} else {
 		return nil, errors.New("either status or status_id is required")
+	}
+
+	currentStatusName := ""
+	if booking.Status != nil {
+		currentStatusName = booking.Status.Status
+	}
+	// Virtual statuses are just "approved" wearing a different name for the
+	// payment UI, so validate against the real target name they resolve to.
+	if !isValidBookingTransition(currentStatusName, targetStatusName) {
+		return nil, fmt.Errorf("cannot change booking status from %q to %q", currentStatusName, targetStatusName)
 	}
 
 	oldStatusID := booking.StatusID
@@ -293,7 +348,9 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 		Note:         req.Note,
 	})
 
-	// Update invoice status if it was a virtual payment status or if approved/rejected/cancelled
+	// Update invoice status to match. Approving a booking only means it's
+	// awaiting payment — it must NOT mark the invoice paid; that only ever
+	// happens when a real payment is confirmed (see PaymentService.Verify).
 	invoice, err := s.invoiceRepo.FindByBookingID(booking.ID)
 	if err == nil && invoice != nil {
 		var invoiceStatusName string
@@ -301,9 +358,7 @@ func (s *BookingService) UpdateStatus(id, changedBy uint, req dto.UpdateBookingS
 			if originalVirtualStatus == "pending_payment" {
 				invoiceStatusName = "pending"
 			}
-		} else if req.Status == "approved" {
-			invoiceStatusName = "paid"
-		} else if req.Status == "rejected" || req.Status == "cancelled" {
+		} else if targetStatusName == "rejected" || targetStatusName == "cancelled" {
 			invoiceStatusName = "cancelled"
 		}
 
@@ -408,6 +463,21 @@ func minutesOfDay(t time.Time) int {
 	return t.Hour()*60 + t.Minute()
 }
 
+// Full-day booking window, mirrors FULL_DAY_START/FULL_DAY_END in the frontend
+// (useBookingCalendar.ts / BookingConfirmView.tsx).
+const (
+	fullDayStartMinute = 7 * 60
+	fullDayEndMinute   = 21 * 60
+)
+
+// isFullDaySlot reports whether ts actually spans the full bookable window,
+// derived from its own clock times rather than the client-supplied IsFullDay
+// flag — a request can't get the daily flat rate just by setting that flag on
+// a short slot.
+func isFullDaySlot(ts dto.TimeslotInput) bool {
+	return minutesOfDay(ts.StartTime) == fullDayStartMinute && minutesOfDay(ts.EndTime) == fullDayEndMinute
+}
+
 // overlapMinutes returns how many minutes of [aStart, aEnd) fall inside [bStart, bEnd).
 func overlapMinutes(aStart, aEnd, bStart, bEnd int) int {
 	start := aStart
@@ -430,7 +500,7 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 	}
 
 	// Full-day booking: use the flat daily tier if the location has one configured.
-	if ts.IsFullDay {
+	if isFullDaySlot(ts) {
 		if price, ok := findTierPrice(location.PricingTiers, requesterTypeID, "daily"); ok {
 			return price
 		}
@@ -450,8 +520,11 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 
 	officeRate, hasOffice := findTierPrice(location.PricingTiers, requesterTypeID, "hourly")
 	if !hasOffice {
-		// Ultimate fallback: no hourly tier configured at all, use the first tier flat.
-		return int(math.Round(hours * float64(location.PricingTiers[0].Price)))
+		// No "hourly" tier configured for this location/requester at all — picking
+		// an arbitrary tier (e.g. a "daily" price) here would silently produce a
+		// wrong-but-plausible-looking price. 0 is visibly wrong instead, same
+		// rationale as treating a missing off-peak tier as "no charge" upstream.
+		return 0
 	}
 	offPeakRate, hasOffPeak := findTierPrice(location.PricingTiers, requesterTypeID, "hourly_offpeak")
 	if !hasOffPeak {

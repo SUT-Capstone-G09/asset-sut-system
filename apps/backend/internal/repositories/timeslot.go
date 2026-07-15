@@ -71,15 +71,18 @@ func (r *TimeslotRepository) FindStatusByName(name string) (*models.TimeslotStat
 }
 
 // FindBookedSlotsByMonth returns all booked timeslots for a location within a given month.
-// Uses start_time range in Bangkok timezone to match what users actually see on the calendar.
+// Filters on the `date` column (not start_time) to match FindByLocationAndDate/
+// LockOverlapping in this file — date is what actually determines which
+// calendar cell a booking belongs to, and doesn't depend on start_time's date
+// component staying in sync with it.
 func (r *TimeslotRepository) FindBookedSlotsByMonth(locationID uint, year, month int) ([]models.Timeslots, error) {
 	bkk, _ := time.LoadLocation("Asia/Bangkok")
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, bkk)
 	end := start.AddDate(0, 1, 0)
 	var slots []models.Timeslots
 	err := r.db.
-		Where("location_id = ? AND start_time >= ? AND start_time < ? AND booking_id IS NOT NULL",
-			locationID, start, end).
+		Where("location_id = ? AND date >= ? AND date < ? AND booking_id IS NOT NULL",
+			locationID, start.Format("2006-01-02"), end.Format("2006-01-02")).
 		Find(&slots).Error
 	return slots, err
 }
