@@ -1,11 +1,18 @@
 package dto
 
+// ระบบคำร้องและสื่อสารกับเจ้าหน้้าที่
+
 type CreateRequestDTO struct {
+	// --- ข้อมูลฟอร์มหลัก (ซ้าย) ---
 	Title         string   `json:"title" binding:"required"`
 	Description   string   `json:"description" binding:"required"`
-	Location      string   `json:"location" binding:"required"`
 	RequestTypeID uint     `json:"request_type_id" binding:"required"`
-	EvidenceUrls  []string `json:"evidence_urls"`
+
+	// --- ข้อมูลติดต่อและรายละเอียดเพิ่มเติม (ขวา) ---
+	ContactInfo   string   `json:"contact_info" binding:"required"` // รองรับอีเมล/เบอร์โทรศัพท์ตามหน้าจอ
+	Location      string   `json:"location" binding:"required"`     // ในหน้าจอล่าสุดปรับเป็น REQUIRED แล้ว
+	IncidentDate  *string  `json:"incident_date"`                   // OPTIONAL (ใช้ pointer เพื่อให้รองรับค่า null ได้)
+	EvidenceUrls  []string `json:"evidence_urls"`                   // อาเรย์เก็บ URL ของไฟล์แนบประกอบ
 }
 
 type AssignWorkDTO struct {
@@ -52,4 +59,10 @@ type ActionHistoryReportDTO struct {
 	Status    string `json:"status"`
 	Detail    string `json:"detail"`
 	Time      string `json:"time"`
+}
+
+type UpdateRequestStatusDTO struct {
+	Status  string `json:"status" binding:"required"`
+	StaffID *uint  `json:"staff_id"`
+	Detail  string `json:"detail"`
 }

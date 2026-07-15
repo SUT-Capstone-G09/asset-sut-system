@@ -1,14 +1,15 @@
 import { Suspense } from 'react';
-import { mockLocations } from '@/features/areas/data/locations';
-import AreasBanner from "@/features/areas/components/public/AreasBanner";
-import AreasAbout from "@/features/areas/components/public/AreasAbout";
-import AreasList from "@/features/areas/components/public/AreasList";
-import AreasMapSection from "@/features/areas/components/public/AreasMapSection";
+import { mockLocations } from '@/features/space-rental/data/mock-rental-spaces';
+import { RentalSpace } from "@/features/space-rental/types/rental-space";
+import AreasBanner from "@/features/space-rental/components/public/AreasBanner";
+import AreasAbout from "@/features/space-rental/components/public/AreasAbout";
+import AreasList from "@/features/space-rental/components/public/AreasList";
+import AreasMapSection from "@/features/space-rental/components/public/AreasMapSection";
 import Footer from "@/components/layout/footer";
 import PageContainer from "@/components/layout/PageContainer";
 
 export default function AreasPage() {
-  const categories = Array.from(new Set(mockLocations.map(loc => loc.category)));
+  const categories = Array.from(new Set((mockLocations as RentalSpace[]).map(loc => loc.area))) as string[];
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -41,3 +42,4 @@ export default function AreasPage() {
     </div>
   );
 }
+

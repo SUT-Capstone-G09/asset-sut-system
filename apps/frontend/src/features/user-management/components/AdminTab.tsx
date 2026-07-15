@@ -43,7 +43,7 @@ export default function AdminTab() {
           />
         </div>
         <Button onClick={openCreate} className="h-9 bg-brand-primary hover:bg-brand-primary/90 text-white text-sm rounded-xl gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> เพิ่ม Admin
+          <Plus className="w-4 h-4" /> เพิ่ม เจ้าหน้าที่บริหารส่วนสินทรัพย์
         </Button>
       </div>
 
@@ -59,7 +59,7 @@ export default function AdminTab() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-gray-400">
           <ShieldCheck className="w-10 h-10 mb-3 opacity-30" />
-          <p className="text-sm">{search ? "ไม่พบผลการค้นหา" : "ยังไม่มี Admin"}</p>
+          <p className="text-sm">{search ? "ไม่พบผลการค้นหา" : "ยังไม่มี เจ้าหน้าที่บริหารส่วนสินทรัพย์"}</p>
         </div>
       ) : (
         <div className="space-y-2">

@@ -3,6 +3,7 @@ package models
 var AllEntities = []any{
 	// User management
 	&Users{},
+	&Profiles{},
 	&RequesterTypes{},
 	&Profiles{},
 	&Roles{},
@@ -24,11 +25,12 @@ var AllEntities = []any{
 	&LocationPricingTiers{},
 	&HallFloorPlans{},
 
-	// Area
+	// Commercial Leasing / Area
+	&BuildingTypes{},
 	&Buildings{},
-	&Areas{},
-	&AreaImages{},
-	&AreaTags{},
+	&RentalSpaces{},
+	&RentalSpaceImages{},
+	&RentalSpaceTags{},
 	&FloorPlans{},
 	&MapLayers{},
 	&MapElements{},
@@ -58,6 +60,12 @@ var AllEntities = []any{
 	&EmailBroadcast{},
 	&EmailOutbox{},
 
+	// Requests
+	&Requests{},
+	&ActionHistories{},
+	&RequestTypes{},
+	&ChatMessage{},
+	&RequestStatus{},
 	// Tenant
 	&TenantProfiles{},
 	&TenantContacts{},

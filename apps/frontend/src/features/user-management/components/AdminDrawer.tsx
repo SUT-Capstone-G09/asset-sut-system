@@ -58,8 +58,8 @@ export default function AdminDrawer({ open, onClose, onSuccess, admin }: Props) 
       <div className={`fixed right-0 top-0 h-screen w-full max-w-md bg-white shadow-2xl z-[200] flex flex-col transition-transform duration-300 ease-out ${open ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h2 className="text-base font-bold text-gray-900">{isEdit ? "แก้ไขข้อมูล Admin" : "เพิ่ม Admin ใหม่"}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? admin?.email : "Admin มีสิทธิ์เต็มรูปแบบในระบบ"}</p>
+            <h2 className="text-base font-bold text-gray-900">{isEdit ? "แก้ไขข้อมูล เจ้าหน้าที่บริหารส่วนสินทรัพย์" : "เพิ่ม เจ้าหน้าที่บริหารส่วนสินทรัพย์ ใหม่"}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? admin?.email : "เจ้าหน้าที่บริหารส่วนสินทรัพย์ มีสิทธิ์เต็มรูปแบบในระบบ"}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -113,7 +113,7 @@ export default function AdminDrawer({ open, onClose, onSuccess, admin }: Props) 
 
             <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
               <p className="text-xs text-amber-700 leading-relaxed">
-                <span className="font-semibold">หมายเหตุ:</span> Admin ทุกคนมีสิทธิ์เท่ากัน สามารถจัดการผู้ใช้งานและกำหนดสิทธิ์ Staff ได้ทั้งหมด
+                <span className="font-semibold">หมายเหตุ:</span> เจ้าหน้าที่บริหารส่วนสินทรัพย์ ทุกคนมีสิทธิ์เท่ากัน สามารถจัดการผู้ใช้งานและกำหนดสิทธิ์ เจ้าหน้าที่ประจำสถานที่ ได้ทั้งหมด
               </p>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function AdminDrawer({ open, onClose, onSuccess, admin }: Props) 
           <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex gap-3">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-10 rounded-xl">ยกเลิก</Button>
             <Button type="submit" disabled={loading} className="flex-1 h-10 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? "บันทึก" : "เพิ่ม Admin"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? "บันทึก" : "บันทึก"}
             </Button>
           </div>
         </form>

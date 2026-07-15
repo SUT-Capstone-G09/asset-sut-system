@@ -6,7 +6,18 @@ export interface EvaluationRecord {
   id: string;
   storeName: string;
   location: string;
-  category: 'food' | 'drink' | 'snack';
+  category:
+    | "cafe_drink_snack"
+    | "convenience_store"
+    | "vending_machine"
+    | "laundromat"
+    | "atm"
+    | "telecom_network"
+    | "it_equipment"
+    | "public_relations_sign"
+    | "copier_printer"
+    | "space_utilization"
+    | "canteen";
   score: number;
   maxScore: number;
   status: EvalStatus;

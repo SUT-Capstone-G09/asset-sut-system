@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { mockBuildings } from "@/features/space-rental/data/mock-buildings";
+import { mockLocations } from "@/features/space-rental/data/mock-rental-spaces";
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "แดชบอร์ด",
@@ -23,16 +25,23 @@ const SEGMENT_LABELS: Record<string, string> = {
   verify: "ตรวจสอบ",
   "access-setting": "ตั้งค่าสิทธิ์",
   "news-management": "จัดการข่าวสาร",
+  "requests": "คำร้องขอ",
+  "manage-requests": "รายละเอียดคำร้อง",
   create: "สร้างใหม่",
   finance: "การเงิน",
   invoices: "ใบแจ้งหนี้",
   envelop: "ใบเสร็จ",
   tenants: "ผู้เช่า",
   eval: "ประเมิน",
+  categories: "หมวดหมู่",
   form: "แบบฟอร์ม",
   lists: "รายการ",
   classroom: "ห้องเรียน",
   meeting: "ห้องประชุม",
+  "space-rental": "พื้นที่เช่า & ร้านค้า",
+  type: "ประเภทพื้นที่",
+  building: "อาคาร",
+  space: "ยูนิตพื้นที่",
   expenses: "ค่าใช้จ่าย",
 };
 
@@ -61,16 +70,29 @@ function formatDynamic(seg: string, parent: string) {
   if (parent === "my-bookings" || parent === "payment") return `#BK-${seg}`;
   if (parent === "bookings") return `ห้อง #${seg}`;
   if (parent === "lists") return `พื้นที่ #${seg}`;
+  if (parent === "building") {
+    const b = mockBuildings.find((item) => String(item.id) === seg);
+    return b ? b.name : `อาคาร #${seg}`;
+  }
   return `#${seg}`;
 }
 
 function segmentLabel(seg: string, parent: string) {
-  if (/^\d+$/.test(seg)) return formatDynamic(seg, parent);
-  return SEGMENT_LABELS[seg] ?? seg;
+  const decodedSeg = decodeURIComponent(seg);
+  const decodedParent = decodeURIComponent(parent);
+  
+  if (decodedParent === "space") {
+    const s = mockLocations.find((item) => item.id === decodedSeg);
+    return s ? s.name : decodedSeg;
+  }
+
+  if (/^\d+$/.test(decodedSeg)) return formatDynamic(decodedSeg, decodedParent);
+  return SEGMENT_LABELS[decodedSeg] ?? decodedSeg;
 }
 
 function labelForPath(pathname: string): string {
-  const segs = pathname.split("/").filter(Boolean);
+  const decodedPathname = decodeURIComponent(pathname);
+  const segs = decodedPathname.split("/").filter(Boolean);
   if (!segs.length) return "หน้าหลัก";
   const last = segs[segs.length - 1];
   const parent = segs[segs.length - 2] ?? "";
@@ -79,10 +101,16 @@ function labelForPath(pathname: string): string {
 
 function buildUrlCrumbs(pathname: string): Crumb[] {
   const segs = pathname.split("/").filter(Boolean);
-  return segs.map((seg, i) => ({
-    href: "/" + segs.slice(0, i + 1).join("/"),
-    label: segmentLabel(seg, segs[i - 1] ?? ""),
-  }));
+  return segs.map((seg, i) => {
+    let href = "/" + segs.slice(0, i + 1).join("/");
+    if (href === "/admin") {
+      href = "/admin/dashboard";
+    }
+    return {
+      href,
+      label: segmentLabel(seg, segs[i - 1] ?? ""),
+    };
+  });
 }
 
 function computeNext(newPath: string, history: Crumb[]): Crumb[] {

@@ -21,8 +21,8 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
-import { PaymentTransactionDTO, verifyPayment, getPaymentStatuses } from "@/features/payment/services/payment.service";
+import ImageUpload from "@/components/ui/image-upload";
+import { PaymentTransactionDTO, verifyPayment } from "@/features/payment/services/payment.service";
 import { getBookingById, BookingResponseDTO } from "@/features/bookings/services/booking.service";
 import { getDocumentById, createDocument, DocumentDTO } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
@@ -49,17 +49,6 @@ export default function AdminPaymentVerificationModal({
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
-  const [statusIds, setStatusIds] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    getPaymentStatuses()
-      .then((statuses) => {
-        const map: Record<string, number> = {};
-        statuses.forEach((s) => { map[s.status] = s.id; });
-        setStatusIds(map);
-      })
-      .catch((error) => console.error("Failed to load payment statuses", error));
-  }, []);
 
   useEffect(() => {
     if (open && payment) {
@@ -103,24 +92,19 @@ export default function AdminPaymentVerificationModal({
     }
   };
 
-  const handleVerify = async (statusName: "confirmed" | "rejected") => {
+  const handleVerify = async (statusId: number) => {
     if (!payment) return;
-    const statusId = statusIds[statusName];
-    if (!statusId) {
-      console.error(`Payment status "${statusName}" not found`);
-      return;
-    }
     setActioning(true);
     try {
       await verifyPayment(payment.id, { status_id: statusId });
       onVerified();
-      // Optional: don't close immediately if confirmed, so they can upload receipt
-      if (statusName === "rejected") {
+      // Optional: don't close immediately if approved, so they can upload receipt
+      if (statusId === 3) {
         onClose(); // Close if rejected
       } else {
-        // If confirmed, update local state to show receipt upload section
-        payment.status = "confirmed";
-        payment.status_id = statusId;
+        // If approved, update local state to show receipt upload section
+        payment.status = "approved";
+        payment.status_id = 2;
       }
     } catch (error) {
       console.error("Failed to verify payment", error);
@@ -164,11 +148,8 @@ export default function AdminPaymentVerificationModal({
 
   if (!open) return null;
 
-  // "pending" is the legacy manual-payment state; "slip_uploaded"/"auto_verified"/
-  // "mismatch" are the EasySlip auto-verify flow's non-terminal states — all of
-  // them still need a staff confirm/reject action. "confirmed"/"rejected" are terminal.
-  const isPending = !!payment && !["confirmed", "rejected"].includes(payment.status);
-  const isApproved = payment?.status === "confirmed";
+  const isPending = payment?.status === "pending";
+  const isApproved = payment?.status === "approved";
 
   return (
     <>
@@ -510,14 +491,14 @@ export default function AdminPaymentVerificationModal({
                       <Button
                         variant="ghost"
                         disabled={actioning}
-                        onClick={() => handleVerify("rejected")}
+                        onClick={() => handleVerify(3)}
                         className="flex-1 h-11 rounded-lg font-bold text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer border border-red-200/50 disabled:opacity-50"
                       >
                         {actioning ? <Loader2 size={14} className="animate-spin" /> : "ปฏิเสธสลิปนี้"}
                       </Button>
                       <Button
                         disabled={actioning}
-                        onClick={() => handleVerify("confirmed")}
+                        onClick={() => handleVerify(2)}
                         className="flex-1 h-11 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/10 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                       >
                         {actioning ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.5} />}

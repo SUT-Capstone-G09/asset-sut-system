@@ -3,9 +3,11 @@
 import { MapContainer as LeafletMap, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { useRouter } from 'next/navigation';
-import { Location } from '@/features/areas/types/location';
+import { RentalSpace } from '@/features/space-rental/types/rental-space';
 import { MapPin } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
+import { useEffect, useRef } from 'react';
+import { getCategoryIcon } from '@/utils/commercial-category-icons';
 
 const customIcon = L.divIcon({
   html: renderToString(
@@ -20,11 +22,92 @@ const customIcon = L.divIcon({
 });
 
 interface MapContainerProps {
-  locations: Location[];
+  locations: RentalSpace[];
+  hoveredId?: string | null;
+  onHoveredIdChange?: (id: string | null) => void;
 }
 
-export default function MapContainer({ locations }: MapContainerProps) {
-  const router = useRouter()
+export default function MapContainer({
+  locations,
+  hoveredId,
+  onHoveredIdChange,
+}: MapContainerProps) {
+  const router = useRouter();
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync hoveredId from parent to open/close popups programmatically
+  useEffect(() => {
+    if (hoveredId) {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      const marker = markerRefs.current[hoveredId];
+      if (marker) {
+        marker.openPopup();
+      }
+    } else {
+      // Don't close immediately if we are in the middle of a transition timeout
+      if (!closeTimeoutRef.current) {
+        Object.values(markerRefs.current).forEach((marker) => {
+          if (marker && marker.isPopupOpen()) {
+            marker.closePopup();
+          }
+        });
+      }
+    }
+  }, [hoveredId]);
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseOverMarker = (id: string) => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    onHoveredIdChange?.(id);
+  };
+
+  const handleMouseOutMarker = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      onHoveredIdChange?.(null);
+      // Programmatically close popup
+      Object.values(markerRefs.current).forEach((marker) => {
+        if (marker && marker.isPopupOpen()) {
+          marker.closePopup();
+        }
+      });
+    }, 300); // 300ms buffer to move mouse into popup
+  };
+
+  const handleMouseEnterPopup = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseLeavePopup = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      onHoveredIdChange?.(null);
+      // Programmatically close popup
+      Object.values(markerRefs.current).forEach((marker) => {
+        if (marker && marker.isPopupOpen()) {
+          marker.closePopup();
+        }
+      });
+    }, 200);
+  };
 
   return (
     <LeafletMap
@@ -47,40 +130,85 @@ export default function MapContainer({ locations }: MapContainerProps) {
 
       <ZoomControl position="bottomright" />
 
-      {locations.map((loc) => (
-        <Marker
-          key={loc.id}
-          position={loc.coordinates}
-          icon={customIcon}
+      {locations
+        .filter((loc) => !!loc.coordinates)
+        .map((loc) => (
+          <Marker
+            key={loc.id}
+            position={loc.coordinates as [number, number]}
+            icon={customIcon}
+          riseOnHover={true}
+          ref={(el) => {
+            if (el) {
+              markerRefs.current[loc.id] = el;
+            } else {
+              delete markerRefs.current[loc.id];
+            }
+          }}
           eventHandlers={{
-            click: (e) => {
-              e.target.openPopup();
+            click: () => {
+              router.push(`/areas/${loc.id}`);
             },
-            mouseover: (e) => {
-              e.target.openPopup();
+            mouseover: () => {
+              handleMouseOverMarker(loc.id);
+            },
+            mouseout: () => {
+              handleMouseOutMarker();
             },
           }}
         >
-          <Popup className="custom-popup">
-            <div className="w-44 overflow-hidden rounded-t-[4px]">
-              {/* Row 1: Small Image (top) */}
-              <div className="h-16 w-full overflow-hidden">
+          <Popup
+            className="custom-popup"
+            closeButton={false}
+            autoPan={false}
+            offset={[0, -10]}
+          >
+            <div 
+              onClick={() => router.push(`/areas/${loc.id}`)}
+              onMouseEnter={handleMouseEnterPopup}
+              onMouseLeave={handleMouseLeavePopup}
+              className="w-56 p-2 bg-white hover:bg-slate-50/80 transition-colors flex gap-2.5 font-sans cursor-pointer select-none"
+            >
+              {/* Thumbnail Image */}
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 shrink-0 shadow-sm border border-slate-100">
                 <img
                   src={loc.image}
                   alt={loc.name}
                   className="w-full h-full object-cover"
                 />
               </div>
-              
-              {/* Row 2: Text Details */}
-              <div className="p-2.5">
-                  <h3 className="font-bold text-gray-900 text-xs leading-snug">
+
+              {/* Text Info */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                <div>
+                  {/* Category Badge */}
+                  <div className="flex mb-1">
+                    {(() => {
+                      const CategoryIcon = getCategoryIcon(loc.area);
+                      return (
+                        <span className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-bold bg-brand-primary/8 text-brand-primary">
+                          <CategoryIcon size={8} />
+                          {loc.area}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  {/* Name */}
+                  <h4 className="font-extrabold text-gray-900 text-[11px] leading-snug line-clamp-2">
                     {loc.name}
-                  </h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {loc.category}
-                  </p>
+                  </h4>
+                  {loc.building && (
+                    <p className="text-[9px] text-gray-400 font-medium truncate mt-0.5">
+                      {loc.building}
+                    </p>
+                  )}
                 </div>
+
+                {/* Click instruction */}
+                <div className="text-[8px] text-brand-primary font-bold flex items-center gap-0.5 mt-1">
+                  คลิกดูรายละเอียดพื้นที่ →
+                </div>
+              </div>
             </div>
           </Popup>
         </Marker>

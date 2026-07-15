@@ -37,12 +37,12 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
 
   return (
     <div className="lg:col-span-7">
-      <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 shadow-sm border border-slate-100 h-full relative overflow-hidden">
+      <div className="bg-white rounded-md p-8 lg:p-10 shadow-sm border border-slate-100 h-full relative overflow-hidden">
         {/* Overlay if not logged in */}
         {mounted && !user && (
           <div className="absolute inset-0 bg-slate-50/80 backdrop-blur-[6px] z-10 flex flex-col items-center justify-center p-6 text-center">
-            <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm border border-slate-100 space-y-4">
-              <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto">
+            <div className="bg-white p-8 rounded-md shadow-xl max-w-sm border border-slate-100 space-y-4">
+              <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-md flex items-center justify-center mx-auto">
                 <MessageSquareText size={32} />
               </div>
               <div className="space-y-1">
@@ -53,7 +53,7 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
               </div>
               <button
                 onClick={() => router.push('/login')}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-orange-200 cursor-pointer"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-md transition-all shadow-lg shadow-orange-200 cursor-pointer"
               >
                 เข้าสู่ระบบเพื่อติดต่อเรา
               </button>
@@ -78,7 +78,7 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
               />
             </div>
             <div>
@@ -88,7 +88,7 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
               />
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
               required
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+              className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
             />
           </div>
 
@@ -113,7 +113,7 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
               required
               value={formData.subject}
               onChange={(e) => setFormData({...formData, subject: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+              className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
             />
           </div>
 
@@ -125,14 +125,14 @@ export default function ContactInquiryForm({ mounted }: ContactInquiryFormProps)
               required
               value={formData.detail}
               onChange={(e) => setFormData({...formData, detail: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none"
+              className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none"
             />
           </div>
 
           {/* Submit Button */}
           <button 
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-200 transition-all active:scale-[0.99] flex items-center justify-center space-x-2"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-md shadow-lg shadow-orange-200 transition-all active:scale-[0.99] flex items-center justify-center space-x-2"
           >
             <span>ส่งข้อความ</span>
             <Send size={16} className="transform rotate-45" />

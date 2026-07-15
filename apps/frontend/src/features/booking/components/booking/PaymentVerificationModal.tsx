@@ -27,7 +27,7 @@ import {
   Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import { addonService, Addon } from "@/lib/services/addon.service";
 
 interface PaymentVerificationModalProps {
@@ -711,3 +711,4 @@ export default function PaymentVerificationModal({
     </>
   );
 }
+

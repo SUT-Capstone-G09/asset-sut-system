@@ -41,7 +41,6 @@ func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
 		res = append(res, dto.BuildingResponse{
 			ID:        b.ID,
 			Name:      b.Name,
-			Code:      b.Code,
 			CreatedAt: b.CreatedAt,
 			UpdatedAt: b.UpdatedAt,
 		})
