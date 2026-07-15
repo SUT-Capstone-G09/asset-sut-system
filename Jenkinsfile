@@ -17,8 +17,9 @@ pipeline {
         BE_CONTAINER = 'be-container'
 
         // Path
-        FRONTENDPATH = 'apps/frontend' // Path to your frontend code
-        BACKENDPATH = 'apps/backend' // Path to your backend code
+        REPO_PATH = "${env.WORKSPACE}/${GITHUB_REPO}" // Path to your cloned repository
+        FRONTEND_PATH = '${REPO_PATH}/apps/frontend' // Path to your frontend code
+        BACKEND_PATH = '${REPO_PATH}/apps/backend' // Path to your backend code
     }
 
     stages {
