@@ -60,6 +60,9 @@ pipeline {
                     steps {
                         echo 'Building Backend...'
                         dir("${env.BACKEND_PATH}") {
+                            withCredentials([file(credentialsId: 'asset-sut-env-file', variable: 'ENV_FILE')]) {
+                                sh 'cp $ENV_FILE .env'
+                            }
                             sh 'pwd && ls -la'
                             sh 'docker build -t $BE_IMAGE:$IMAGE_TAG .'
                         }

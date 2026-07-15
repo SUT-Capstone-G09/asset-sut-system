@@ -19,6 +19,6 @@ COPY --from=builder /app/server .
 COPY --from=builder /app/init-db .
 COPY --from=builder /app/cmd/init-db/seed_data ./cmd/init-db/seed_data
 
-EXPOSE 9000
+EXPOSE 8000
 
 CMD ["./server"]
