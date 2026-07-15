@@ -5,6 +5,7 @@ pipeline {
         // Define any environment variables here
         // Githib
         GITHUB_REPO = 'asset-sut-system'
+        GITHUB_ORG = 'SUT-Capstone-G09'  // Replace with your GitHub organization or username
 
         // Docker
         DOCKER_REPO = 'asset-sut-system'
