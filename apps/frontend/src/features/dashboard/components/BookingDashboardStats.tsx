@@ -15,9 +15,9 @@ export function BookingDashboardStats({ bookings }: BookingDashboardStatsProps) 
   // 2. Total Users (unique users)
   const uniqueUsers = new Set(bookings.map((b) => b.user_id)).size;
 
-  // 3. Revenue (only completed or approved)
+  // 3. Revenue (only completed bookings)
   const revenue = bookings
-    .filter((b) => b.status === "completed" || b.status === "approved")
+    .filter((b) => b.status === "completed")
     .reduce((sum, b) => sum + b.total_price, 0);
 
   // 4. Occupancy Rate (Mock logic for now: (Total Bookings / 100) * 100 capped at 100%)

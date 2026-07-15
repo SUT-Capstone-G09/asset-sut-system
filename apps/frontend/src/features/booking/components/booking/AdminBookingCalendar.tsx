@@ -122,10 +122,7 @@ export default function AdminBookingCalendar() {
   // Filtered Bookings for the calendar display
   const calendarBookings = useMemo(() => {
     return bookings.filter((b) => {
-      // 1. Exclude bookings that are rejected
-      if (b.status === "rejected") return false;
-
-      // 2. Exclude bookings for rooms that are under maintenance
+      // 1. Exclude bookings for rooms that are under maintenance
       const loc = locations.find((l) => String(l.room_number) === b.roomNumber && l.building === b.building);
       if (loc?.status?.toLowerCase() === "maintenance") return false;
 
@@ -139,7 +136,12 @@ export default function AdminBookingCalendar() {
   // Statistics
   const todayBookingsCount = useMemo(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
-    return calendarBookings.filter((b) => b.date === todayStr).length;
+    return calendarBookings.filter((b) => {
+      if (b.rawTimeslots && b.rawTimeslots.length > 0) {
+        return b.rawTimeslots.some((ts: any) => ts.date.startsWith(todayStr));
+      }
+      return b.rawDate?.startsWith(todayStr);
+    }).length;
   }, [calendarBookings]);
 
   const pendingBookingsCount = useMemo(() => {
@@ -484,7 +486,12 @@ export default function AdminBookingCalendar() {
             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
             // Find bookings for this day
-            const dayBookings = calendarBookings.filter((b) => b.date === dateStr);
+            const dayBookings = calendarBookings.filter((b) => {
+              if (b.rawTimeslots && b.rawTimeslots.length > 0) {
+                return b.rawTimeslots.some((ts: any) => ts.date.startsWith(dateStr));
+              }
+              return b.rawDate?.startsWith(dateStr);
+            });
 
             return (
               <div 
@@ -571,6 +578,10 @@ export default function AdminBookingCalendar() {
           <div className="flex items-center gap-2">
             <span className="size-3 rounded-full bg-amber-400 border border-amber-500/10 shadow-sm" />
             <span>รออนุมัติ (Pending)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded-full bg-red-600 border border-red-700/10 shadow-sm" />
+            <span>ปฏิเสธ (Rejected)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="size-3 rounded-full bg-red-400 border border-red-500/10 shadow-sm" />

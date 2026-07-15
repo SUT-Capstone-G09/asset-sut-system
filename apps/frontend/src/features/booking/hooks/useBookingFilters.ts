@@ -25,7 +25,11 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
   const locId = firstSlot?.location_id;
   const loc = locId ? locationsMap.get(locId) : undefined;
 
-  const date = firstSlot ? new Date(firstSlot.date).toISOString().split("T")[0] : "";
+  // Format date as Thai พ.ศ.
+  const formatThaiDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+
+  const date = firstSlot ? formatThaiDate(firstSlot.date) : "";
   const startTime = firstSlot
     ? new Date(firstSlot.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false })
     : "";
@@ -69,11 +73,13 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     requesterType: (b.requester_type as any) || "student",
     purpose: b.purpose,
     date,
+    rawDate: firstSlot ? firstSlot.date : "",
+    rawTimeslots: b.timeslots || [],
     timeSlot,
     status,
     attendees: loc?.capacity ?? 1,
     image: loc?.image_url ?? firstSlot?.location_image ?? "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-    createdAt: new Date(b.created_at).toLocaleDateString("th-TH") + " " + new Date(b.created_at).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.",
+    createdAt: new Date(b.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) + " " + new Date(b.created_at).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.",
     notes: "",
     contactPhone: b.contact_phone || "—",
     contactEmail: b.contact_email || "—",
@@ -85,7 +91,7 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
       amount: addon.total_price,
     })),
     timeslots: (b.timeslots || []).map((ts) => {
-      const tsDate = new Date(ts.date).toISOString().split("T")[0];
+      const tsDate = new Date(ts.date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
       const tsStart = new Date(ts.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
       const tsEnd = new Date(ts.end_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
       return {

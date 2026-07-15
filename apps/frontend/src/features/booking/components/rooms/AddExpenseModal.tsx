@@ -86,7 +86,7 @@ export default function AddExpenseModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent 
         showCloseButton={false}
         className="w-full max-w-[480px] sm:max-w-[480px] transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 p-8 rounded-xl bg-white border-none shadow-2xl flex flex-col gap-6"

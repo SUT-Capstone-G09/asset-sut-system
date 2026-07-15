@@ -13,7 +13,7 @@ import (
 func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, error) {
 	var locs []models.Locations
 	err := r.db.
-		Joins("JOIN staff_locations sl ON sl.location_id = locations.id").
+		Joins("JOIN staff_locations sl ON sl.building_id = locations.building_id").
 		Where("sl.user_id = ?", staffID).
 		Preload("Type").
 		Preload("Status").
@@ -24,40 +24,49 @@ func (r *LocationRepository) FindByStaffID(staffID uint) ([]models.Locations, er
 	return locs, err
 }
 
-func (r *LocationRepository) FindStaffByLocationID(locationID uint) ([]models.StaffLocations, error) {
+func (r *LocationRepository) FindBuildingsByStaffID(staffID uint) ([]models.Buildings, error) {
+	var buildings []models.Buildings
+	err := r.db.
+		Joins("JOIN staff_locations sl ON sl.building_id = buildings.id").
+		Where("sl.user_id = ?", staffID).
+		Find(&buildings).Error
+	return buildings, err
+}
+
+func (r *LocationRepository) FindStaffByBuildingID(buildingID uint) ([]models.StaffLocations, error) {
 	var items []models.StaffLocations
 	err := r.db.
-		Where("location_id = ?", locationID).
+		Where("building_id = ?", buildingID).
 		Preload("User.Profiles").
 		Find(&items).Error
 	return items, err
 }
 
-func (r *LocationRepository) AssignStaff(sl *models.StaffLocations) error {
-	return r.db.Where(models.StaffLocations{UserID: sl.UserID, LocationID: sl.LocationID}).
+func (r *LocationRepository) AssignStaffBuilding(sl *models.StaffLocations) error {
+	return r.db.Where(models.StaffLocations{UserID: sl.UserID, BuildingID: sl.BuildingID}).
 		FirstOrCreate(sl).Error
 }
 
-func (r *LocationRepository) UnassignStaff(staffID, locationID uint) error {
-	return r.db.Where("user_id = ? AND location_id = ?", staffID, locationID).
+func (r *LocationRepository) UnassignStaffBuilding(staffID, buildingID uint) error {
+	return r.db.Where("user_id = ? AND building_id = ?", staffID, buildingID).
 		Delete(&models.StaffLocations{}).Error
 }
 
-func (r *LocationRepository) IsStaffAssigned(staffID, locationID uint) (bool, error) {
+func (r *LocationRepository) IsStaffAssignedToBuilding(staffID, buildingID uint) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.StaffLocations{}).
-		Where("user_id = ? AND location_id = ?", staffID, locationID).
+		Where("user_id = ? AND building_id = ?", staffID, buildingID).
 		Count(&count).Error
 	return count > 0, err
 }
 
-func (r *LocationRepository) SetStaffLocations(staffID uint, locationIDs []uint) error {
+func (r *LocationRepository) SetStaffBuildings(staffID uint, buildingIDs []uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", staffID).Delete(&models.StaffLocations{}).Error; err != nil {
 			return err
 		}
-		for _, locID := range locationIDs {
-			sl := models.StaffLocations{UserID: staffID, LocationID: locID}
+		for _, bldID := range buildingIDs {
+			sl := models.StaffLocations{UserID: staffID, BuildingID: bldID}
 			if err := tx.Create(&sl).Error; err != nil {
 				return err
 			}

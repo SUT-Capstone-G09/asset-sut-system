@@ -164,7 +164,7 @@ type PricingTierResponse struct {
 
 type StaffLocationResponse struct {
 	UserID     uint   `json:"user_id"`
-	LocationID uint   `json:"location_id"`
+	BuildingID uint   `json:"building_id"`
 	FirstName  string `json:"first_name"`
 	LastName   string `json:"last_name"`
 	Email      string `json:"email"`
@@ -174,8 +174,13 @@ type AssignStaffRequest struct {
 	UserID uint `json:"user_id" binding:"required"`
 }
 
-type AssignStaffLocationsRequest struct {
-	LocationIDs []uint `json:"location_ids"`
+type AssignStaffBuildingsRequest struct {
+	BuildingIDs []uint `json:"building_ids"`
+}
+
+type StaffBuildingResponse struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
 }
 
 // ── Availability ────────────────────────────────────────────────────────────

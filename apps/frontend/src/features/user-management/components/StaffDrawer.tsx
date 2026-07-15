@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createStaff, updateStaff, assignStaffPermissions } from "../services/user-management.service";
-import { getLocations, getStaffLocations, setStaffLocations } from "@/features/booking/services/locationService";
-import type { AdminLocationDTO } from "@/features/booking/services/locationService";
+import { getBuildings, getStaffBuildings, setStaffBuildings } from "@/features/booking/services/locationService";
+import type { BuildingDTO } from "@/features/booking/services/locationService";
 import type { StaffUser, Permission } from "../types";
 import PermissionCheckboxes from "./PermissionCheckboxes";
 
@@ -24,8 +24,8 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "", password: "", phone: "", line_id: "" });
   const [showPass, setShowPass] = useState(false);
   const [selectedPerms, setSelectedPerms] = useState<number[]>([]);
-  const [allLocations, setAllLocations] = useState<AdminLocationDTO[]>([]);
-  const [selectedLocationIds, setSelectedLocationIds] = useState<number[]>([]);
+  const [allBuildings, setAllBuildings] = useState<BuildingDTO[]>([]);
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [locLoading, setLocLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,28 +34,28 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
     if (open) {
       setError("");
       setLocLoading(true);
-      getLocations()
-        .then((locs) => setAllLocations(locs ?? []))
-        .catch(() => setAllLocations([]))
+      getBuildings()
+        .then((blds) => setAllBuildings(blds ?? []))
+        .catch(() => setAllBuildings([]))
         .finally(() => setLocLoading(false));
 
       if (staff) {
         setForm({ first_name: staff.first_name, last_name: staff.last_name, email: staff.email, password: "", phone: staff.phone ?? "", line_id: staff.line_id ?? "" });
         setSelectedPerms(staff.permissions?.map((p) => p.id) ?? []);
-        // Load currently assigned locations for this staff
-        getStaffLocations(staff.id)
-          .then((locs) => setSelectedLocationIds(locs.map((l) => l.id)))
-          .catch(() => setSelectedLocationIds([]));
+        // Load currently assigned buildings for this staff
+        getStaffBuildings(staff.id)
+          .then((blds) => setSelectedBuildingIds(blds.map((b) => b.id)))
+          .catch(() => setSelectedBuildingIds([]));
       } else {
         setForm({ first_name: "", last_name: "", email: "", password: "", phone: "", line_id: "" });
         setSelectedPerms([]);
-        setSelectedLocationIds([]);
+        setSelectedBuildingIds([]);
       }
     }
   }, [open, staff]);
 
-  const toggleLocation = (id: number) => {
-    setSelectedLocationIds((prev) =>
+  const toggleBuilding = (id: number) => {
+    setSelectedBuildingIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
@@ -67,11 +67,11 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
       if (isEdit && staff) {
         await updateStaff(staff.id, { first_name: form.first_name, last_name: form.last_name, phone: form.phone, line_id: form.line_id });
         await assignStaffPermissions(staff.id, selectedPerms);
-        await setStaffLocations(staff.id, selectedLocationIds);
+        await setStaffBuildings(staff.id, selectedBuildingIds);
       } else {
         const created = await createStaff({ ...form });
         await assignStaffPermissions(created.id, selectedPerms);
-        await setStaffLocations(created.id, selectedLocationIds);
+        await setStaffBuildings(created.id, selectedBuildingIds);
       }
       onSuccess();
       onClose();
@@ -164,11 +164,11 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
               <PermissionCheckboxes permissions={allPermissions} selected={selectedPerms} onChange={setSelectedPerms} />
             </div>
 
-            {/* Location Assignment */}
+            {/* Building Assignment */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">สิทธิ์การจัดการสถานที่</h3>
-                <span className="text-xs text-brand-primary font-medium">{selectedLocationIds.length} สถานที่ที่เลือก</span>
+                <span className="text-xs text-brand-primary font-medium">{selectedBuildingIds.length} อาคารที่เลือก</span>
               </div>
 
               {locLoading ? (
@@ -177,18 +177,18 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
                     <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
                   ))}
                 </div>
-              ) : allLocations.length === 0 ? (
+              ) : allBuildings.length === 0 ? (
                 <div className="flex flex-col items-center py-6 text-gray-400">
                   <MapPin className="w-7 h-7 mb-2 opacity-30" />
-                  <p className="text-xs">ยังไม่มีสถานที่ในระบบ</p>
+                  <p className="text-xs">ยังไม่มีอาคารในระบบ</p>
                 </div>
               ) : (
                 <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                  {allLocations.map((loc) => {
-                    const checked = selectedLocationIds.includes(loc.id);
+                  {allBuildings.map((bld) => {
+                    const checked = selectedBuildingIds.includes(bld.id);
                     return (
                       <label
-                        key={loc.id}
+                        key={bld.id}
                         className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                           checked
                             ? "border-brand-primary/30 bg-brand-primary/5"
@@ -198,23 +198,15 @@ export default function StaffDrawer({ open, onClose, onSuccess, staff, allPermis
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggleLocation(loc.id)}
+                          onChange={() => toggleBuilding(bld.id)}
                           className="accent-brand-primary w-3.5 h-3.5 shrink-0"
                         />
                         <div className="flex items-center gap-2 min-w-0">
                           <MapPin className={`w-3.5 h-3.5 shrink-0 ${checked ? "text-brand-primary" : "text-gray-400"}`} />
                           <div className="min-w-0">
-                            <p className="text-xs font-semibold text-gray-800 truncate">{loc.name}</p>
-                            {loc.building && (
-                              <p className="text-[10px] text-gray-400 truncate">{loc.building}</p>
-                            )}
+                            <p className="text-xs font-semibold text-gray-800 truncate">{bld.name}</p>
                           </div>
                         </div>
-                        <span className={`ml-auto text-[9px] font-bold uppercase tracking-wide shrink-0 px-1.5 py-0.5 rounded-md ${
-                          loc.status === "available" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
-                        }`}>
-                          {loc.status === "available" ? "ใช้งาน" : "ปิด"}
-                        </span>
                       </label>
                     );
                   })}

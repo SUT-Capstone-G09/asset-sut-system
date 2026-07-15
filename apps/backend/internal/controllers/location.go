@@ -123,12 +123,12 @@ func (c *LocationController) Delete(ctx *gin.Context) {
 // ── Staff Location Assignment ─────────────────────────────────────────────────
 
 func (c *LocationController) GetLocationStaff(ctx *gin.Context) {
-	id, err := parseID(ctx)
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	staff, err := c.locationService.GetLocationStaff(id)
+	staff, err := c.locationService.GetBuildingStaff(buildingID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
@@ -136,8 +136,8 @@ func (c *LocationController) GetLocationStaff(ctx *gin.Context) {
 	response.OK(ctx, staff)
 }
 
-func (c *LocationController) AssignStaff(ctx *gin.Context) {
-	locationID, err := parseID(ctx)
+func (c *LocationController) AssignStaffBuilding(ctx *gin.Context) {
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
@@ -147,15 +147,15 @@ func (c *LocationController) AssignStaff(ctx *gin.Context) {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := c.locationService.AssignStaff(locationID, req.UserID); err != nil {
+	if err := c.locationService.AssignStaffBuilding(buildingID, req.UserID); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "staff assigned"})
+	response.OK(ctx, gin.H{"message": "staff assigned to building"})
 }
 
-func (c *LocationController) UnassignStaff(ctx *gin.Context) {
-	locationID, err := parseID(ctx)
+func (c *LocationController) UnassignStaffBuilding(ctx *gin.Context) {
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
@@ -165,11 +165,11 @@ func (c *LocationController) UnassignStaff(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid staff user id")
 		return
 	}
-	if err := c.locationService.UnassignStaff(locationID, staffUserID); err != nil {
+	if err := c.locationService.UnassignStaffBuilding(buildingID, staffUserID); err != nil {
 		response.NotFound(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "staff unassigned"})
+	response.OK(ctx, gin.H{"message": "staff unassigned from building"})
 }
 
 func (c *LocationController) GetStaffLocations(ctx *gin.Context) {
@@ -178,12 +178,12 @@ func (c *LocationController) GetStaffLocations(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	locations, err := c.locationService.GetStaffLocations(staffUserID)
+	buildings, err := c.locationService.GetStaffBuildings(staffUserID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, locations)
+	response.OK(ctx, buildings)
 }
 
 func (c *LocationController) SetStaffLocations(ctx *gin.Context) {
@@ -192,16 +192,16 @@ func (c *LocationController) SetStaffLocations(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	var req dto.AssignStaffLocationsRequest
+	var req dto.AssignStaffBuildingsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := c.locationService.SetStaffLocations(staffUserID, req.LocationIDs); err != nil {
+	if err := c.locationService.SetStaffBuildings(staffUserID, req.BuildingIDs); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "locations updated"})
+	response.OK(ctx, gin.H{"message": "buildings updated"})
 }
 
 // ── Unavailabilities ──────────────────────────────────────────────────────────

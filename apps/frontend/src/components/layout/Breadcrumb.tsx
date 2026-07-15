@@ -20,7 +20,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   staff: "Staff Portal",
   booking: "การจอง",
   "manage-rooms": "จัดการห้อง",
-  verify: "ตรวจสอบ",
+  verify: "ตรวจสอบการชำระเงิน",
   "access-setting": "ตั้งค่าสิทธิ์",
   "news-management": "จัดการข่าวสาร",
   "requests": "คำร้องขอ",
@@ -44,6 +44,17 @@ const SEGMENT_LABELS: Record<string, string> = {
 const VALID_REFERRER_SECTIONS: Record<string, string[]> = {
   "/bookings": ["/my-bookings", "/dashboard"],
   "/payment": ["/my-bookings"],
+};
+
+// ซ่อน Path ที่ไม่มีหน้า UI จริง เพื่อไม่ให้แสดงเป็นคำคั่นตรงกลาง
+const GHOST_PATHS = new Set([
+  "/admin/payment",
+  "/admin/booking",
+]);
+
+// แทนที่ Path ที่คลิกแล้วให้วิ่งไปหน้าที่ต้องการ (เช่น คลิก "จัดการระบบ" ให้วิ่งไป "แดชบอร์ด")
+const PATH_REDIRECTS: Record<string, string> = {
+  "/admin": "/admin/dashboard",
 };
 
 const SKIP_PATHS = new Set(["/", "/login", "/contact-us"]);
@@ -162,6 +173,9 @@ export default function Breadcrumb({ className }: { className?: string }) {
 
   if (!mounted || crumbs.length === 0) return null;
 
+  // กรองเอาเฉพาะ Path ที่ไม่ใช่ Ghost Path ออกมาแสดง
+  const displayCrumbs = crumbs.filter((c) => !GHOST_PATHS.has(c.href));
+
   return (
     <nav
       aria-label="breadcrumb"
@@ -174,8 +188,10 @@ export default function Breadcrumb({ className }: { className?: string }) {
         <Home size={13} />
       </Link>
 
-      {crumbs.map((crumb, i) => {
-        const isLast = i === crumbs.length - 1;
+      {displayCrumbs.map((crumb, i) => {
+        const isLast = i === displayCrumbs.length - 1;
+        const targetHref = PATH_REDIRECTS[crumb.href] || crumb.href;
+        
         return (
           <span
             key={crumb.href + i}
@@ -187,7 +203,7 @@ export default function Breadcrumb({ className }: { className?: string }) {
               <span className="text-gray-700 font-medium">{crumb.label}</span>
             ) : (
               <Link
-                href={crumb.href}
+                href={targetHref}
                 className="text-gray-400 hover:text-brand-primary transition-colors"
               >
                 {crumb.label}

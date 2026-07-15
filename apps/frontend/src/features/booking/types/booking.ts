@@ -26,6 +26,8 @@ export interface Booking {
   requesterType: "student" | "staff" | "external";
   purpose: string;
   date: string;
+  rawDate?: string;
+  rawTimeslots?: any[];
   timeSlot: string; // e.g., "09:00 - 12:00 น."
   status: "pending" | "approved" | "rejected" | "cancelled" | "completed";
   attendees: number;

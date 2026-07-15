@@ -682,6 +682,19 @@ export default function BookingDrawer({
                 </div>
               )}
 
+              {/* Booking Created Date */}
+              <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                <Hash size={20} className="text-[#f26522]" />
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                    วันที่ยื่นคำขอจอง
+                  </span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {booking.createdAt}
+                  </span>
+                </div>
+              </div>
+
               {booking.repeat && (
                 <div className="p-4 rounded-[7px] border border-emerald-100 bg-emerald-50/40 space-y-2 text-left">
                   <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider block">

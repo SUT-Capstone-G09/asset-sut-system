@@ -19,20 +19,18 @@ import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFil
 import { AdminLocationDTO } from "@/features/booking/services/locationService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   pending:   { label: "รออนุมัติ",   className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-  approved:  { label: "อนุมัติแล้ว", className: "bg-green-50 text-green-700 border-green-200" },
+  approved:  { label: "อนุมัติแล้ว", className: "bg-blue-50 text-blue-700 border-blue-200" },
   rejected:  { label: "ปฏิเสธ",      className: "bg-red-50 text-red-700 border-red-200" },
   cancelled: { label: "ยกเลิก",      className: "bg-gray-100 text-gray-500 border-gray-200" },
-  completed: { label: "เสร็จสิ้น",   className: "bg-blue-50 text-blue-700 border-blue-200" },
+  completed: { label: "เสร็จสิ้น",   className: "bg-green-50 text-green-700 border-green-200" },
 };
 
 function formatThaiDate(iso: string) {
   const d = new Date(iso);
-  return format(d, "dd MMM yyyy", { locale: th });
+  return d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function formatTime(iso: string) {
