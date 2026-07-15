@@ -22,7 +22,7 @@ services:
     image: worawut2547/asset-sut:backend-v9
     container_name: backend_init
     volumes:
-      - ./.env:/app/.env:ro
+      - ./.env.prod:/app/.env:ro
       - postgres_data:/flag_data
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -45,7 +45,7 @@ services:
     restart: always
     volumes:
       - local_bucket:/app/uploads
-      - ./.env:/app/.env:ro
+      - ./.env.prod:/app/.env:ro
     environment:
       GIN_MODE: release
     networks:
