@@ -86,13 +86,13 @@ export default function SpaceDetailInfoTab({
             </span>
           </div>
           <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">
-            Area Code: <span className="text-slate-600 font-black">{location.roomNumber || "N/A"}</span>
+            Area Code: <span className="text-slate-600 font-black">{location.areaCode || "N/A"}</span>
           </p>
         </div>
 
         <button
           onClick={() => setIsEditOpen(true)}
-          className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[7px] border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-xs font-bold text-slate-600 transition-all shrink-0 shadow-sm"
+          className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-xs font-bold text-slate-600 transition-all shrink-0 shadow-sm"
         >
           <Pencil size={14} strokeWidth={2.5} />
           แก้ไขข้อมูล
@@ -102,7 +102,7 @@ export default function SpaceDetailInfoTab({
       {/* 1. Overview */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-[#f26522] rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
+          <div className="w-1 h-5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">
             ข้อมูลภาพรวม
           </h3>
@@ -113,23 +113,23 @@ export default function SpaceDetailInfoTab({
       {/* 2. Location Information */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-[#f26522] rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
+          <div className="w-1 h-5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">
             ข้อมูลสถานที่ตั้ง
           </h3>
         </div>
-        <SpaceLocationDetails building={building} roomNumber={location.roomNumber} />
+        <SpaceLocationDetails building={building} areaCode={location.areaCode} />
       </div>
 
       {/* 3. Description & Tags */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-[#f26522] rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
+          <div className="w-1 h-5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">
             รายละเอียดและแท็ก
           </h3>
         </div>
-        <div className="p-5 rounded-[7px] border border-slate-200/60 bg-white space-y-4">
+        <div className="p-5 rounded-md border border-slate-200/60 bg-white space-y-4">
           <div>
             <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-1">
               Description (รายละเอียด)
@@ -166,7 +166,7 @@ export default function SpaceDetailInfoTab({
       {/* 4. Gallery */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-[#f26522] rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
+          <div className="w-1 h-5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(242,101,34,0.25)]" />
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">
             แกลเลอรีรูปภาพ
           </h3>

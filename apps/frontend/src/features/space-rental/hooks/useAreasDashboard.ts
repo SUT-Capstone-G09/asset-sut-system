@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { mockBuildings } from "../data/mock-buildings";
 import { mockLocations } from "../data/mock-rental-spaces";
 import { RentalSpace } from "../types/rental-space";
+import { mockFloorPlans } from "../data/mock-floor-plans";
 
 export interface DashboardCardItem {
   id: string;
@@ -97,7 +98,7 @@ export function useAreasDashboard() {
         card.locations.some((loc) =>
           loc.name.toLowerCase().includes(q) ||
           (loc.tenantName ?? "").toLowerCase().includes(q) ||
-          (loc.roomNumber ?? "").toLowerCase().includes(q)
+          (loc.areaCode ?? "").toLowerCase().includes(q)
         )
       );
     }
@@ -121,18 +122,51 @@ export function useAreasDashboard() {
     setSelectedStatusFilter("all");
   };
 
-  const handleAddBuilding = async (data: { name: string; building_type_name?: string }) => {
+  const handleAddBuilding = async (data: { 
+    name: string; 
+    building_type_name?: string;
+    address?: string;
+    lat?: number | null;
+    lng?: number | null;
+    has_floor_plan?: boolean;
+    floor_plan_type?: "image" | "canvas";
+    blueprint_url?: string;
+  }) => {
+    const newId = buildingsList.length + 1;
     const newBuilding = {
-      id: buildingsList.length + 1,
+      id: newId,
       name: data.name,
       building_type_name: data.building_type_name || undefined,
-      address: "",
+      address: data.address || "มหาวิทยาลัยเทคโนโลยีสุรนารี",
+      lat: data.lat ?? undefined,
+      lng: data.lng ?? undefined,
       rental_space_count: 0,
-      has_floor_plan: false,
+      has_floor_plan: data.has_floor_plan || false,
+      floor_plan_image: data.has_floor_plan && data.floor_plan_type === "image" ? data.blueprint_url || undefined : undefined,
     };
 
     // เพิ่มเข้าไปใน Mock array เพื่อให้ใช้ได้ทั่วถึง
     mockBuildings.push(newBuilding);
+
+    // หากเปิดใช้งานแผนผังระบบแคนวาส ให้สร้างโมเดลแผนผังเปล่ารองรับทันที (ถ้าเลือกภาพนิ่ง จะไม่สร้าง Canvas)
+    if (data.has_floor_plan && data.floor_plan_type === "canvas") {
+      mockFloorPlans.push({
+        id: `fp-${newId}`,
+        locationId: String(newId),
+        name: `ผังของ ${data.name}`,
+        elements: [],
+        layers: [
+          {
+            id: "shops",
+            name: "ยูนิตย่อย/พื้นที่เช่า",
+            visible: true,
+            locked: false,
+            color: "#3b82f6"
+          }
+        ],
+        updatedAt: new Date().toISOString()
+      });
+    }
 
     // อัปเดต React State เพื่อบังคับให้ UI re-render คัดกรองอาคารใหม่ทันที
     setBuildingsList((prev) => [...prev, newBuilding]);

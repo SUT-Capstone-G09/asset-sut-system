@@ -18,6 +18,8 @@ type Buildings struct {
 	Lat            *float64       `gorm:"type:decimal(10,7)"`
 	Lng            *float64       `gorm:"type:decimal(10,7)"`
 	Address        string         `gorm:"not null;default:''"`
+	HasFloorPlan   bool           `gorm:"not null;default:false"`
+	BlueprintURL   *string        `gorm:"type:varchar(255)"`
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
 	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
 	Locations      []Locations    `gorm:"foreignKey:BuildingID"`

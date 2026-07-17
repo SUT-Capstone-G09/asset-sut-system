@@ -64,7 +64,7 @@ export function useBuildings(searchQuery: string = "", activeTab: string = "à¸—à
             loc.building === b.name &&
             (loc.name.toLowerCase().includes(q) ||
               (loc.tenantName ?? "").toLowerCase().includes(q) ||
-              (loc.roomNumber ?? "").toLowerCase().includes(q))
+              (loc.areaCode ?? "").toLowerCase().includes(q))
         );
         return matchesBuildingName || matchesInternalSpace;
       }

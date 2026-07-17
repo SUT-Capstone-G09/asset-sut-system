@@ -1,7 +1,8 @@
 import * as z from "zod";
 
 export const areaSchema = z.object({
-  name: z.string().min(1, "กรุณาระบุชื่อสถานที่ หรือรหัสพื้นที่"),
+  name: z.string().min(1, "กรุณาระบุชื่อพื้นที่เช่า"),
+  areaCode: z.string().min(1, "กรุณาระบุรหัสพื้นที่ (Area Code)"),
   building: z.string().min(1, "กรุณาเลือกอาคาร"),
   area: z.string().min(1, "กรุณาเลือกพื้นที่หลัก"),
   size: z.string().optional(),
@@ -11,11 +12,6 @@ export const areaSchema = z.object({
     z.undefined()
   ]).optional(),
   description: z.string().optional(),
-  tenantName: z.string().optional(),
-  contractEndDate: z.string().optional(),
-  contractName: z.string().optional(),
-  citizenId: z.string().optional(),
-  contractNumber: z.string().optional(),
   image: z.string().optional(),
 });
 

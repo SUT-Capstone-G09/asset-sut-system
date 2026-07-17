@@ -13,11 +13,11 @@ import {
   DEFAULT_ADMIN_REQUESTS,
   DEFAULT_ADMIN_INQUIRIES,
 } from "../../data/adminRequestMock";
-
+// รายละเอียด manage-request
 export default function AdminRequestDetailView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [isMounted, setIsMounted] = useState(false);
   const [status, setStatus] = useState('pending');
   const [staffId, setStaffID] = useState<number>(2); // Default staff (กฤษณะ)
@@ -53,7 +53,7 @@ export default function AdminRequestDetailView() {
           setRealRequest(response.request);
           setRealHistories(response.histories || []);
           setRealMessages(response.messages || []);
-          
+
           // Map DB status back to selection
           const dbStatus = response.request.status?.status;
           if (dbStatus) {
@@ -97,7 +97,7 @@ export default function AdminRequestDetailView() {
 
   const handleConfirmSave = async () => {
     setIsConfirmOpen(false);
-    
+
     if (!isMock) {
       setIsLoading(true);
       try {
@@ -108,7 +108,7 @@ export default function AdminRequestDetailView() {
         };
         await apiClient.put(`/requests/${requestId}`, payload);
         alert(`บันทึกสถานะใหม่เป็น "${status}" และมอบหมายงานสำเร็จ!`);
-        
+
         // Re-fetch request details
         const response = await apiClient.get<any>(`/requests/${requestId}`);
         if (response) {
@@ -180,7 +180,7 @@ export default function AdminRequestDetailView() {
     displayTitle = realRequest.title;
     displayDesc = realRequest.description;
     displayLocation = realRequest.location;
-    
+
     // Format date
     try {
       const dateObj = new Date(realRequest.created_at);
@@ -192,10 +192,10 @@ export default function AdminRequestDetailView() {
     } catch (e) {
       displayDate = realRequest.created_at;
     }
-    
+
     displayType = realRequest.request_type?.name || "ซ่อมบำรุง";
     displaySender = realRequest.user?.profile ? `${realRequest.user.profile.first_name} ${realRequest.user.profile.last_name}` : realRequest.contact_info;
-    
+
     // Map chat messages
     if (realMessages && realMessages.length > 0) {
       chatBubbles = realMessages.map(msg => ({
@@ -234,19 +234,17 @@ export default function AdminRequestDetailView() {
   }
 
   return (
-    <div className="flex min-h-screen font-sans w-full bg-[#F8F9FB]">
-      {/* Confirm Modal */}
+    < main className = "flex-1 p-8 space-y-8 overflow-y-auto" >
       <ConfirmSaveModal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={handleConfirmSave}
       />
-
-      <div className="flex-1">
-        <main className="flex-1 p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8">
-            {/* Left Content */}
-            <div className="col-span-12 lg:col-span-8 space-y-8">
+        <div className="mx-auto grid grid-cols-12 gap-8">
+          {/* Left Content */}
+          <div className="col-span-12 lg:col-span-8 space-y-8">
+            {/* Card ครอบรายละเอียดคำร้อง */}
+            <div className="bg-white rounded-md p-8 shadow-sm border border-slate-100 space-y-6">
               <div>
                 <div className="flex items-center space-x-3 mb-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${getStatusBadgeStyle(status)}`}>{getStatusThaiLabel(status)}</span>
@@ -262,142 +260,142 @@ export default function AdminRequestDetailView() {
                 <InfoSmall icon={<FileText className="text-orange-500" />} label="ประเภท" value={displayType} />
               </div>
 
-              <div>
-                <h4 className="font-black text-slate-800 mb-4 flex items-center"><Paperclip size={18} className="mr-2" /> ไฟล์แนบและหลักฐาน</h4>
+              <div className="border-t border-slate-100 pt-6">
+                <h4 className="font-black text-slate-800 mb-4 flex items-center"><Paperclip size={18} className="mr-2 text-slate-500" /> ไฟล์แนบและหลักฐาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border-2 border-white shadow-sm">
+                  <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border border-slate-100">
                     <img src="https://i0.wp.com/krujakkrapong.com/wp-content/uploads/2024/07/%E0%B8%A3%E0%B8%B0%E0%B8%9A%E0%B8%9A%E0%B9%81%E0%B8%88%E0%B9%89%E0%B8%87%E0%B8%8B%E0%B9%88%E0%B8%AD%E0%B8%A12-1.jpg?fit=800%2C450&ssl=1" alt="evidence-1" className="w-full h-full object-cover" />
                   </div>
-                  <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border-2 border-white shadow-sm">
+                  <div className="h-48 bg-slate-200 rounded-3xl overflow-hidden border border-slate-100">
                     <img src="https://www.shutterstock.com/image-vector/cheerful-cartoon-handyman-hard-hat-260nw-2708489951.jpg" alt="evidence-2" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-6">
-                <h4 className="font-black text-slate-800 flex items-center tracking-tight"><FileText size={18} className="mr-2" /> ประวัติการสนทนา</h4>
-                <div className="space-y-4">
-                  {chatBubbles.length > 0 ? (
-                    chatBubbles.map((chat, index) => (
-                      <ChatBubble key={index} name={chat.name} time={chat.time} text={chat.text} isAdmin={chat.isAdmin} />
-                    ))
-                  ) : (
-                    <div className="text-slate-400 text-xs">ยังไม่มีประวัติการสนทนาสำหรับคำร้องนี้</div>
-                  )}
-                </div>
-                <div className="flex items-center space-x-3 bg-slate-100 p-3 rounded-2xl">
-                  <input type="text" placeholder="พิมพ์ข้อความตอบกลับผู้แจ้ง..." className="bg-transparent flex-1 text-sm outline-none px-2" />
-                  <Paperclip size={18} className="text-slate-400 cursor-pointer" />
-                  <button className="bg-orange-500 text-white p-2 rounded-xl"><Send size={16} /></button>
-                </div>
-              </div>
             </div>
 
-            {/* Right Sidebar: Status Update */}
-            <div className="col-span-12 lg:col-span-4 space-y-8">
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
-                <h4 className="font-black text-slate-800 mb-6">การจัดการคำร้อง</h4>
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">เปลี่ยนสถานะ</label>
-                    <div className="relative">
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 appearance-none text-sm font-bold text-slate-700 outline-none cursor-pointer"
-                      >
-                        <option value="pending">รอดำเนินการ (Pending)</option>
-                        <option value="in_progress">กำลังดำเนินการ (In Progress)</option>
-                        <option value="completed">เสร็จสิ้น (Completed)</option>
-                        <option value="cancelled">ยกเลิก (Cancelled)</option>
-                        <option value="reject">ปฏิเสธ (Reject)</option>
-                      </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">มอบหมายเจ้าหน้าที่</label>
-                    <div className="relative">
-                      <select 
-                        value={staffId}
-                        onChange={(e) => setStaffID(Number(e.target.value))}
-                        className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 appearance-none text-sm font-bold text-slate-700 outline-none cursor-pointer"
-                      >
-                        <option value={2}>นายกฤษณะ สุขสวัสดิ์ (ช่างทั่วไป)</option>
-                        <option value={0}>ไม่ได้มอบหมาย</option>
-                      </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">บันทึกเพิ่มเติม (Activity Note)</label>
-                    <input 
-                      type="text" 
-                      value={noteDetail}
-                      onChange={(e) => setNoteDetail(e.target.value)}
-                      placeholder="บันทึกรายละเอียดเพิ่มเติม..."
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white transition-all font-medium text-slate-700"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleSaveClick}
-                    className="w-full bg-[#E9652B] text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all active:scale-[0.98]"
-                  >
-                    บันทึกการเปลี่ยนแปลง
-                  </button>
-                  <button className="w-full text-orange-500 text-xs font-bold py-2 hover:underline flex items-center justify-center">
-                    <Download size={14} className="mr-2" /> ดาวน์โหลด PDF สรุปคำร้อง
-                  </button>
-                </div>
+            {/* Card ครอบประวัติการสนทนา */}
+            <div className="bg-white rounded-md p-8 shadow-sm border border-slate-100 space-y-6">
+              <h4 className="font-black text-slate-800 flex items-center tracking-tight"><FileText size={18} className="mr-2 text-slate-500" /> การสนทนา</h4>
+              <div className="space-y-4">
+                {chatBubbles.length > 0 ? (
+                  chatBubbles.map((chat, index) => (
+                    <ChatBubble key={index} name={chat.name} time={chat.time} text={chat.text} isAdmin={chat.isAdmin} />
+                  ))
+                ) : (
+                  <div className="text-slate-400 text-xs">ยังไม่มีประวัติการสนทนาสำหรับคำร้องนี้</div>
+                )}
               </div>
-
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
-                <h4 className="font-black text-slate-800 mb-6 uppercase tracking-tight text-sm">Activity Log (ประวัติกิจกรรม)</h4>
-                <div className="space-y-6">
-                  {!isMock && realHistories.length > 0 ? (
-                    realHistories.map((h: any, index: number) => {
-                      // Calculate time display
-                      let timeStr = "เมื่อสักครู่";
-                      try {
-                        const dateObj = new Date(h.created_at);
-                        const year = dateObj.getFullYear() + 543;
-                        timeStr = dateObj.toLocaleDateString("th-TH", { day: 'numeric', month: 'short' }) + ` ${year % 100} • ${dateObj.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' })}`;
-                      } catch (e) {
-                        timeStr = h.created_at;
-                      }
-
-                      return (
-                        <LogItem 
-                          key={h.id || index}
-                          user={h.admin?.profile ? `${h.admin.profile.first_name} ${h.admin.profile.last_name}` : "ระบบ"} 
-                          action={`เปลี่ยนสถานะเป็น ${h.status?.status === "in_progress" ? "In Progress" : h.status?.status === "completed" || h.status?.status === "resolved" ? "Resolved" : "Pending"}${h.detail ? `: ${h.detail}` : ""}`} 
-                          time={timeStr} 
-                        />
-                      );
-                    })
-                  ) : (
-                    <>
-                      <LogItem user="Admin Somsak" action="มอบหมายงานให้ นายวัชรินทร์ แสนอ่อน" time="15 MINS AGO" />
-                      <LogItem user="System Automatic" action="เปลี่ยนสถานะเป็น In Progress" time="18 MINS AGO" />
-                    </>
-                  )}
-                </div>
+              <div className="flex items-center space-x-3 bg-slate-100 p-3 rounded-2xl">
+                <input type="text" placeholder="พิมพ์ข้อความตอบกลับผู้แจ้ง..." className="bg-transparent flex-1 text-sm outline-none px-2" />
+                <Paperclip size={18} className="text-slate-400 cursor-pointer" />
+                <button className="bg-orange-500 text-white p-2 rounded-xl"><Send size={16} /></button>
               </div>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+
+          {/* Right Sidebar: Status Update */}
+          <div className="col-span-12 lg:col-span-4 space-y-8">
+            <div className="bg-white rounded-md p-8 shadow-sm border border-slate-100">
+              <h4 className="font-black text-slate-800 mb-6">การจัดการคำร้อง</h4>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">เปลี่ยนสถานะ</label>
+                  <div className="relative">
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-md py-3 px-4 appearance-none text-sm font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value="pending">รอดำเนินการ (Pending)</option>
+                      <option value="in_progress">กำลังดำเนินการ (In Progress)</option>
+                      <option value="completed">เสร็จสิ้น (Completed)</option>
+                      <option value="cancelled">ยกเลิก (Cancelled)</option>
+                      <option value="reject">ปฏิเสธ (Reject)</option>
+                    </select>
+                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">มอบหมายเจ้าหน้าที่</label>
+                  <div className="relative">
+                    <select
+                      value={staffId}
+                      onChange={(e) => setStaffID(Number(e.target.value))}
+                      className="w-full bg-slate-50 border-none rounded-md py-3 px-4 appearance-none text-sm font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value={2}>นายกฤษณะ สุขสวัสดิ์ (ช่างทั่วไป)</option>
+                      <option value={0}>ไม่ได้มอบหมาย</option>
+                    </select>
+                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">บันทึกเพิ่มเติม (Activity Note)</label>
+                  <input
+                    type="text"
+                    value={noteDetail}
+                    onChange={(e) => setNoteDetail(e.target.value)}
+                    placeholder="บันทึกรายละเอียดเพิ่มเติม..."
+                    className="w-full bg-slate-50 border border-slate-100 rounded-md py-3 px-4 text-sm outline-none focus:bg-white transition-all font-medium text-slate-700"
+                  />
+                </div>
+
+                <button
+                  onClick={handleSaveClick}
+                  className="w-full bg-[#E9652B] text-white py-4 rounded-md font-black shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all active:scale-[0.98]"
+                >
+                  บันทึกการเปลี่ยนแปลง
+                </button>
+                <button className="w-full text-orange-500 text-xs font-bold py-2 hover:underline flex items-center justify-center">
+                  <Download size={14} className="mr-2" /> ดาวน์โหลด PDF สรุปคำร้อง
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-md p-8 shadow-sm border border-slate-100">
+              <h4 className="font-black text-slate-800 mb-6 uppercase tracking-tight text-sm">Activity Log (ประวัติกิจกรรม)</h4>
+              <div className="space-y-6">
+                {!isMock && realHistories.length > 0 ? (
+                  realHistories.map((h: any, index: number) => {
+                    // Calculate time display
+                    let timeStr = "เมื่อสักครู่";
+                    try {
+                      const dateObj = new Date(h.created_at);
+                      const year = dateObj.getFullYear() + 543;
+                      timeStr = dateObj.toLocaleDateString("th-TH", { day: 'numeric', month: 'short' }) + ` ${year % 100} • ${dateObj.toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' })}`;
+                    } catch (e) {
+                      timeStr = h.created_at;
+                    }
+
+                    return (
+                      <LogItem
+                        key={h.id || index}
+                        user={h.admin?.profile ? `${h.admin.profile.first_name} ${h.admin.profile.last_name}` : "ระบบ"}
+                        action={`เปลี่ยนสถานะเป็น ${h.status?.status === "in_progress" ? "In Progress" : h.status?.status === "completed" || h.status?.status === "resolved" ? "Resolved" : "Pending"}${h.detail ? `: ${h.detail}` : ""}`}
+                        time={timeStr}
+                      />
+                    );
+                  })
+                ) : (
+                  <>
+                    <LogItem user="Admin Somsak" action="มอบหมายงานให้ นายวัชรินทร์ แสนอ่อน" time="15 MINS AGO" />
+                    <LogItem user="System Automatic" action="เปลี่ยนสถานะเป็น In Progress" time="18 MINS AGO" />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main >
   );
 }
 
 // Sub-components
 const InfoSmall = ({ icon, label, value }: any) => (
-  <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-    <div className="flex items-center space-x-2 text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">
+  <div className="bg-slate-50 p-5 rounded-md border border-slate-100">
+    <div className="flex items-center space-x-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
       {icon} <span>{label}</span>
     </div>
     <p className="text-sm font-black text-slate-700">{value}</p>

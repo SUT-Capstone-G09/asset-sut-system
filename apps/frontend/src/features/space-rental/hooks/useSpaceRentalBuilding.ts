@@ -47,6 +47,7 @@ export function useSpaceRentalBuilding(buildingId: number) {
     isLoading: spacesLoading,
     error: spacesError,
     updateRentalSpace,
+    addRentalSpace,
   } = useRentalSpaces(building?.name || "all", building?.id || 0);
 
   const isLoading = buildingLoading || spacesLoading;
@@ -59,5 +60,6 @@ export function useSpaceRentalBuilding(buildingId: number) {
     isLoading,
     error,
     updateRentalSpace,
+    addRentalSpace,
   };
 }
