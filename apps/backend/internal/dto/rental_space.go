@@ -33,7 +33,7 @@ type UpdateRentalSpaceRequest struct {
 }
 
 type RentalSpaceResponse struct {
-	ID           uuid.UUID                  `json:"id"`
+	ID           uint                       `json:"id"`
 	BuildingID   *uint                      `json:"building_id"`
 	BuildingName *string                    `json:"building_name,omitempty"`
 	Name         string                     `json:"name"`
@@ -49,7 +49,7 @@ type RentalSpaceResponse struct {
 }
 
 type RentalSpaceImageResponse struct {
-	ID        uuid.UUID `json:"id"`
+	ID        uint      `json:"id"`
 	URL       string    `json:"url"`
 	AltText   *string   `json:"alt_text"`
 	IsPrimary bool      `json:"is_primary"`

@@ -178,10 +178,27 @@ export default function AdminSidebar() {
     });
   };
 
-  const isSubItemActive = (href: string) => pathname === href;
+  // Helper to determine if a route is active (exact match or sub-route prefix match, ignoring sibling conflicts)
+  const isRouteActive = (menuHref: string) => {
+    if (pathname === menuHref) return true;
+    if (pathname.startsWith(menuHref + "/")) {
+      // Prevent "/admin/booking" from matching "/admin/booking/requests"
+      if (menuHref === "/admin/booking" && pathname.startsWith("/admin/booking/requests")) {
+        return false;
+      }
+      // Prevent "/admin/email-templates" from matching "/admin/email-templates/send" or "/admin/email-templates/broadcasts"
+      if (menuHref === "/admin/email-templates" && (pathname.startsWith("/admin/email-templates/send") || pathname.startsWith("/admin/email-templates/broadcasts"))) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  };
+
+  const isSubItemActive = (href: string) => isRouteActive(href);
   const isMenuItemActive = (item: MenuItem) => {
-    if (item.href) return pathname === item.href;
-    return item.subItems?.some((sub) => pathname === sub.href) ?? false;
+    if (item.href) return isRouteActive(item.href);
+    return item.subItems?.some((sub) => isRouteActive(sub.href)) ?? false;
   };
 
   const canSee = (roles?: string[]) => !roles || roles.includes(role);

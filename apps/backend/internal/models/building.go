@@ -13,14 +13,16 @@ type BuildingTypes struct {
 type Buildings struct {
 	Base
 	Name           string         `gorm:"not null;unique"`
+	Description    *string        `gorm:"type:text"`
 	BuildingTypeID *uint          `gorm:"index"` // Nullable สำหรับตึกเดี่ยวๆ ที่ไม่มีการจัดกลุ่มประเภท
 	BuildingType   *BuildingTypes `gorm:"foreignKey:BuildingTypeID"`
 	Lat            *float64       `gorm:"type:decimal(10,7)"`
 	Lng            *float64       `gorm:"type:decimal(10,7)"`
 	Address        string         `gorm:"not null;default:''"`
+	FloorCount     int            `gorm:"not null;default:1"`
 	HasFloorPlan   bool           `gorm:"not null;default:false"`
 	BlueprintURL   *string        `gorm:"type:varchar(255)"`
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
-	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
+	FloorPlans     []FloorPlans   `gorm:"foreignKey:BuildingID"` // 1..N multiple floor plans
 	Locations      []Locations    `gorm:"foreignKey:BuildingID"`
 }

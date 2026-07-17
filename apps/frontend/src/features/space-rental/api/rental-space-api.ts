@@ -1,8 +1,8 @@
-import { mockLocations } from "../data/mock-rental-spaces";
+import { mockLocationsDTO } from "../data/mock-rental-spaces";
 import { mockFloorPlans } from "../data/mock-floor-plans";
 import { mockStallContracts } from "../data/mock-stall-contracts";
 import { mockBuildings } from "../data/mock-buildings";
-import { RentalSpace } from "../types/rental-space";
+import { RentalSpace, RentalSpaceDTO, mapDTOToRentalSpace } from "../types/rental-space";
 import { Building } from "../types/building";
 
 // จำลองการเรียก API ของพื้นที่เช่าย่อย (Rental Spaces)
@@ -10,7 +10,7 @@ export const rentalSpaceApi = {
   // ดึงพื้นที่เช่าย่อยทั้งหมด
   getAll: async (): Promise<RentalSpace[]> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
-    return [...mockLocations];
+    return mockLocationsDTO.map(mapDTOToRentalSpace);
   },
 
   // ดึงยูนิตย่อยภายในตึกหนึ่งๆ (ขยายข้อมูล Stall จาก Floor Plan อัตโนมัติถ้ามี)
@@ -46,21 +46,51 @@ export const rentalSpaceApi = {
     }
 
     // หากไม่มีแปลน ให้ดึงจากยูนิตเช่าเดี่ยวของตึกนั้นโดยตรง
-    return mockLocations.filter((loc) => loc.building === buildingName);
+    return mockLocationsDTO
+      .filter((loc) => loc.building?.name === buildingName)
+      .map(mapDTOToRentalSpace);
   },
 
   // อัปเดตข้อมูลพื้นที่เช่า (เช่น มอบสิทธิ์, แก้ไขสถานะ)
   update: async (id: string, data: Partial<RentalSpace>): Promise<RentalSpace | null> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     
-    // หาตำแหน่งใน mock array
-    const index = mockLocations.findIndex((loc) => loc.id === id);
+    // หาตำแหน่งใน mock array (ไอดีถูกจัดเก็บเป็นตัวเลขใน DTO)
+    const index = mockLocationsDTO.findIndex((loc) => String(loc.id) === id);
     if (index !== -1) {
-      mockLocations[index] = {
-        ...mockLocations[index],
-        ...data,
-      } as RentalSpace;
-      return { ...mockLocations[index] };
+      const current = mockLocationsDTO[index];
+      const dtoUpdate: Partial<RentalSpaceDTO> = {};
+      
+      if (data.name !== undefined) dtoUpdate.name = data.name;
+      if (data.description !== undefined) dtoUpdate.description = data.description;
+      if (data.size !== undefined) dtoUpdate.size = data.size;
+      if (data.areaCode !== undefined) dtoUpdate.area_code = data.areaCode;
+      if (data.price !== undefined) dtoUpdate.base_price = data.price;
+      if (data.status !== undefined) {
+        dtoUpdate.status = data.status === "available" ? "vacant" : data.status;
+      }
+      if (data.image !== undefined) {
+        dtoUpdate.images = [{ url: data.image, is_primary: true }];
+      }
+      if (data.building !== undefined || data.area !== undefined) {
+        dtoUpdate.building = {
+          id: current.building?.id || 0,
+          name: data.building !== undefined ? data.building : (current.building?.name || ""),
+          address: current.building?.address || "",
+          lat: current.building?.lat || 0,
+          lng: current.building?.lng || 0,
+          building_type: {
+            name: data.area !== undefined ? data.area : (current.building?.building_type?.name || "")
+          }
+        };
+      }
+      
+      mockLocationsDTO[index] = {
+        ...current,
+        ...dtoUpdate,
+      } as RentalSpaceDTO;
+      
+      return mapDTOToRentalSpace(mockLocationsDTO[index]);
     }
     return null;
   },
@@ -96,8 +126,8 @@ export const buildingApi = {
     const buildings = mockBuildings.filter((b) => b.building_type_name === buildingType);
     const buildingNames = buildings.map((b) => b.name);
     
-    const spacesCount = mockLocations.filter((loc) => 
-      buildingNames.includes(loc.building || "")
+    const spacesCount = mockLocationsDTO.filter((loc) => 
+      buildingNames.includes(loc.building?.name || "")
     ).length;
 
     return {

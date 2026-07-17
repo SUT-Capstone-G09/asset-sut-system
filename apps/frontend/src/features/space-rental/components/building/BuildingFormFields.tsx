@@ -210,6 +210,24 @@ export default function BuildingFormFields() {
         {errors.address && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.address.message}</p>}
       </div>
 
+      {/* 4.5 จำนวนชั้น */}
+      <div className="space-y-2.5">
+        <Label className="text-xs font-bold text-slate-500 ml-1">
+          จำนวนชั้นของอาคาร
+        </Label>
+        <Input
+          type="number"
+          min={1}
+          {...register("floor_count")}
+          placeholder="เช่น 1, 2, 3"
+          className={cn(
+            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal",
+            errors.floor_count && "border-red-500 focus-visible:ring-red-500/30"
+          )}
+        />
+        {errors.floor_count && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.floor_count.message}</p>}
+      </div>
+
       {/* 5. ระบุพิกัดทางภูมิศาสตร์ */}
       <div className="space-y-3">
         <Label className="text-xs font-bold text-slate-500 ml-1">พิกัดทางภูมิศาสตร์</Label>

@@ -37,6 +37,7 @@ export default function BuildingCreateDrawer({ open, onClose, onAdd }: Props) {
       name: "",
       building_type_name: "",
       address: "",
+      floor_count: 1,
       lat: null,
       lng: null,
       description: "",
