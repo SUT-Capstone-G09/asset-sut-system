@@ -126,6 +126,8 @@ export function useAreasDashboard() {
     name: string; 
     building_type_name?: string;
     address?: string;
+    floor_count?: number;
+    description?: string;
     lat?: number | null;
     lng?: number | null;
     has_floor_plan?: boolean;
@@ -136,13 +138,15 @@ export function useAreasDashboard() {
     const newBuilding = {
       id: newId,
       name: data.name,
+      description: data.description || "",
       building_type_name: data.building_type_name || undefined,
       address: data.address || "มหาวิทยาลัยเทคโนโลยีสุรนารี",
+      floor_count: data.floor_count || 1,
       lat: data.lat ?? undefined,
       lng: data.lng ?? undefined,
       rental_space_count: 0,
       has_floor_plan: data.has_floor_plan || false,
-      floor_plan_image: data.has_floor_plan && data.floor_plan_type === "image" ? data.blueprint_url || undefined : undefined,
+      blueprint_url: data.has_floor_plan && data.floor_plan_type === "image" ? data.blueprint_url || undefined : undefined,
     };
 
     // เพิ่มเข้าไปใน Mock array เพื่อให้ใช้ได้ทั่วถึง

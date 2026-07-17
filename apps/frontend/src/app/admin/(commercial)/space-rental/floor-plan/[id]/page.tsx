@@ -85,7 +85,7 @@ export default function FloorPlanEditorPage() {
         initialData={floorPlan} 
         onSave={handleSave} 
         onBack={handleBack} 
-        backgroundImageUrl={building?.floor_plan_image}
+        backgroundImageUrl={building?.blueprint_url}
       />
     </div>
   );
