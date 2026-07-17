@@ -40,7 +40,7 @@ export default function AreasMapSection({
 }: AreasMapSectionProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>("โรงอาหาร");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   // Carousel scroll states & ref
