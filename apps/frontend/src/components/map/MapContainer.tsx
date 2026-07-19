@@ -27,6 +27,15 @@ interface MapContainerProps {
   onHoveredIdChange?: (id: string | null) => void;
 }
 
+// Sanitizer function to secure image URLs and prevent malicious protocol injection
+const safeImageUrl = (url?: string) => {
+  if (!url || url === "#") return "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
+    return url;
+  }
+  return "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800";
+};
+
 export default function MapContainer({
   locations,
   hoveredId,
@@ -172,7 +181,7 @@ export default function MapContainer({
               {/* Thumbnail Image */}
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 shrink-0 shadow-sm border border-slate-100">
                 <img
-                  src={loc.image}
+                  src={safeImageUrl(loc.image)}
                   alt={loc.name}
                   className="w-full h-full object-cover"
                 />

@@ -1,26 +1,26 @@
 package models
 
 // BuildingTypes คือประเภทอาคารเช่าหลัก (เช่น โรงอาหาร, หอพักนักศึกษา, อาคารเรียนรวม)
-// แอดมินสามารถเพิ่มหรือแก้ไขข้อมูลในตารางนี้ได้ ทำให้รองรับการจัดกลุ่มแบบยืดหยุ่นในอนาคต
 type BuildingTypes struct {
 	Base
-	Name string `gorm:"not null;unique" json:"name"`
+	Name string `gorm:"type:varchar(100);not null;unique" json:"name"`
 }
 
 // Buildings คือสถานที่หลักที่มหาวิทยาลัยบริหาร
-// ทำหน้าที่เป็น Container ของ RentalSpaces และ FloorPlan
 // ตัวอย่าง: โรงอาหารพราวแสดทอง, โรงอาหารกาสะลองคำ, สุรนิเวศ 1, สุรพัฒน์ 2
 type Buildings struct {
 	Base
-	Name           string         `gorm:"not null;unique"`
-	BuildingTypeID *uint          `gorm:"index"` // Nullable สำหรับตึกเดี่ยวๆ ที่ไม่มีการจัดกลุ่มประเภท
+	Name           string         `gorm:"type:varchar(150);not null;unique"`
+	Description    *string        `gorm:"type:text"`
+	BuildingTypeID *uint          `gorm:"index:idx_buildings_building_type_id"`
 	BuildingType   *BuildingTypes `gorm:"foreignKey:BuildingTypeID"`
 	Lat            *float64       `gorm:"type:decimal(10,7)"`
 	Lng            *float64       `gorm:"type:decimal(10,7)"`
-	Address        string         `gorm:"not null;default:''"`
+	Address        string         `gorm:"type:varchar(500);not null;default:''"`
+	FloorCount     int            `gorm:"not null;default:1"`
 	HasFloorPlan   bool           `gorm:"not null;default:false"`
 	BlueprintURL   *string        `gorm:"type:varchar(255)"`
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
-	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
+	FloorPlans     []FloorPlans   `gorm:"foreignKey:BuildingID"` 
 	Locations      []Locations    `gorm:"foreignKey:BuildingID"`
 }
