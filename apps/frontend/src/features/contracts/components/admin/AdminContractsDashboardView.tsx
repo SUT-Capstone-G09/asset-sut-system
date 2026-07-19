@@ -37,7 +37,7 @@ export default function AdminContractsDashboardView() {
     <div className="p-8 space-y-8 animate-in fade-in duration-500 pb-16">
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed top-6 right-6 z-120 flex items-center gap-3 bg-neutral-800 text-white px-6 py-4 rounded-2xl shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-6 right-6 z-120 flex items-center gap-3 bg-neutral-800 text-white px-6 py-4 rounded-[7px] shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
           <CheckCircle className="text-success-500" size={20} />
           <span className="text-sm font-medium">{toast.message}</span>
         </div>

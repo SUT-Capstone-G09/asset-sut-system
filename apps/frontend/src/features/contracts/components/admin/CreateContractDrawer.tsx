@@ -2,6 +2,8 @@ import React from "react";
 import { X, FileText, UploadCloud, CheckCircle, Save, Loader2, AlertTriangle } from "lucide-react";
 import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -10,6 +12,14 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateContract } from "../../hooks/useCreateContract";
 import { mockUsers } from "../../data/mock-users";
 
@@ -106,13 +116,14 @@ export default function CreateContractDrawer({
               </div>
 
               {/* Close Button */}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={handleModalCloseAttempt}
-                className="size-9 rounded-[7px] bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center justify-center group"
+                className="size-9 p-0 rounded-[7px] bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center justify-center group"
               >
                 <X size={18} className="transition-transform group-hover:rotate-90" />
-              </button>
+              </Button>
             </SheetHeader>
 
             {/* Scrollable Content */}
@@ -124,20 +135,21 @@ export default function CreateContractDrawer({
                 </h4>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-505 block uppercase tracking-wider">
+                  <Label className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
                     พื้นที่เช่าหลัก (Location Area)
-                  </label>
-                  <select
-                    value={formAreaId}
-                    onChange={(e) => setFormAreaId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                  >
-                    {tenantAreaOptions.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
+                  </Label>
+                  <Select value={formAreaId} onValueChange={setFormAreaId}>
+                    <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
+                      <SelectValue placeholder="เลือกพื้นที่เช่าหลัก" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                      {tenantAreaOptions.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -149,49 +161,50 @@ export default function CreateContractDrawer({
 
                 {/* Select User (Owner) */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     เลือกผู้ใช้งานที่จะเป็นคู่สัญญา (User)
-                  </label>
-                  <select
-                    value={selectedUser}
-                    onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                  >
-                    {mockUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.email})
-                      </option>
-                    ))}
-                  </select>
+                  </Label>
+                  <Select value={selectedUser} onValueChange={setSelectedUser}>
+                    <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
+                      <SelectValue placeholder="เลือกผู้ใช้งาน" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                      {mockUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Business Name */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       ชื่อร้านค้า / แบรนด์
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       placeholder="เช่น ข้าวมันไก่เฮียอ้วน"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="font-semibold"
                       required
                     />
                   </div>
 
                   {/* Tax ID */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       เลขประจำตัวผู้เสียภาษี
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       placeholder="เลข 13 หลัก"
                       value={taxId}
                       onChange={(e) => setTaxId(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="font-semibold"
                       required
                     />
                   </div>
@@ -200,30 +213,30 @@ export default function CreateContractDrawer({
                 <div className="grid grid-cols-2 gap-4">
                   {/* Phone */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       เบอร์โทรศัพท์ติดต่อ
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="tel"
                       placeholder="เช่น 0812345678"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="font-semibold"
                       required
                     />
                   </div>
 
                   {/* National ID */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       เลขบัตรประชาชน (13 หลัก)
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       placeholder="เลขบัตรประชาชนผู้ประกอบการ"
                       value={nationalId}
                       onChange={(e) => setNationalId(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300"
+                      className="font-semibold"
                       required
                     />
                   </div>
@@ -231,14 +244,14 @@ export default function CreateContractDrawer({
 
                 {/* Registered Address */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     ที่อยู่จดทะเบียนร้านค้า
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     placeholder="ที่อยู่ตามหน้าบัตรประชาชน หรือทะเบียนบ้าน..."
                     value={registeredAddress}
                     onChange={(e) => setRegisteredAddress(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700 placeholder:text-slate-300 min-h-[85px] resize-none"
+                    className="font-semibold min-h-[85px]"
                     required
                   />
                 </div>
@@ -253,38 +266,40 @@ export default function CreateContractDrawer({
                 <div className="grid grid-cols-2 gap-4">
                   {/* Sub location */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       พื้นที่เช่าย่อย (Sub-location)
-                    </label>
-                    <select
-                      value={formSubLocation}
-                      onChange={(e) => setFormSubLocation(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                    >
-                      {selectedAreaObj.subLocations.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
-                        </option>
-                      ))}
-                    </select>
+                    </Label>
+                    <Select value={formSubLocation} onValueChange={setFormSubLocation}>
+                      <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
+                        <SelectValue placeholder="เลือกพื้นที่เช่าย่อย" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                        {selectedAreaObj.subLocations.map((sub) => (
+                          <SelectItem key={sub} value={sub}>
+                            {sub}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Business Type */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       ประเภทธุรกิจ (Business Type)
-                    </label>
-                    <select
-                      value={formBusinessType}
-                      onChange={(e) => setFormBusinessType(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                    >
-                      {selectedAreaObj.businessTypes.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                    </Label>
+                    <Select value={formBusinessType} onValueChange={setFormBusinessType}>
+                      <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
+                        <SelectValue placeholder="เลือกประเภทธุรกิจ" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                        {selectedAreaObj.businessTypes.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -298,70 +313,70 @@ export default function CreateContractDrawer({
                 <div className="grid grid-cols-3 gap-4">
                   {/* Monthly Rental */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       ค่าบำรุงเช่า / เดือน
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="number"
                       value={monthlyRental}
                       onChange={(e) => setMonthlyRental(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="font-semibold"
                       required
                     />
                   </div>
 
                   {/* Deposit */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       หลักประกันสัญญา (บาท)
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="number"
                       value={deposit}
                       onChange={(e) => setDeposit(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                    />
+                      className="font-semibold"
+                      />
                   </div>
 
                   {/* Scholarship */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       ทุนการศึกษาสนับสนุน
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="number"
                       value={scholarship}
                       onChange={(e) => setScholarship(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
-                    />
+                      className="font-semibold"
+                      />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Start Date */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       วันที่เริ่มต้นสัญญา
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="font-semibold"
                       required
                     />
                   </div>
 
                   {/* End Date */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                       วันที่สิ้นสุดสัญญา
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-semibold text-slate-700"
+                      className="font-semibold"
                       required
                     />
                   </div>
@@ -369,28 +384,28 @@ export default function CreateContractDrawer({
 
                 {/* Special Terms */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     เงื่อนไขสัญญาเพิ่มเติม
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     placeholder="เช่น ต้องเปิดร้านขายสินค้าสัปดาห์ละ 6 วันเป็นอย่างน้อย..."
                     value={terms}
                     onChange={(e) => setTerms(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary font-semibold text-slate-700 min-h-[70px] resize-none"
+                    className="font-semibold min-h-[70px]"
                   />
                 </div>
 
                 {/* Notes */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     หมายเหตุอื่น ๆ
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="text"
                     placeholder="หมายเหตุกระบวนการปฏิบัติการ..."
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary font-semibold text-slate-700"
+                    className="font-semibold"
                   />
                 </div>
               </div>
@@ -402,12 +417,12 @@ export default function CreateContractDrawer({
                 </h4>
 
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
+                  <Label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
                     เอกสารใบสมัครประกอบการค้าและบัตรประชาชนคู่สัญญา <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <div
                     className={cn(
-                      "relative rounded-2xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
+                      "relative rounded-[7px] p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
                       uploadedVerificationFile
                         ? "border-success-500 bg-success-50/10"
                         : "border-slate-200 bg-slate-50/50"
@@ -439,12 +454,12 @@ export default function CreateContractDrawer({
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
+                  <Label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
                     เอกสารสัญญาเช่าหลักฉบับทางการที่ลงนามแล้ว <span className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <div
                     className={cn(
-                      "relative rounded-2xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
+                      "relative rounded-[7px] p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
                       uploadedFile ? "border-success-500 bg-success-50/10" : "border-slate-200 bg-slate-50/50"
                     )}
                   >
@@ -511,7 +526,7 @@ export default function CreateContractDrawer({
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-300"
             onClick={() => setShowCloseConfirm(false)}
           />
-          <div className="relative bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 text-center animate-in zoom-in-95 duration-200 z-140">
+          <div className="relative bg-white rounded-[7px] w-full max-w-sm shadow-2xl p-8 text-center animate-in zoom-in-95 duration-200 z-140">
             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-4 mx-auto">
               <AlertTriangle size={24} />
             </div>
@@ -520,20 +535,22 @@ export default function CreateContractDrawer({
               คุณต้องการปิดหน้าต่างนี้ใช่หรือไม่? ข้อมูลสัญญาเช่าและไฟล์ที่คุณแนบไว้ทั้งหมดจะสูญหาย
             </p>
             <div className="flex gap-3">
-              <button
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={handleForceClose}
-                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+                className="flex-1 font-bold py-2.5 rounded-[7px] text-sm shadow-sm h-auto cursor-pointer"
               >
                 ยืนยันปิดฟอร์ม
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setShowCloseConfirm(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 font-bold py-2.5 rounded-xl text-sm transition-colors"
+                className="flex-1 text-slate-650 font-bold py-2.5 rounded-[7px] text-sm h-auto cursor-pointer"
               >
                 กรอกข้อมูลต่อ
-              </button>
+              </Button>
             </div>
           </div>
         </div>
