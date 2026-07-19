@@ -1,17 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MOCK_NEWS } from "@/features/news/data/mocknews";
 import { NewsPreview } from "@/features/news/components/admin/preview/NewsPreview";
+import { NewsEditModal } from "@/features/news/components/admin/modals/NewsEditModal";
 
 export default function NewsDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const newsItem = MOCK_NEWS.find((item) => item.id === id);
 
@@ -73,12 +74,14 @@ export default function NewsDetailPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Link href={`/admin/news-management/${id}/edit`}>
-            <Button className="bg-[#C2410C] hover:bg-[#9a330a] text-white font-bold flex items-center gap-2 px-5 py-2.5 rounded-xl">
-              <Pencil className="w-4 h-4" />
-              แก้ไขประกาศนี้
-            </Button>
-          </Link>
+          <Button 
+            variant="default" 
+            onClick={() => setIsEditOpen(true)}
+            className="font-bold flex items-center gap-2 px-5 py-2.5 rounded-md text-white"
+          >
+            <Pencil className="w-4 h-4" />
+            แก้ไขประกาศนี้
+          </Button>
         </div>
       </div>
 
@@ -86,6 +89,12 @@ export default function NewsDetailPage() {
       <div className="bg-slate-50/50 rounded-3xl p-6 border border-zinc-100">
         <NewsPreview data={previewData} />
       </div>
+
+      <NewsEditModal 
+        isOpen={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+        selectedNews={{ ...previewData, id, referenceId: id }}
+      />
     </div>
   );
 }

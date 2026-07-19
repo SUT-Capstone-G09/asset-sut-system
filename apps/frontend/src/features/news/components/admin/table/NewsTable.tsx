@@ -32,7 +32,8 @@ export const NewsTable = ({ activeTab = "ทั้งหมด" }: NewsTableProp
   const [selectedNews, setSelectedNews] = useState<any>(null);
 
   const handleEditClick = (news: any) => {
-    router.push(`/admin/news-management/${news.id}/edit`);
+    setSelectedNews(news);
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteClick = (news: any) => {
@@ -177,7 +178,7 @@ export const NewsTable = ({ activeTab = "ทั้งหมด" }: NewsTableProp
           <Button variant="outline" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-700">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="default" size="sm" className="h-8 w-8 bg-[#C2410C] hover:bg-[#9a330a] text-white">
+          <Button variant="default" size="sm" className="h-8 w-8 bg-brand-primary hover:bg-brand-primary/90 text-white">
             1
           </Button>
           <Button variant="outline" size="sm" className="h-8 w-8 text-gray-600">

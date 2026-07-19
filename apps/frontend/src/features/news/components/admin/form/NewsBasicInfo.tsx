@@ -229,8 +229,8 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
         {/* ปักหมุดเป็นข่าวเด่น */}
         <div
           className={`flex items-start gap-4 rounded-xl border px-5 py-4 cursor-pointer transition-all duration-200 ${data.isFeatured
-              ? "border-orange-400 bg-orange-50 shadow-sm"
-              : "border-zinc-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
+            ? "border-orange-400 bg-orange-50 shadow-sm"
+            : "border-zinc-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
             }`}
           onClick={() => onChange("isFeatured", !data.isFeatured)}
         >
@@ -283,7 +283,7 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
               <Label className="text-sm font-bold mb-1">
                 วันที่เริ่มประกาศ
               </Label>
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -317,12 +317,12 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
                 </PopoverContent>
               </Popover>
             </div>
-            
+
             <div className="space-y-2 flex flex-col justify-end">
               <Label className="text-sm font-bold mb-1">
                 วันที่สิ้นสุดประกาศ
               </Label>
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"

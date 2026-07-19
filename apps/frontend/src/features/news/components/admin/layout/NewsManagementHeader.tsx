@@ -9,8 +9,7 @@ export const NewsManagementHeader = () => {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-950">ระบบจัดการข่าวสารและสินทรัพย์</h1>
-                    <p className="text-gray-500 text-sm mt-1">ยินดีต้อนรับกลับ, ผู้ดูแลระบบส่วนกลาง</p>
+                    <h1 className="text-2xl font-bold text-slate-950">จัดการประชาสัมพันธ์</h1>
                 </div>
 
                 <div className="flex w-full sm:w-auto items-center gap-3">
@@ -22,7 +21,7 @@ export const NewsManagementHeader = () => {
                             />
                     </div>
                     <Link href="/admin/news-management/create">
-                        <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white flex items-center gap-2 px-4 shadow-sm">
+                        <Button variant="default" className="flex items-center gap-2 px-4 shadow-sm">
                             <PlusCircle className="h-4 w-4" />
                             <div className="flex flex-col items-start translate-y-[-1px]">
                                 <span className="text-sm leading-tight">สร้างข่าวใหม่</span>
