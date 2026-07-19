@@ -45,15 +45,31 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 text-slate-400 border-b border-slate-100 text-xs font-bold uppercase tracking-wider hover:bg-transparent">
-              <TableHead className="py-5 px-6 font-bold text-left">เลขที่สัญญา</TableHead>
-              <TableHead className="py-5 px-4 font-bold text-left">คู่สัญญา / ผู้ประกอบการ</TableHead>
-              <TableHead className="py-5 px-4 font-bold text-left">สถานที่เช่า</TableHead>
-              <TableHead className="py-5 px-4 font-bold text-left">ประเภทธุรกิจ</TableHead>
-              <TableHead className="py-5 px-4 font-bold text-left">ระยะเวลาสัญญา</TableHead>
-              <TableHead className="py-5 px-4 font-bold text-left">ค่าเช่ารายเดือน</TableHead>
-              <TableHead className="py-5 px-6 font-bold text-center">สถานะ</TableHead>
-              <TableHead className="py-5 px-6 font-bold text-center">ดำเนินการ</TableHead>
+            <TableRow className="border-b border-slate-100 bg-slate-50 hover:bg-transparent">
+              <TableHead className="py-3 pl-4 pr-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                เลขที่สัญญา
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                คู่สัญญา / ผู้ประกอบการ
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                สถานที่เช่า
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                ประเภทธุรกิจ
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                ระยะเวลาสัญญา
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-left">
+                ค่าบำรุงการใช้สถานที่
+              </TableHead>
+              <TableHead className="px-3 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-center">
+                สถานะ
+              </TableHead>
+              <TableHead className="py-3 pl-3 pr-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-center">
+                ดำเนินการ
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-slate-100/70 text-sm font-medium text-slate-700">
@@ -62,15 +78,13 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
                 return (
                   <TableRow
                     key={contract.id}
-                    className={cn(
-                      "hover:bg-slate-50/50 transition-colors group"
-                    )}
+                    className="border-b border-slate-100 transition-colors hover:bg-slate-50/60"
                   >
-                    <TableCell className="py-4.5 px-6 font-medium text-slate-800">
-                      {contract.contractNumber}
+                    <TableCell className="py-3.5 pl-4 pr-3">
+                      <span className="text-sm font-medium text-slate-800">{contract.contractNumber}</span>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-4">
+                    <TableCell className="px-3 py-3.5">
                       <div className="space-y-0.5">
                         <span className="text-sm font-medium text-slate-800 block">{contract.tenantName}</span>
                         <span className="text-slate-400 text-xs flex items-center gap-1">
@@ -80,28 +94,32 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-4">
+                    <TableCell className="px-3 py-3.5">
                       <div className="space-y-0.5">
                         <span className="text-sm font-medium text-slate-700 block">{contract.areaName}</span>
                         <span className="text-slate-400 text-xs block">{contract.subLocation}</span>
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-4">
+                    <TableCell className="px-3 py-3.5">
                       <span className="text-xs font-medium bg-slate-100/80 text-slate-600 px-2.5 py-1 rounded-[7px]">
                         {contract.businessType}
                       </span>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-4 text-slate-500">
-                      {formatThaiDate(contract.startDate)} - {formatThaiDate(contract.endDate)}
+                    <TableCell className="px-3 py-3.5">
+                      <span className="text-sm text-slate-500">
+                        {formatThaiDate(contract.startDate)} - {formatThaiDate(contract.endDate)}
+                      </span>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-4 text-right text-sm font-medium text-slate-800">
-                      {contract.monthlyRental.toLocaleString()} บ.
+                    <TableCell className="px-3 py-3.5 whitespace-nowrap text-right">
+                      <span className="text-sm font-semibold text-slate-700">
+                        {contract.monthlyRental.toLocaleString()} บ.
+                      </span>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-6 text-center">
+                    <TableCell className="px-3 py-3.5 text-center">
                       <Badge
                         variant="outline"
                         className={cn(
@@ -127,7 +145,7 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="py-4.5 px-6 text-center">
+                    <TableCell className="py-3.5 pl-3 pr-4 text-center">
                       <div className="flex items-center justify-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -164,7 +182,7 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="py-12 text-center text-slate-400 font-bold">
+                <TableCell colSpan={8} className="py-12 text-center text-sm text-slate-400 font-bold">
                   ไม่พบข้อมูลสัญญาเช่าที่ตรงตามเงื่อนไขการค้นหา
                 </TableCell>
               </TableRow>

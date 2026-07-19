@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +68,7 @@ export default function ContractFilters({
         {/* Area Filter */}
         <Select value={selectedArea} onValueChange={onAreaChange}>
           <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
             <SelectValue placeholder="ทั้งหมด ทุกพื้นที่" />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
@@ -83,6 +84,7 @@ export default function ContractFilters({
         {/* Status Filter */}
         <Select value={selectedStatus} onValueChange={onStatusChange}>
           <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
             <SelectValue placeholder="ทุกสถานะ" />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
@@ -97,6 +99,7 @@ export default function ContractFilters({
         {/* Business Type Filter */}
         <Select value={selectedBusinessType} onValueChange={onBusinessTypeChange}>
           <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
             <SelectValue placeholder="ทุกประเภทธุรกิจ" />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
@@ -112,6 +115,7 @@ export default function ContractFilters({
         {/* Year Filter */}
         <Select value={selectedYear} onValueChange={onYearChange}>
           <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
             <SelectValue placeholder="ทุกปีเริ่มต้น" />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">

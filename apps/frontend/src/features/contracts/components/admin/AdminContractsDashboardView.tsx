@@ -46,8 +46,8 @@ export default function AdminContractsDashboardView() {
       {/* Page Title & Create Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            การจัดการสัญญาเช่าทั้งหมด (Lease Contracts)
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            การจัดการสัญญาเช่าทั้งหมด
           </h1>
           <p className="text-slate-400 text-sm mt-1">
             ระบบรวมศูนย์ข้อมูลสัญญาเช่า สัญญาพื้นที่ประกอบการค้า และประวัติการทำสัญญาย้อนหลังในทุกพื้นที่ของมหาวิทยาลัย

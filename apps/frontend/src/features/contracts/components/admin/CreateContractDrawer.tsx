@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateContract } from "../../hooks/useCreateContract";
 import { mockUsers } from "../../data/mock-users";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 
 interface CreateContractDrawerProps {
   isOpen: boolean;
@@ -142,7 +143,7 @@ export default function CreateContractDrawer({
                     <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
                       <SelectValue placeholder="เลือกพื้นที่เช่าหลัก" />
                     </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white z-130">
                       {tenantAreaOptions.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.name}
@@ -168,7 +169,7 @@ export default function CreateContractDrawer({
                     <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
                       <SelectValue placeholder="เลือกผู้ใช้งาน" />
                     </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                    <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white z-130">
                       {mockUsers.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
                           {u.name} ({u.email})
@@ -273,7 +274,7 @@ export default function CreateContractDrawer({
                       <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
                         <SelectValue placeholder="เลือกพื้นที่เช่าย่อย" />
                       </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white z-130">
                         {selectedAreaObj.subLocations.map((sub) => (
                           <SelectItem key={sub} value={sub}>
                             {sub}
@@ -292,7 +293,7 @@ export default function CreateContractDrawer({
                       <SelectTrigger className="w-full bg-slate-50 border border-slate-200 rounded-[7px] px-4 py-3 text-sm font-semibold text-slate-700 h-11">
                         <SelectValue placeholder="เลือกประเภทธุรกิจ" />
                       </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white">
+                      <SelectContent position="popper" sideOffset={4} className="rounded-md bg-white z-130">
                         {selectedAreaObj.businessTypes.map((t) => (
                           <SelectItem key={t} value={t}>
                             {t}
@@ -416,76 +417,32 @@ export default function CreateContractDrawer({
                   เอกสารแนบประกอบ
                 </h4>
 
+                {/* Verification File Dropzone */}
                 <div className="space-y-3">
                   <Label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
                     เอกสารใบสมัครประกอบการค้าและบัตรประชาชนคู่สัญญา <span className="text-rose-500">*</span>
                   </Label>
-                  <div
-                    className={cn(
-                      "relative rounded-[7px] p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
-                      uploadedVerificationFile
-                        ? "border-success-500 bg-success-50/10"
-                        : "border-slate-200 bg-slate-50/50"
-                    )}
-                  >
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setUploadedVerificationFile({ name: e.target.files[0].name, size: "1.2 MB" });
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                    {uploadedVerificationFile ? (
-                      <div>
-                        <CheckCircle size={20} className="text-success-500 mx-auto mb-1" />
-                        <p className="text-xs font-black text-slate-800">{uploadedVerificationFile.name}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <UploadCloud size={20} className="text-slate-400 mx-auto mb-1" />
-                        <p className="text-xs font-bold text-slate-700">
-                          คลิกเพื่ออัปโหลดสำเนาบัตรประชาชนคู่สัญญา
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <FileDropzone
+                    files={uploadedVerificationFile ? [uploadedVerificationFile] : []}
+                    onFilesChange={(files) => setUploadedVerificationFile(files.length > 0 ? files[0] : null)}
+                    multiple={false}
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    hint="คลิกหรือลากวางสำเนาบัตรประชาชน/ใบสมัคร (PDF, PNG, JPG)"
+                  />
                 </div>
 
+                {/* Signed Contract Dropzone */}
                 <div className="space-y-3">
                   <Label className="text-xs font-bold text-slate-555 block uppercase tracking-wider">
                     เอกสารสัญญาเช่าหลักฉบับทางการที่ลงนามแล้ว <span className="text-rose-500">*</span>
                   </Label>
-                  <div
-                    className={cn(
-                      "relative rounded-[7px] p-6 border-2 border-dashed flex flex-col items-center justify-center text-center transition-all min-h-[110px]",
-                      uploadedFile ? "border-success-500 bg-success-50/10" : "border-slate-200 bg-slate-50/50"
-                    )}
-                  >
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setUploadedFile({ name: e.target.files[0].name, size: "2.4 MB" });
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                    {uploadedFile ? (
-                      <div>
-                        <CheckCircle size={20} className="text-success-500 mx-auto mb-1" />
-                        <p className="text-xs font-black text-slate-800">{uploadedFile.name}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <UploadCloud size={20} className="text-slate-400 mx-auto mb-1" />
-                        <p className="text-xs font-bold text-slate-700">
-                          คลิกเพื่ออัปโหลดเอกสารสัญญาลงนาม (PDF)
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <FileDropzone
+                    files={uploadedFile ? [uploadedFile] : []}
+                    onFilesChange={(files) => setUploadedFile(files.length > 0 ? files[0] : null)}
+                    multiple={false}
+                    accept=".pdf"
+                    hint="คลิกหรือลากวางเอกสารสัญญาเช่าที่ลงนามแล้ว (PDF)"
+                  />
                 </div>
               </div>
             </div>
