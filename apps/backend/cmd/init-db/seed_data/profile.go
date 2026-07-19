@@ -170,3 +170,41 @@ func seedUsers(db *gorm.DB, cfg *config.Config) error {
 	log.Println("User seeded successfully.")
 	return nil
 }
+
+func seedOperators(db *gorm.DB, cfg *config.Config) error {
+	hashed, err := hash.HashPassword("12345678")
+	if err != nil {
+		return err
+	}
+	user := models.Users{
+		Email:        "operator@example.com",
+		Password:     hashed,
+		AuthProvider: "local",
+		ProviderID:   "local",
+		IsActive:     true,
+	}
+	if err := db.FirstOrCreate(&user, models.Users{Email: user.Email}).Error; err != nil {
+		return err
+	}
+
+	var operatorRole models.Roles
+	if err := db.Where("name = ?", "operator").First(&operatorRole).Error; err != nil {
+		return err
+	}
+	db.Model(&user).Association("Roles").Replace([]models.Roles{operatorRole})
+
+	tenantProfile := models.TenantProfiles{
+		UserID:            user.ID,
+		BusinessName:      "ร้านสมชายสหายสมมิตร",
+		TaxID:             "1234567890123",
+		NationalID:        "1234567890123",
+		RegisteredAddress: "111 มหาวิทยาลัยเทคโนโลยีสุรนารี ถ.มหาวิทยาลัย ต.สุรนารี อ.เมือง นครราชสีมา 30000",
+		BannerURL:         "",
+	}
+	if err := db.FirstOrCreate(&tenantProfile, models.TenantProfiles{UserID: tenantProfile.UserID}).Error; err != nil {
+		return err
+	}
+
+	log.Println("Operator seeded successfully.")
+	return nil
+}

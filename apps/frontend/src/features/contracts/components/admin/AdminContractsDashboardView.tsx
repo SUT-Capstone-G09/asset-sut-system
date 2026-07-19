@@ -37,7 +37,7 @@ export default function AdminContractsDashboardView() {
     <div className="p-8 space-y-8 animate-in fade-in duration-500 pb-16">
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed top-6 right-6 z-120 flex items-center gap-3 bg-neutral-800 text-white px-6 py-4 rounded-2xl shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-6 right-6 z-120 flex items-center gap-3 bg-neutral-800 text-white px-6 py-4 rounded-[7px] shadow-2xl border border-white/10 animate-in slide-in-from-top-4 duration-300">
           <CheckCircle className="text-success-500" size={20} />
           <span className="text-sm font-medium">{toast.message}</span>
         </div>
@@ -46,8 +46,8 @@ export default function AdminContractsDashboardView() {
       {/* Page Title & Create Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            การจัดการสัญญาเช่าทั้งหมด (Lease Contracts)
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            การจัดการสัญญาเช่าทั้งหมด
           </h1>
           <p className="text-slate-400 text-sm mt-1">
             ระบบรวมศูนย์ข้อมูลสัญญาเช่า สัญญาพื้นที่ประกอบการค้า และประวัติการทำสัญญาย้อนหลังในทุกพื้นที่ของมหาวิทยาลัย

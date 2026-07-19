@@ -19,6 +19,7 @@ type AuthService struct {
 	adminRepo        *repositories.AdminRepository
 	staffRepo        *repositories.StaffRepository
 	requesterRepo    *repositories.RequesterRepository
+	tenantRepo       *repositories.TenantRepository
 	roleRepo         *repositories.RoleRepository
 	refreshTokenRepo *repositories.RefreshTokenRepository
 	permissionRepo   *repositories.PermissionRepository
@@ -30,6 +31,7 @@ func NewAuthService(
 	adminRepo *repositories.AdminRepository,
 	staffRepo *repositories.StaffRepository,
 	requesterRepo *repositories.RequesterRepository,
+	tenantRepo *repositories.TenantRepository,
 	roleRepo *repositories.RoleRepository,
 	refreshTokenRepo *repositories.RefreshTokenRepository,
 	permissionRepo *repositories.PermissionRepository,
@@ -40,6 +42,7 @@ func NewAuthService(
 		adminRepo:        adminRepo,
 		staffRepo:        staffRepo,
 		requesterRepo:    requesterRepo,
+		tenantRepo:       tenantRepo,
 		roleRepo:         roleRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		permissionRepo:   permissionRepo,
@@ -218,6 +221,11 @@ func (s *AuthService) populateName(userID uint, role string, out *dto.UserSummar
 			if p.RequesterTypeID != nil {
 				out.RequesterTypeID = *p.RequesterTypeID
 			}
+		}
+	case "operator":
+		if p, err := s.tenantRepo.FindByUserID(userID); err == nil {
+			out.FirstName = p.BusinessName
+			out.LastName = ""
 		}
 	}
 }
