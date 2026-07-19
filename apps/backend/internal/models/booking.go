@@ -13,9 +13,9 @@ type Bookings struct {
 	UserID      uint             `gorm:"not null" json:"user_id"`
 	User        *Users           `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Purpose     string           `gorm:"not null" json:"purpose"`
-	BasePrice     int              `gorm:"not null;default:0" json:"base_price"`
-	AddonPrice    int              `gorm:"not null;default:0" json:"addon_price"`
-	TotalPrice    int              `gorm:"not null;default:0" json:"total_price"`
+	BasePrice     float64          `gorm:"not null;default:0" json:"base_price"`
+	AddonPrice    float64          `gorm:"not null;default:0" json:"addon_price"`
+	TotalPrice    float64          `gorm:"not null;default:0" json:"total_price"`
 	StatusID    uint             `gorm:"not null" json:"status_id"`
 	Status      *BookingStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	Timeslots   []Timeslots      `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`
@@ -54,7 +54,7 @@ type Timeslots struct {
 	StartTime     time.Time               `gorm:"type:time;not null;uniqueIndex:idx_timeslot_slot" json:"start_time"`
 	EndTime       time.Time               `gorm:"type:time;not null" json:"end_time"`
 	IsFullDay     bool                    `gorm:"not null;default:false" json:"is_full_day"`
-	PriceSnapshot int                     `gorm:"not null;default:0" json:"price_snapshot"`
+	PriceSnapshot float64                 `gorm:"not null;default:0" json:"price_snapshot"`
 	StatusID      uint                    `gorm:"not null" json:"status_id"`
 	Status        *TimeslotStatuses       `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	Addons        []BookingTimeslotAddons `gorm:"foreignKey:TimeslotID" json:"addons,omitempty"`
@@ -67,7 +67,7 @@ type BookingTimeslotAddons struct {
 	TimeslotID      uint            `gorm:"not null" json:"timeslot_id"`
 	Timeslot        *Timeslots      `gorm:"foreignKey:TimeslotID" json:"timeslot,omitempty"`
 	Name            string          `gorm:"not null" json:"name"`
-	AppliedPrice    int             `gorm:"not null;default:0" json:"applied_price"`
+	AppliedPrice    float64         `gorm:"not null;default:0" json:"applied_price"`
 	Quantity        int             `gorm:"not null;default:1" json:"quantity"`
-	TotalPrice      int             `gorm:"not null;default:0" json:"total_price"`
+	TotalPrice      float64         `gorm:"not null;default:0" json:"total_price"`
 }

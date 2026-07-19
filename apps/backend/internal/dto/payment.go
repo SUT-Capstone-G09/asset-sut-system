@@ -9,7 +9,7 @@ type InvoiceResponse struct {
 	BookingID   uint      `json:"booking_id"`
 	Status      string    `json:"status"`
 	StatusID    uint      `json:"status_id"`
-	TotalAmount int       `json:"total_amount"`
+	TotalAmount float64   `json:"total_amount"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

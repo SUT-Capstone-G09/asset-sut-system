@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Booking } from "../types/booking";
 import { AdminLocationDTO, getLocations } from "../services/locationService";
 import {
@@ -116,13 +117,58 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
 export type BookingTypeFilter = "classroom" | "meeting" | "sport" | "hall" | "all";
 
 export function useBookingFilters(type: BookingTypeFilter) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedBuilding, setSelectedBuilding] = useState("all");
+  const [searchQueryState, setSearchQueryState] = useState(searchParams.get("q") || "");
+  const [selectedCategoryState, setSelectedCategoryState] = useState(searchParams.get("category") || "all");
+  const [selectedStatusState, setSelectedStatusState] = useState(searchParams.get("status") || "all");
+  const [selectedBuildingState, setSelectedBuildingState] = useState(searchParams.get("building") || "all");
   const [loading, setLoading] = useState(true);
+
+  // Sync state from URL (important for Back navigation)
+  useEffect(() => {
+    setSearchQueryState(searchParams.get("q") || "");
+    setSelectedCategoryState(searchParams.get("category") || "all");
+    setSelectedStatusState(searchParams.get("status") || "all");
+    setSelectedBuildingState(searchParams.get("building") || "all");
+  }, [searchParams]);
+
+  // Helper to sync state to URL
+  const updateQueryParam = useCallback((key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "all" || value === "") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const searchQuery = searchQueryState;
+  const selectedCategory = selectedCategoryState;
+  const selectedStatus = selectedStatusState;
+  const selectedBuilding = selectedBuildingState;
+
+  const setSearchQuery = (val: string) => {
+    setSearchQueryState(val);
+    updateQueryParam("q", val);
+  };
+  const setSelectedCategory = (val: string) => {
+    setSelectedCategoryState(val);
+    updateQueryParam("category", val);
+  };
+  const setSelectedStatus = (val: string) => {
+    setSelectedStatusState(val);
+    updateQueryParam("status", val);
+  };
+  const setSelectedBuilding = (val: string) => {
+    setSelectedBuildingState(val);
+    updateQueryParam("building", val);
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

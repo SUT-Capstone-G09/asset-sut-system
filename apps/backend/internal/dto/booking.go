@@ -33,7 +33,7 @@ type TimeslotResponse struct {
 	StartTime     time.Time `json:"start_time"`
 	EndTime       time.Time `json:"end_time"`
 	IsFullDay     bool      `json:"is_full_day"`
-	PriceSnapshot int       `json:"price_snapshot"`
+	PriceSnapshot float64   `json:"price_snapshot"`
 	Status        string    `json:"status"`
 	Addons        []BookingAddonResponse `json:"addons"`
 }
@@ -41,9 +41,9 @@ type TimeslotResponse struct {
 type BookingAddonResponse struct {
 	ID           uint   `json:"id"`
 	AddonName    string `json:"addon_name"`
-	AppliedPrice int    `json:"applied_price"`
-	Quantity     int    `json:"quantity"`
-	TotalPrice   int    `json:"total_price"`
+	AppliedPrice float64 `json:"applied_price"`
+	Quantity     int     `json:"quantity"`
+	TotalPrice   float64 `json:"total_price"`
 }
 
 type StatusLogResponse struct {
@@ -66,9 +66,9 @@ type BookingResponse struct {
 	ContactPhone  string             `json:"contact_phone"`
 	ContactEmail  string             `json:"contact_email"`
 	Purpose       string             `json:"purpose"`
-	BasePrice     int                `json:"base_price"`
-	AddonPrice    int                `json:"addon_price"`
-	TotalPrice    int                `json:"total_price"`
+	BasePrice     float64            `json:"base_price"`
+	AddonPrice    float64            `json:"addon_price"`
+	TotalPrice    float64            `json:"total_price"`
 	Status        string             `json:"status"`
 	StatusID      uint               `json:"status_id"`
 	Timeslots     []TimeslotResponse `json:"timeslots"`
@@ -80,7 +80,7 @@ type BookingResponse struct {
 
 type BookingAddonInput struct {
 	AddonName    string `json:"addon_name" binding:"required"`
-	AppliedPrice int    `json:"applied_price" binding:"required"`
+	AppliedPrice float64 `json:"applied_price" binding:"required"`
 	Quantity     int    `json:"quantity" binding:"required"`
 }
 

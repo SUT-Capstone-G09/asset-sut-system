@@ -126,7 +126,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		requesterTypeID = *requester.RequesterTypeID
 	}
 
-	var basePrice, addonPrice int
+	var basePrice, addonPrice float64
 
 	for _, tsInput := range req.Timeslots {
 		location, err := s.locationRepo.FindByID(tsInput.LocationID)
@@ -143,13 +143,13 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			StartTime:     tsInput.StartTime,
 			EndTime:       tsInput.EndTime,
 			IsFullDay:     tsInput.IsFullDay,
-			PriceSnapshot: priceSnapshot,
+			PriceSnapshot: float64(priceSnapshot),
 			StatusID:      availableStatus.ID,
 		}
 		if err := s.timeslotRepo.Create(ts); err != nil {
 			return nil, err
 		}
-		basePrice += priceSnapshot
+		basePrice += float64(priceSnapshot)
 
 		for _, addonID := range tsInput.AddonIDs {
 			la, err := s.locationRepo.FindAddonByID(addonID)
@@ -158,12 +158,12 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 					LocationAddonID: &la.ID,
 					TimeslotID:      ts.ID,
 					Name:            la.Name,
-					AppliedPrice:    la.DefaultPrice,
+					AppliedPrice:    float64(la.DefaultPrice),
 					Quantity:        1,
-					TotalPrice:      la.DefaultPrice,
+					TotalPrice:      float64(la.DefaultPrice),
 				}
 				_ = s.timeslotRepo.CreateAddon(bta)
-				addonPrice += la.DefaultPrice
+				addonPrice += float64(la.DefaultPrice)
 			}
 		}
 	}
@@ -265,12 +265,28 @@ func (s *BookingService) UpdateExpenses(id uint, req dto.UpdateBookingExpensesRe
 		return nil, errors.New("booking has no timeslots to attach expenses to")
 	}
 
+	// ── Build a lookup of master addon default prices (by name) ────────
+	masterAddonPrices := make(map[string]float64)
+	var masterAddons []models.LocationAddons
+	if err := s.bookingRepo.DB().Where("location_id IS NULL").Find(&masterAddons).Error; err == nil {
+		for _, ma := range masterAddons {
+			masterAddonPrices[ma.Name] = float64(ma.DefaultPrice)
+		}
+	}
+
 	var newTimeslotAddons []models.BookingTimeslotAddons
-	var addonPrice int = 0
+	var addonPrice float64 = 0
 
 	for _, tsInput := range req.Timeslots {
 		for _, item := range tsInput.Expenses {
-			total := item.AppliedPrice * item.Quantity
+			// ── Validate: applied_price must not be lower than the addon's default price ──
+			if minPrice, found := masterAddonPrices[item.AddonName]; found {
+				if item.AppliedPrice < minPrice {
+					return nil, fmt.Errorf("ราคา %.2f ของ \"%s\" ต่ำกว่าราคาขั้นต่ำ %.2f บาท", item.AppliedPrice, item.AddonName, minPrice)
+				}
+			}
+
+			total := item.AppliedPrice * float64(item.Quantity)
 			addonPrice += total
 
 			newTimeslotAddons = append(newTimeslotAddons, models.BookingTimeslotAddons{
