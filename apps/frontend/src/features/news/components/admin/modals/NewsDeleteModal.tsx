@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface NewsDeleteModalProps {
   isOpen: boolean;
@@ -19,6 +20,11 @@ export const NewsDeleteModal: React.FC<NewsDeleteModalProps> = ({
   onOpenChange,
   selectedNews,
 }) => {
+  const handleDelete = () => {
+    toast.success("ลบประกาศข่าวสารเรียบร้อยแล้ว!");
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
@@ -32,10 +38,10 @@ export const NewsDeleteModal: React.FC<NewsDeleteModalProps> = ({
           </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
             ยกเลิก
           </Button>
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
+          <Button variant="destructive" onClick={handleDelete}>
             ยืนยันการลบ
           </Button>
         </DialogFooter>

@@ -10,8 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Sparkles, Plus, ChevronDown, X, Check, Pin } from "lucide-react"
-import { DatePickerThai } from "./DatePickerThai"
+import { Sparkles, Plus, ChevronDown, X, Check, Pin, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { th } from "date-fns/locale"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 interface QualificationItem {
   id: string
@@ -41,8 +46,6 @@ interface NewsBasicInfoProps {
   }
   onChange: (field: string, value: unknown) => void
 }
-
-
 
 const DEFAULT_CATEGORIES = [
   "เช่าร้านอาหาร",
@@ -89,7 +92,6 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
   const filteredCategories = categories.filter((c) =>
     c.toLowerCase().includes(catInput.toLowerCase())
   )
-
 
   return (
     <>
@@ -227,8 +229,8 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
         {/* ปักหมุดเป็นข่าวเด่น */}
         <div
           className={`flex items-start gap-4 rounded-xl border px-5 py-4 cursor-pointer transition-all duration-200 ${data.isFeatured
-              ? "border-orange-400 bg-orange-50 shadow-sm"
-              : "border-zinc-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
+            ? "border-orange-400 bg-orange-50 shadow-sm"
+            : "border-zinc-200 bg-white hover:border-orange-200 hover:bg-orange-50/40"
             }`}
           onClick={() => onChange("isFeatured", !data.isFeatured)}
         >
@@ -277,32 +279,88 @@ export function NewsBasicInfo({ data, onChange }: NewsBasicInfoProps) {
 
           {/* วันที่เริ่ม / สิ้นสุด */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-sm font-bold">
+            <div className="space-y-2 flex flex-col justify-end">
+              <Label className="text-sm font-bold mb-1">
                 วันที่เริ่มประกาศ
               </Label>
-              <DatePickerThai
-                value={data.startDate}
-                onChange={(val) => onChange("startDate", val)}
-                placeholder="เลือกวันที่เริ่มประกาศ"
-              />
+              <Popover modal={true}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-slate-100 border-none rounded-[7px] h-10 hover:bg-slate-200/50",
+                      !data.startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
+                    {data.startDate ? (
+                      (() => {
+                        const d = new Date(data.startDate);
+                        return isNaN(d.getTime()) ? (
+                          <span>เลือกวันที่เริ่มประกาศ</span>
+                        ) : (
+                          `${format(d, "dd/MM")}/${d.getFullYear() + 543}`
+                        );
+                      })()
+                    ) : (
+                      <span>เลือกวันที่เริ่มประกาศ</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={data.startDate ? new Date(data.startDate) : undefined}
+                    onSelect={(date) => onChange("startDate", date ? format(date, "yyyy-MM-dd") : "")}
+                    locale={th}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-bold">
+
+            <div className="space-y-2 flex flex-col justify-end">
+              <Label className="text-sm font-bold mb-1">
                 วันที่สิ้นสุดประกาศ
               </Label>
-              <DatePickerThai
-                value={data.endDate}
-                onChange={(val) => onChange("endDate", val)}
-                placeholder="เลือกวันที่สิ้นสุดประกาศ"
-              />
+              <Popover modal={true}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-slate-100 border-none rounded-[7px] h-10 hover:bg-slate-200/50",
+                      !data.endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
+                    {data.endDate ? (
+                      (() => {
+                        const d = new Date(data.endDate);
+                        return isNaN(d.getTime()) ? (
+                          <span>เลือกวันที่สิ้นสุดประกาศ</span>
+                        ) : (
+                          `${format(d, "dd/MM")}/${d.getFullYear() + 543}`
+                        );
+                      })()
+                    ) : (
+                      <span>เลือกวันที่สิ้นสุดประกาศ</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={data.endDate ? new Date(data.endDate) : undefined}
+                    onSelect={(date) => onChange("endDate", date ? format(date, "yyyy-MM-dd") : "")}
+                    locale={th}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
         </div>
 
       </div>
-
     </>
   )
 }

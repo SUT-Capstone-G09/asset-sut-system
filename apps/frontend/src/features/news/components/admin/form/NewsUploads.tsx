@@ -92,7 +92,7 @@ export function NewsUploads({
 
       {/* ไฟล์ PDF (เพิ่มได้หลายไฟล์) */}
       <div className="space-y-3">
-        <div className="text-sm font-bold text-zinc-700">เอกสารประกอบ/ประกาศฉบับเต็ม (อัปโหลดได้หลายไฟล์)</div>
+        <div className="text-sm font-bold text-zinc-700">เอกสารประกอบ/ประกาศฉบับเต็ม</div>
         
         {/* แสดงรายการไฟล์ PDF ที่อัปโหลดแล้ว (แสดงด้านบน) */}
         {attachedFiles.length > 0 && (
