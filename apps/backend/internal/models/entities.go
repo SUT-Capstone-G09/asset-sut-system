@@ -29,6 +29,7 @@ var AllEntities = []any{
 	&BuildingTypes{},
 	&Buildings{},
 	&BuildingHallPricings{}, // ราคาโถงราย อาคาร × วัตถุประสงค์ (อ้าง Buildings + HallUsagePurposes)
+	&LocationHallPricings{}, // ราคาเฉพาะโถง (ทำเลทอง) ราย โถง × วัตถุประสงค์ — override ราคาอาคาร
 	&RentalSpaces{},
 	&RentalSpaceImages{},
 	&RentalSpaceTags{},

@@ -12,6 +12,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import HallEditDrawer from "./HallEditDrawer";
@@ -25,10 +26,17 @@ interface HallDrawerProps {
   open: boolean;
   onClose: () => void;
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
-  onEdit: (updatedHall: Hall) => void;
+  // ต้อง return promise ให้ HallEditDrawer await ได้ ไม่งั้น error ตอนบันทึกจะเงียบหาย
+  onEdit: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
   onDelete: (id: string) => void;
   canDelete?: boolean;
   onFloorPlanChange?: () => void;
+  // เปลี่ยนค่าทุกครั้งที่บันทึกสำเร็จ — drawer นี้ไม่ได้ปิดตอนแก้ไข (HallEditDrawer ซ้อนอยู่ข้างบน)
+  // ราคาจึงค้างถ้าไม่มีสัญญาณบอกให้โหลดใหม่
+  pricingVersion?: number;
 }
 
 export default function HallDrawer({
@@ -40,6 +48,7 @@ export default function HallDrawer({
   onDelete,
   canDelete = true,
   onFloorPlanChange,
+  pricingVersion = 0,
 }: HallDrawerProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false);
@@ -135,8 +144,8 @@ export default function HallDrawer({
               </Button>
             </div>
 
-            {/* Rates — ตามการตั้งราคาตามวัตถุประสงค์ของอาคารที่โถงสังกัด */}
-            <HallPurposePricing buildingName={hall.building} />
+            {/* Rates — ราคาอาคารเป็นขั้นต่ำ + ราคาเฉพาะโถงถ้าเป็นทำเลทอง */}
+            <HallPurposePricing key={`${hall.id}:${pricingVersion}`} hallId={hall.id} />
 
             {/* Notes */}
             {hall.notes && (
@@ -192,10 +201,7 @@ export default function HallDrawer({
         hall={hall}
         open={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        onSave={(updatedHall) => {
-          onEdit(updatedHall);
-          Object.assign(hall, updatedHall);
-        }}
+        onSave={onEdit}
       />
 
       <HallFloorPlanModal

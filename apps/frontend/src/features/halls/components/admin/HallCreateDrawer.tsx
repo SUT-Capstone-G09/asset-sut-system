@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Save, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Hall } from "../../types/hall";
 import { hallSchema, HallFormValues } from "../../schemas/hall-schema";
 import HallFormFields from "./forms/HallFormFields";
@@ -60,6 +61,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
         notes: data.notes,
       };
       await onSave(newHall);
+      toast.success("เพิ่มโถงพื้นที่เรียบร้อยแล้ว");
       methods.reset();
       onClose();
     } catch (err) {

@@ -14,6 +14,7 @@ export default function ManageHallsPage() {
   const {
     loading,
     isAdmin,
+    pricingVersion,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -76,6 +77,7 @@ export default function ManageHallsPage() {
         onEdit={handleEditHall}
         onDelete={handleDeleteHall}
         canDelete={isAdmin}
+        pricingVersion={pricingVersion}
       />
 
       <HallCreateDrawer

@@ -90,6 +90,14 @@ func (r *BookingRepository) FindBuildingHallPricings(buildingID uint) ([]models.
 	return pricings, err
 }
 
+// FindLocationHallPricings โหลดราคาเฉพาะโถง (ทำเลทอง) ของโถงหนึ่ง — override ราคาอาคารตอนคิดเงิน
+// ไม่มีแถว = โถงนี้ใช้ราคาอาคารตามปกติ
+func (r *BookingRepository) FindLocationHallPricings(locationID uint) ([]models.LocationHallPricings, error) {
+	var pricings []models.LocationHallPricings
+	err := r.db.Where("location_id = ?", locationID).Find(&pricings).Error
+	return pricings, err
+}
+
 // CreatePurposes บันทึกแถว BookingPurposes ที่คำนวณราคาแล้ว
 func (r *BookingRepository) CreatePurposes(purposes []models.BookingPurposes) error {
 	if len(purposes) == 0 {

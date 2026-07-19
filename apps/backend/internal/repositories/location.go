@@ -6,6 +6,7 @@ import (
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ── Staff Locations ───────────────────────────────────────────────────────────
@@ -110,8 +111,11 @@ func (r *LocationRepository) Create(location *models.Locations) error {
 	return r.db.Create(location).Error
 }
 
+// Update บันทึกเฉพาะคอลัมน์ของ locations เท่านั้น
+// ต้อง Omit associations ไว้ ไม่งั้น GORM จะเซฟ belongs-to (Building/Type/Status) ที่ถูก Preload มา
+// แล้วเขียนทับ FK ด้วย id ของ association ตัวเก่า → การเปลี่ยน building_id จะเงียบหาย
 func (r *LocationRepository) Update(location *models.Locations) error {
-	return r.db.Save(location).Error
+	return r.db.Omit(clause.Associations).Save(location).Error
 }
 
 func (r *LocationRepository) Delete(id uint) error {
@@ -157,8 +161,10 @@ func (r *LocationRepository) FindAddonByID(id uint) (*models.LocationAddons, err
 	return &addon, err
 }
 
+// UpdateAddon — เหตุผลเดียวกับ Update: FindAddonByID preload ChargeType มา
+// ถ้าไม่ Omit การเปลี่ยน charge_type_id จะถูกเขียนทับกลับเป็นค่าเดิม
 func (r *LocationRepository) UpdateAddon(addon *models.LocationAddons) error {
-	return r.db.Save(addon).Error
+	return r.db.Omit(clause.Associations).Save(addon).Error
 }
 
 func (r *LocationRepository) DeleteAddon(id uint) error {
@@ -304,5 +310,36 @@ func (r *LocationRepository) UpsertBuildingHallPricing(p *models.BuildingHallPri
 	existing.Price = p.Price
 	existing.IsActive = p.IsActive
 	return r.db.Save(&existing).Error
+}
+
+// FindLocationHallPricings โหลดราคาเฉพาะโถง (ทำเลทอง) ของโถงหนึ่ง ทุกวัตถุประสงค์
+func (r *LocationRepository) FindLocationHallPricings(locationID uint) ([]models.LocationHallPricings, error) {
+	var pricings []models.LocationHallPricings
+	err := r.db.Where("location_id = ?", locationID).Find(&pricings).Error
+	return pricings, err
+}
+
+// UpsertLocationHallPricing สร้างหรืออัปเดตราคาเฉพาะโถง 1 แถว (อ้าง unique location_id + hall_usage_purpose_id)
+func (r *LocationRepository) UpsertLocationHallPricing(p *models.LocationHallPricings) error {
+	var existing models.LocationHallPricings
+	err := r.db.
+		Where("location_id = ? AND hall_usage_purpose_id = ?", p.LocationID, p.HallUsagePurposeID).
+		First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return r.db.Create(p).Error
+	}
+	if err != nil {
+		return err
+	}
+	existing.Price = p.Price
+	return r.db.Save(&existing).Error
+}
+
+// DeleteLocationHallPricing ล้างราคาเฉพาะโถงของวัตถุประสงค์หนึ่ง → กลับไปใช้ราคาอาคาร
+// ใช้ Unscoped: เป็นตารางตั้งค่า ไม่ต้องเก็บประวัติ (ราคาที่ใช้จริงถูก snapshot ไว้ที่ BookingPurposes แล้ว)
+func (r *LocationRepository) DeleteLocationHallPricing(locationID, purposeID uint) error {
+	return r.db.Unscoped().
+		Where("location_id = ? AND hall_usage_purpose_id = ?", locationID, purposeID).
+		Delete(&models.LocationHallPricings{}).Error
 }
 

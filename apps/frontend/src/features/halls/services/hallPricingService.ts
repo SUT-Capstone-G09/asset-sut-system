@@ -2,8 +2,10 @@ import { apiClient } from "@/lib/services/api-client";
 import {
   BuildingWithPricing,
   CreateHallPurposeInput,
+  HallPricingRow,
   HallUsagePurpose,
   UpdateBuildingHallPricingInput,
+  UpdateHallPricingInput,
   UpdateHallPurposeInput,
 } from "../types/pricing";
 
@@ -36,6 +38,24 @@ export async function updateHallUsagePurpose(
 // อาคารทั้งหมด พร้อมราคาโถงของแต่ละอาคาร (hall_pricings)
 export async function getBuildingsWithPricing(): Promise<BuildingWithPricing[]> {
   return apiClient.get<BuildingWithPricing[]>("/buildings");
+}
+
+// ราคาของโถงหนึ่ง ครบทุกวัตถุประสงค์ (ราคาอาคาร = ขั้นต่ำ + ราคาเฉพาะโถง + ราคาที่ใช้จริง)
+export async function getHallPricings(
+  locationId: number
+): Promise<HallPricingRow[]> {
+  return apiClient.get<HallPricingRow[]>(`/locations/${locationId}/hall-pricings`);
+}
+
+// ตั้ง/แก้ราคาเฉพาะโถง (ทำเลทอง) — price null = ล้าง override ; ต่ำกว่าราคาอาคารจะถูก backend ปฏิเสธ
+export async function updateHallPricings(
+  locationId: number,
+  pricings: UpdateHallPricingInput[]
+): Promise<HallPricingRow[]> {
+  return apiClient.put<HallPricingRow[]>(
+    `/locations/${locationId}/hall-pricings`,
+    { pricings }
+  );
 }
 
 // ตั้ง/แก้ราคาโถงของอาคารหนึ่ง (bulk upsert รายวัตถุประสงค์) — คืนอาคารพร้อมราคาล่าสุด

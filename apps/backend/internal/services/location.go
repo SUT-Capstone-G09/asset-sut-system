@@ -206,6 +206,117 @@ func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.Up
 	return &res, nil
 }
 
+// hallPricingFloor = ขั้นต่ำ + สถานะเปิดใช้งานของวัตถุประสงค์หนึ่ง ตามที่อาคารตั้งไว้
+type hallPricingFloor struct {
+	Floor    int
+	IsActive bool
+}
+
+// hallPricingFloors คืนวัตถุประสงค์ที่เปิดใช้งานทั้งหมด + ราคาขั้นต่ำของอาคารนั้นรายวัตถุประสงค์
+// fallback เป็น DefaultPrice เมื่ออาคารยังไม่ตั้งราคา — ให้ตรงกับ BookingService.priceHallPurposes
+func (s *LocationService) hallPricingFloors(buildingID *uint) ([]models.HallUsagePurposes, map[uint]hallPricingFloor, error) {
+	purposes, err := s.locationRepo.FindActiveHallUsagePurposes()
+	if err != nil {
+		return nil, nil, err
+	}
+	floors := make(map[uint]hallPricingFloor, len(purposes))
+	for _, p := range purposes {
+		floors[p.ID] = hallPricingFloor{Floor: p.DefaultPrice, IsActive: true}
+	}
+	if buildingID != nil {
+		building, berr := s.locationRepo.FindBuildingByID(*buildingID)
+		if berr != nil {
+			return nil, nil, berr
+		}
+		for _, hp := range building.HallPricings {
+			floors[hp.HallUsagePurposeID] = hallPricingFloor{Floor: hp.Price, IsActive: hp.IsActive}
+		}
+	}
+	return purposes, floors, nil
+}
+
+// GetLocationHallPricings คืนราคาของโถงหนึ่งครบทุกวัตถุประสงค์ — ราคาอาคาร (ขั้นต่ำ), ราคาเฉพาะโถง, และราคาที่ใช้จริง
+func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.LocationHallPricingResponse, error) {
+	location, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return nil, errors.New("ไม่พบสถานที่")
+	}
+	purposes, floors, err := s.hallPricingFloors(location.BuildingID)
+	if err != nil {
+		return nil, err
+	}
+	overrides, err := s.locationRepo.FindLocationHallPricings(locationID)
+	if err != nil {
+		return nil, err
+	}
+	overrideByPurpose := make(map[uint]int, len(overrides))
+	for _, o := range overrides {
+		overrideByPurpose[o.HallUsagePurposeID] = o.Price
+	}
+
+	res := make([]dto.LocationHallPricingResponse, 0, len(purposes))
+	for _, p := range purposes {
+		f := floors[p.ID]
+		row := dto.LocationHallPricingResponse{
+			HallUsagePurposeID: p.ID,
+			PurposeName:        p.Name,
+			PricingModel:       p.PricingModel,
+			BuildingPrice:      f.Floor,
+			EffectivePrice:     f.Floor,
+			IsActive:           f.IsActive,
+		}
+		if ov, ok := overrideByPurpose[p.ID]; ok {
+			price := ov
+			row.OverridePrice = &price
+			row.EffectivePrice = resolveHallUnitPrice(f.Floor, &price)
+		}
+		res = append(res, row)
+	}
+	return res, nil
+}
+
+// UpdateLocationHallPricings ตั้ง/แก้ราคาเฉพาะโถง (ทำเลทอง) แล้วคืนราคาล่าสุดของโถงนั้น
+// price = nil → ล้าง override กลับไปใช้ราคาอาคาร ; ตั้งต่ำกว่าราคาอาคารไม่ได้
+func (s *LocationService) UpdateLocationHallPricings(locationID uint, req dto.UpdateLocationHallPricingsRequest) ([]dto.LocationHallPricingResponse, error) {
+	location, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return nil, errors.New("ไม่พบสถานที่")
+	}
+	purposes, floors, err := s.hallPricingFloors(location.BuildingID)
+	if err != nil {
+		return nil, err
+	}
+	nameByID := make(map[uint]string, len(purposes))
+	for _, p := range purposes {
+		nameByID[p.ID] = p.Name
+	}
+
+	for _, in := range req.Pricings {
+		f, ok := floors[in.HallUsagePurposeID]
+		if !ok {
+			return nil, fmt.Errorf("ไม่พบวัตถุประสงค์การขอใช้พื้นที่ (id=%d)", in.HallUsagePurposeID)
+		}
+		if in.Price == nil {
+			if derr := s.locationRepo.DeleteLocationHallPricing(locationID, in.HallUsagePurposeID); derr != nil {
+				return nil, derr
+			}
+			continue
+		}
+		if *in.Price < f.Floor {
+			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%d บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
+		}
+		if uerr := s.locationRepo.UpsertLocationHallPricing(&models.LocationHallPricings{
+			LocationID:         locationID,
+			HallUsagePurposeID: in.HallUsagePurposeID,
+			Price:              *in.Price,
+		}); uerr != nil {
+			return nil, uerr
+		}
+	}
+
+	return s.GetLocationHallPricings(locationID)
+}
+
 func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
 	var locations []models.Locations
 	var err error
@@ -247,6 +358,7 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
 		Name:        req.Name,
+		Description: req.Description,
 		BuildingID:  req.BuildingID,
 		ImageURL:    req.ImageURL,
 		RoomNumber:  req.RoomNumber,
@@ -289,6 +401,9 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role st
 	}
 	if req.Name != "" {
 		location.Name = req.Name
+	}
+	if req.Description != nil {
+		location.Description = req.Description
 	}
 	if req.BuildingID != nil {
 		location.BuildingID = req.BuildingID
@@ -599,6 +714,7 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
+		Description: l.Description,
 		BuildingID:  l.BuildingID,
 		ImageURL:    s.resolveImageURL(l.ImageURL),
 		RoomNumber:  l.RoomNumber,

@@ -22,6 +22,7 @@ type Locations struct {
 	TypeID           uint                       `gorm:"not null" json:"type_id"`
 	Type             *LocationTypes             `gorm:"foreignKey:TypeID" json:"type,omitempty"`
 	Name             string                     `gorm:"not null" json:"name"`
+	Description      *string                    `json:"description"`
 	BuildingID       *uint                      `json:"building_id"`
 	Building         *Buildings                 `gorm:"foreignKey:BuildingID" json:"building,omitempty"`
 	ImageURL         *string                    `json:"image_url"`

@@ -12,15 +12,21 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Pencil, X, Save, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { hallSchema, HallFormValues } from "../../schemas/hall-schema";
 import HallFormFields from "./forms/HallFormFields";
+import HallPricingFields from "./forms/HallPricingFields";
 
 interface Props {
   hall: Hall | null;
   open: boolean;
   onClose: () => void;
-  onSave: (updatedHall: Hall) => void | Promise<void>;
+  onSave: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -72,7 +78,8 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
         status: data.status,
         notes: data.notes,
       };
-      await onSave(updatedHall);
+      await onSave(updatedHall, data.pricings ?? []);
+      toast.success("บันทึกการแก้ไขเรียบร้อยแล้ว");
       onClose();
     } catch (err) {
       console.error("Failed to update hall:", err);
@@ -131,8 +138,10 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
               </button>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
               <HallFormFields portalContainer={portalContainer} />
+              {/* key: remount ตอนสลับโถง ไม่งั้นราคาของโถงเดิมค้างอยู่จนกว่า fetch ใหม่จะเสร็จ */}
+              <HallPricingFields key={hall.id} hallId={hall.id} />
             </div>
 
             <div className="px-6 py-5 border-t border-slate-100 flex flex-col gap-3 bg-white/90 backdrop-blur-md shrink-0">

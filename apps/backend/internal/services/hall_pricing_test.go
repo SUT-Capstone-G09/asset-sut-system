@@ -31,6 +31,31 @@ func cells(n int) [][]int {
 	return out
 }
 
+func TestResolveHallUnitPrice(t *testing.T) {
+	// floor = ราคาอาคาร (ขั้นต่ำเสมอ) ; override = ราคาเฉพาะโถงทำเลทอง
+	tests := []struct {
+		name     string
+		floor    int
+		override *int
+		want     int
+	}{
+		{name: "โถงไม่ตั้งราคาเอง ใช้ราคาอาคาร", floor: 150, override: nil, want: 150},
+		{name: "ทำเลทอง ตั้งสูงกว่าอาคาร ใช้ราคาโถง", floor: 150, override: intp(250), want: 250},
+		{name: "ตั้งเท่าอาคารพอดี ได้เท่ากัน", floor: 150, override: intp(150), want: 150},
+		// เคสสำคัญ: อาคารขึ้นราคาทีหลังจนแซง override เดิม → ต้องใช้ราคาอาคาร ไม่ใช่ราคาโถงที่ต่ำกว่า
+		{name: "อาคารขึ้นราคาแซง override เดิม ใช้ราคาอาคาร", floor: 300, override: intp(250), want: 300},
+		{name: "override เป็น 0 ยังไม่ต่ำกว่าอาคาร", floor: 150, override: intp(0), want: 150},
+		{name: "อาคารยังไม่ตั้งราคา (floor 0) ใช้ราคาโถง", floor: 0, override: intp(250), want: 250},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveHallUnitPrice(tt.floor, tt.override); got != tt.want {
+				t.Errorf("resolveHallUnitPrice(%d, %v) = %d, want %d", tt.floor, tt.override, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCalculateHallPurpose_Booth(t *testing.T) {
 	// 6 ช่อง × cellSize 1m² = 6 ตร.ม. × 200 บาท/ตร.ม. × 1 วัน = 1200 (เกณฑ์ระบบ)
 	tests := []struct {

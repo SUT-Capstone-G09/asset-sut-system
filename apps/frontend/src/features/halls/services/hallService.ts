@@ -19,7 +19,7 @@ export function locationToHall(loc: AdminLocationDTO): Hall {
     category: loc.type,
     image: loc.image_url ?? DEFAULT_IMAGE,
     status: loc.status === "available" ? "available" : "maintenance",
-    notes: "",
+    notes: loc.description ?? "",
   };
 }
 
@@ -42,4 +42,6 @@ export {
   createLocation,
   updateLocation,
   deleteLocation,
+  getBuildings,
 } from "@/features/booking/services/locationService";
+export type { BuildingDTO } from "@/features/booking/services/locationService";

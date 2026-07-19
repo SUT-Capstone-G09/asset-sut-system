@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +17,7 @@ import { Building2, Image as ImageIcon, LayoutGrid } from "lucide-react";
 import { HallFormValues } from "../../../schemas/hall-schema";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
-
-const BUILDINGS = [
-  "อาคารเรียนรวม 1",
-  "อาคารเรียนรวม 2",
-  "อาคารบริหาร",
-  "อาคารเครื่องมือ F1",
-  "อาคารเครื่องมือ F2",
-];
+import { getBuildings } from "../../../services/hallService";
 
 export default function HallFormFields({
   portalContainer,
@@ -36,6 +30,15 @@ export default function HallFormFields({
     control,
     formState: { errors },
   } = useFormContext<HallFormValues>();
+
+  // ต้องเลือกจากอาคารที่มีจริงเท่านั้น — backend บันทึกด้วย building_id ชื่อที่พิมพ์เองจะ resolve ไม่ได้
+  const [buildings, setBuildings] = useState<string[]>([]);
+
+  useEffect(() => {
+    getBuildings()
+      .then((list) => setBuildings(list.map((b) => b.name)))
+      .catch((err) => console.error("Failed to load buildings:", err));
+  }, []);
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
@@ -130,7 +133,7 @@ export default function HallFormFields({
               control={control}
               render={({ field }) => (
                 <Combobox
-                  items={BUILDINGS}
+                  items={buildings}
                   value={field.value || null}
                   onValueChange={(v) => field.onChange(v ?? "")}
                 >

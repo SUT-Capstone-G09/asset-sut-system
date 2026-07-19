@@ -4,6 +4,7 @@
 export interface Hall {
   id: string;
   name: string;
+  // ชื่ออาคาร — resolve เป็น building_id ตอนบันทึกใน useHalls (ชื่ออาคาร unique ใน DB)
   building: string;
   category: string; // ล็อกเป็น "โถงอาคาร"
   image: string; // รูปพื้นที่จริง

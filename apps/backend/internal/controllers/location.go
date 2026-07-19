@@ -102,6 +102,42 @@ func (c *LocationController) UpdateBuildingHallPricings(ctx *gin.Context) {
 	response.OK(ctx, building)
 }
 
+// GetLocationHallPricings คืนราคาของโถงหนึ่ง (ราคาอาคาร = ขั้นต่ำ + ราคาเฉพาะโถง + ราคาที่ใช้จริง)
+func (c *LocationController) GetLocationHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	pricings, err := c.locationService.GetLocationHallPricings(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, pricings)
+}
+
+// UpdateLocationHallPricings ตั้ง/แก้ราคาเฉพาะโถง (ทำเลทอง) — ต่ำกว่าราคาอาคารไม่ได้
+func (c *LocationController) UpdateLocationHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateLocationHallPricingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	pricings, err := c.locationService.UpdateLocationHallPricings(id, req)
+	if err != nil {
+		// ราคาต่ำกว่าขั้นต่ำ/ข้อมูลไม่ถูกต้อง = ความผิดฝั่งผู้เรียก ไม่ใช่ server error
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, pricings)
+}
+
 func (c *LocationController) GetAll(ctx *gin.Context) {
 	role := ctx.GetString("role")
 	userID := ctx.GetUint("user_id")
@@ -556,4 +592,3 @@ func (c *LocationController) GetFloorPlanIDs(ctx *gin.Context) {
 	}
 	response.OK(ctx, ids)
 }
-

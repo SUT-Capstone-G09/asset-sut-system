@@ -474,7 +474,8 @@ func calculatePrice(location *models.Locations, ts dto.TimeslotInput, requesterT
 }
 
 // priceHallPurposes คำนวณ+ตรวจราคาวัตถุประสงค์ของการจองพื้นที่โถง สำหรับ location + จำนวนวันที่กำหนด
-// เรทมาจากอาคารของ location, ขนาดเซลล์มาจากผังของโถง ; ใช้ได้ทั้งตอน Create และ Revise
+// เรทมาจากอาคารของ location โดยมีราคาเฉพาะโถง (ทำเลทอง) override ทับได้ถ้าสูงกว่า,
+// ขนาดเซลล์มาจากผังของโถง ; ใช้ได้ทั้งตอน Create และ Revise
 func (s *BookingService) priceHallPurposes(locationID uint, days int, purposeInputs []dto.BookingPurposeInput) ([]models.BookingPurposes, int, int, error) {
 	location, err := s.locationRepo.FindByID(locationID)
 	if err != nil {
@@ -491,6 +492,16 @@ func (s *BookingService) priceHallPurposes(locationID uint, days int, purposeInp
 		for i := range pricings {
 			pricingByPurpose[pricings[i].HallUsagePurposeID] = &pricings[i]
 		}
+	}
+
+	// ราคาเฉพาะโถงนี้ (ทำเลทอง) — override ราคาอาคาร ใช้เมื่อสูงกว่าเท่านั้น (ดู resolveHallUnitPrice)
+	overrideByPurpose := make(map[uint]*models.LocationHallPricings)
+	locationPricings, lerr := s.bookingRepo.FindLocationHallPricings(locationID)
+	if lerr != nil {
+		return nil, 0, 0, lerr
+	}
+	for i := range locationPricings {
+		overrideByPurpose[locationPricings[i].HallUsagePurposeID] = &locationPricings[i]
 	}
 
 	// ขนาดเซลล์จากผังของโถง (ถ้ายังไม่มีผัง cellSize = 0 → วัตถุประสงค์แบบตั้งบูธจะ error ตอนคำนวณ)
@@ -527,6 +538,10 @@ func (s *BookingService) priceHallPurposes(locationID uint, days int, purposeInp
 				return nil, 0, 0, fmt.Errorf("อาคารนี้ไม่เปิดให้ขอใช้พื้นที่เพื่อ %q", purpose.Name)
 			}
 			unitPrice = pr.Price
+		}
+		// โถงทำเลทองคิดแพงกว่าเรทกลางของอาคารได้ แต่ราคาอาคารเป็นขั้นต่ำเสมอ
+		if ov := overrideByPurpose[purpose.ID]; ov != nil {
+			unitPrice = resolveHallUnitPrice(unitPrice, &ov.Price)
 		}
 		inputs = append(inputs, HallPurposeInput{
 			Purpose:          purpose,

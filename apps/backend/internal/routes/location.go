@@ -14,7 +14,8 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	rg.GET("/location-types", lc.GetTypes)
 	rg.GET("/hall-usage-purposes", lc.GetHallUsagePurposes)
 
-	// ตั้ง/แก้ราคาโถงราย อาคาร (staff/admin) — ราคาใช้ร่วมทุกโถงในอาคารเดียวกัน
+	// ตั้ง/แก้ราคาโถงราย อาคาร (staff/admin) — เป็นเรทกลาง/ขั้นต่ำของทุกโถงในอาคาร
+	// โถงทำเลทองตั้งราคาสูงกว่าได้รายตัวที่ PUT /locations/:id/hall-pricings
 	buildingsMgmt := rg.Group("/buildings")
 	buildingsMgmt.Use(auth, middleware.RequireRole("staff", "admin"))
 	{
@@ -59,6 +60,10 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 			mgmt.POST("/:id/pricing-tiers", middleware.RequirePermission("location_mgmt", "update"), lc.CreatePricingTier)
 			mgmt.DELETE("/:id/pricing-tiers/:tid", middleware.RequirePermission("location_mgmt", "update"), lc.DeletePricingTier)
+
+			// ราคาเฉพาะโถง (ทำเลทอง) — override ราคาอาคาร ใช้เมื่อสูงกว่าเท่านั้น
+			mgmt.GET("/:id/hall-pricings", middleware.RequirePermission("location_mgmt", "read"), lc.GetLocationHallPricings)
+			mgmt.PUT("/:id/hall-pricings", middleware.RequirePermission("location_mgmt", "update"), lc.UpdateLocationHallPricings)
 
 			// ผังพื้นที่โถง (top-view + สเกล + กรอบ + ช่องห้ามจอง)
 			mgmt.GET("/:id/floor-plan", middleware.RequirePermission("location_mgmt", "read"), lc.GetFloorPlan)

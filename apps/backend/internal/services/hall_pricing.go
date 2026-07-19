@@ -8,12 +8,27 @@ import (
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 )
 
+// resolveHallUnitPrice คืนราคาต่อหน่วยที่ใช้จริง = max(floor, override)
+//
+//	floor    = ราคาของอาคาร (หรือ HallUsagePurposes.DefaultPrice ถ้าอาคารยังไม่ตั้งราคา)
+//	override = ราคาเฉพาะโถง (ทำเลทอง) จาก LocationHallPricings ; nil = โถงนี้ไม่ได้ตั้งราคาเอง
+//
+// ใช้ max เพื่อให้ราคาอาคารเป็นขั้นต่ำเสมอ: ถ้าภายหลังอาคารขึ้นราคาจนแซงราคาโถงที่ตั้งไว้
+// ระบบจะใช้ราคาอาคารทันทีโดยไม่ต้องไล่แก้ข้อมูลโถง (ค่า override เดิมยังเก็บไว้ ถ้าอาคารลดราคากลับก็กลับมาใช้)
+func resolveHallUnitPrice(floor int, override *int) int {
+	if override != nil && *override > floor {
+		return *override
+	}
+	return floor
+}
+
 // HallPurposeInput = ข้อมูลวัตถุประสงค์ 1 ข้อที่ผู้ขอเลือกตอนจอง (ยังไม่ผูกกับ HTTP DTO)
-// Purpose คือ master data ที่โหลดมาแล้ว (มี PricingModel) ; UnitPrice คือราคาต่อหน่วยของอาคารสำหรับ purpose นี้
+// Purpose คือ master data ที่โหลดมาแล้ว (มี PricingModel) ; UnitPrice คือราคาต่อหน่วยที่ resolve มาแล้ว
 type HallPurposeInput struct {
 	Purpose *models.HallUsagePurposes // วัตถุประสงค์จาก master data
 
-	// UnitPrice = ราคาต่อหน่วยของอาคารนี้สำหรับ purpose นี้ (resolve จาก BuildingHallPricings ; fallback DefaultPrice)
+	// UnitPrice = ราคาต่อหน่วยที่ใช้จริงสำหรับ purpose นี้ — resolve มาก่อนแล้วโดยผู้เรียก
+	// (max ของราคาอาคาร BuildingHallPricings กับราคาเฉพาะโถง LocationHallPricings ; fallback DefaultPrice)
 	//   per_sqm          → บาท/ตร.ม./วัน
 	//   per_type_per_day → บาท/ประเภทสินค้า/วัน
 	UnitPrice int
@@ -32,7 +47,7 @@ type HallPurposeInput struct {
 // CalculateHallPurpose คำนวณราคา BookingPurposes 1 แถว และตรวจว่าราคาที่เสนอไม่ต่ำกว่าเกณฑ์ระบบ
 //
 //	days = จำนวนวันของการจอง (จำนวน timeslots) ; < 1 จะถูกปรับเป็น 1
-//	ราคาต่อหน่วยของทุก PricingModel มาจาก in.UnitPrice (ราคาของอาคารนั้น)
+//	ราคาต่อหน่วยของทุก PricingModel มาจาก in.UnitPrice ที่ resolve มาแล้ว (ดู resolveHallUnitPrice)
 //
 // คืน error ถ้า input ไม่ครบ หรือราคาที่เสนอต่ำกว่าราคาขั้นต่ำ
 func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurposes, error) {

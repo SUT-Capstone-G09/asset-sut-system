@@ -1,70 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Loader2, AlertCircle } from "lucide-react";
-import {
-  getBuildingsWithPricing,
-  getHallUsagePurposes,
-} from "../../services/hallPricingService";
-import { HallPricingModel } from "../../types/pricing";
+import { CreditCard, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { getHallPricings } from "../../services/hallPricingService";
+import { HallPricingModel, HallPricingRow } from "../../types/pricing";
 
 const unitLabel = (m: HallPricingModel) =>
   m === "per_sqm" ? "บาท / ตร.ม. / วัน" : "บาท / ประเภทสินค้า / วัน";
 
-interface PurposePrice {
-  purposeId: number;
-  name: string;
-  model: HallPricingModel;
-  price: number;
-  configured: boolean; // อาคารตั้งราคาเอง (false = ใช้ราคาเริ่มต้นของวัตถุประสงค์)
-}
-
-// แสดงอัตราค่าใช้จ่ายของโถงตาม "การตั้งราคาตามวัตถุประสงค์" ของอาคารที่โถงสังกัด
-// ราคาใช้ร่วมทุกโถงในอาคารเดียวกัน — จับคู่อาคารด้วยชื่อ (ชื่ออาคาร unique) เหมือน HallPricingDrawer
-export default function HallPurposePricing({
-  buildingName,
-}: {
-  buildingName: string;
-}) {
-  const [rows, setRows] = useState<PurposePrice[] | null>(null);
+// แสดงอัตราค่าใช้จ่ายของโถงนี้ — ราคาอาคารเป็นขั้นต่ำ ถ้าโถงทำเลทองตั้งราคาสูงกว่าจะใช้ราคาโถงแทน
+// backend resolve ราคาที่ใช้จริงมาให้แล้ว (effective_price) จึงไม่ต้องจับคู่อาคารเองที่ฝั่ง client
+//
+// ผู้เรียกต้องใส่ key={hallId} เพื่อให้ remount ตอนเปลี่ยนโถค — state จะเริ่มใหม่เอง
+// จึงไม่ต้อง reset ใน effect (ESLint react-hooks/set-state-in-effect ห้าม setState ตรงๆ ใน effect)
+export default function HallPurposePricing({ hallId }: { hallId: string }) {
+  const [rows, setRows] = useState<HallPricingRow[] | null>(null);
   const [error, setError] = useState(false);
-  const [buildingFound, setBuildingFound] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    setRows(null);
-    setError(false);
     (async () => {
       try {
-        const [buildings, purposes] = await Promise.all([
-          getBuildingsWithPricing(),
-          getHallUsagePurposes(), // เฉพาะวัตถุประสงค์ที่เปิดใช้งาน
-        ]);
+        const list = await getHallPricings(Number(hallId));
         if (cancelled) return;
-        const building = buildings.find((b) => b.name === buildingName);
-        const priceMap = new Map(
-          (building?.hall_pricings ?? []).map((p) => [
-            p.hall_usage_purpose_id,
-            p,
-          ]),
-        );
-        // เริ่มจากวัตถุประสงค์ที่เปิดใช้งาน → ใช้ราคาอาคาร ถ้าไม่มีค่อย fallback ราคาเริ่มต้น
-        // (logic เดียวกับ buildDrafts ฝั่ง admin) ; อาคารที่ปิดวัตถุประสงค์นี้ไว้ = ไม่แสดง
-        const list = purposes
-          .map<PurposePrice | null>((p) => {
-            const cfg = priceMap.get(p.id);
-            if (cfg && !cfg.is_active) return null;
-            return {
-              purposeId: p.id,
-              name: p.name,
-              model: p.pricing_model,
-              price: cfg ? cfg.price : p.default_price,
-              configured: !!cfg,
-            };
-          })
-          .filter((r): r is PurposePrice => r !== null);
-        setBuildingFound(!!building);
-        setRows(list);
+        // อาคารที่ปิดวัตถุประสงค์นี้ไว้ = ขอไม่ได้ ไม่ต้องแสดงราคา
+        setRows(list.filter((r) => r.is_active));
       } catch {
         if (!cancelled) setError(true);
       }
@@ -72,21 +32,14 @@ export default function HallPurposePricing({
     return () => {
       cancelled = true;
     };
-  }, [buildingName]);
+  }, [hallId]);
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4 text-left">
-      <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <CreditCard size={14} className="text-[#f26522]" />
-          อัตราค่าใช้จ่ายตามวัตถุประสงค์
-        </h3>
-        {buildingName && (
-          <p className="text-[11px] font-semibold text-slate-400 mt-1 pl-[22px]">
-            ราคาตามอาคาร · {buildingName}
-          </p>
-        )}
-      </div>
+      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+        <CreditCard size={14} className="text-[#f26522]" />
+        อัตราค่าใช้จ่ายตามวัตถุประสงค์
+      </h3>
 
       {error ? (
         <div className="flex items-center gap-2 text-xs font-bold text-red-500 bg-red-50 border border-red-100 rounded-[7px] px-3 py-2.5">
@@ -102,40 +55,37 @@ export default function HallPurposePricing({
           ยังไม่มีวัตถุประสงค์การขอใช้พื้นที่ที่เปิดใช้งาน
         </p>
       ) : (
-        <>
-          {!buildingFound && (
-            <p className="text-[11px] font-semibold text-amber-600 bg-amber-50 border border-amber-100 rounded-[7px] px-3 py-2">
-              ยังไม่ได้ตั้งราคาให้อาคารนี้ — แสดงราคาเริ่มต้นของแต่ละวัตถุประสงค์
-            </p>
-          )}
-          <div className="space-y-2.5">
-            {rows.map((r) => (
+        <div className="space-y-2.5">
+          {rows.map((r) => {
+            const isPrime = r.effective_price > r.building_price;
+            return (
               <div
-                key={r.purposeId}
+                key={r.hall_usage_purpose_id}
                 className="flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-slate-700 truncate">
-                    {r.name}
+                    {r.purpose_name}
                   </p>
                   <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-                    {unitLabel(r.model)}
+                    {unitLabel(r.pricing_model)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-base font-black text-[#f26522] leading-none">
-                    {r.price.toLocaleString()} ฿
+                    {r.effective_price.toLocaleString()} ฿
                   </p>
-                  {!r.configured && (
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
-                      ราคาเริ่มต้น
+                  {isPrime && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold text-amber-600 uppercase tracking-wide">
+                      <Sparkles size={10} />
+                      ทำเลทอง · อาคาร {r.building_price.toLocaleString()} ฿
                     </span>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );

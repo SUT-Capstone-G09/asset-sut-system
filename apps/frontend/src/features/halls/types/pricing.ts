@@ -28,6 +28,24 @@ export interface BuildingWithPricing {
   hall_pricings?: BuildingHallPricing[];
 }
 
+// ราคาของโถงหนึ่ง 1 วัตถุประสงค์ (มาจาก GET /locations/:id/hall-pricings)
+// โถงทำเลทองตั้งราคาสูงกว่าเรทกลางของอาคารได้ แต่ราคาอาคารเป็นขั้นต่ำเสมอ
+export interface HallPricingRow {
+  hall_usage_purpose_id: number;
+  purpose_name: string;
+  pricing_model: HallPricingModel;
+  building_price: number; // ราคาอาคาร = ขั้นต่ำ
+  override_price: number | null; // ราคาเฉพาะโถง ; null = ไม่ได้ตั้ง
+  effective_price: number; // ราคาที่ใช้จริง = max(building, override)
+  is_active: boolean; // อาคารเปิดให้ขอวัตถุประสงค์นี้หรือไม่
+}
+
+// payload สำหรับ PUT /locations/:id/hall-pricings — price null = ล้าง override กลับไปใช้ราคาอาคาร
+export interface UpdateHallPricingInput {
+  hall_usage_purpose_id: number;
+  price: number | null;
+}
+
 // payload สำหรับ PUT /buildings/:id/hall-pricings
 export interface UpdateBuildingHallPricingInput {
   hall_usage_purpose_id: number;
