@@ -1,4 +1,4 @@
-import { FileDropzone, ExistingFile } from "@/components/ui/file-dropzone";
+import { FileDropzone, ExistingFile } from "@/components/ui/MultiDropZone";
 
 export interface ReceiptSectionProps {
   receiptFile: File | null;
@@ -15,10 +15,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function ReceiptSection({
   receiptFile, receiptUrl, onFileChange,
 }: ReceiptSectionProps) {
-  
+
   // We represent the existing receipt url as an existing file if no new file is uploaded
-  const existingFiles: ExistingFile[] = (!receiptFile && receiptUrl) 
-    ? [{ id: "existing", name: "ใบเสร็จเดิม", url: receiptUrl }] 
+  const existingFiles: ExistingFile[] = (!receiptFile && receiptUrl)
+    ? [{ id: "existing", name: "ใบเสร็จเดิม", url: receiptUrl }]
     : [];
 
   return (
@@ -31,7 +31,7 @@ export function ReceiptSection({
         files={receiptFile ? [receiptFile] : []}
         onFilesChange={(files) => onFileChange(files[0] || null)}
         existingFiles={existingFiles}
-        onExistingFileRemove={() => {}} // Remove is handled by replacing the file in this context
+        onExistingFileRemove={() => { }} // Remove is handled by replacing the file in this context
         accept="application/pdf,image/png,image/jpeg,image/webp"
         maxSizeMB={10}
         hint="PDF, PNG, JPG · ไม่เกิน 10MB"
