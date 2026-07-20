@@ -223,7 +223,7 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
             errors.price && "border-red-500 focus-visible:ring-red-500/30"
           )}
         />
-        {errors.price && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.price.message}</p>}
+        {errors.price && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.price.message as string}</p>}
       </div>
 
       {/* 8. รายละเอียด / หมายเหตุ (กว้างเต็ม 2 คอลัมน์) */}

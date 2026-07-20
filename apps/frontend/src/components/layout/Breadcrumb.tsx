@@ -102,29 +102,38 @@ function labelForPath(pathname: string): string {
 
 function buildUrlCrumbs(pathname: string): Crumb[] {
   const segs = pathname.split("/").filter(Boolean);
-  return segs.map((seg, i) => {
+  const crumbs: Crumb[] = [];
+
+  segs.forEach((seg, i) => {
+    // ข้าม segment 'building' และ 'type' เพราะไม่มีหน้า index แยกต่างหาก
+    if (seg === "building" || seg === "type") return;
+
     let href = "/" + segs.slice(0, i + 1).join("/");
     if (href === "/admin") {
       href = "/admin/dashboard";
     }
-    return {
+
+    crumbs.push({
       href,
       label: segmentLabel(seg, segs[i - 1] ?? ""),
-    };
+    });
   });
+
+  return crumbs;
 }
 
 function computeNext(newPath: string, history: Crumb[]): Crumb[] {
   // 1. หน้านี้อยู่ใน history แล้ว → ตัดกลับไปจุดนั้น (กดย้อนกลับ)
   const existingIdx = history.findIndex((c) => c.href === newPath);
-  if (existingIdx >= 0) return history.slice(0, existingIdx + 1);
+  if (existingIdx >= 0) return sanitizeCrumbs(history.slice(0, existingIdx + 1));
 
   const last = history[history.length - 1];
 
   // 2. หน้าใหม่เป็น sub-path ของ crumb ล่าสุด → ต่อเนื่องตาม URL
   if (last && newPath.startsWith(last.href + "/")) {
     const next = [...history, { href: newPath, label: labelForPath(newPath) }];
-    return next.length > MAX_CRUMBS ? next.slice(-MAX_CRUMBS) : next;
+    const sliced = next.length > MAX_CRUMBS ? next.slice(-MAX_CRUMBS) : next;
+    return sanitizeCrumbs(sliced);
   }
 
   // 3. เช็ค referrer whitelist
@@ -139,24 +148,34 @@ function computeNext(newPath: string, history: Crumb[]): Crumb[] {
         (c) => getSection(c.href) !== lastSection
       );
       const combined = [...refCrumbs, ...newUrlCrumbs];
-      return combined.length > MAX_CRUMBS ? combined.slice(-MAX_CRUMBS) : combined;
+      const sliced = combined.length > MAX_CRUMBS ? combined.slice(-MAX_CRUMBS) : combined;
+      return sanitizeCrumbs(sliced);
     }
   }
 
   // 4. Default: ใช้ URL-based crumbs ตาม path ปัจจุบัน (reset context)
-  return buildUrlCrumbs(newPath);
+  return sanitizeCrumbs(buildUrlCrumbs(newPath));
+}
+
+function sanitizeCrumbs(crumbs: Crumb[]): Crumb[] {
+  return crumbs.filter((c) => {
+    const href = c.href;
+    return !href.endsWith("/building") && !href.endsWith("/type");
+  });
 }
 
 function loadCrumbs(): Crumb[] {
   try {
-    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "[]");
+    const raw: Crumb[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "[]");
+    return sanitizeCrumbs(raw);
   } catch {
     return [];
   }
 }
 
 function saveCrumbs(crumbs: Crumb[]) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(crumbs));
+  const clean = sanitizeCrumbs(crumbs);
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
 }
 
 export default function Breadcrumb({ className }: { className?: string }) {

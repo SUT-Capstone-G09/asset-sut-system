@@ -103,6 +103,7 @@ export default function SpaceRentalBuildingView({
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-300 pb-16">
+
       {/* Header Section (Flat & Clean, matching type category style) */}
       <div className="border-b border-slate-100 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
@@ -148,6 +149,8 @@ export default function SpaceRentalBuildingView({
           viewMode={viewMode}
           setViewMode={setViewMode}
           showCategoryFilter={false}
+          showBuildingFilter={false}
+          showBusinessTypeFilter={false}
           hasFloorPlan={building.has_floor_plan || !!building.blueprint_url}
         />
 

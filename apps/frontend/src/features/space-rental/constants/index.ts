@@ -3,7 +3,7 @@ export const AREA_CATEGORIES = [
   { value: "หอพักนักศึกษา", label: "หอพักนักศึกษา" },
   { value: "อาคารเรียนรวม", label: "อาคารเรียนรวม" },
   { value: "อาคารเครื่องมือ", label: "อาคารเครื่องมือ" },
-  { value: "อาคารัฐสีมาคุณากร", label: "อาคารัฐสีมาคุณากร" },
+  { value: "อาคารรัฐสีมาคุณากร", label: "อาคารรัฐสีมาคุณากร" },
   { value: "อาคารบริการหอพัก", label: "อาคารบริการหอพัก" },
   { value: "อาคารบรรณสาร", label: "อาคารบรรณสาร" },
   { value: "อาคารกีฬา", label: "อาคารกีฬา" },
@@ -134,12 +134,18 @@ export const BUILDINGS = [
 ] as const;
 
 export type CommercialCategoryType = 
-  | 'food_beverage' 
-  | 'retail_services' 
-  | 'automated_services' 
-  | 'digital_infrastructure' 
-  | 'wireless_connectivity' 
-  | 'commercial_assets';
+  | 'fresh_coffee_beverage_snacks'
+  | 'convenience_store_minimart'
+  | 'vending_machine'
+  | 'washing_machine_service'
+  | 'atm_service'
+  | 'telecom_network'
+  | 'it_equipment_sales'
+  | 'billboard_media'
+  | 'printing_document_service'
+  | 'space_usage'
+  | 'canteen'
+  | 'other';
 
 export interface CommercialCategory {
   readonly value: CommercialCategoryType;
@@ -151,47 +157,137 @@ export interface CommercialCategory {
 
 export const COMMERCIAL_CATEGORIES: readonly CommercialCategory[] = [
   {
-    value: 'food_beverage',
-    title: 'Food & Beverage',
-    desc: 'ร้านอาหาร เครื่องดื่ม และพื้นที่นั่งพัก',
-    count: 48,
-    iconName: 'Utensils',
+    value: 'fresh_coffee_beverage_snacks',
+    title: 'กาแฟสด เครื่องดื่ม อาหารว่าง',
+    desc: 'ร้านกาแฟสด เครื่องดื่ม เบเกอรี่ และอาหารว่าง',
+    count: 24,
+    iconName: 'Coffee',
   },
   {
-    value: 'retail_services',
-    title: 'Retail & Services',
-    desc: 'ร้านค้าปลีกและบริการทั่วไป',
-    count: 32,
+    value: 'convenience_store_minimart',
+    title: 'ร้านสะดวกซื้อ/มินิมาร์ท',
+    desc: 'ร้านสะดวกซื้อ มินิมาร์ท และร้านจำหน่ายสินค้าอุปโภคบริโภค',
+    count: 12,
     iconName: 'ShoppingBag',
   },
   {
-    value: 'automated_services',
-    title: 'Automated Services',
-    desc: 'ตู้บริการอัตโนมัติและเครื่องหยอดเหรียญ',
-    count: 24,
+    value: 'vending_machine',
+    title: 'ตู้จำหน่ายสินค้าอัตโนมัติ',
+    desc: 'ตู้กดเครื่องดื่ม ตู้จำหน่ายขนม และสินค้าอัตโนมัติ',
+    count: 35,
+    iconName: 'Box',
+  },
+  {
+    value: 'washing_machine_service',
+    title: 'ให้บริการเครื่องซักผ้าอัตโนมัติ',
+    desc: 'จุดบริการเครื่องซักผ้าและอบผ้าหยอดเหรียญ/อัตโนมัติ',
+    count: 18,
+    iconName: 'Shirt',
+  },
+  {
+    value: 'atm_service',
+    title: 'ให้บริการติดตั้งตู้ ATM',
+    desc: 'จุดติดตั้งตู้ถอนเงินอัตโนมัติ (ATM) ของธนาคารต่างๆ',
+    count: 15,
     iconName: 'CreditCard',
   },
   {
-    value: 'digital_infrastructure',
-    title: 'Digital Infrastructure',
-    desc: 'ระบบเครือข่ายและโครงสร้างพื้นฐาน',
-    count: 156,
-    iconName: 'Wifi',
-  },
-  {
-    value: 'wireless_connectivity',
-    title: 'Wireless Connectivity',
-    desc: 'Access Point และจุดสื่อสารไร้สาย',
+    value: 'telecom_network',
+    title: 'เครือข่ายโทรคมนาคม (เสารับ-ส่งสัญญาณ Small Cell Access Point)',
+    desc: 'จุดติดตั้งเสาสัญญาณ Small Cell, Access Point และอุปกรณ์สื่อสาร',
     count: 82,
-    iconName: 'Smartphone',
+    iconName: 'Radio',
   },
   {
-    value: 'commercial_assets',
-    title: 'Commercial Assets',
-    desc: 'พื้นที่เชิงพาณิชย์และสินทรัพย์',
-    count: 43,
+    value: 'it_equipment_sales',
+    title: 'จำหน่ายอุปกรณ์ IT',
+    desc: 'ร้านจำหน่ายอุปกรณ์คอมพิวเตอร์ สมาร์ทโฟน และอุปกรณ์ไอที',
+    count: 8,
+    iconName: 'Monitor',
+  },
+  {
+    value: 'billboard_media',
+    title: 'ป้ายและสื่อประชาสัมพันธ์',
+    desc: 'พื้นที่ป้ายโฆษณา สื่อดิจิทัล และป้ายประชาสัมพันธ์',
+    count: 25,
+    iconName: 'Tv',
+  },
+  {
+    value: 'printing_document_service',
+    title: 'เครื่องพิมพ์เอกสาร',
+    desc: 'จุดบริการปริ้นท์เอกสาร ถ่ายเอกสาร และเครื่องพิมพ์อัตโนมัติ',
+    count: 14,
+    iconName: 'Printer',
+  },
+  {
+    value: 'space_usage',
+    title: 'ใช้พื้นที่',
+    desc: 'พื้นที่จัดกิจกรรม บูธชั่วคราว และพื้นที่ใช้สอยอเนกประสงค์',
+    count: 30,
+    iconName: 'MapPin',
+  },
+  {
+    value: 'canteen',
+    title: 'โรงอาหาร',
+    desc: 'พื้นที่ศูนย์อาหาร และแผงจำหน่ายอาหารภายในโรงอาหาร',
+    count: 45,
+    iconName: 'Utensils',
+  },
+  {
+    value: 'other',
+    title: 'อื่นๆ',
+    desc: 'ผู้ประกอบการและประเภทพื้นที่อื่นๆ',
+    count: 10,
     iconName: 'Building2',
   },
 ] as const;
+
+export const DEFAULT_RENTAL_SPACE_CONFIG = {
+  address: "มหาวิทยาลัยเทคโนโลยีสุรนารี",
+  coordinates: [14.8804616, 102.0161729] as [number, number],
+  image: "https://beta.sut.ac.th/damt/wp-content/uploads/sites/189/2021/01/1-2.jpg",
+  defaultPrice: 5000,
+  defaultSize: "15 ตร.ม.",
+};
+
+// แปลงชื่อข้อความประเภทธุรกิจ/สัญญา ให้กลายเป็น CommercialCategoryType ประจำระบบ
+export function mapBusinessCategoryName(categoryName?: string): CommercialCategoryType {
+  if (!categoryName) return "canteen";
+  const cat = categoryName.toLowerCase();
+  if (cat.includes("กาแฟ") || cat.includes("เครื่องดื่ม") || cat.includes("อาหารว่าง")) {
+    return "fresh_coffee_beverage_snacks";
+  }
+  if (cat.includes("สะดวกซื้อ") || cat.includes("มินิมาร์ท")) {
+    return "convenience_store_minimart";
+  }
+  if (cat.includes("ตู้จำหน่าย") || cat.includes("ตู้กด")) {
+    return "vending_machine";
+  }
+  if (cat.includes("ซักผ้า")) {
+    return "washing_machine_service";
+  }
+  if (cat.includes("atm")) {
+    return "atm_service";
+  }
+  if (cat.includes("เสา") || cat.includes("โทรคมนาคม") || cat.includes("access point") || cat.includes("small cell")) {
+    return "telecom_network";
+  }
+  if (cat.includes("it") || cat.includes("ไอที") || cat.includes("คอมพิวเตอร์")) {
+    return "it_equipment_sales";
+  }
+  if (cat.includes("ป้าย") || cat.includes("สื่อ")) {
+    return "billboard_media";
+  }
+  if (cat.includes("พิมพ์") || cat.includes("เอกสาร") || cat.includes("ปริ้นท์")) {
+    return "printing_document_service";
+  }
+  if (cat.includes("ใช้พื้นที่")) {
+    return "space_usage";
+  }
+  if (cat.includes("โรงอาหาร") || cat.includes("ก๋วยเตี๋ยว") || cat.includes("ส้มตำ") || cat.includes("สุกี้")) {
+    return "canteen";
+  }
+  return "other";
+}
 
 export * from "./area-ui-config";

@@ -1,20 +1,32 @@
 import {
   Building2,
-  Wifi,
+  Coffee,
   ShoppingBag,
-  Utensils,
-  Smartphone,
+  Box,
+  Shirt,
   CreditCard,
+  Radio,
+  Monitor,
+  Tv,
+  Printer,
+  MapPin,
+  Utensils,
   LucideIcon,
 } from "lucide-react";
 import { COMMERCIAL_CATEGORIES } from "../../constants";
 
 const iconMap: Record<string, LucideIcon> = {
-  Utensils,
+  Coffee,
   ShoppingBag,
+  Box,
+  Shirt,
   CreditCard,
-  Wifi,
-  Smartphone,
+  Radio,
+  Monitor,
+  Tv,
+  Printer,
+  MapPin,
+  Utensils,
   Building2,
 };
 
