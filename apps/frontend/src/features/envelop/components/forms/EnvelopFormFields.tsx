@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Pencil, Upload } from "lucide-react";
-import { FileDropzone, ExistingFile } from "@/components/ui/file-dropzone";
+import { FileDropzone, ExistingFile } from "@/components/ui/MultiDropZone";
 import {
   Select,
   SelectContent,
@@ -25,10 +25,10 @@ const vacantSpaces = [
 ];
 
 const statusOptions: { value: DocumentStatus; label: string; color: string }[] = [
-  { value: "draft",       label: "ร่าง",           color: "text-slate-500" },
-  { value: "on_sale",     label: "เปิดขาย",        color: "text-emerald-600" },
-  { value: "unavailable", label: "ปิดชั่วคราว",   color: "text-amber-600" },
-  { value: "archived",    label: "ปิดถาวร",       color: "text-red-500" },
+  { value: "draft", label: "ร่าง", color: "text-slate-500" },
+  { value: "on_sale", label: "เปิดขาย", color: "text-emerald-600" },
+  { value: "unavailable", label: "ปิดชั่วคราว", color: "text-amber-600" },
+  { value: "archived", label: "ปิดถาวร", color: "text-red-500" },
 ];
 
 interface EnvelopFormFieldsProps {
@@ -40,9 +40,9 @@ interface EnvelopFormFieldsProps {
 
 export default function EnvelopFormFields({ form, setForm, isEdit = false, existingFiles = [] }: EnvelopFormFieldsProps) {
   const selectedArea = tenantAreaOptions.find((a) => a.id === form.areaId);
-  
+
   // คำนวณไฟล์เดิมที่ยังไม่ได้ถูกลบเฉพาะโหมดแก้ไข
-  const visibleExistingFiles = isEdit 
+  const visibleExistingFiles = isEdit
     ? existingFiles.filter((a) => !form.removedAttachmentIds?.includes(a.id))
     : undefined;
 
