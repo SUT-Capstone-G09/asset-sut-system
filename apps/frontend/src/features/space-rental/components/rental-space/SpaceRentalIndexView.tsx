@@ -1,35 +1,110 @@
 "use client";
 
-import { Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, Tag, X } from "lucide-react";
 import BuildingCard from "../building/BuildingCard";
 import AreaStats from "./AreaStats";
 import AreaFilters from "./SpaceFilters";
+import SpaceCard from "./SpaceCard";
 import BuildingCreateDrawer from "../building/BuildingCreateDrawer";
 import { useAreasDashboard } from "../../hooks/useAreasDashboard";
 import { RentalSpace } from "../../types/rental-space";
-import { mockLocations } from "../../data/mock-rental-spaces";
+import { COMMERCIAL_CATEGORIES } from "../../constants";
 import { Button } from "@/components/ui/button";
 
-function IndexStats() {
-  const allLocations = mockLocations as RentalSpace[];
-  return <AreaStats locations={allLocations} />;
+interface SpaceViewResultSectionProps {
+  results: RentalSpace[];
+  selectedBuildingFilter: string;
+  selectedBusinessTypeFilter: string;
+  selectedStatusFilter: string;
+  buildingOptions: { value: string; label: string }[];
+  onReset: () => void;
+}
+
+function SpaceViewResultSection({
+  results,
+  selectedBuildingFilter,
+  selectedBusinessTypeFilter,
+  selectedStatusFilter,
+  buildingOptions,
+  onReset,
+}: SpaceViewResultSectionProps) {
+  // หา label หัวข้อผลลัพธ์
+  let title = "ผลการค้นหาพื้นที่เช่า";
+  if (selectedBuildingFilter !== "all") {
+    const buildingName = buildingOptions.find((b) => b.value === selectedBuildingFilter)?.label;
+    title = `พื้นที่ทั้งหมดใน: ${buildingName || "อาคารที่เลือก"}`;
+  } else if (selectedBusinessTypeFilter !== "all") {
+    const typeTitle = COMMERCIAL_CATEGORIES.find((c) => c.value === selectedBusinessTypeFilter)?.title;
+    title = `ธุรกิจประเภท: ${typeTitle || selectedBusinessTypeFilter}`;
+  } else if (selectedStatusFilter !== "all") {
+    const statusLabel =
+      selectedStatusFilter === "available"
+        ? "ว่างอยู่"
+        : selectedStatusFilter === "occupied"
+        ? "มีผู้เช่า"
+        : "ปิดซ่อมบำรุง";
+    title = `พื้นที่เช่าสถานะ: ${statusLabel}`;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Result Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-6 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.3)]" />
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            {title}
+          </h2>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f26522]/10 text-[#f26522] text-xs font-bold">
+            <Tag size={11} />
+            {results.length} ยูนิตย่อย
+          </span>
+        </div>
+        <button
+          onClick={onReset}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors font-medium cursor-pointer"
+        >
+          <X size={13} />
+          ล้างตัวกรอง
+        </button>
+      </div>
+
+      {results.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-md border-2 border-dashed border-slate-200 animate-in fade-in duration-300">
+          <p className="text-base font-bold text-slate-700">
+            ไม่พบพื้นที่เช่าที่ตรงตามเงื่อนไข
+          </p>
+          <Button
+            variant="outline"
+            onClick={onReset}
+            className="mt-6 rounded-md border-slate-200 text-slate-600 font-bold text-xs"
+          >
+            ล้างตัวกรองทั้งหมด
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {results.map((space) => (
+            <SpaceCard key={space.id} location={space} showCategory={true} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SpaceRentalIndexView() {
   const {
-    searchQuery,
-    setSearchQuery,
-    selectedTypeFilter,
-    setSelectedTypeFilter,
+    selectedBuildingFilter,
+    selectedBusinessTypeFilter,
     selectedStatusFilter,
-    setSelectedStatusFilter,
+    buildingOptions,
     viewMode,
-    setViewMode,
-    isCreateOpen,
-    setIsCreateOpen,
     isBuildingCreateOpen,
     setIsBuildingCreateOpen,
-    dynamicCategories,
+    isSpaceViewMode,
+    allResolvedSpaces,
+    visibleSpaces,
     visibleCards,
     handleCardSelect,
     handleResetFilters,
@@ -62,81 +137,84 @@ export default function SpaceRentalIndexView() {
       </div>
 
       {/* Summary Stats Cards */}
-      <IndexStats />
+      <AreaStats locations={allResolvedSpaces} />
 
       {/* Search & Filters Panel */}
-      <AreaFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedCategory={selectedTypeFilter}
-        setSelectedCategory={setSelectedTypeFilter}
-        selectedStatus={selectedStatusFilter}
-        setSelectedStatus={setSelectedStatusFilter}
-        categories={dynamicCategories}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        onReset={handleResetFilters}
-      />
+      <AreaFilters />
 
-      {/* Section label */}
-      <div className="flex items-center gap-4">
-        <div className="w-1.5 h-6 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.3)]" />
-        <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-          ประเภทพื้นที่
-        </h2>
-      </div>
-
-      {/* Dashboard Cards Grid/List */}
-      {visibleCards.length > 0 ? (
-        viewMode === "grid" ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {visibleCards.map((card) => (
-              <BuildingCard
-                key={card.id}
-                buildingName={card.name}
-                locations={card.locations}
-                isSelected={false}
-                onSelect={() => handleCardSelect(card)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {visibleCards.map((card) => (
-              <div
-                key={card.id}
-                onClick={() => handleCardSelect(card)}
-                className="group bg-white rounded-md border border-slate-200/60 p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-[#f26522]/20 transition-all duration-200"
-              >
-                <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">
-                    {card.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium">
-                    {card.type === "group" ? "กลุ่มประเภทอาคาร" : "อาคารเดี่ยว"}{" "}
-                    | {card.locations.length} ยูนิตย่อย
-                  </p>
-                </div>
-                <button className="shrink-0 size-10 rounded-md bg-slate-50 text-slate-400 group-hover:bg-[#f26522] group-hover:text-white transition-all flex items-center justify-center">
-                  <ArrowRight size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )
+      {isSpaceViewMode ? (
+        <SpaceViewResultSection
+          results={visibleSpaces}
+          selectedBuildingFilter={selectedBuildingFilter}
+          selectedBusinessTypeFilter={selectedBusinessTypeFilter}
+          selectedStatusFilter={selectedStatusFilter}
+          buildingOptions={buildingOptions}
+          onReset={handleResetFilters}
+        />
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-md border-2 border-dashed border-slate-200 animate-in fade-in duration-300">
-          <p className="text-base font-bold text-slate-700">
-            ไม่พบตึกหรือประเภทพื้นที่ที่ตรงเงื่อนไข
-          </p>
-          <Button
-            variant="outline"
-            onClick={handleResetFilters}
-            className="mt-6 rounded-md border-slate-200 text-slate-600 font-bold text-xs"
-          >
-            ล้างตัวกรองทั้งหมด
-          </Button>
-        </div>
+        // Default Mode: แสดงการ์ดกลุ่มตึก หรือการ์ดอาคารเดี่ยว
+        <>
+          {/* Section label */}
+          <div className="flex items-center gap-4">
+            <div className="w-1.5 h-6 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.3)]" />
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+              ประเภทพื้นที่
+            </h2>
+          </div>
+
+          {/* Dashboard Cards Grid/List */}
+          {visibleCards.length > 0 ? (
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {visibleCards.map((card) => (
+                  <BuildingCard
+                    key={card.id}
+                    buildingName={card.name}
+                    locations={card.locations}
+                    isSelected={false}
+                    onSelect={() => handleCardSelect(card)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {visibleCards.map((card) => (
+                  <div
+                    key={card.id}
+                    onClick={() => handleCardSelect(card)}
+                    className="group bg-white rounded-md border border-slate-200/60 p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-[#f26522]/20 transition-all duration-200"
+                  >
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#f26522] transition-colors">
+                        {card.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 font-medium">
+                        {card.type === "group" ? "กลุ่มประเภทอาคาร" : "อาคารเดี่ยว"}{" "}
+                        | {card.locations.length} ยูนิตย่อย
+                      </p>
+                    </div>
+                    <button className="shrink-0 size-10 rounded-md bg-slate-50 text-slate-400 group-hover:bg-[#f26522] group-hover:text-white transition-all flex items-center justify-center">
+                      <ArrowRight size={16} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-md border-2 border-dashed border-slate-200 animate-in fade-in duration-300">
+              <p className="text-base font-bold text-slate-700">
+                ไม่พบตึกหรือประเภทพื้นที่ที่ตรงเงื่อนไข
+              </p>
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                className="mt-6 rounded-md border-slate-200 text-slate-600 font-bold text-xs"
+              >
+                ล้างตัวกรองทั้งหมด
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Create Building Drawer */}

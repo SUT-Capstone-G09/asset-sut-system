@@ -6,11 +6,14 @@ export const areaSchema = z.object({
   building: z.string().min(1, "กรุณาเลือกอาคาร"),
   area: z.string().min(1, "กรุณาเลือกพื้นที่หลัก"),
   size: z.string().optional(),
-  price: z.union([
-    z.coerce.number({ message: "กรุณาระบุเป็นตัวเลข" }).min(0, "ราคาต้องไม่ต่ำกว่า 0"),
-    z.literal("").transform(() => undefined),
-    z.undefined()
-  ]).optional(),
+  price: z.preprocess(
+    (val) => {
+      if (val === "" || val === undefined || val === null) return undefined;
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.number().optional()
+  ).optional() as z.ZodType<number | undefined, any, any>,
   description: z.string().optional(),
   image: z.string().optional(),
 });

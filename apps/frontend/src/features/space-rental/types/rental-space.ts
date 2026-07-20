@@ -1,4 +1,4 @@
-import { CommercialCategoryType } from '../constants';
+import { CommercialCategoryType, mapBusinessCategoryName, DEFAULT_RENTAL_SPACE_CONFIG } from '../constants';
 
 // RentalSpace คือโมเดลฝั่งหน้าบ้านที่แสดงผลข้อมูลพื้นที่เช่าพาณิชย์
 // (สอดคล้องกับโมเดล RentalSpaces และ RentalSpaceResponse ของ API หลังบ้าน)
@@ -74,30 +74,24 @@ export function mapDTOToRentalSpace(dto: RentalSpaceDTO): RentalSpace {
   const contract = dto.active_contract;
   const tenant = contract?.tenant_profile;
   const contactUser = tenant?.user?.profile;
-  const categoriesMap: Record<string, CommercialCategoryType> = {
-    "อาหารและเครื่องดื่ม": "food_beverage",
-    "ร้านค้าและบริการ": "retail_services",
-    "บริการตู้อัตโนมัติ": "automated_services",
-    "อินเทอร์เน็ตไร้สาย": "wireless_connectivity",
-  };
   const bizTypeName = contract?.business_type?.name || "";
-  const mappedCategory = categoriesMap[bizTypeName] || "retail_services";
+  const mappedCategory = mapBusinessCategoryName(bizTypeName);
 
   return {
     id: String(dto.id),
     name: dto.name,
     description: dto.description || "",
     areaCode: dto.area_code || "",
-    size: dto.size || "",
-    price: dto.base_price || 0,
+    size: dto.size || DEFAULT_RENTAL_SPACE_CONFIG.defaultSize,
+    price: dto.base_price || DEFAULT_RENTAL_SPACE_CONFIG.defaultPrice,
     status: dto.status === "vacant" ? "available" : dto.status,
     building: dto.building?.name || "",
     area: dto.building?.building_type?.name || "ทั่วไป",
-    address: dto.building?.address || "",
+    address: dto.building?.address || DEFAULT_RENTAL_SPACE_CONFIG.address,
     coordinates: dto.building?.lat != null && dto.building?.lng != null 
       ? [dto.building.lat, dto.building.lng] 
-      : undefined,
-    image: dto.images?.find(img => img.is_primary)?.url || dto.images?.[0]?.url || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
+      : DEFAULT_RENTAL_SPACE_CONFIG.coordinates,
+    image: dto.images?.find(img => img.is_primary)?.url || dto.images?.[0]?.url || DEFAULT_RENTAL_SPACE_CONFIG.image,
     locationCategory: [mappedCategory],
     
     // ข้อมูลสัญญาเช่าเชิงรุก

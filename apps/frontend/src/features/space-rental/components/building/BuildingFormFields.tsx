@@ -225,7 +225,7 @@ export default function BuildingFormFields() {
             errors.floor_count && "border-red-500 focus-visible:ring-red-500/30"
           )}
         />
-        {errors.floor_count && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.floor_count.message}</p>}
+        {errors.floor_count && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.floor_count.message as string}</p>}
       </div>
 
       {/* 5. ระบุพิกัดทางภูมิศาสตร์ */}
