@@ -13,19 +13,19 @@ import (
 )
 
 type MapLayerService struct {
-	mapLayerRepo *repositories.MapLayerRepository
-	floorPlanRepo *repositories.FloorPlanRepository
-	rentalSpaceRepo *repositories.RentalSpaceRepository
+	mapLayerRepo    repositories.MapLayerRepository
+	floorPlanRepo   repositories.FloorPlanRepository
+	rentalSpaceRepo repositories.RentalSpaceRepository
 }
 
 func NewMapLayerService(
-	mapLayerRepo *repositories.MapLayerRepository,
-	floorPlanRepo *repositories.FloorPlanRepository,
-	rentalSpaceRepo *repositories.RentalSpaceRepository,
+	mapLayerRepo repositories.MapLayerRepository,
+	floorPlanRepo repositories.FloorPlanRepository,
+	rentalSpaceRepo repositories.RentalSpaceRepository,
 ) *MapLayerService {
 	return &MapLayerService{
-		mapLayerRepo: mapLayerRepo,
-		floorPlanRepo: floorPlanRepo,
+		mapLayerRepo:	mapLayerRepo,
+		floorPlanRepo:	floorPlanRepo,
 		rentalSpaceRepo: rentalSpaceRepo,
 	}
 }

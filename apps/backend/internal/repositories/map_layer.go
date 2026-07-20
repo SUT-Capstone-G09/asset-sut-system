@@ -8,16 +8,30 @@ import (
 	"gorm.io/gorm"
 )
 
-type MapLayerRepository struct {
+type MapLayerRepository interface {
+	FindMapLayerByID(ctx context.Context, id uuid.UUID) (*models.MapLayers, error)
+	CreateMapLayer(ctx context.Context, ml *models.MapLayers) error
+	UpdateMapLayer(ctx context.Context, ml *models.MapLayers) error
+	DeleteMapLayer(ctx context.Context, id uuid.UUID) error
+	FindMapElementByID(ctx context.Context, id uuid.UUID) (*models.MapElements, error)
+	CreateMapElement(ctx context.Context, me *models.MapElements) error
+	UpdateMapElement(ctx context.Context, me *models.MapElements) error
+	DeleteMapElement(ctx context.Context, id uuid.UUID) error
+}
+
+type mapLayerRepository struct {
 	db *gorm.DB
 }
 
-func NewMapLayerRepository(db *gorm.DB) *MapLayerRepository {
-	return &MapLayerRepository{db: db}
+func NewMapLayerRepository(db *gorm.DB) MapLayerRepository {
+	return &mapLayerRepository{db: db}
 }
 
 // FindMapLayerByID retrieves a MapLayer by its ID.
-func (r *MapLayerRepository) FindMapLayerByID(ctx context.Context, id uuid.UUID) (*models.MapLayers, error) {
+func (r *mapLayerRepository) FindMapLayerByID(
+	ctx context.Context, 
+	id uuid.UUID,
+) (*models.MapLayers, error) {
 	var ml models.MapLayers
 
 	err := r.db.WithContext(ctx).
@@ -32,12 +46,18 @@ func (r *MapLayerRepository) FindMapLayerByID(ctx context.Context, id uuid.UUID)
 }
 
 // CreateMapLayer inserts a new MapLayer record.
-func (r *MapLayerRepository) CreateMapLayer(ctx context.Context, ml *models.MapLayers) error {
+func (r *mapLayerRepository) CreateMapLayer(
+	ctx context.Context, 
+	ml *models.MapLayers,
+) error {
 	return r.db.WithContext(ctx).Create(ml).Error
 }
 
 // UpdateMapLayer updates an existing MapLayer record.
-func (r *MapLayerRepository) UpdateMapLayer(ctx context.Context, ml *models.MapLayers) error {
+func (r *mapLayerRepository) UpdateMapLayer(
+	ctx context.Context, 
+	ml *models.MapLayers,
+) error {
 	return r.db.WithContext(ctx).
 		Model(&models.MapLayers{}).
 		Where("id = ?", ml.ID).
@@ -45,7 +65,10 @@ func (r *MapLayerRepository) UpdateMapLayer(ctx context.Context, ml *models.MapL
 }
 
 // DeleteMapLayer deletes a MapLayer by its ID.
-func (r *MapLayerRepository) DeleteMapLayer(ctx context.Context, id uuid.UUID) error {
+func (r *mapLayerRepository) DeleteMapLayer(
+	ctx context.Context, 
+	id uuid.UUID,
+) error {
 	result := r.db.WithContext(ctx).Delete(&models.MapLayers{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
@@ -59,9 +82,12 @@ func (r *MapLayerRepository) DeleteMapLayer(ctx context.Context, id uuid.UUID) e
 }
 
 // FindMapElementByID retrieves a MapElement by its ID.
-func (r *MapLayerRepository) FindMapElementByID(ctx context.Context, id uuid.UUID) (*models.MapElements, error) {
+func (r *mapLayerRepository) FindMapElementByID(
+	ctx context.Context, 
+	id uuid.UUID,
+) (*models.MapElements, error) {
 	var me models.MapElements
-	
+
 	err := r.db.WithContext(ctx).
 		Preload("Layer").
 		Preload("RentalSpace").
@@ -74,12 +100,18 @@ func (r *MapLayerRepository) FindMapElementByID(ctx context.Context, id uuid.UUI
 }
 
 // CreateMapElement inserts a new MapElement record.
-func (r *MapLayerRepository) CreateMapElement(ctx context.Context, me *models.MapElements) error {
+func (r *mapLayerRepository) CreateMapElement(
+	ctx context.Context, 
+	me *models.MapElements,
+) error {
 	return r.db.WithContext(ctx).Create(me).Error
 }
 
 // UpdateMapElement updates an existing MapElement record.
-func (r *MapLayerRepository) UpdateMapElement(ctx context.Context, me *models.MapElements) error {
+func (r *mapLayerRepository) UpdateMapElement(
+	ctx context.Context, 
+	me *models.MapElements,
+) error {
 	return r.db.WithContext(ctx).
 		Model(&models.MapElements{}).
 		Where("id = ?", me.ID).
@@ -87,7 +119,10 @@ func (r *MapLayerRepository) UpdateMapElement(ctx context.Context, me *models.Ma
 }
 
 // DeleteMapElement deletes a MapElement by its ID.
-func (r *MapLayerRepository) DeleteMapElement(ctx context.Context, id uuid.UUID) error {
+func (r *mapLayerRepository) DeleteMapElement(
+	ctx context.Context, 
+	id uuid.UUID,
+) error {
 	result := r.db.WithContext(ctx).Delete(&models.MapElements{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
@@ -96,6 +131,6 @@ func (r *MapLayerRepository) DeleteMapElement(ctx context.Context, id uuid.UUID)
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
-	
+
 	return nil
 }
