@@ -378,9 +378,9 @@ export default function BookingDrawer({
       setSelectedRecurrenceMode("this");
       setRecurrenceDialogOpen(true);
     } else {
-      if (confirm("คุณแน่ใจหรือไม่ที่จะลบรายการขอจองนี้?")) {
+      if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกรายการขอจองนี้?")) {
         onDelete(booking.id);
-        alert("ลบรายการขอจองสำเร็จ!");
+        alert("ยกเลิกรายการขอจองสำเร็จ!");
         onClose();
       }
     }
@@ -405,7 +405,7 @@ export default function BookingDrawer({
         mode: selectedRecurrenceMode,
         date: booking.date,
       });
-      alert("ลบรายการขอจองสำเร็จ!");
+      alert("ยกเลิกรายการขอจองสำเร็จ!");
       onClose();
     } else if (recurrenceActionType === "edit") {
       setIsEditOpen(true);
@@ -808,7 +808,7 @@ export default function BookingDrawer({
                     className="h-12 rounded-[7px] bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Trash2 size={16} />
-                    ลบคำขอจอง
+                    ยกเลิกคำขอจอง
                   </button>
                 </div>
               </div>
