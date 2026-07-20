@@ -31,6 +31,18 @@ func (r *TimeslotRepository) FindByLocationAndDate(locationID uint, date time.Ti
 	return slots, err
 }
 
+// rejectedOrCancelledBookingIDs is a subquery selecting the IDs of bookings
+// that no longer actually occupy their timeslots. Once a booking is rejected
+// or cancelled, nothing else in this codebase clears its timeslots'
+// booking_id — so every slot-availability query must exclude these statuses
+// explicitly, or a rejected/cancelled booking permanently squats on its slot.
+func (r *TimeslotRepository) rejectedOrCancelledBookingIDs() *gorm.DB {
+	return r.db.Table("bookings").
+		Select("bookings.id").
+		Joins("JOIN booking_statuses ON booking_statuses.id = bookings.status_id").
+		Where("booking_statuses.status IN ?", []string{"rejected", "cancelled"})
+}
+
 // LockOverlapping returns (and row-locks) any existing, booked timeslots for
 // locationID on date that overlap [startTime, endTime). Intended for use
 // inside a transaction that already holds the parent location's FOR UPDATE
@@ -46,8 +58,8 @@ func (r *TimeslotRepository) LockOverlapping(locationID uint, date, startTime, e
 	var slots []models.Timeslots
 	err := r.db.
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where(`location_id = ? AND date = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ?`,
-			locationID, date.Format("2006-01-02"), endTime, startTime).
+		Where(`location_id = ? AND date = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ? AND booking_id NOT IN (?)`,
+			locationID, date.Format("2006-01-02"), endTime, startTime, r.rejectedOrCancelledBookingIDs()).
 		Find(&slots).Error
 	return slots, err
 }
@@ -81,8 +93,8 @@ func (r *TimeslotRepository) FindBookedSlotsByMonth(locationID uint, year, month
 	end := start.AddDate(0, 1, 0)
 	var slots []models.Timeslots
 	err := r.db.
-		Where("location_id = ? AND date >= ? AND date < ? AND booking_id IS NOT NULL",
-			locationID, start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("location_id = ? AND date >= ? AND date < ? AND booking_id IS NOT NULL AND booking_id NOT IN (?)",
+			locationID, start.Format("2006-01-02"), end.Format("2006-01-02"), r.rejectedOrCancelledBookingIDs()).
 		Find(&slots).Error
 	return slots, err
 }
