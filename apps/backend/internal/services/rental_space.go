@@ -12,17 +12,17 @@ import (
 )
 
 type RentalSpaceService struct {
-	rentalSpaceRepo *repositories.RentalSpaceRepository
-	buildingRepo *repositories.BuildingRepository
+	rentalSpaceRepo repositories.RentalSpaceRepository
+	buildingRepo    repositories.BuildingRepository
 }
 
 func NewRentalSpaceService(
-	rentalSpaceRepo *repositories.RentalSpaceRepository,
+	rentalSpaceRepo repositories.RentalSpaceRepository,
 	buildingRepo *repositories.BuildingRepository,
 ) *RentalSpaceService {
 	return &RentalSpaceService{
 		rentalSpaceRepo: rentalSpaceRepo,
-		buildingRepo:    buildingRepo,
+		buildingRepo:    *buildingRepo,
 	}
 }
 

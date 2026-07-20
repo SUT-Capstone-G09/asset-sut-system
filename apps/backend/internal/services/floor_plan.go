@@ -13,17 +13,17 @@ import (
 )
 
 type FloorPlanService struct {
-	floorPlanRepo *repositories.FloorPlanRepository
-	buildingRepo *repositories.BuildingRepository
+	floorPlanRepo repositories.FloorPlanRepository
+	buildingRepo  repositories.BuildingRepository
 }
 
 func NewFloorPlanService(
-	floorPlanRepo *repositories.FloorPlanRepository,
+	floorPlanRepo repositories.FloorPlanRepository,
 	buildingRepo *repositories.BuildingRepository,
 ) *FloorPlanService {
 	return &FloorPlanService{
 		floorPlanRepo: floorPlanRepo,
-		buildingRepo: buildingRepo,
+		buildingRepo:  *buildingRepo,
 	}
 }
 
