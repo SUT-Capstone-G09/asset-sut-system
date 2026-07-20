@@ -75,6 +75,7 @@ var AllEntities = []any{
 	&Contracts{},
 	&ContractHistory{},
 	&ContractInvoices{},
+	&ContractRenewalRequests{},
 	//Envelope
 	&DocumentEnvelopes{},
 	&EnvelopeOrders{},

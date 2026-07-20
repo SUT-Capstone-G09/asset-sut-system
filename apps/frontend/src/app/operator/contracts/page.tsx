@@ -1,7 +1,6 @@
+import React from "react";
+import OperatorContractsView from "@/features/contracts/components/operator/ContractsView";
+
 export default function ContractPage() {
-    return (
-        <div className="flex justify-center min-h-screen">
-            <h1>Contract Page</h1>
-        </div>
-    );
+  return <OperatorContractsView />;
 }

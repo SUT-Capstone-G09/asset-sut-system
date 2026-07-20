@@ -1,12 +1,13 @@
-import React from "react";
-import { CheckCircle, Plus } from "lucide-react";
+import React, { useState } from "react";
+import { CheckCircle } from "lucide-react";
 import { tenantAreaOptions } from "@/features/space-rental/data/tenant-areas";
 import ContractStats from "./ContractStats";
 import ContractFilters from "./ContractFilters";
 import ContractTable from "./ContractTable";
+import ContractRenewalRequestsTable from "./ContractRenewalRequestsTable";
 import CreateContractDrawer from "./CreateContractDrawer";
 import { useContractsDashboard } from "../../hooks/useContractsDashboard";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function AdminContractsDashboardView() {
   const {
@@ -33,6 +34,8 @@ export default function AdminContractsDashboardView() {
     handleManageContract,
   } = useContractsDashboard();
 
+  const [activeTab, setActiveTab] = useState<"active-contracts" | "renewal-requests">("active-contracts");
+
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500 pb-16">
       {/* Toast Notification */}
@@ -43,51 +46,77 @@ export default function AdminContractsDashboardView() {
         </div>
       )}
 
-      {/* Page Title & Create Button */}
+      {/* Page Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            การจัดการสัญญาเช่าทั้งหมด
+            สัญญาเช่าพื้นที่เชิงพาณิชย์
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            ระบบรวมศูนย์ข้อมูลสัญญาเช่า สัญญาพื้นที่ประกอบการค้า และประวัติการทำสัญญาย้อนหลังในทุกพื้นที่ของมหาวิทยาลัย
+            สัญญาเช่าพื้นที่เชิงพาณิชณ์ (สัญญาเช่าระยะยาว)
           </p>
         </div>
-
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="h-11 px-6 rounded-[7px] font-bold text-xs text-white bg-[#f26522] hover:bg-[#d8561d] transition-all shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer"
-        >
-          <Plus size={18} strokeWidth={3} />
-          <span>สร้างสัญญาใหม่</span>
-        </Button>
       </div>
 
       {/* Summary Stats Cards */}
       <ContractStats stats={stats} />
 
-      {/* Search and Filters panel */}
-      <ContractFilters
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        selectedArea={selectedArea}
-        onAreaChange={setSelectedArea}
-        selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-        selectedBusinessType={selectedBusinessType}
-        onBusinessTypeChange={setSelectedBusinessType}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        onResetFilters={handleResetFilters}
-        areaOptions={tenantAreaOptions}
-      />
+      {/* Tabs Menu */}
+      <div className="flex border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab("active-contracts")}
+          className={cn(
+            "flex items-center gap-2 px-6 pb-3 pt-1 text-sm font-semibold transition-colors cursor-pointer",
+            activeTab === "active-contracts"
+              ? "border-b-2 border-[#f26522] text-[#f26522]"
+              : "border-b-2 border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          สัญญาเช่าปัจจุบัน
+        </button>
+        <button
+          onClick={() => setActiveTab("renewal-requests")}
+          className={cn(
+            "flex items-center gap-2 px-6 pb-3 pt-1 text-sm font-semibold transition-colors cursor-pointer",
+            activeTab === "renewal-requests"
+              ? "border-b-2 border-[#f26522] text-[#f26522]"
+              : "border-b-2 border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          คำร้องขอต่ออายุสัญญา
+        </button>
+      </div>
 
-      {/* Contracts Table List */}
-      <ContractTable
-        contracts={filteredAndSortedContracts}
-        onViewTenant={handleViewTenant}
-        onManageContract={handleManageContract}
-      />
+      {/* Tab Contents */}
+      {activeTab === "active-contracts" ? (
+        <>
+          {/* Search and Filters panel */}
+          <ContractFilters
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            selectedArea={selectedArea}
+            onAreaChange={setSelectedArea}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            selectedBusinessType={selectedBusinessType}
+            onBusinessTypeChange={setSelectedBusinessType}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            onResetFilters={handleResetFilters}
+            areaOptions={tenantAreaOptions}
+          />
+
+          {/* Contracts Table List */}
+          <ContractTable
+            contracts={filteredAndSortedContracts}
+            onViewTenant={handleViewTenant}
+            onManageContract={handleManageContract}
+            onCreateClick={() => setIsCreateModalOpen(true)}
+          />
+        </>
+      ) : (
+        <ContractRenewalRequestsTable />
+      )}
 
       {/* Create Contract Drawer */}
       <CreateContractDrawer
@@ -100,4 +129,3 @@ export default function AdminContractsDashboardView() {
     </div>
   );
 }
-

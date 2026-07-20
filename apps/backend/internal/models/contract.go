@@ -56,3 +56,15 @@ type ContractInvoices struct {
 	StatusID      uint             `gorm:"not null" json:"status_id"`
 	Status        *InvoiceStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 }
+
+type ContractRenewalRequests struct {
+	Base
+	ContractID      uint            `gorm:"not null" json:"contract_id"`
+	Contract        *Contracts      `gorm:"foreignKey:ContractID" json:"contract,omitempty"`
+	TenantProfileID uint            `gorm:"not null" json:"tenant_profile_id"`
+	TenantProfile   *TenantProfiles `gorm:"foreignKey:TenantProfileID" json:"tenant_profile,omitempty"`
+	TenantType      string          `gorm:"type:varchar(20);not null" json:"tenant_type"`                   // "individual", "juristic"
+	DocumentURL     string          `json:"document_url"`                                                   // แนบ PDF กรณีเป็นนิติบุคคล
+	Status          string          `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`      // "pending", "approved", "rejected"
+	Note            string          `gorm:"type:text" json:"note"`
+}
