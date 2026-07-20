@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, AlertTriangle, Clock, Ban, Store, MoreHorizontal, Eye, Pencil } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Ban, Store, MoreHorizontal, Eye, Pencil, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContractItem } from "@/features/contracts/types/contract";
 import {
@@ -23,9 +23,10 @@ interface ContractTableProps {
   contracts: ContractItem[];
   onViewTenant: (areaId: string, tenantId: string) => void;
   onManageContract: (tenantId: string, contractId: string, action?: "renew" | "terminate") => void;
+  onCreateClick: () => void;
 }
 
-export default function ContractTable({ contracts, onViewTenant, onManageContract }: ContractTableProps) {
+export default function ContractTable({ contracts, onViewTenant, onManageContract, onCreateClick }: ContractTableProps) {
   // Convert Date to Thai format
   const formatThaiDate = (dateStr: string) => {
     const months = [
@@ -42,6 +43,21 @@ export default function ContractTable({ contracts, onViewTenant, onManageContrac
 
   return (
     <div className="bg-white rounded-[7px] border border-slate-100 shadow-sm overflow-hidden">
+      {/* Section Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">รายการสัญญาทั้งหมด</h2>
+        </div>
+        <Button
+          size="sm"
+          onClick={onCreateClick}
+          className="gap-1.5 bg-[#f26522] text-xs text-white hover:bg-[#d8561d] rounded-[7px] shadow-sm transition-all h-9 px-4 cursor-pointer"
+        >
+          <Plus size={14} strokeWidth={2.5} />
+          สร้างสัญญาใหม่
+        </Button>
+      </div>
+
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
