@@ -1,139 +1,87 @@
-# Space Rental Index — Advanced Filter Feature
+# Space Rental Index — Advanced Filter & Architecture Documentation
 
-## ภาพรวม
+## ภาพรวมสถาปัตยกรรมระบบตัวกรอง (Filter Architecture)
 
-หน้า `/admin/space-rental` ต้องการระบบ filter 2 โหมดที่ทำงานต่างกันโดยพื้นฐาน:
+ระบบตัวกรองของพื้นที่เช่าพาณิชย์ (`/admin/space-rental`) ถูกออกแบบใหม่ด้วยสถาปัตยกรรม **Hybrid Controlled/Uncontrolled Controller Pattern (URL-driven Single Source of Truth)** 
 
-| โหมด | ตัวกรอง | ผลลัพธ์ |
+```
+                       [ URL Search Params ]
+                     (Single Source of Truth)
+                            /       \
+              (อ่าน/เขียน URL)     (อ่าน URL)
+                          /           \
+               <AreaFilters />      <SpaceRentalIndexView />
+           (Self-contained Controller)   (View Result Layer)
+```
+
+| โหมด | ตัวกรอง | พฤติกรรมและผลลัพธ์ |
 |---|---|---|
-| **Filter by Building** | เลือกอาคารหรือประเภทอาคาร | แสดงพื้นที่ภายในอาคารนั้น |
-| **Filter by Business Type** | เลือกประเภทธุรกิจ | แสดงพื้นที่ทุกแห่งที่มี business type นั้น ข้ามอาคาร |
+| **Building View Mode** | ไม่มีตัวกรอง หรือกรองเฉพาะกลุ่มอาคาร (`type`) | แสดงผลเป็น **BuildingCard Grid** รวมกลุ่มตามอาคาร |
+| **Space View Mode** | เลือกอาคารเจาะจง (`building`), ประเภทธุรกิจ (`businessType`), หรือ สถานะ (`status`) | สลับเป็น **SpaceCard Flat List** แสดงยูนิตย่อยทั้งหมดที่ตรงเงื่อนไขข้ามอาคาร |
 
 ---
 
-## Use Cases
+## 12 ประเภทธุรกิจเชิงพาณิชย์ (Business Categories)
 
-### UC-1: Filter by Building (กรองตามอาคาร)
-
-**Actor:** Admin  
-**เป้าหมาย:** ดูพื้นที่ย่อยทั้งหมดในอาคารหรือกลุ่มอาคารที่สนใจ
-
-**Trigger:** Admin เปิด dropdown "อาคาร" แล้วเลือกรายการ
-
-**Flow:**
-1. Admin เลือกอาคาร เช่น "โรงอาหารพราวแสดทอง"
-2. ระบบสลับเข้าสู่ **Space View Mode** ทันทีในหน้าเดิม
-3. แสดงรายการ **การ์ดพื้นที่เช่าย่อย (SpaceCard)** ทั้งหมดของอาคารนั้นทันที (ไม่ต้องคลิกการ์ดอาคารซ้ำ)
-4. Admin กด "ล้างตัวกรอง" → กลับสู่การแสดงผลปกติ (Building Cards Grid)
-
-**Variants:**
-- เลือกประเภทอาคาร เช่น "โรงอาหาร" → แสดงทุก BuildingCard ในกลุ่มโรงอาหาร
-- เลือกอาคารเดี่ยว เช่น "โรงอาหารพราวแสดทอง" → ดึง `SpaceCard` ของตึกนั้นขึ้นมาแสดงทันที
-
-**Data Source:** `RentalSpace.building` / `RentalSpace.id`
-
----
-
-### UC-2: Filter by Business Type (กรองตามประเภทธุรกิจ ข้ามอาคาร)
-
-**Actor:** Admin  
-**เป้าหมาย:** ค้นหาพื้นที่ที่มีผู้ประกอบธุรกิจประเภทหนึ่ง โดยไม่สนว่าอยู่อาคารไหน
-
-**Trigger:** Admin เปิด dropdown "ประเภทธุรกิจ" แล้วเลือกรายการ
-
-**Flow:**
-1. Admin เลือก business type เช่น "อาหารและเครื่องดื่ม"
-2. ระบบเปลี่ยนโหมดการแสดงผล จาก **BuildingCard grid** → **SpaceCard flat list**
-3. แสดงพื้นที่ทุกรายการที่มี `locationCategory` หรือ `area` ตรงกับ business type ที่เลือก
-4. แต่ละ SpaceCard แสดง badge ชื่ออาคารต้นสังกัดด้วย
-5. Admin กด "ล้างตัวกรอง" → กลับสู่ BuildingCard grid ปกติ
-
-**Data Source:** `RentalSpace.locationCategory[]` หรือ `RentalSpace.area`
-
----
-
-### UC-3: ใช้ Filter ร่วมกัน (Combined Filter)
-
-**Flow:**
-- Filter by Building + Search: แสดงพื้นที่ในอาคารนั้น แล้วค้นชื่อเพิ่ม
-- Filter by Business Type + Search: แสดง business type นั้น แล้วค้นชื่อเพิ่ม
-- Building Filter + Business Type Filter พร้อมกัน: **ไม่รองรับ** (mutual exclusive) — ถ้าเลือก Business Type จะ reset Building filter อัตโนมัติ และในทางกลับกัน
-
----
-
-## การเปลี่ยนแปลง UI ตาม Mode
-
-### Default Mode (ไม่มี filter หรือ filter by building)
-```
-┌─────────────────────────────────────────┐
-│  [Search] [Building ▼] [Status ▼]       │
-├─────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐             │
-│  │โรงอาหาร │  │ อาคารเรียน│            │
-│  │  6 ยูนิต │  │  2 ยูนิต │            │
-│  └──────────┘  └──────────┘             │
-└─────────────────────────────────────────┘
-```
-
-### Business Type Mode (เมื่อเลือก business type)
-```
-┌─────────────────────────────────────────┐
-│  [Search] [Business Type ▼] [Status ▼]  │
-│   กรองตาม "อาหารและเครื่องดื่ม" (3)   │
-├─────────────────────────────────────────┤
-│  ┌────────────────────────────────────┐ │
-│  │ กาแฟพันธุ์ไทย    [อาคารเรียนรวม 1]│ │
-│  └────────────────────────────────────┘ │
-│  ┌────────────────────────────────────┐ │
-│  │ ร้านอาหาร A01     [โรงอาหารพราวฯ] │ │
-│  └────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-```
-
----
-
-## การเปลี่ยนแปลงที่ต้องทำ
-
-### 1. `SpaceFilters.tsx` (UI Component)
-- เพิ่ม dropdown **"ประเภทธุรกิจ"** (Business Type) แยกจาก dropdown ประเภทอาคาร
-- ใช้ค่าจาก `AREA_CATEGORIES` (อาหารและเครื่องดื่ม, ร้านค้าและบริการ, ฯลฯ)
-- เมื่อเลือก business type → reset building type filter อัตโนมัติ
-
-### 2. `useAreasDashboard.ts` (Hook)
-- เพิ่ม state: `selectedBusinessTypeFilter`
-- เพิ่ม logic ใน `visibleCards`:
-  - ถ้า `selectedBusinessTypeFilter !== "all"` → เปลี่ยนเป็น flat list mode
-  - filter `mockLocations` ตาม `locationCategory` ที่ตรงกัน
-- เพิ่ม return: `selectedBusinessTypeFilter`, `setSelectedBusinessTypeFilter`, `isBusinessTypeMode`
-
-### 3. `SpaceRentalIndexView.tsx` (View)
-- เพิ่ม prop ไปยัง `<AreaFilters />`
-- เพิ่ม conditional rendering:
-  - ถ้า `isBusinessTypeMode === true` → render `SpaceCard flat list` แทน `BuildingCard grid`
-  - แสดง result count + reset button
-
----
-
-## Business Type Mapping
+ระบบรองรับหมวดหมู่ผู้ประกอบการและประเภทพื้นที่เช่ารวม **12 ประเภท** (11 ประเภทตามข้อกำหนดของมหาวิทยาลัย + 1 หมวดอื่นๆ):
 
 ```ts
-// locationCategory ใน RentalSpace → Label ที่แสดงใน filter
-const BUSINESS_TYPE_LABELS: Record<CommercialCategoryType, string> = {
-  food_beverage:       "อาหารและเครื่องดื่ม",
-  retail_services:     "ร้านค้าและบริการ",
-  automated_services:  "บริการตู้อัตโนมัติ",
-  wireless_connectivity: "อินเทอร์เน็ตไร้สาย",
-};
+export type CommercialCategoryType = 
+  | 'fresh_coffee_beverage_snacks'   // 1. กาแฟสด เครื่องดื่ม อาหารว่าง (Coffee)
+  | 'convenience_store_minimart'     // 2. ร้านสะดวกซื้อ/มินิมาร์ท (ShoppingBag)
+  | 'vending_machine'                // 3. ตู้จำหน่ายสินค้าอัตโนมัติ (Box)
+  | 'washing_machine_service'        // 4. ให้บริการเครื่องซักผ้าอัตโนมัติ (Shirt)
+  | 'atm_service'                    // 5. ให้บริการติดตั้งตู้ ATM (CreditCard)
+  | 'telecom_network'                // 6. เครือข่ายโทรคมนาคม (Radio)
+  | 'it_equipment_sales'             // 7. จำหน่ายอุปกรณ์ IT (Monitor)
+  | 'billboard_media'                // 8. ป้ายและสื่อประชาสัมพันธ์ (Tv)
+  | 'printing_document_service'      // 9. เครื่องพิมพ์เอกสาร (Printer)
+  | 'space_usage'                    // 10. ใช้พื้นที่ (MapPin)
+  | 'canteen'                        // 11. โรงอาหาร (Utensils)
+  | 'other';                         // 12. อื่นๆ (Building2)
 ```
 
 ---
 
-## ไฟล์ที่เกี่ยวข้อง
+## Use Cases & Component Interactions
 
-| ไฟล์ | หน้าที่ |
+### UC-1: Filter by Building (กรองตามอาคาร)
+- **Trigger:** เลือก dropdown "อาคาร" (เช่น โรงอาหารพราวแสดทอง)
+- **Flow:** ระบบอัปเดต URL `?building=1` สลับเข้าสู่ **Space View Mode** แสดงรายการยูนิตย่อย 15 สตอลล์ภายในอาคารนั้นทันที
+
+### UC-2: Filter by Business Type (กรองตามประเภทธุรกิจ)
+- **Trigger:** เลือก dropdown "ประเภทธุรกิจ" (เช่น กาแฟสด เครื่องดื่ม อาหารว่าง)
+- **Flow:** ระบบอัปเดต URL `?businessType=fresh_coffee_beverage_snacks` สลับเข้าสู่ **Space View Mode** แสดงพื้นที่เช่าของทุกอาคารที่มีหมวดหมู่นี้
+
+### UC-3: Filter by Status (กรองตามสถานะพื้นที่)
+- **Trigger:** เลือก dropdown "สถานะ" (เช่น ว่างอยู่ `available`)
+- **Flow:** ระบบอัปเดต URL `?status=available` สลับเข้าสู่ **Space View Mode** แสดงเฉพาะยูนิตย่อยที่ว่างข้ามทุกอาคาร
+
+---
+
+## การออกแบบ Clean Code & Performance
+
+### 1. `AreaFilters.tsx` (Smart Default Controller)
+- ถูกปรับให้ใช้งานบนหน้าหลักแบบ **0 Props** (`<AreaFilters />`) อ่าน/เขียน State ผ่าน URL ชนิดไร้ Prop Drilling
+- รองรับ Optional Props (`props.field ?? dashboard.field`) เพื่อให้ Unit Test และ Modal อื่นสามารถส่ง Controlled Props เข้ามา override ได้ทันทีโดยไม่กระทบ URL
+
+### 2. `stall-resolver.ts` (Centralized Utility)
+- รวมศูนย์ฟังก์ชันแตกแผงลอยย่อย `resolveBuildingStallSpaces(buildingId, buildingName)` จาก Floor Plan canvas
+- รวมศูนย์ฟังก์ชันแปลงข้อความสัญญาเป็นหมวดหมู่ `mapBusinessCategoryName(name)` 
+- รวมศูนย์ฟังก์ชันค้นหา `matchSpaceSearch(space, query)`
+
+### 3. Breadcrumb Route Sanitization (`Breadcrumb.tsx`)
+- เพิ่มการกรองข้าม segment `'building'` และ `'type'` จาก URL และ `sessionStorage` เพื่อป้องกันการเกิดลิงก์ Breadcrumb ลอยๆ บนเส้นทางที่ไม่มีหน้าเพจอยู่จริง (`/admin/space-rental/building` และ `/admin/space-rental/type`)
+
+---
+
+## โครงสร้างไฟล์หลักในโมดูล
+
+| ไฟล์ | หน้าที่และความรับผิดชอบ |
 |---|---|
-| [`useAreasDashboard.ts`](../hooks/useAreasDashboard.ts) | State management + filter logic |
-| [`SpaceFilters.tsx`](./SpaceFilters.tsx) | UI Filter bar |
-| [`SpaceRentalIndexView.tsx`](./SpaceRentalIndexView.tsx) | View composition |
-| [`SpaceCard.tsx`](./SpaceCard.tsx) | Card แสดงผล flat list mode |
-| [`../constants/index.ts`](../../constants/index.ts) | `AREA_CATEGORIES` constant |
+| [`useAreasDashboard.ts`](../../apps/frontend/src/features/space-rental/hooks/useAreasDashboard.ts) | State management หลัก อ่าน URL Search Params คำนวณ visibleSpaces & visibleCards |
+| [`SpaceFilters.tsx`](../../apps/frontend/src/features/space-rental/components/rental-space/SpaceFilters.tsx) | Smart Controller Component แสดงผลและควบคุม Search Bar & Filter Dropdowns |
+| [`SpaceRentalIndexView.tsx`](../../apps/frontend/src/features/space-rental/components/rental-space/SpaceRentalIndexView.tsx) | View Composition ประจำหน้า Index (เรียก `<AreaFilters />` 0 props) |
+| [`stall-resolver.ts`](../../apps/frontend/src/features/space-rental/utils/stall-resolver.ts) | Centralized Stall Resolver & Search Matcher |
+| [`constants/index.ts`](../../apps/frontend/src/features/space-rental/constants/index.ts) | `COMMERCIAL_CATEGORIES` (12 ประเภท) & `DEFAULT_RENTAL_SPACE_CONFIG` |
+| [`Breadcrumb.tsx`](../../apps/frontend/src/components/layout/Breadcrumb.tsx) | Dynamic Breadcrumb Navigation พร้อม Route Sanitization |
