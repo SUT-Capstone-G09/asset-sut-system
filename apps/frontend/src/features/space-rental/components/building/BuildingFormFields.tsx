@@ -10,7 +10,7 @@ import { Building2, Search, Plus, Check, Image, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BuildingFormValues } from "@/features/space-rental/schemas/building-schema";
 import { mockBuildings, mockBuildingTypes } from "@/features/space-rental/data/mock-buildings";
-import { FileDropzone } from "@/components/ui/file-dropzone";
+import { FileDropzone } from "@/components/ui/MultiDropZone";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 
 // Dynamic import เพื่อหลีกเลี่ยงปัญหา SSR ของ Leaflet
@@ -49,18 +49,18 @@ export default function BuildingFormFields() {
   const handleCreateNewType = (newType: string) => {
     const trimmed = newType.trim();
     if (!trimmed) return;
-    
+
     // อัปเดตรายการตัวเลือกในหน้า UI
     if (!availableTypes.includes(trimmed)) {
       setAvailableTypes((prev) => [...prev, trimmed]);
-      
+
       // บันทึกลง Mock Database ส่วนกลางเพื่อให้วิดเจ็ตอื่นๆ ในแอปเห็นการจัดหมวดหมู่นี้ด้วย
       mockBuildingTypes.push({
         id: mockBuildingTypes.length + 101,
         name: trimmed
       });
     }
-    
+
     // ตั้งค่าประเภทนี้ลงใน React Hook Form
     setValue("building_type_name", trimmed);
     setSearchTerm("");
@@ -69,7 +69,7 @@ export default function BuildingFormFields() {
 
   return (
     <div className="space-y-6">
-      
+
       {/* 1. อินพุตชื่ออาคาร */}
       <div className="space-y-2.5">
         <Label className="text-xs font-bold text-slate-500 ml-1">
@@ -297,7 +297,7 @@ export default function BuildingFormFields() {
       {hasFloorPlan && (
         <div className="space-y-3.5 pl-6 border-l-2 border-slate-100 animate-in fade-in duration-300">
           <Label className="text-xs font-bold text-slate-500">รูปแบบการกำหนดโครงสร้างแผนผัง</Label>
-          
+
           <div className="space-y-2.5">
             {/* ตัวเลือกแสดงผลแปลนแบบรูปภาพนิ่ง */}
             <div
@@ -368,12 +368,12 @@ export default function BuildingFormFields() {
                 render={({ field }) => {
                   const existingFiles = field.value
                     ? [
-                        {
-                          id: "blueprint-img",
-                          name: field.value.split("/").pop() || "แปลนอาคาร.jpg",
-                          url: field.value,
-                        },
-                      ]
+                      {
+                        id: "blueprint-img",
+                        name: field.value.split("/").pop() || "แปลนอาคาร.jpg",
+                        url: field.value,
+                      },
+                    ]
                     : [];
 
                   const handleBlueprintChange = async (files: File[]) => {

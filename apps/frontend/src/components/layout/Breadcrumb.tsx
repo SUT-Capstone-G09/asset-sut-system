@@ -53,6 +53,7 @@ const VALID_REFERRER_SECTIONS: Record<string, string[]> = {
 };
 
 const SKIP_PATHS = new Set(["/", "/login", "/contact-us"]);
+const UNCLICKABLE_PATHS = new Set(["/admin/finance"]);
 const STORAGE_KEY = "nav_breadcrumb";
 const MAX_CRUMBS = 6;
 
@@ -220,6 +221,8 @@ export default function Breadcrumb({ className }: { className?: string }) {
 
       {crumbs.map((crumb, i) => {
         const isLast = i === crumbs.length - 1;
+        const isUnclickable = UNCLICKABLE_PATHS.has(crumb.href);
+        
         return (
           <span
             key={crumb.href + i}
@@ -227,8 +230,8 @@ export default function Breadcrumb({ className }: { className?: string }) {
             style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both" }}
           >
             <ChevronRight size={13} className="text-gray-300 shrink-0" />
-            {isLast ? (
-              <span className="text-gray-700 font-medium">{crumb.label}</span>
+            {isLast || isUnclickable ? (
+              <span className={cn(isLast ? "text-gray-700 font-medium" : "text-gray-400")}>{crumb.label}</span>
             ) : (
               <Link
                 href={crumb.href}
