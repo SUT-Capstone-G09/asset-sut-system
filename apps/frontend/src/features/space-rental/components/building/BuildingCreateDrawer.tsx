@@ -23,14 +23,14 @@ import { useState } from "react";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAdd?: (newBuilding: any) => void | Promise<void>;
+  onAdd?: (newBuilding: BuildingFormValues) => void | Promise<void>;
 }
 
 export default function BuildingCreateDrawer({ open, onClose, onAdd }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<BuildingFormValues>({
-    resolver: zodResolver(buildingSchema) as any,
+    resolver: zodResolver(buildingSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: {
@@ -71,7 +71,7 @@ export default function BuildingCreateDrawer({ open, onClose, onAdd }: Props) {
       <SheetContent 
         side="right" 
         showCloseButton={false}
-        className="w-full sm:max-w-[540px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
+        className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
       >
         <FormProvider {...methods}>
           <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col h-full">

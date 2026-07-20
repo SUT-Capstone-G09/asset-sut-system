@@ -1,5 +1,3 @@
-"use client"
-
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -16,6 +14,7 @@ import {
   Save,
   Loader2
 } from "lucide-react";
+import { RentalSpace } from "../../types/rental-space";
 import AreaFormFields from "./AreaFormFields";
 import { areaSchema, AreaFormValues } from "../../schemas/area-schema";
 import React, { useState, useEffect } from "react";
@@ -23,7 +22,7 @@ import React, { useState, useEffect } from "react";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAdd?: (newLoc: any) => void;
+  onAdd?: (newLoc: RentalSpace) => void;
   defaultBuildingName?: string;
   defaultAreaName?: string;
   defaultCoordinates?: [number, number];
@@ -44,7 +43,7 @@ export default function SpaceCreateDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<AreaFormValues>({
-    resolver: zodResolver(areaSchema) as any,
+    resolver: zodResolver(areaSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: {
@@ -74,7 +73,7 @@ export default function SpaceCreateDrawer({
     }
   }, [open, defaultBuildingName, defaultAreaName, defaultCoordinates, methods]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: AreaFormValues) => {
     setIsSubmitting(true);
     console.log("Submitting Create Area Data:", data);
     
@@ -83,7 +82,7 @@ export default function SpaceCreateDrawer({
 
     const finalCoordinates = defaultCoordinates || [14.8804616, 102.0161729];
 
-    const newArea = {
+    const newArea: RentalSpace = {
       id: String(Date.now()),
       name: data.name,
       areaCode: data.areaCode,
@@ -93,13 +92,11 @@ export default function SpaceCreateDrawer({
       price: data.price ? Number(data.price) : undefined,
       description: data.description || "",
       image: data.image || "https://beta.sut.ac.th/damt/wp-content/uploads/sites/189/2021/01/1-2.jpg",
-      status: "vacant",
+      status: "available",
       coordinates: finalCoordinates,
       address: defaultAddress || "มหาวิทยาลัยเทคโนโลยีสุรนารี",
       tenantName: "",
-      citizenId: "",
       contractNumber: "",
-      contractName: "",
       contractEndDate: ""
     };
     

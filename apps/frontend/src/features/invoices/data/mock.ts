@@ -1,4 +1,4 @@
-import { Location, Tenant } from "../types";
+import { Location, Tenant, InvoiceExtractedData } from "../types";
 
 export const mockLocations: Location[] = [
   { id: "loc1", name: "โรงอาหารกาสะลอง", zoneId: "cafeterias" },
@@ -16,7 +16,17 @@ export const mockTenants: Tenant[] = [
     contractNo: "CT-2024-001",
     currentPeriod: "มิถุนายน 2567",
     outstandingAmount: 3500,
-    status: "ACTIVE",
+    status: "Active",
+    shopCode: "SHOP-B201",
+    buildingId: 1,
+    buildingTypeId: 101,
+    contactName: "นายสมชาย รักดี",
+    phone: "081-234-5678",
+    email: "somchai.r@example.com",
+    floor: "1",
+    room: "B201",
+    zone: "Food Zone A",
+    contractStartDate: "01 ม.ค. 2567",
   },
   {
     id: "t2",
@@ -26,7 +36,17 @@ export const mockTenants: Tenant[] = [
     contractNo: "CT-2024-002",
     currentPeriod: "มิถุนายน 2567",
     outstandingAmount: 2800,
-    status: "ACTIVE",
+    status: "Active",
+    shopCode: "SHOP-B202",
+    buildingId: 1,
+    buildingTypeId: 101,
+    contactName: "นางมาลี ประสงค์ดี",
+    phone: "089-876-5432",
+    email: "malee.p@example.com",
+    floor: "1",
+    room: "B202",
+    zone: "Food Zone A",
+    contractStartDate: "15 ก.พ. 2567",
   },
   {
     id: "t3",
@@ -36,7 +56,17 @@ export const mockTenants: Tenant[] = [
     contractNo: "CT-2023-089",
     currentPeriod: "มิถุนายน 2567",
     outstandingAmount: 42500,
-    status: "ACTIVE",
+    status: "Active",
+    shopCode: "SHOP-C301",
+    buildingId: 1,
+    buildingTypeId: 101,
+    contactName: "นางสาววิภา พาณิช",
+    phone: "081-111-2222",
+    email: "wipa.p@example.com",
+    floor: "2",
+    room: "C301",
+    zone: "Retail Zone B",
+    contractStartDate: "01 ม.ค. 2566",
   },
   {
     id: "t4",
@@ -46,7 +76,17 @@ export const mockTenants: Tenant[] = [
     contractNo: "CT-2023-089",
     currentPeriod: "มิถุนายน 2567",
     outstandingAmount: 15000,
-    status: "ACTIVE",
+    status: "Active",
+    shopCode: "SHOP-D101",
+    buildingId: 2,
+    buildingTypeId: 102,
+    contactName: "คุณชัยวุฒิ",
+    phone: "02-333-4444",
+    email: "contact@bakery.co.th",
+    floor: "1",
+    room: "D101",
+    zone: "Food Zone C",
+    contractStartDate: "01 ม.ค. 2566",
   },
   {
     id: "t5",
@@ -56,6 +96,124 @@ export const mockTenants: Tenant[] = [
     contractNo: "CT-2023-012",
     currentPeriod: "มิถุนายน 2567",
     outstandingAmount: 0,
-    status: "ACTIVE",
+    status: "Active",
+    shopCode: "SHOP-E201",
+    buildingId: 2,
+    buildingTypeId: 102,
+    contactName: "คุณสุดา",
+    phone: "02-555-6666",
+    email: "info@siamfashion.co.th",
+    floor: "2",
+    room: "E201",
+    zone: "Retail Zone C",
+    contractStartDate: "01 มี.ค. 2566",
+  },
+  {
+    id: "t6",
+    name: "สยาม แฟชั่น เฮาส์",
+    shortName: "SF",
+    locationId: "loc2",
+    contractNo: "CT-2023-012",
+    currentPeriod: "มิถุนายน 2567",
+    outstandingAmount: 0,
+    status: "Active",
+    shopCode: "SHOP-E201",
+    buildingId: 2,
+    buildingTypeId: 102,
+    contactName: "คุณสุดา",
+    phone: "02-555-6666",
+    email: "info@siamfashion.co.th",
+    floor: "2",
+    room: "E201",
+    zone: "Retail Zone C",
+    contractStartDate: "01 มี.ค. 2566",
+  },
+  {
+    id: "t5",
+    name: "สยาม แฟชั่น เฮาส์",
+    shortName: "SF",
+    locationId: "loc2",
+    contractNo: "CT-2023-012",
+    currentPeriod: "มิถุนายน 2567",
+    outstandingAmount: 0,
+    status: "Active",
+    shopCode: "SHOP-E201",
+    buildingId: 2,
+    buildingTypeId: 102,
+    contactName: "คุณสุดา",
+    phone: "02-555-6666",
+    email: "info@siamfashion.co.th",
+    floor: "2",
+    room: "E201",
+    zone: "Retail Zone C",
+    contractStartDate: "01 มี.ค. 2566",
   },
 ];
+
+export function createMockExtractedData(fileName: string): InvoiceExtractedData {
+  // Simulate different schemas per document type
+  const isElectric = fileName.toLowerCase().includes("electric") ||
+    fileName.toLowerCase().includes("ไฟฟ้า");
+
+  if (isElectric) {
+    // Electric utility bill schema
+    return {
+      status: "success",
+      metadata: {
+        tenantName: "นายสุรศักดิ์ กิจพรานันต์ (อ.39/2568)",
+        invoiceNo: "อ.39/2568",
+        invoiceDate: "24 มิถุนายน 2569",
+      },
+      columns: [
+        { key: "item", label: "รายการ", align: "left", width: "40%" },
+        { key: "unit", label: "หน่วย (kWh)", align: "right", width: "15%" },
+        { key: "rate", label: "อัตรา/หน่วย", align: "right", width: "15%" },
+        { key: "amount", label: "จำนวนเงิน", align: "right", width: "15%" },
+        { key: "total", label: "รวมค้างชำระ", align: "right", highlight: true, width: "15%" },
+      ],
+      rows: [
+        { item: "ค่าไฟฟ้าบริการ (2818-2940)", unit: "122", rate: "5.91", amount: "721.58", total: "721.58" },
+      ],
+    };
+  }
+
+  // Default invoice schema (matches the screenshot)
+  return {
+    status: "success",
+    metadata: {
+      tenantName: "นายสุรศักดิ์ กิจพรานันต์ (อ.39/2568)",
+      invoiceNo: "อ.39/2568",
+      invoiceDate: "24 มิถุนายน 2569",
+    },
+    columns: [
+      { key: "item", label: "รายการ", align: "left", width: "40%" },
+      { key: "period", label: "ประจำเดือน", align: "center", width: "15%" },
+      { key: "amount", label: "จำนวนเงิน", align: "right", width: "15%" },
+      { key: "discount", label: "ลดหนี้", align: "right", width: "15%" },
+      { key: "total", label: "รวมค้างชำระ", align: "right", highlight: true, width: "15%" },
+    ],
+    rows: [
+      {
+        item: "ค่าบำรุงการใช้สถานที่",
+        period: "ก.ค. 2569",
+        amount: "2,176.00",
+        discount: "0.00",
+        total: "2,176.00",
+      },
+      {
+        item: "ค่าบริการทำความสะอาด/ค่ากำจัดขยะ",
+        period: "มิ.ย. 2569",
+        amount: "150.00",
+        discount: "0.00",
+        total: "150.00",
+      },
+      {
+        item: "ค่าใช้บริการไฟฟ้า (2818-2940)",
+        period: "พ.ค. 2569",
+        amount: "721.58",
+        discount: "0.00",
+        total: "721.58",
+      },
+    ],
+  };
+}

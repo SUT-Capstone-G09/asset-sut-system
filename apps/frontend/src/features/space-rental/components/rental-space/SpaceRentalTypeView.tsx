@@ -22,22 +22,35 @@ export default function SpaceRentalTypeView({
     useSpaceRentalType(typeName);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBuilding, setSelectedBuilding] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
 
+  // สร้าง buildingOptions จากอาคารที่อยู่ในกลุ่มหมวดหมู่นี้เท่านั้น
+  const buildingOptions = useMemo(() => {
+    return buildings.map((b) => ({ value: String(b.id), label: b.name }));
+  }, [buildings]);
+
   const handleResetFilters = () => {
     setSearchQuery("");
+    setSelectedBuilding("all");
     setSelectedStatus("all");
   };
 
   const filteredBuildings = useMemo(() => {
     return buildings.filter((b: Building) => {
+      // กรองตามอาคารที่เลือกใน dropdown
+      if (selectedBuilding !== "all" && String(b.id) !== selectedBuilding) {
+        return false;
+      }
+      // กรองตามคำค้นหา
       if (
         searchQuery &&
         !b.name.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return false;
       }
+      // กรองตามสถานะ
       if (selectedStatus !== "all") {
         const stalls = mockLocations.filter((loc) => loc.building === b.name);
         const hasStallWithStatus = stalls.some(
@@ -47,7 +60,7 @@ export default function SpaceRentalTypeView({
       }
       return true;
     });
-  }, [buildings, searchQuery, selectedStatus]);
+  }, [buildings, selectedBuilding, searchQuery, selectedStatus]);
 
   // ดึงตระกูลหมวดหมู่ตึกทั้งหมดเพื่อใช้ส่งเป็น Dynamic Categories สำหรับตัวกรองหน้าตึก
   const dynamicCategories = useMemo(() => {
@@ -103,9 +116,14 @@ export default function SpaceRentalTypeView({
         categories={dynamicCategories}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        showCategoryFilter={false}
+        showCategoryFilter={true}
         showStatusFilter={false}
+        showBuildingFilter={true}
+        showBusinessTypeFilter={false}
         onReset={handleResetFilters}
+        selectedBuilding={selectedBuilding}
+        onSelectBuilding={setSelectedBuilding}
+        buildingOptions={buildingOptions}
       />
 
       {/* Section label */}
