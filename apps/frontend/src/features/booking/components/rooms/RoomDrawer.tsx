@@ -186,7 +186,7 @@ export default function RoomDrawer({
                 อัตราค่าใช้จ่าย
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 z-100px">
                 {/* Hourly rates */}
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
