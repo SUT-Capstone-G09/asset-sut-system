@@ -7,6 +7,7 @@ export interface AdminLocationDTO {
   type_id: number;
   type: string;
   name: string;
+  description?: string;
   building_id?: number;
   building?: string;
   image_url?: string;
@@ -26,6 +27,7 @@ export interface BuildingDTO {
 export interface CreateLocationPayload {
   type_id: number;
   name: string;
+  description?: string;
   building_id?: number;
   image_url?: string;
   room_number?: number;
@@ -37,6 +39,7 @@ export interface CreateLocationPayload {
 export interface UpdateLocationPayload {
   type_id?: number;
   name?: string;
+  description?: string;
   building_id?: number;
   image_url?: string;
   room_number?: number;
@@ -98,6 +101,11 @@ export interface LocationTypeDTO {
   type: string;
 }
 
+export interface BuildingDTO {
+  id: number;
+  name: string;
+}
+
 export interface StaffLocationDTO {
   user_id: number;
   location_id: number;
@@ -108,6 +116,11 @@ export interface StaffLocationDTO {
 
 export async function getLocationTypes(): Promise<LocationTypeDTO[]> {
   return apiClient.get<LocationTypeDTO[]>("/location-types");
+}
+
+// อาคารทั้งหมด — ใช้เป็นตัวเลือกในฟอร์ม เพราะ backend บันทึกอาคารด้วย building_id ไม่ใช่ชื่อ
+export async function getBuildings(): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>("/buildings");
 }
 
 export async function getLocations(): Promise<AdminLocationDTO[]> {

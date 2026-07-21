@@ -18,7 +18,7 @@ type roomSeed struct {
 	Equipments  []string
 }
 
-func intPtr(v int) *int { return &v }
+func intPtr(v int) *int       { return &v }
 func strPtr(v string) *string { return &v }
 
 var roomSeeds = []roomSeed{
@@ -76,7 +76,7 @@ var roomSeeds = []roomSeed{
 	},
 	// โถงอาคาร
 	{
-		Name: "ห้อง Co-Working Space", TypeName: "โถงอาคาร", Building: "อาคารเครื่องมือ F1",
+		Name: "โถงกลาง", TypeName: "โถงอาคาร", Building: "อาคารเรียนรวม 1",
 		FloorNumber: intPtr(4), Capacity: 30, PriceHourly: 300,
 		Equipments: []string{"WiFi", "ที่จอดรถ"},
 	},
@@ -121,9 +121,11 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 				return err
 			}
 
-			// Get or create building
+			// Get or create building (ราคาโถงย้ายไปตั้งในตาราง BuildingHallPricings — ดู seedBuildingHallPricings)
 			var bldg models.Buildings
-			if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
+			if err := db.
+				Where(models.Buildings{Name: r.Building}).
+				FirstOrCreate(&bldg).Error; err != nil {
 				return err
 			}
 
@@ -171,6 +173,48 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 
+	if err := seedBuildingHallPricings(db); err != nil {
+		return err
+	}
+
 	log.Println("Locations seeded successfully.")
+	return nil
+}
+
+// seedBuildingHallPricings ตั้งราคาโถงเริ่มต้นให้ทุกอาคาร × ทุกวัตถุประสงค์ (ราย อาคาร × purpose)
+// per_sqm ใช้ 50 บาท/ตร.ม./วัน (เรทบูธเริ่มต้นเดิม) ; per_type_per_day ใช้ DefaultPrice ของ purpose (เช่น 500)
+// FirstOrCreate → ไม่ทับราคาที่แอดมินปรับไว้แล้ว
+func seedBuildingHallPricings(db *gorm.DB) error {
+	const defaultBoothRatePerSqm = 150
+
+	var buildings []models.Buildings
+	if err := db.Find(&buildings).Error; err != nil {
+		return err
+	}
+	var purposes []models.HallUsagePurposes
+	if err := db.Find(&purposes).Error; err != nil {
+		return err
+	}
+
+	for _, b := range buildings {
+		for _, p := range purposes {
+			price := p.DefaultPrice
+			if p.PricingModel == models.HallPricingPerSqm {
+				price = defaultBoothRatePerSqm
+			}
+			pricing := models.BuildingHallPricings{
+				BuildingID:         b.ID,
+				HallUsagePurposeID: p.ID,
+				Price:              price,
+				IsActive:           true,
+			}
+			if err := db.
+				Where(models.BuildingHallPricings{BuildingID: b.ID, HallUsagePurposeID: p.ID}).
+				Attrs(pricing).
+				FirstOrCreate(&pricing).Error; err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

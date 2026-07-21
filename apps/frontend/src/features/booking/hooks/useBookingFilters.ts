@@ -111,6 +111,20 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     attachedDocuments: (b.documents || []).map((doc) => doc.file_url),
     housekeeperPrice,
     housekeeperCount,
+    locationId: locId,
+    hallPurposes: (b.purposes || []).map((p) => ({
+      id: p.id,
+      hallUsagePurposeId: p.hall_usage_purpose_id,
+      purposeName: p.purpose_name,
+      pricingModel: p.pricing_model,
+      selectedCells: p.selected_cells,
+      areaSqm: p.area_sqm,
+      productTypeCount: p.product_type_count,
+      productNames: p.product_names,
+      proposedPrice: p.proposed_price,
+      computedPrice: p.computed_price,
+      totalPrice: p.total_price,
+    })),
   };
 }
 

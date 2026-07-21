@@ -13,6 +13,21 @@ export interface TimeslotDetail {
   priceSnapshot: number;
 }
 
+// วัตถุประสงค์การขอใช้พื้นที่โถง (สำหรับแสดงในหน้า admin) — per_sqm จะมี selectedCells
+export interface HallPurposeDetail {
+  id: number;
+  hallUsagePurposeId: number;
+  purposeName: string;
+  pricingModel: string; // "per_sqm" | "per_type_per_day"
+  selectedCells?: number[][]; // per_sqm: เซลล์บูธที่เลือกบนผัง [[row,col], ...]
+  areaSqm?: number;
+  productTypeCount?: number;
+  productNames?: string[]; // per_type_per_day: ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท)
+  proposedPrice?: number;
+  computedPrice?: number;
+  totalPrice?: number;
+}
+
 export interface Booking {
   id: string;
   basePrice?: number;
@@ -39,6 +54,8 @@ export interface Booking {
   equipment?: string[];
   expenses?: BookingExpense[]; // Keep this for backward compatibility or aggregated view
   timeslots?: TimeslotDetail[];
+  locationId?: number; // id ของสถานที่ (โถง) — ใช้โหลดผังพื้นที่ตอนแสดงเซลล์ที่เลือก
+  hallPurposes?: HallPurposeDetail[]; // วัตถุประสงค์การขอใช้พื้นที่โถง (ถ้าเป็นการจองโถง)
   attachedDocuments?: string[];
   receiptImage?: string;
   officialReceipt?: string;

@@ -12,10 +12,20 @@ type BuildingTypes struct {
 // ตัวอย่าง: โรงอาหารพราวแสดทอง, โรงอาหารกาสะลองคำ, สุรนิเวศ 1, สุรพัฒน์ 2
 type Buildings struct {
 	Base
-	Name           string         `gorm:"not null;unique"`
-	BuildingTypeID *uint          `gorm:"index"` // Nullable สำหรับตึกเดี่ยวๆ ที่ไม่มีการจัดกลุ่มประเภท
-	BuildingType   *BuildingTypes `gorm:"foreignKey:BuildingTypeID"`
-	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
-	FloorPlan      *FloorPlans    `gorm:"foreignKey:BuildingID"` // 0..1 optional
-	Locations []Locations `gorm:"foreignKey:BuildingID"`
+	Name string `gorm:"not null;unique"`
+	Description *string `gorm:"type:text"`
+	BuildingTypeID *uint                  `gorm:"index"` // Nullable สำหรับตึกเดี่ยวๆ ที่ไม่มีการจัดกลุ่มประเภท
+	BuildingType   *BuildingTypes         `gorm:"foreignKey:BuildingTypeID"`
+	Lat *float64 `gorm:"type:decimal(10,7)" `
+	Lng *float64 `gorm:"type:decimal(10,7)" `
+	Address *string `gorm:"type:varchar(500);not null;default:''"`
+	FloorCount *int `gorm:"type:int;default:1"`
+	HasFloorPlan bool `gorm:"type:boolean;default:false"` // มีแผนผังอาคารหรือไม่ (มี FloorPlan หรือไม่)
+	BlueprintURL *string `gorm:"type:varchar(255)"` // URL ของไฟล์ blueprint ของอาคาร (PDF, PNG, JPG)
+	RentalSpaces   []RentalSpaces         `gorm:"foreignKey:BuildingID"`
+	FloorPlan      *FloorPlans            `gorm:"foreignKey:BuildingID"` // 0..1 optional
+	Locations      []Locations            `gorm:"foreignKey:BuildingID"`
+	// ราคาการขอใช้พื้นที่โถงของอาคารนี้ ย้ายไปอยู่ตาราง BuildingHallPricings (ราย อาคาร × วัตถุประสงค์)
+	// ครอบคลุมทั้ง ตั้งบูธ (per_sqm) / แจกใบปลิว / แจกตัวอย่างสินค้า (per_type_per_day)
+	HallPricings   []BuildingHallPricings `gorm:"foreignKey:BuildingID"`
 }

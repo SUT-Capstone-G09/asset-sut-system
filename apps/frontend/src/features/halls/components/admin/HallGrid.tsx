@@ -5,6 +5,7 @@ import { LayoutGrid, List, MapPin, ArrowRight, Search } from "lucide-react";
 import HallCard from "./HallCard";
 import HallDrawer from "./HallDrawer";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { getFloorPlanHallIds } from "../../services/hallFloorPlanService";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,15 @@ interface HallGridProps {
   buildings: string[];
   onResetFilters: () => void;
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
-  onEdit: (updatedHall: Hall) => void;
+  onEdit: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
   onDelete: (id: string) => void;
   isLoading?: boolean;
   canDelete?: boolean;
+  // เปลี่ยนค่าทุกครั้งที่บันทึกสำเร็จ — ส่งต่อให้ drawer โหลดราคาใหม่
+  pricingVersion?: number;
 }
 
 export default function HallGrid({
@@ -28,11 +34,15 @@ export default function HallGrid({
   onEdit,
   onDelete,
   canDelete = true,
+  pricingVersion = 0,
 }: HallGridProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
+  // เก็บแค่ id แล้ว derive ตัวโถงจาก list — ให้ drawer เห็นค่าล่าสุดหลังบันทึกโดยไม่ต้อง mutate state
+  const [selectedHallId, setSelectedHallId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [floorPlanIds, setFloorPlanIds] = useState<Set<string>>(new Set());
+
+  const selectedHall = filteredHalls.find((h) => h.id === selectedHallId) ?? null;
 
   const refreshFloorPlans = useCallback(async () => {
     try {
@@ -47,7 +57,7 @@ export default function HallGrid({
   }, [refreshFloorPlans]);
 
   const handleOpenDrawer = (hall: Hall) => {
-    setSelectedHall(hall);
+    setSelectedHallId(hall.id);
     setIsDrawerOpen(true);
   };
 
@@ -134,6 +144,7 @@ export default function HallGrid({
         onDelete={onDelete}
         canDelete={canDelete}
         onFloorPlanChange={refreshFloorPlans}
+        pricingVersion={pricingVersion}
       />
     </div>
   );

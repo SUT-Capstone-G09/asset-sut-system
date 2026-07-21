@@ -4,8 +4,11 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import PageContainer from "@/components/layout/PageContainer";
 import BookingCalendarView from "@/features/bookings/components/calendar/BookingCalendarView";
+import HallBookingView from "@/features/bookings/components/hall/HallBookingView";
 import { useRoom } from "@/features/bookings/hooks/useRoom";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const HALL_TYPE = "โถงอาคาร";
 
 export default function BookingCalendarPage({
   params,
@@ -38,7 +41,11 @@ export default function BookingCalendarPage({
 
   return (
     <PageContainer>
-      <BookingCalendarView room={room} />
+      {room.type === HALL_TYPE ? (
+        <HallBookingView room={room} />
+      ) : (
+        <BookingCalendarView room={room} />
+      )}
     </PageContainer>
   );
 }

@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
 import React, { useState, useMemo } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
+import HallBookingAreaSection from "./HallBookingAreaSection";
 import { mockRooms } from "../../data/rooms";
 import { addonService, Addon } from "@/lib/services/addon.service";
 import { getHoursFromTimeSlot } from "../../utils/time";
@@ -321,6 +322,11 @@ export default function BookingDrawer({
 
   const currentStatus =
     BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+
+  // มีพื้นที่บูธที่ผู้ขอเลือก (การจองโถงแบบจำหน่ายสินค้า per_sqm) → แสดง section ผังพื้นที่ที่เลือก
+  const hasBoothArea = (booking.hallPurposes || []).some(
+    (p) => p.pricingModel === "per_sqm" && (p.selectedCells?.length ?? 0) > 0,
+  );
 
   const infoItems = [
     {
@@ -772,7 +778,16 @@ export default function BookingDrawer({
                 )}
             </div>
 
-
+            {/* Section: พื้นที่ที่เลือก (โถง — จำหน่ายสินค้า per_sqm) */}
+            {hasBoothArea && (
+              <>
+                <hr className="border-slate-100" />
+                <HallBookingAreaSection
+                  locationId={booking.locationId}
+                  purposes={booking.hallPurposes}
+                />
+              </>
+            )}
 
             {/* Section 4: Actions */}
             <div className="space-y-4">

@@ -86,5 +86,6 @@ tmp/
 apps/backend/*.http
 
 .claude
+.agents
 skills-lock.json
 CONTEXT.md

@@ -195,11 +195,11 @@ export default function BroadcastComposer() {
 
   const [query, setQuery] = useState("");
   // Results are tagged with the query they belong to, so display/searching state
-  // can be derived during render (no setState-in-effect).
-  const [resultData, setResultData] = useState<{ q: string; items: Recipient[] }>({
-    q: "",
-    items: [],
-  });
+  // can be derived during render (no setState-in-effect). `null` means the roster
+  // hasn't been fetched yet — distinct from a fetched-but-empty result.
+  const [resultData, setResultData] = useState<{ q: string; items: Recipient[] } | null>(
+    null,
+  );
 
   // Server-resolved preview, tagged with the audience key it answers for.
   const [serverPreview, setServerPreview] = useState<{
@@ -217,25 +217,30 @@ export default function BroadcastComposer() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  // Live recipient search: debounce keystrokes; store results tagged with their
-  // query. Empty query fetches nothing — display is derived below.
+  // Live recipient list for the "เลือกรายคน" picker: an empty query lists every
+  // user (browse the full roster); typing narrows it. Results are tagged with the
+  // query they belong to so display/searching state can be derived during render.
+  // Only fetches while this audience is active to avoid needless round-trips.
   useEffect(() => {
+    if (audienceType !== "users") return;
     const q = query.trim();
-    if (!q) return;
     let ignore = false;
-    const handle = setTimeout(async () => {
-      try {
-        const items = await searchRecipients(q);
-        if (!ignore) setResultData({ q, items });
-      } catch {
-        /* ignore transient search errors */
-      }
-    }, 300);
+    const handle = setTimeout(
+      async () => {
+        try {
+          const items = await searchRecipients(q);
+          if (!ignore) setResultData({ q, items });
+        } catch {
+          /* ignore transient search errors */
+        }
+      },
+      q ? 300 : 0, // load the roster immediately; debounce only keystrokes
+    );
     return () => {
       ignore = true;
       clearTimeout(handle);
     };
-  }, [query]);
+  }, [query, audienceType]);
 
   // Auto-preview: resolve the recipient count whenever a server-backed audience
   // changes. The "users" audience is known locally and skips the round-trip.
@@ -259,8 +264,10 @@ export default function BroadcastComposer() {
 
   // ── Derived display state (kept out of effects per react-hooks rules) ──
   const trimmedQuery = query.trim();
-  const results = resultData.q === trimmedQuery ? resultData.items : [];
-  const searching = trimmedQuery !== "" && resultData.q !== trimmedQuery;
+  const results = resultData && resultData.q === trimmedQuery ? resultData.items : [];
+  // True while the roster/results for the current query are still in flight —
+  // covers both the initial full-list load and any narrowing keystroke.
+  const searching = audienceType === "users" && resultData?.q !== trimmedQuery;
 
   const audienceKey = JSON.stringify(makeAudience(audienceType, roles, typeIds, []));
   const serverReady = serverPreview?.key === audienceKey;
@@ -605,7 +612,7 @@ export default function BroadcastComposer() {
                     <Input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="พิมพ์เพื่อค้นหาชื่อหรืออีเมล"
+                      placeholder="ค้นหาชื่อหรืออีเมล เพื่อกรองรายชื่อ"
                       aria-label="ค้นหาผู้รับรายคน"
                       className="h-12 pl-11 text-base"
                     />
@@ -614,15 +621,17 @@ export default function BroadcastComposer() {
                     )}
                   </div>
 
-                  {query.trim() && !searching && (
+                  {!searching && (
                     <ul
                       role="listbox"
-                      aria-label="ผลการค้นหาผู้รับ"
+                      aria-label="รายชื่อผู้รับ"
                       className="max-h-72 divide-y divide-gray-50 overflow-y-auto rounded-lg border border-gray-100"
                     >
                       {results.length === 0 ? (
                         <li className="px-4 py-6 text-center text-base text-gray-400">
-                          ไม่พบผู้ใช้ที่ตรงกับ &quot;{query.trim()}&quot;
+                          {trimmedQuery
+                            ? `ไม่พบผู้ใช้ที่ตรงกับ "${trimmedQuery}"`
+                            : "ไม่มีผู้ใช้ในระบบ"}
                         </li>
                       ) : (
                         results.map((r) => {
