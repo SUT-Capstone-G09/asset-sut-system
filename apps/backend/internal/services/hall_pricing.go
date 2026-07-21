@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
@@ -16,7 +15,7 @@ import (
 //
 // ใช้ max เพื่อให้ราคาอาคารเป็นขั้นต่ำเสมอ: ถ้าภายหลังอาคารขึ้นราคาจนแซงราคาโถงที่ตั้งไว้
 // ระบบจะใช้ราคาอาคารทันทีโดยไม่ต้องไล่แก้ข้อมูลโถง (ค่า override เดิมยังเก็บไว้ ถ้าอาคารลดราคากลับก็กลับมาใช้)
-func resolveHallUnitPrice(floor int, override *int) int {
+func resolveHallUnitPrice(floor float64, override *float64) float64 {
 	if override != nil && *override > floor {
 		return *override
 	}
@@ -32,7 +31,7 @@ type HallPurposeInput struct {
 	// (max ของราคาอาคาร BuildingHallPricings กับราคาเฉพาะโถง LocationHallPricings ; fallback DefaultPrice)
 	//   per_sqm          → บาท/ตร.ม./วัน
 	//   per_type_per_day → บาท/ประเภทสินค้า/วัน
-	UnitPrice int
+	UnitPrice float64
 
 	// per_sqm (ตั้งบูธ)
 	SelectedCells [][]int // เซลล์ที่เลือกบนผัง [[row,col], ...]
@@ -43,7 +42,7 @@ type HallPurposeInput struct {
 	ProductNames     []string // ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท) — ไม่กระทบราคา แต่ต้องระบุครบตอนสร้าง booking
 
 	// ราคาที่ผู้ขอเสนอ (ยอดรวมต่อวัตถุประสงค์นี้) — nil = ไม่เสนอ ใช้ราคาระบบ
-	ProposedPrice *int
+	ProposedPrice *float64
 }
 
 // CalculateHallPurpose คำนวณราคา BookingPurposes 1 แถว และตรวจว่าราคาที่เสนอไม่ต่ำกว่าเกณฑ์ระบบ
@@ -65,8 +64,8 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 		PricingModel:       in.Purpose.PricingModel,
 	}
 
-	// ราคาขั้นต่ำที่ระบบคิด (ยอดรวมทั้งการจอง) — money เป็น int ชั่วคราว จึงปัดเศษ (session หน้าเปลี่ยนเป็น decimal)
-	var computed int
+	// ราคาขั้นต่ำที่ระบบคิด (ยอดรวมทั้งการจอง)
+	var computed float64
 
 	switch in.Purpose.PricingModel {
 	case models.HallPricingPerSqm:
@@ -83,7 +82,7 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 		bp.CellSizeMSnapshot = &cellSize
 		bp.AreaSqm = &area
 		bp.UnitPriceSnapshot = in.UnitPrice
-		computed = int(math.Round(float64(in.UnitPrice) * area * float64(days)))
+		computed = in.UnitPrice * area * float64(days)
 
 	case models.HallPricingPerTypePerDay:
 		if in.ProductTypeCount < 1 {
@@ -107,7 +106,7 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 		if len(names) > 0 {
 			bp.ProductNames = names
 		}
-		computed = in.UnitPrice * count * days
+		computed = in.UnitPrice * float64(count) * float64(days)
 
 	default:
 		return nil, fmt.Errorf("ไม่รองรับวิธีคิดราคา %q", in.Purpose.PricingModel)
@@ -119,7 +118,7 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 	applied := computed
 	if in.ProposedPrice != nil {
 		if *in.ProposedPrice < computed {
-			return nil, fmt.Errorf("ราคาที่เสนอ %d บาท ต่ำกว่าเกณฑ์ราคาขั้นต่ำสำหรับ %q", *in.ProposedPrice, in.Purpose.Name)
+			return nil, fmt.Errorf("ราคาที่เสนอ %.2f บาท ต่ำกว่าเกณฑ์ราคาขั้นต่ำสำหรับ %q", *in.ProposedPrice, in.Purpose.Name)
 		}
 		proposed := *in.ProposedPrice
 		bp.ProposedPrice = &proposed
@@ -134,7 +133,7 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 // per_sqm → basePrice (ค่าเช่าพื้นที่) ; per_type_per_day → addonPrice (ค่ากิจกรรม)
 // ราคาต่อหน่วยของแต่ละ input มาจาก in.UnitPrice (ราคาของอาคารนั้น) ที่ resolve มาก่อนแล้ว
 // ถ้ามีข้อใดราคาต่ำกว่าเกณฑ์/ข้อมูลไม่ครบ จะคืน error ทันที (all-or-nothing)
-func CalculateHallPurposes(inputs []HallPurposeInput, days int) (lines []models.BookingPurposes, basePrice, addonPrice int, err error) {
+func CalculateHallPurposes(inputs []HallPurposeInput, days int) (lines []models.BookingPurposes, basePrice, addonPrice float64, err error) {
 	if len(inputs) == 0 {
 		return nil, 0, 0, errors.New("ต้องเลือกวัตถุประสงค์การขอใช้พื้นที่อย่างน้อย 1 ข้อ")
 	}

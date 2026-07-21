@@ -21,7 +21,7 @@ type HallUsagePurposes struct {
 	PricingModel string `gorm:"type:varchar(30);not null" json:"pricing_model"` // per_sqm | per_type_per_day
 	// DefaultPrice = ราคาต่อหน่วยเริ่มต้น (บาท) สำหรับแบบ per_type_per_day เช่น 500
 	// แบบ per_sqm จะเป็น 0 เพราะเรทมาจากระดับอาคาร
-	DefaultPrice int  `gorm:"not null;default:0" json:"default_price"`
+	DefaultPrice float64  `gorm:"not null;default:0" json:"default_price"`
 	IsActive     bool `gorm:"not null;default:true" json:"is_active"`
 	SortOrder    int  `gorm:"not null;default:0" json:"sort_order"`
 }

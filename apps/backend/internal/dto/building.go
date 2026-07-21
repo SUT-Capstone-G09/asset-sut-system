@@ -35,7 +35,7 @@ type BuildingHallPricingResponse struct {
 	HallUsagePurposeID uint   `json:"hall_usage_purpose_id"`
 	PurposeName        string `json:"purpose_name"`
 	PricingModel       string `json:"pricing_model"` // per_sqm | per_type_per_day
-	Price              int    `json:"price"`         // per_sqm: บาท/ตร.ม./วัน ; per_type_per_day: บาท/ประเภท/วัน
+	Price              float64    `json:"price"`         // per_sqm: บาท/ตร.ม./วัน ; per_type_per_day: บาท/ประเภท/วัน
 	IsActive           bool   `json:"is_active"`
 }
 
@@ -45,7 +45,7 @@ type HallUsagePurposeResponse struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	PricingModel string `json:"pricing_model"` // per_sqm | per_type_per_day
-	DefaultPrice int    `json:"default_price"` // ค่าตั้งต้น/fallback เมื่ออาคารยังไม่ตั้งราคา
+	DefaultPrice float64    `json:"default_price"` // ค่าตั้งต้น/fallback เมื่ออาคารยังไม่ตั้งราคา
 	IsActive     bool   `json:"is_active"`
 	SortOrder    int    `json:"sort_order"`
 }
@@ -56,7 +56,7 @@ type CreateHallUsagePurposeRequest struct {
 	Name         string `json:"name" binding:"required,min=2,max=100"`
 	Description  string `json:"description"`
 	PricingModel string `json:"pricing_model" binding:"required,oneof=per_sqm per_type_per_day"`
-	DefaultPrice int    `json:"default_price" binding:"min=0"`
+	DefaultPrice float64    `json:"default_price" binding:"min=0"`
 	SortOrder    *int   `json:"sort_order"` // nil = ต่อท้ายอัตโนมัติ
 }
 
@@ -64,7 +64,7 @@ type CreateHallUsagePurposeRequest struct {
 type UpdateHallUsagePurposeRequest struct {
 	Name         *string `json:"name" binding:"omitempty,min=2,max=100"`
 	Description  *string `json:"description"`
-	DefaultPrice *int    `json:"default_price" binding:"omitempty,min=0"`
+	DefaultPrice *float64    `json:"default_price" binding:"omitempty,min=0"`
 	IsActive     *bool   `json:"is_active"`
 	SortOrder    *int    `json:"sort_order"`
 }
@@ -76,7 +76,7 @@ type UpdateBuildingHallPricingsRequest struct {
 
 type BuildingHallPricingInput struct {
 	HallUsagePurposeID uint `json:"hall_usage_purpose_id" binding:"required"`
-	Price              int  `json:"price" binding:"min=0"`
+	Price              float64  `json:"price" binding:"min=0"`
 	IsActive           bool `json:"is_active"`
 }
 

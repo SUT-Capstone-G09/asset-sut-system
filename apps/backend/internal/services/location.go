@@ -46,7 +46,7 @@ func toBuildingResponse(b models.Buildings) dto.BuildingResponse {
 	for _, hp := range b.HallPricings {
 		pr := dto.BuildingHallPricingResponse{
 			HallUsagePurposeID: hp.HallUsagePurposeID,
-			Price:              hp.Price,
+			Price:              float64(hp.Price),
 			IsActive:           hp.IsActive,
 		}
 		if hp.HallUsagePurpose != nil {
@@ -70,7 +70,7 @@ func toHallPurposeResponse(p models.HallUsagePurposes) dto.HallUsagePurposeRespo
 		Name:         p.Name,
 		Description:  p.Description,
 		PricingModel: p.PricingModel,
-		DefaultPrice: p.DefaultPrice,
+		DefaultPrice: float64(p.DefaultPrice),
 		IsActive:     p.IsActive,
 		SortOrder:    p.SortOrder,
 	}
@@ -124,7 +124,7 @@ func (s *LocationService) CreateHallUsagePurpose(req dto.CreateHallUsagePurposeR
 		Name:         req.Name,
 		Description:  req.Description,
 		PricingModel: req.PricingModel,
-		DefaultPrice: req.DefaultPrice,
+		DefaultPrice: float64(req.DefaultPrice),
 		IsActive:     true,
 		SortOrder:    sortOrder,
 	}
@@ -193,7 +193,7 @@ func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.Up
 		if err := s.locationRepo.UpsertBuildingHallPricing(&models.BuildingHallPricings{
 			BuildingID:         buildingID,
 			HallUsagePurposeID: in.HallUsagePurposeID,
-			Price:              in.Price,
+			Price:              float64(in.Price),
 			IsActive:           in.IsActive,
 		}); err != nil {
 			return nil, err
@@ -210,7 +210,7 @@ func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.Up
 
 // hallPricingFloor = ขั้นต่ำ + สถานะเปิดใช้งานของวัตถุประสงค์หนึ่ง ตามที่อาคารตั้งไว้
 type hallPricingFloor struct {
-	Floor    int
+	Floor    float64
 	IsActive bool
 }
 
@@ -223,7 +223,7 @@ func (s *LocationService) hallPricingFloors(buildingID *uint) ([]models.HallUsag
 	}
 	floors := make(map[uint]hallPricingFloor, len(purposes))
 	for _, p := range purposes {
-		floors[p.ID] = hallPricingFloor{Floor: p.DefaultPrice, IsActive: true}
+		floors[p.ID] = hallPricingFloor{Floor: float64(p.DefaultPrice), IsActive: true}
 	}
 	if buildingID != nil {
 		building, berr := s.locationRepo.FindBuildingByID(*buildingID)
@@ -251,7 +251,7 @@ func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.Locati
 	if err != nil {
 		return nil, err
 	}
-	overrideByPurpose := make(map[uint]int, len(overrides))
+	overrideByPurpose := make(map[uint]float64, len(overrides))
 	for _, o := range overrides {
 		overrideByPurpose[o.HallUsagePurposeID] = o.Price
 	}
@@ -263,14 +263,14 @@ func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.Locati
 			HallUsagePurposeID: p.ID,
 			PurposeName:        p.Name,
 			PricingModel:       p.PricingModel,
-			BuildingPrice:      f.Floor,
-			EffectivePrice:     f.Floor,
+			BuildingPrice:      float64(f.Floor),
+			EffectivePrice:     float64(f.Floor),
 			IsActive:           f.IsActive,
 		}
 		if ov, ok := overrideByPurpose[p.ID]; ok {
-			price := ov
+			price := float64(ov)
 			row.OverridePrice = &price
-			row.EffectivePrice = resolveHallUnitPrice(f.Floor, &price)
+			row.EffectivePrice = resolveHallUnitPrice(float64(f.Floor), &price)
 		}
 		res = append(res, row)
 	}
@@ -304,13 +304,13 @@ func (s *LocationService) UpdateLocationHallPricings(locationID uint, req dto.Up
 			}
 			continue
 		}
-		if *in.Price < f.Floor {
-			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%d บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
+		if *in.Price < float64(f.Floor) {
+			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%.2f บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
 		}
 		if uerr := s.locationRepo.UpsertLocationHallPricing(&models.LocationHallPricings{
 			LocationID:         locationID,
 			HallUsagePurposeID: in.HallUsagePurposeID,
-			Price:              *in.Price,
+			Price:              float64(*in.Price),
 		}); uerr != nil {
 			return nil, uerr
 		}

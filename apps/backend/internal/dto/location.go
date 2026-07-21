@@ -57,9 +57,9 @@ type LocationHallPricingResponse struct {
 	HallUsagePurposeID uint   `json:"hall_usage_purpose_id"`
 	PurposeName        string `json:"purpose_name"`
 	PricingModel       string `json:"pricing_model"`
-	BuildingPrice      int    `json:"building_price"`  // ราคาอาคาร = ขั้นต่ำ (fallback DefaultPrice ถ้าอาคารยังไม่ตั้ง)
-	OverridePrice      *int   `json:"override_price"`  // ราคาเฉพาะโถง ; null = ไม่ได้ตั้ง
-	EffectivePrice     int    `json:"effective_price"` // ราคาที่ใช้จริง = max(building, override)
+	BuildingPrice      float64    `json:"building_price"`  // ราคาอาคาร = ขั้นต่ำ (fallback DefaultPrice ถ้าอาคารยังไม่ตั้ง)
+	OverridePrice      *float64	   `json:"override_price"`  // ราคาเฉพาะโถง ; null = ไม่ได้ตั้ง
+	EffectivePrice     float64 `json:"effective_price"` // ราคาที่ใช้จริง = max(building, override)
 	IsActive           bool   `json:"is_active"`       // อาคารเปิดให้ขอวัตถุประสงค์นี้หรือไม่
 }
 
@@ -72,7 +72,7 @@ type LocationHallPricingInput struct {
 	HallUsagePurposeID uint `json:"hall_usage_purpose_id" binding:"required"`
 	// Price = ราคาเฉพาะโถง ; nil = ล้าง override กลับไปใช้ราคาอาคาร
 	// ห้ามใส่ binding:"required" — validator ถือว่า int 0 คือไม่ได้ส่งมา
-	Price *int `json:"price"`
+	Price *float64 `json:"price"`
 }
 
 // ── Hall Floor Plan ─────────────────────────────────────────────────────────

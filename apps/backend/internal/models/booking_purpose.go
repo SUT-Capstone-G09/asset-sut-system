@@ -26,9 +26,9 @@ type BookingPurposes struct {
 	ProductTypeCount *int     `json:"product_type_count,omitempty"`
 	ProductNames     []string `gorm:"serializer:json" json:"product_names,omitempty"` // ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท ; ยาว = ProductTypeCount)
 
-	// ราคา (snapshot) — เก็บเป็น int ชั่วคราว รอแปลงทั้งระบบเป็น decimal(12,2) ใน session ถัดไป
-	UnitPriceSnapshot int  `gorm:"not null;default:0" json:"unit_price_snapshot"` // ราคาต่อหน่วยของอาคารสำหรับ purpose นี้ (จาก BuildingHallPricings.Price ; fallback HallUsagePurposes.DefaultPrice)
-	ComputedPrice     int  `gorm:"not null;default:0" json:"computed_price"`      // ราคาขั้นต่ำที่ระบบคำนวณ (เกณฑ์)
-	ProposedPrice     *int `json:"proposed_price,omitempty"`                      // ราคาที่ผู้ขอเสนอ (ต้อง ≥ ComputedPrice) ; nil = ใช้ราคาระบบ
-	TotalPrice        int  `gorm:"not null;default:0" json:"total_price"`         // ราคาที่ใช้จริง = ProposedPrice ?? ComputedPrice
+	// ราคา (snapshot)
+	UnitPriceSnapshot float64  `gorm:"type:decimal(12,2);not null;default:0" json:"unit_price_snapshot"` // ราคาต่อหน่วยของอาคารสำหรับ purpose นี้ (จาก BuildingHallPricings.Price ; fallback HallUsagePurposes.DefaultPrice)
+	ComputedPrice     float64  `gorm:"type:decimal(12,2);not null;default:0" json:"computed_price"`      // ราคาขั้นต่ำที่ระบบคำนวณ (เกณฑ์)
+	ProposedPrice     *float64 `gorm:"type:decimal(12,2)" json:"proposed_price,omitempty"`              // ราคาที่ผู้ขอเสนอ (ต้อง ≥ ComputedPrice) ; nil = ใช้ราคาระบบ
+	TotalPrice        float64  `gorm:"type:decimal(12,2);not null;default:0" json:"total_price"`         // ราคาที่ใช้จริง = ProposedPrice ?? ComputedPrice
 }

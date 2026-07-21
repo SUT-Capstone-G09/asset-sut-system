@@ -19,5 +19,5 @@ type LocationHallPricings struct {
 	HallUsagePurpose   *HallUsagePurposes `gorm:"foreignKey:HallUsagePurposeID" json:"hall_usage_purpose,omitempty"`
 	// Price = ราคาต่อหน่วยเฉพาะโถงนี้ (ความหมายตาม PricingModel ของ purpose เหมือน BuildingHallPricings.Price)
 	// เก็บเป็น int ชั่วคราว รอแปลงทั้งระบบเป็น decimal(12,2)
-	Price int `gorm:"not null;default:0" json:"price"`
+	Price float64 `gorm:"not null;default:0" json:"price"`
 }

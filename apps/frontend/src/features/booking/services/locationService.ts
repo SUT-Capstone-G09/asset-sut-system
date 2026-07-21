@@ -127,10 +127,6 @@ export async function getLocations(): Promise<AdminLocationDTO[]> {
   return apiClient.get<AdminLocationDTO[]>("/locations");
 }
 
-export async function getBuildings(): Promise<BuildingDTO[]> {
-  return apiClient.get<BuildingDTO[]>("/buildings");
-}
-
 export async function createLocation(payload: CreateLocationPayload): Promise<AdminLocationDTO> {
   return apiClient.post<AdminLocationDTO>("/locations", payload);
 }
