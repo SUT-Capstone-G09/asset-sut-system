@@ -16,37 +16,25 @@ import {
 import {
   MapPin,
   Pencil,
-  Banknote,
   Building2,
   Maximize2,
   FileText,
   X,
   ExternalLink,
   Calendar,
-  LayoutGrid,
   CreditCard,
-  Hash,
   User,
   Clock,
   CheckCircle2,
-  XCircle,
   Phone,
   Mail,
   Trash2,
-  Briefcase,
-  Download,
-  Plus,
-  Search,
   AlertCircle,
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
-import { mockRooms } from "../../data/rooms";
-import { addonService, Addon } from "@/lib/services/addon.service";
-import { getHoursFromTimeSlot } from "../../utils/time";
-import ImageUpload from "@/components/ui/image-upload";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -135,181 +123,15 @@ export default function BookingDrawer({
   initialMode = "view",
 }: Props) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-
-  const [isEditingExpenses, setIsEditingExpenses] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const router = useRouter();
-  const [editedExpenses, setEditedExpenses] = useState<any[]>([]);
-  const [housekeeperPrice, setHousekeeperPrice] = useState(0);
-  const [housekeeperCount, setHousekeeperCount] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-  const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
-  const [masterAddons, setMasterAddons] = useState<Addon[]>([]);
 
   React.useEffect(() => {
-    if (open) {
-      setIsEditOpen(initialMode === "edit");
-      addonService.getAll()
-        .then(setMasterAddons)
-        .catch((err) => console.error("Failed to load master addons in drawer:", err));
-    } else {
-      setIsEditOpen(false);
-    }
+    (() => {
+      setIsEditOpen(open && initialMode === "edit");
+    })();
   }, [open, initialMode]);
-
-  React.useEffect(() => {
-    if (booking) {
-      const customExps = (booking.expenses || []).filter(
-        (exp) =>
-          !exp.name.startsWith("ค่าห้อง") &&
-          !exp.name.startsWith("ค่าแม่บ้าน") &&
-          !exp.name.startsWith("ส่วนลด"),
-      );
-      setEditedExpenses(customExps);
-      setHousekeeperPrice(booking.housekeeperPrice || 0);
-      setHousekeeperCount(booking.housekeeperCount || 0);
-      const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
-      setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
-      setIsEditingExpenses(false);
-    }
-  }, [booking]);
-
-  const handleAddExpenseItem = () => {
-    setEditedExpenses((prev) => [...prev, { name: "", amount: 0, unitPrice: 0, quantity: 1 }]);
-  };
-
-  const handleRemoveExpenseItem = (index: number) => {
-    setEditedExpenses((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const handleExpenseChange = (
-    index: number,
-    key: "name" | "amount" | "unitPrice" | "quantity",
-    value: any,
-  ) => {
-    setEditedExpenses((prev) =>
-      prev.map((exp, idx) => {
-        if (idx === index) {
-          if (key === "name") return { ...exp, name: value };
-          
-          let newUnitPrice = exp.unitPrice || 0;
-          let newQuantity = exp.quantity || 1;
-          let newAmount = exp.amount || 0;
-          
-          if (key === "quantity") {
-            newQuantity = Math.max(1, Number(value) || 1);
-            newAmount = newUnitPrice * newQuantity;
-          } else if (key === "unitPrice") {
-            newUnitPrice = Number(value) || 0;
-            newAmount = newUnitPrice * newQuantity;
-          } else if (key === "amount") {
-            newAmount = Number(value) || 0;
-            newUnitPrice = newAmount / newQuantity;
-          }
-          
-          return {
-            ...exp,
-            unitPrice: newUnitPrice,
-            quantity: newQuantity,
-            amount: newAmount,
-          };
-        }
-        return exp;
-      }),
-    );
-  };
-
-  // Helper values for auto-calculated expenses
-  const room = booking
-    ? mockRooms.find(
-        (r) =>
-          r.roomNumber === booking.roomNumber ||
-          r.roomName === booking.roomName,
-      )
-    : null;
-  const isInternal = booking
-    ? booking.requesterType === "student" || booking.requesterType === "staff"
-    : false;
-  const hours = booking ? getHoursFromTimeSlot(booking.timeSlot || "") : 0;
-  const useDaily = hours > 4;
-  const hourlyRate = isInternal
-    ? (room?.rates?.hourlyInternal ?? 150)
-    : (room?.rates?.hourlyExternal ?? 400);
-  const dailyRate = isInternal
-    ? (room?.rates?.dailyInternal ?? 1000)
-    : (room?.rates?.dailyExternal ?? 2500);
-  // Use actual seeded basePrice from backend if available, fallback to computed
-  const actualHourlyRate = booking?.basePrice ? (booking.basePrice / hours) : hourlyRate;
-  const actualDailyRate = booking?.basePrice ? booking.basePrice : dailyRate;
-  const roomFeeAmount = booking?.basePrice || (useDaily ? dailyRate : hourlyRate * hours);
-  
-  const roomFeeName = useDaily
-    ? "ค่าห้องรายวัน"
-    : `ค่าห้องรายชั่วโมง (${actualHourlyRate} บาท/ชม. x ${hours} ชม.)`;
-
-  const housekeeperFeeName = `ค่าแม่บ้าน (${housekeeperPrice} บาท/คน x ${housekeeperCount} คน)`;
-  const housekeeperFeeAmount = housekeeperPrice * housekeeperCount;
-
-  const totalExpensesComputed = Math.max(
-    0,
-    roomFeeAmount +
-      housekeeperFeeAmount +
-      editedExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) -
-      discount
-  );
-
-  const handleSaveExpenses = () => {
-    if (!booking) return;
-
-    const finalExpenses: import("../../types/booking").BookingExpense[] = [
-      { 
-        name: roomFeeName, 
-        unitPrice: booking?.basePrice ? (useDaily ? booking.basePrice : booking.basePrice / hours) : (useDaily ? dailyRate : hourlyRate),
-        quantity: useDaily ? 1 : hours,
-        amount: booking?.basePrice || roomFeeAmount 
-      },
-      ...(housekeeperFeeAmount > 0
-        ? [{ 
-            name: housekeeperFeeName, 
-            unitPrice: housekeeperPrice, 
-            quantity: housekeeperCount, 
-            amount: housekeeperFeeAmount 
-          }]
-        : []),
-      ...editedExpenses.map(exp => ({
-        name: exp.name,
-        unitPrice: exp.unitPrice || exp.amount, // Default to total amount if unit price is missing
-        quantity: exp.quantity || 1, // Default to 1 if missing
-        amount: exp.amount
-      })),
-      ...(discount > 0
-        ? [{ name: `ส่วนลด`, unitPrice: discount, quantity: 1, amount: discount }]
-        : []),
-    ];
-
-    const updated: Booking = {
-      ...booking,
-      expenses: finalExpenses,
-      housekeeperPrice,
-      housekeeperCount,
-      expenseStatus: "draft",
-    };
-    onEdit(updated);
-    setIsEditingExpenses(false);
-    alert("บันทึกค่าใช้จ่ายชั่วคราวแล้ว (ต้องกดแจ้งผู้ใช้เพื่อส่งข้อมูล)");
-  };
-
-  const handleNotifyExpenses = () => {
-    if (!booking) return;
-    const updated: Booking = {
-      ...booking,
-      expenseStatus: "sent",
-    };
-    onEdit(updated);
-    alert("แจ้งค่าใช้จ่ายไปยังผู้ขอใช้พื้นที่สำเร็จแล้ว!");
-  };
 
   if (!booking) return null;
 
