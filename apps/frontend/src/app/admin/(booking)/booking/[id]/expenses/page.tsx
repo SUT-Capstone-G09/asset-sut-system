@@ -37,6 +37,10 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import ThaiBahtText from "thai-baht-text";
+
+const formatThaiText = (amount: number): string =>
+  amount === 0 ? "ศูนย์บาทถ้วน" : ThaiBahtText(amount);
 
 interface ExpenseRow {
   id?: number; // addon id from master (if from addon service)
@@ -309,6 +313,8 @@ export default function BookingExpensesPage() {
     return itemName.toLowerCase().includes(addonSearch.toLowerCase());
   });
 
+  const isReadOnly = booking ? ["approved", "completed", "rejected", "cancelled"].includes(booking.status.toLowerCase()) : false;
+
   return (
     <div className="flex flex-col min-h-full bg-[#f8fafc]">
       <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
@@ -331,18 +337,20 @@ export default function BookingExpensesPage() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => handleSave()}
-            disabled={saving}
-            className="bg-[#f26522] hover:bg-[#dc521a] text-white rounded-[7px] font-bold h-11 px-6 shadow-md gap-2 cursor-pointer"
-          >
-            {saving ? (
-              <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-            ) : (
-              <Save size={16} />
-            )}
-            บันทึกการเปลี่ยนแปลง
-          </Button>
+          {!isReadOnly && (
+            <Button
+              onClick={() => handleSave()}
+              disabled={saving}
+              className="bg-[#f26522] hover:bg-[#dc521a] text-white rounded-[7px] font-bold h-11 px-6 shadow-md gap-2 cursor-pointer"
+            >
+              {saving ? (
+                <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              บันทึกการเปลี่ยนแปลง
+            </Button>
+          )}
         </div>
 
         {/* Main grid */}
@@ -438,17 +446,19 @@ export default function BookingExpensesPage() {
                               <span className="text-xs font-black text-slate-500">
                                 Timeslot {index + 1}: {ts.date} ({ts.timeStart} - {ts.timeEnd})
                               </span>
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => {
-                                    setActiveTimeslotIdForAddon(ts.id);
-                                    setAddonModalOpen(true);
-                                  }}
-                                  className="text-[11px] font-bold text-[#f26522] hover:underline cursor-pointer"
-                                >
-                                  + เพิ่มรายการ
-                                </button>
-                              </div>
+                              {!isReadOnly && (
+                                <div className="flex gap-3">
+                                  <button
+                                    onClick={() => {
+                                      setActiveTimeslotIdForAddon(ts.id);
+                                      setAddonModalOpen(true);
+                                    }}
+                                    className="text-[11px] font-bold text-[#f26522] hover:underline cursor-pointer"
+                                  >
+                                    + เพิ่มรายการ
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -512,7 +522,8 @@ export default function BookingExpensesPage() {
                                       parseFloat(e.target.value) || 0
                                     )
                                   }
-                                  className="h-9 w-24 border-transparent bg-transparent hover:border-slate-200 focus:bg-white focus:border-[#f26522] shadow-none rounded-[7px] text-sm font-bold text-[#f26522] text-center"
+                                  disabled={isReadOnly}
+                                  className="h-9 w-24 border-transparent bg-transparent hover:border-slate-200 focus:bg-white focus:border-[#f26522] shadow-none rounded-[7px] text-sm font-bold text-[#f26522] text-center disabled:opacity-100 disabled:bg-transparent disabled:text-[#f26522] disabled:border-transparent disabled:cursor-not-allowed"
                                 />
                               </div>
                             </td>
@@ -529,7 +540,8 @@ export default function BookingExpensesPage() {
                                       parseInt(e.target.value) || 1
                                     )
                                   }
-                                  className="h-9 w-16 border-transparent bg-transparent hover:border-slate-200 focus:bg-white focus:border-[#f26522] shadow-none rounded-[7px] text-center text-sm"
+                                  disabled={isReadOnly}
+                                  className="h-9 w-16 border-transparent bg-transparent hover:border-slate-200 focus:bg-white focus:border-[#f26522] shadow-none rounded-[7px] text-center text-sm disabled:opacity-100 disabled:bg-transparent disabled:text-slate-900 disabled:border-transparent disabled:cursor-not-allowed"
                                 />
                               </div>
                             </td>
@@ -539,12 +551,14 @@ export default function BookingExpensesPage() {
                               })}
                             </td>
                             <td className="py-3 px-3">
-                              <button
-                                onClick={() => removeOtherExpense(ts.id, idx)}
-                                className="text-slate-300 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                              >
-                                <Trash2 size={15} />
-                              </button>
+                              {!isReadOnly && (
+                                <button
+                                  onClick={() => removeOtherExpense(ts.id, idx)}
+                                  className="text-slate-300 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -559,28 +573,34 @@ export default function BookingExpensesPage() {
 
               {/* Summary footer */}
               <div className="bg-slate-50 p-5 flex flex-col items-end gap-2.5 border-t border-slate-100">
-                <div className="flex justify-between w-72 text-sm">
-                  <span className="text-slate-500 font-bold">ยอดรวมสุทธิ:</span>
-                  <span className="text-slate-700 font-black">
-                    {subtotal.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                    })}{" "}
-                    บาท
-                  </span>
+                <div className="flex flex-col items-end w-72 gap-0.5">
+                  <div className="flex justify-between w-full text-sm">
+                    <span className="text-slate-500 font-bold">ยอดรวมสุทธิ:</span>
+                    <span className="text-slate-700 font-black">
+                      {subtotal.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                      })}{" "}
+                      บาท
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 italic text-right">
+                    ({formatThaiText(subtotal)})
+                  </div>
                 </div>
 
 
                 <div className="flex justify-end w-72 mt-2 mb-1">
-                  <div className="flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200 cursor-pointer" onClick={() => setIsWaived(!isWaived)}>
+                  <div className={cn("flex items-center space-x-2 bg-slate-100/50 px-3 py-2 rounded-lg border border-slate-200", isReadOnly ? "opacity-70 cursor-not-allowed" : "cursor-pointer")} onClick={() => !isReadOnly && setIsWaived(!isWaived)}>
                     <Checkbox 
                       id="waive-fee" 
                       checked={isWaived} 
-                      onCheckedChange={(checked) => setIsWaived(checked as boolean)}
-                      className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                      onCheckedChange={(checked) => !isReadOnly && setIsWaived(checked as boolean)}
+                      disabled={isReadOnly}
+                      className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 disabled:opacity-100"
                     />
                     <label
                       htmlFor="waive-fee"
-                      className="text-sm font-bold text-slate-700 cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-sm font-bold text-slate-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       onClick={(e) => e.stopPropagation()}
                     >
                       ยกเว้นค่าบริการทั้งหมด
@@ -588,16 +608,21 @@ export default function BookingExpensesPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between w-72 text-base pt-3 border-t border-slate-200 mt-1">
-                  <span className="text-slate-900 font-black">
-                    ยอดชำระทั้งหมด:
-                  </span>
-                  <span className="text-[#f26522] font-black text-lg">
-                    {grandTotal.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                    })}{" "}
-                    บาท
-                  </span>
+                <div className="flex flex-col items-end w-72 gap-0.5 pt-3 border-t border-slate-200 mt-1">
+                  <div className="flex justify-between w-full text-base">
+                    <span className="text-slate-900 font-black">
+                      ยอดชำระทั้งหมด:
+                    </span>
+                    <span className="text-[#f26522] font-black text-lg">
+                      {grandTotal.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                      })}{" "}
+                      บาท
+                    </span>
+                  </div>
+                  <div className="text-xs text-[#f26522]/70 italic text-right font-medium">
+                    ({formatThaiText(grandTotal)})
+                  </div>
                 </div>
               </div>
             </Card>

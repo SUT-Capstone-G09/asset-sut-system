@@ -36,6 +36,34 @@ func ObjectKey(folderName string, bookingDate time.Time, locationName string, bo
 	return folderName + "/" + MonthFolder(bookingDate) + "/" + FileName(locationName, bookingDate, bookingID, original)
 }
 
+// HallFloorPlanKey สร้าง path ของรูปผังพื้นที่โถง:
+// "รูปภาพสถานที่/{ชื่ออาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}{ext}"
+// จัดกลุ่มตามอาคาร/โถง (ไม่อิงเดือน) — ผังมี 1 รูปต่อโถง อัปโหลดใหม่ทับของเดิม
+func HallFloorPlanKey(buildingName, hallName, original string) string {
+	ext := strings.ToLower(filepath.Ext(original))
+	root := DocTypes["location-pics"].FolderName // "รูปภาพสถานที่"
+	return strings.Join([]string{
+		root,
+		sanitizeSegment(buildingName),
+		"โถงอาคาร",
+		"แผนผัง",
+		sanitizeSegment(hallName) + ext,
+	}, "/")
+}
+
+// sanitizeSegment กันไม่ให้ชื่อ (อาคาร/โถง) ทำ path พัง — ตัด separator และ traversal
+// แต่คงตัวอักษรไทย/UTF-8 ไว้ (S3/MinIO key รองรับ)
+func sanitizeSegment(s string) string {
+	s = strings.ReplaceAll(s, "\\", "/")
+	s = strings.ReplaceAll(s, "/", "-")
+	s = strings.ReplaceAll(s, "..", "")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "ไม่ระบุ"
+	}
+	return s
+}
+
 // DocType declares where a document category is stored and what its Thai
 // folder name is. Add a new entry to DocTypes to register a new category.
 type DocType struct {

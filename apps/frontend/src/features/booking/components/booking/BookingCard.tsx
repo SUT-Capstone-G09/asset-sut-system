@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, User, Calendar, Clock, Mail, ChevronRight, Receipt } from "lucide-react";
+import { useAuthContext } from "@/lib/context/auth-context";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export default function BookingCard({
   onExpensesClick,
   onUpdateStatus 
 }: BookingCardProps) {
+  const { user } = useAuthContext();
   const status = BOOKING_STATUS_CONFIG[booking.status ?? "pending"];
 
   return (
@@ -131,7 +133,7 @@ export default function BookingCard({
         </div>
 
         <div className="flex flex-col gap-3 mt-auto">
-          {(booking.status === "approved" || booking.status === "pending" || booking.status === "completed") && (
+          {(booking.status === "approved" || booking.status === "pending" || booking.status === "completed") && user?.role !== "staff" && (
             <Button 
               variant="secondary"
               className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg h-[44px] font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2"

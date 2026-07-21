@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { LayoutGrid, List, MapPin, ArrowRight, Search } from "lucide-react";
 import HallCard from "./HallCard";
 import HallDrawer from "./HallDrawer";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { getFloorPlanHallIds } from "../../services/hallFloorPlanService";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,15 @@ interface HallGridProps {
   buildings: string[];
   onResetFilters: () => void;
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
-  onEdit: (updatedHall: Hall) => void;
+  onEdit: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
   onDelete: (id: string) => void;
   isLoading?: boolean;
   canDelete?: boolean;
+  // เปลี่ยนค่าทุกครั้งที่บันทึกสำเร็จ — ส่งต่อให้ drawer โหลดราคาใหม่
+  pricingVersion?: number;
 }
 
 export default function HallGrid({
@@ -28,11 +34,15 @@ export default function HallGrid({
   onEdit,
   onDelete,
   canDelete = true,
+  pricingVersion = 0,
 }: HallGridProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
+  // เก็บแค่ id แล้ว derive ตัวโถงจาก list — ให้ drawer เห็นค่าล่าสุดหลังบันทึกโดยไม่ต้อง mutate state
+  const [selectedHallId, setSelectedHallId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [floorPlanIds, setFloorPlanIds] = useState<Set<string>>(new Set());
+
+  const selectedHall = filteredHalls.find((h) => h.id === selectedHallId) ?? null;
 
   const refreshFloorPlans = useCallback(async () => {
     try {
@@ -42,10 +52,12 @@ export default function HallGrid({
     }
   }, []);
 
-  useEffect(() => { refreshFloorPlans(); }, [refreshFloorPlans]);
+  useEffect(() => {
+    refreshFloorPlans();
+  }, [refreshFloorPlans]);
 
   const handleOpenDrawer = (hall: Hall) => {
-    setSelectedHall(hall);
+    setSelectedHallId(hall.id);
     setIsDrawerOpen(true);
   };
 
@@ -62,7 +74,9 @@ export default function HallGrid({
                 <div className="flex items-center gap-4 group">
                   <div className="w-1.5 h-8 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.4)] transition-all group-hover:h-10" />
                   <div className="space-y-0.5">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left">{building}</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left">
+                      {building}
+                    </h2>
                     <div className="flex items-center gap-2">
                       <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
@@ -73,8 +87,16 @@ export default function HallGrid({
                 </div>
 
                 <div className="flex items-center bg-slate-100/80 backdrop-blur-sm rounded-lg p-1 gap-1 border border-slate-200/50 shadow-inner">
-                  <ViewToggleButton isActive={viewMode === "grid"} onClick={() => setViewMode("grid")} icon={LayoutGrid} />
-                  <ViewToggleButton isActive={viewMode === "list"} onClick={() => setViewMode("list")} icon={List} />
+                  <ViewToggleButton
+                    isActive={viewMode === "grid"}
+                    onClick={() => setViewMode("grid")}
+                    icon={LayoutGrid}
+                  />
+                  <ViewToggleButton
+                    isActive={viewMode === "list"}
+                    onClick={() => setViewMode("list")}
+                    icon={List}
+                  />
                 </div>
               </div>
 
@@ -94,7 +116,11 @@ export default function HallGrid({
               {viewMode === "list" && (
                 <div className="space-y-4">
                   {items.map((hall) => (
-                    <ListRow key={hall.id} hall={hall} onClick={() => handleOpenDrawer(hall)} />
+                    <ListRow
+                      key={hall.id}
+                      hall={hall}
+                      onClick={() => handleOpenDrawer(hall)}
+                    />
                   ))}
                 </div>
               )}
@@ -105,7 +131,9 @@ export default function HallGrid({
         <EmptyState onResetFilters={onResetFilters} />
       )}
 
-      {buildings.length > 0 && filteredHalls.length === 0 && <EmptyState onResetFilters={onResetFilters} />}
+      {buildings.length > 0 && filteredHalls.length === 0 && (
+        <EmptyState onResetFilters={onResetFilters} />
+      )}
 
       <HallDrawer
         hall={selectedHall}
@@ -116,18 +144,29 @@ export default function HallGrid({
         onDelete={onDelete}
         canDelete={canDelete}
         onFloorPlanChange={refreshFloorPlans}
+        pricingVersion={pricingVersion}
       />
     </div>
   );
 }
 
-function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean; onClick: () => void; icon: React.ElementType }) {
+function ViewToggleButton({
+  isActive,
+  onClick,
+  icon: Icon,
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+}) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "p-1.5 rounded-md transition-all duration-300 cursor-pointer",
-        isActive ? "bg-white text-[#f26522] shadow-md shadow-slate-200 scale-105" : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+        isActive
+          ? "bg-white text-[#f26522] shadow-md shadow-slate-200 scale-105"
+          : "text-slate-400 hover:text-slate-600 hover:bg-white/50",
       )}
     >
       <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -136,8 +175,16 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
 }
 
 const statusConfig = {
-  available: { label: "ใช้งานได้", text: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
-  maintenance: { label: "ปิดปรับปรุง", text: "text-red-600", bg: "bg-red-50 border-red-100" },
+  available: {
+    label: "ใช้งานได้",
+    text: "text-emerald-600",
+    bg: "bg-emerald-50 border-emerald-100",
+  },
+  maintenance: {
+    label: "ปิดปรับปรุง",
+    text: "text-red-600",
+    bg: "bg-red-50 border-red-100",
+  },
 };
 
 function ListRow({ hall, onClick }: { hall: Hall; onClick: () => void }) {
@@ -148,11 +195,15 @@ function ListRow({ hall, onClick }: { hall: Hall; onClick: () => void }) {
       onClick={onClick}
       className={cn(
         "bg-white rounded-lg border border-slate-100 p-5 flex items-center gap-6 cursor-pointer group transition-all duration-300",
-        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1"
+        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1",
       )}
     >
       <div className="relative size-20 rounded-md overflow-hidden shrink-0 shadow-sm">
-        <img src={hall.image} alt={hall.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        <img
+          src={hall.image}
+          alt={hall.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
         <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
       </div>
 
@@ -163,24 +214,40 @@ function ListRow({ hall, onClick }: { hall: Hall; onClick: () => void }) {
         <h3 className="text-xl font-bold text-slate-900 truncate group-hover:text-[#f26522] transition-colors leading-tight">
           {hall.name}
         </h3>
-        <p className="text-xs text-slate-400 font-bold truncate">{hall.building}</p>
+        <p className="text-xs text-slate-400 font-bold truncate">
+          {hall.building}
+        </p>
       </div>
 
       <div className="hidden lg:flex items-center gap-12 shrink-0 px-8 border-x border-slate-100">
         <div className="text-center space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">สถานะ</p>
-          <span className={cn("px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0", status.bg, status.text)}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            สถานะ
+          </p>
+          <span
+            className={cn(
+              "px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0",
+              status.bg,
+              status.text,
+            )}
+          >
             {status.label}
           </span>
         </div>
       </div>
 
-      <button className={cn(
-        "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
-        "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
-        "transition-all duration-300 flex items-center justify-center"
-      )}>
-        <ArrowRight size={20} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
+      <button
+        className={cn(
+          "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
+          "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
+          "transition-all duration-300 flex items-center justify-center",
+        )}
+      >
+        <ArrowRight
+          size={20}
+          strokeWidth={2.5}
+          className="transition-transform group-hover:translate-x-1"
+        />
       </button>
     </div>
   );
@@ -194,7 +261,11 @@ function EmptyState({ onResetFilters }: { onResetFilters: () => void }) {
       </div>
       <p className="text-lg font-bold text-slate-900">ไม่พบโถงที่ตรงเงื่อนไข</p>
       <p className="text-sm text-slate-400">ลองปรับการค้นหาหรือล้างตัวกรอง</p>
-      <Button variant="outline" onClick={onResetFilters} className="mt-6 rounded-[7px] border-slate-200 text-slate-600 font-bold cursor-pointer">
+      <Button
+        variant="outline"
+        onClick={onResetFilters}
+        className="mt-6 rounded-[7px] border-slate-200 text-slate-600 font-bold cursor-pointer"
+      >
         ล้างตัวกรองทั้งหมด
       </Button>
     </div>

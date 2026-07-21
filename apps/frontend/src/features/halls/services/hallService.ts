@@ -12,26 +12,14 @@ const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";
 
 export function locationToHall(loc: AdminLocationDTO): Hall {
-  const image = loc.image_url ?? DEFAULT_IMAGE;
-  const pick = (reqKeyword: string, rateType: string) =>
-    loc.pricing_tiers?.find(
-      (t) => t.requester_type?.includes(reqKeyword) && t.rate_type === rateType
-    )?.price ?? 0;
-
   return {
     id: String(loc.id),
     name: loc.name,
     building: loc.building ?? "",
     category: loc.type,
-    image,
+    image: loc.image_url ?? DEFAULT_IMAGE,
     status: loc.status === "available" ? "available" : "maintenance",
-    notes: "",
-    rates: {
-      hourlyInternal: pick("ภายใน", "hourly"),
-      hourlyExternal: pick("ภายนอก", "hourly"),
-      dailyInternal: pick("ภายใน", "daily"),
-      dailyExternal: pick("ภายนอก", "daily"),
-    },
+    notes: loc.description ?? "",
   };
 }
 
@@ -54,5 +42,6 @@ export {
   createLocation,
   updateLocation,
   deleteLocation,
-  savePricingTiers,
+  getBuildings,
 } from "@/features/booking/services/locationService";
+export type { BuildingDTO } from "@/features/booking/services/locationService";

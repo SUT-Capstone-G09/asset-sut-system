@@ -10,18 +10,19 @@ type BookingStatuses struct {
 
 type Bookings struct {
 	Base
-	UserID      uint             `gorm:"not null" json:"user_id"`
-	User        *Users           `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Purpose     string           `gorm:"not null" json:"purpose"`
-	BasePrice     int              `gorm:"not null;default:0" json:"base_price"`
-	AddonPrice    int              `gorm:"not null;default:0" json:"addon_price"`
-	TotalPrice    int              `gorm:"not null;default:0" json:"total_price"`
-	StatusID    uint             `gorm:"not null" json:"status_id"`
-	Status      *BookingStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	Timeslots   []Timeslots      `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`
-	StatusLogs  []BookingStatusLogs `gorm:"foreignKey:BookingID" json:"status_logs,omitempty"`
-	Documents   []Documents      `gorm:"foreignKey:BookingID" json:"documents,omitempty"`
-	Invoice     *Invoices        `gorm:"foreignKey:BookingID" json:"invoice,omitempty"`
+	UserID     uint                `gorm:"not null" json:"user_id"`
+	User       *Users              `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Purpose    string              `gorm:"not null" json:"purpose"`
+	BasePrice  float64             `gorm:"type:decimal(12,2);not null;default:0" json:"base_price"`
+	AddonPrice float64             `gorm:"type:decimal(12,2);not null;default:0" json:"addon_price"`
+	TotalPrice float64             `gorm:"type:decimal(12,2);not null;default:0" json:"total_price"`
+	StatusID   uint                `gorm:"not null" json:"status_id"`
+	Status     *BookingStatuses    `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	Timeslots  []Timeslots         `gorm:"foreignKey:BookingID" json:"timeslots,omitempty"`
+	StatusLogs []BookingStatusLogs `gorm:"foreignKey:BookingID" json:"status_logs,omitempty"`
+	Documents  []Documents         `gorm:"foreignKey:BookingID" json:"documents,omitempty"`
+	Invoice    *Invoices           `gorm:"foreignKey:BookingID" json:"invoice,omitempty"`
+	Purposes   []BookingPurposes   `gorm:"foreignKey:BookingID" json:"purposes,omitempty"`
 }
 
 type BookingStatusLogs struct {
@@ -44,17 +45,22 @@ type TimeslotStatuses struct {
 	Timeslots []Timeslots `gorm:"foreignKey:StatusID" json:"timeslots,omitempty"`
 }
 
+// idx_timeslot_slot (location_id, date, start_time) เป็น partial unique index — บังคับเฉพาะ
+// IsShared=false (การจองห้อง/สนาม/อาคารเรียน กันเวลาซ้ำเป๊ะ) ; timeslot ของโถง (IsShared=true)
+// ยกเว้น เพราะโถงแชร์วันเดียวกันหลายบูธได้ กันชนกันด้วยการตรวจเซลล์แทน slot lock
+// index ถูกสร้างเป็น partial ผ่าน raw SQL ใน cmd/init-db (GORM tag ทำ WHERE ไม่ได้)
 type Timeslots struct {
 	Base
-	LocationID    uint                    `gorm:"not null;uniqueIndex:idx_timeslot_slot" json:"location_id"`
+	LocationID    uint                    `gorm:"not null" json:"location_id"`
 	Location      *Locations              `gorm:"foreignKey:LocationID" json:"location,omitempty"`
 	BookingID     *uint                   `json:"booking_id"`
 	Booking       *Bookings               `gorm:"foreignKey:BookingID" json:"booking,omitempty"`
-	Date          time.Time               `gorm:"type:date;not null;uniqueIndex:idx_timeslot_slot" json:"date"`
-	StartTime     time.Time               `gorm:"type:time;not null;uniqueIndex:idx_timeslot_slot" json:"start_time"`
+	Date          time.Time               `gorm:"type:date;not null" json:"date"`
+	StartTime     time.Time               `gorm:"type:time;not null" json:"start_time"`
 	EndTime       time.Time               `gorm:"type:time;not null" json:"end_time"`
 	IsFullDay     bool                    `gorm:"not null;default:false" json:"is_full_day"`
-	PriceSnapshot int                     `gorm:"not null;default:0" json:"price_snapshot"`
+	PriceSnapshot float64                 `gorm:"not null;default:0" json:"price_snapshot"`
+	IsShared      bool                    `gorm:"not null;default:false" json:"is_shared"` // true = timeslot ของโถง (แชร์วันได้ ยกเว้นจาก unique index)
 	StatusID      uint                    `gorm:"not null" json:"status_id"`
 	Status        *TimeslotStatuses       `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	Addons        []BookingTimeslotAddons `gorm:"foreignKey:TimeslotID" json:"addons,omitempty"`
@@ -67,7 +73,7 @@ type BookingTimeslotAddons struct {
 	TimeslotID      uint            `gorm:"not null" json:"timeslot_id"`
 	Timeslot        *Timeslots      `gorm:"foreignKey:TimeslotID" json:"timeslot,omitempty"`
 	Name            string          `gorm:"not null" json:"name"`
-	AppliedPrice    int             `gorm:"not null;default:0" json:"applied_price"`
+	AppliedPrice    float64         `gorm:"not null;default:0" json:"applied_price"`
 	Quantity        int             `gorm:"not null;default:1" json:"quantity"`
-	TotalPrice      int             `gorm:"not null;default:0" json:"total_price"`
+	TotalPrice      float64         `gorm:"not null;default:0" json:"total_price"`
 }

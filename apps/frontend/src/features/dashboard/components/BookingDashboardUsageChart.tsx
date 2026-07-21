@@ -19,20 +19,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { BookingResponseDTO } from "@/features/bookings/services/booking.service";
-import { format, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
-import { th } from "date-fns/locale";
 
 interface BookingDashboardUsageChartProps {
   bookings: BookingResponseDTO[];
 }
 
+// แปลงวันที่เป็น string รูปแบบ "yyyy-MM-dd" ตาม local timezone (ป้องกัน UTC shift)
+function toLocalDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+// แสดงวันที่เป็น พ.ศ. ไทย
+function toThaiDate(date: Date, options: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleDateString("th-TH", options);
+}
+
 export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageChartProps) {
-  const [filter, setFilter] = useState<"daily" | "monthly" | "yearly">("daily");
+  const [filter, setFilter] = useState<"weekly" | "daily" | "monthly" | "yearly">("daily");
   const [referenceDate, setReferenceDate] = useState<Date>(new Date());
 
   const handlePrev = () => {
     const d = new Date(referenceDate);
-    if (filter === "daily") d.setMonth(d.getMonth() - 1);
+    if (filter === "weekly") d.setDate(d.getDate() - 7);
+    else if (filter === "daily") d.setMonth(d.getMonth() - 1);
     else if (filter === "monthly") d.setFullYear(d.getFullYear() - 1);
     else if (filter === "yearly") d.setFullYear(d.getFullYear() - 10);
     setReferenceDate(d);
@@ -40,7 +52,8 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
 
   const handleNext = () => {
     const d = new Date(referenceDate);
-    if (filter === "daily") d.setMonth(d.getMonth() + 1);
+    if (filter === "weekly") d.setDate(d.getDate() + 7);
+    else if (filter === "daily") d.setMonth(d.getMonth() + 1);
     else if (filter === "monthly") d.setFullYear(d.getFullYear() + 1);
     else if (filter === "yearly") d.setFullYear(d.getFullYear() + 10);
     setReferenceDate(d);
@@ -51,103 +64,145 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
   };
 
   const data = useMemo(() => {
-    const targetDate = startOfDay(referenceDate);
+    const year = referenceDate.getFullYear();
+    const month = referenceDate.getMonth();
 
     if (filter === "yearly") {
-      const currentYear = targetDate.getFullYear();
-      const startDecade = Math.floor(currentYear / 10) * 10;
-      const chartData: { key: string; name: string; fullDate: string; value: number }[] = [];
-      
-      for (let i = 0; i <= 10; i++) {
-        const year = startDecade + i;
-        chartData.push({
-          key: String(year),
-          name: String(year),
-          fullDate: String(year),
-          value: 0
-        });
-      }
-      
-      bookings.forEach(b => {
-        const bDate = new Date(b.created_at);
-        const yearKey = String(bDate.getFullYear());
-        const yearData = chartData.find(c => c.key === yearKey);
-        if (yearData) {
-          yearData.value++;
-        }
-      });
-      return chartData;
-    } else if (filter === "monthly") {
-      const chartData: { key: string; name: string; fullDate: string; value: number }[] = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(targetDate.getFullYear(), i, 1);
-        const monthKey = format(d, "yyyy-MM");
-        chartData.push({
-          key: monthKey,
-          name: format(d, "MMM", { locale: th }),
-          fullDate: format(d, "MMMM yyyy", { locale: th }),
-          value: 0
-        });
-      }
-      
-      bookings.forEach(b => {
-        const bDate = new Date(b.created_at);
-        const monthKey = format(bDate, "yyyy-MM");
-        const monthData = chartData.find(c => c.key === monthKey);
-        if (monthData) {
-          monthData.value++;
-        }
-      });
-      return chartData;
-    } else {
-      const start = startOfMonth(targetDate);
-      const end = endOfMonth(targetDate);
-      const daysInterval = eachDayOfInterval({ start, end });
-      
-      const dateCounts = new Map<string, number>();
-      daysInterval.forEach(d => {
-        const dateKey = format(d, "yyyy-MM-dd");
-        dateCounts.set(dateKey, 0);
-      });
+      // ── รายปี ──────────────────────────────────────────────
+      const beYear = year + 543;
+      const startDecadeBE = Math.floor((beYear - 1) / 10) * 10 + 1;
+      const startDecadeCE = startDecadeBE - 543;
+      const chartData: { key: string; name: string; fullDate: string; value: number; showLabel?: boolean }[] = [];
 
-      const firstDay = daysInterval[0];
-      const lastDay = daysInterval[daysInterval.length - 1];
+      for (let i = 0; i < 10; i++) {
+        const y = startDecadeCE + i;
+        const buddhistYear = String(startDecadeBE + i);
+        chartData.push({
+          key: String(y),
+          name: buddhistYear,
+          fullDate: `ปี พ.ศ. ${buddhistYear}`,
+          value: 0,
+          showLabel: true,
+        });
+      }
 
       bookings.forEach((b) => {
-        const bDate = startOfDay(new Date(b.created_at));
-        if (bDate >= firstDay && bDate <= lastDay) {
-          const dateKey = format(bDate, "yyyy-MM-dd");
-          if (dateCounts.has(dateKey)) {
-            dateCounts.set(dateKey, (dateCounts.get(dateKey) || 0) + 1);
-          }
-        }
+        const bYear = new Date(b.created_at).getFullYear();
+        const entry = chartData.find((c) => c.key === String(bYear));
+        if (entry) entry.value++;
+      });
+      return chartData;
+
+    } else if (filter === "monthly") {
+      // ── รายเดือน ────────────────────────────────────────────
+      const chartData: { key: string; name: string; fullDate: string; value: number }[] = [];
+
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(year, i, 1);
+        const monthKey = `${year}-${String(i + 1).padStart(2, "0")}`;
+        chartData.push({
+          key: monthKey,
+          name: toThaiDate(d, { month: "short" }),
+          fullDate: toThaiDate(d, { month: "long", year: "numeric" }),
+          value: 0,
+          showLabel: true,
+        });
+      }
+
+      bookings.forEach((b) => {
+        const bDate = new Date(b.created_at);
+        const monthKey = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, "0")}`;
+        const entry = chartData.find((c) => c.key === monthKey);
+        if (entry) entry.value++;
+      });
+      return chartData;
+
+    } else if (filter === "weekly") {
+      // ── รายสัปดาห์ ──────────────────────────────────────────────
+      const startOfWeek = new Date(year, month, referenceDate.getDate() - referenceDate.getDay());
+      const chartData: { key: string; name: string; fullDate: string; value: number; showLabel: boolean }[] = [];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+        const key = toLocalDateKey(d);
+        chartData.push({
+          key,
+          name: toThaiDate(d, { weekday: "short" }),
+          fullDate: toThaiDate(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+          value: 0,
+          showLabel: true,
+        });
+      }
+
+      bookings.forEach((b) => {
+        const bKey = toLocalDateKey(new Date(b.created_at));
+        const entry = chartData.find((c) => c.key === bKey);
+        if (entry) entry.value++;
       });
 
-      const chartData: { name: string; fullDate: string; value: number }[] = [];
-      for (const [dateKey, value] of dateCounts.entries()) {
-        const d = new Date(dateKey);
-        const dayNum = d.getDate();
-        const isLastDay = dayNum === daysInterval.length;
-        const showDay = dayNum === 1 || (dayNum % 5 === 0 && (dayNum !== 30 || isLastDay || daysInterval.length === 30)) || isLastDay;
-        const name = showDay ? format(d, "d MMM", { locale: th }) : "";
-        
-        chartData.push({ name, value, fullDate: format(d, "d MMM yyyy", { locale: th }) });
+      return chartData;
+
+    } else {
+      // ── รายวัน ──────────────────────────────────────────────
+      // สร้างทุกวันในเดือนที่เลือก
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const chartData: { key: string; name: string; fullDate: string; value: number; showLabel: boolean }[] = [];
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(year, month, day);
+        const key = toLocalDateKey(d); // "yyyy-MM-dd" ตาม local time
+        const showLabel =
+          day === 1 ||
+          (day % 5 === 0 && daysInMonth - day > 1) ||
+          day === daysInMonth;
+        chartData.push({
+          key,
+          name: toThaiDate(d, { day: "numeric", month: "short" }),
+          fullDate: toThaiDate(d, { day: "numeric", month: "long", year: "numeric" }),
+          value: 0,
+          showLabel,
+        });
       }
+
+      // นับ bookings โดยใช้ local date key (ป้องกัน UTC shift)
+      bookings.forEach((b) => {
+        const bDate = new Date(b.created_at);
+        const bYear = bDate.getFullYear();
+        const bMonth = bDate.getMonth();
+        if (bYear !== year || bMonth !== month) return;
+        const bKey = toLocalDateKey(bDate);
+        const entry = chartData.find((c) => c.key === bKey);
+        if (entry) entry.value++;
+      });
+
       return chartData;
     }
   }, [bookings, filter, referenceDate]);
 
   const filterLabel = {
     daily: "รายวัน",
+    weekly: "รายสัปดาห์",
     monthly: "รายเดือน",
-    yearly: "รายปี"
+    yearly: "รายปี",
   }[filter];
 
-  const periodLabel = {
-    daily: format(referenceDate, "MMMM yyyy", { locale: th }),
-    monthly: `ปี ${format(referenceDate, "yyyy", { locale: th })}`,
-    yearly: `ช่วงปี ${Math.floor(referenceDate.getFullYear() / 10) * 10} - ${Math.floor(referenceDate.getFullYear() / 10) * 10 + 10}`
-  }[filter];
+  const periodLabel = (() => {
+    if (filter === "weekly") {
+      const startOfWeek = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate() - referenceDate.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+      return `${toThaiDate(startOfWeek, { day: "numeric", month: "short" })} - ${toThaiDate(endOfWeek, { day: "numeric", month: "short", year: "numeric" })}`;
+    } else if (filter === "daily") {
+      return referenceDate.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+    } else if (filter === "monthly") {
+      return `ปี ${referenceDate.toLocaleDateString("th-TH", { year: "numeric" })}`;
+    } else {
+      const beYear = referenceDate.getFullYear() + 543;
+      const startDecadeBE = Math.floor((beYear - 1) / 10) * 10 + 1;
+      return `ช่วงปี พ.ศ. ${startDecadeBE} - ${startDecadeBE + 9}`;
+    }
+  })();
 
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col h-full">
@@ -160,7 +215,7 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-[#f26522] hover:bg-orange-50 rounded-md" onClick={handlePrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-xs font-bold text-slate-700 min-w-[110px] text-center select-none">
+            <span className="text-xs font-bold text-slate-700 min-w-[130px] text-center select-none">
               {periodLabel}
             </span>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-[#f26522] hover:bg-orange-50 rounded-md" onClick={handleNext}>
@@ -181,9 +236,12 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
                 {filterLabel} <ChevronDown className="ml-1 h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32 rounded-xl text-sm">
+            <DropdownMenuContent align="end" className="w-36 rounded-xl text-sm">
               <DropdownMenuItem onClick={() => { setFilter("daily"); setReferenceDate(new Date()); }} className="cursor-pointer text-slate-600">
                 รายวัน
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setFilter("weekly"); setReferenceDate(new Date()); }} className="cursor-pointer text-slate-600">
+                รายสัปดาห์
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setFilter("monthly"); setReferenceDate(new Date()); }} className="cursor-pointer text-slate-600">
                 รายเดือน
@@ -203,24 +261,40 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: "#6b7280" }}
+              tick={{ fontSize: 11, fill: "#6b7280" }}
               dy={10}
               interval={0}
+              tickFormatter={(value, index) => {
+                const item = data[index];
+                return item?.showLabel ? value : "";
+              }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 12, fill: "#6b7280" }}
+              allowDecimals={false}
             />
             <Tooltip
-              cursor={{ fill: "#f3f4f6" }}
-              contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+              cursor={{ fill: "rgba(243,244,246,0.8)" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "none",
+                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+              }}
+              labelFormatter={(_, payload) => {
+                if (payload && payload.length > 0) {
+                  return (payload[0].payload as { fullDate: string }).fullDate;
+                }
+                return "";
+              }}
+              formatter={(value) => [value, "จำนวนการจอง"]}
             />
             <Bar
               dataKey="value"
               fill="#f97316"
               radius={[4, 4, 0, 0]}
-              barSize={40}
+              maxBarSize={24}
             />
           </BarChart>
         </ResponsiveContainer>

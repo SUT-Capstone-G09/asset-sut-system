@@ -6,12 +6,22 @@ import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import BookingFilters from "@/features/booking/components/booking/BookingFilters";
 import BookingGrid from "@/features/booking/components/booking/BookingGrid";
 import BookingCreateDrawer from "@/features/booking/components/booking/BookingCreateDrawer";
-import { useBookingFilters, BookingTypeFilter } from "@/features/booking/hooks/useBookingFilters";
+import {
+  useBookingFilters,
+  BookingTypeFilter,
+} from "@/features/booking/hooks/useBookingFilters";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GraduationCap, Building2, ArrowRight, Calendar, ClipboardList, Trophy, DoorOpen } from "lucide-react";
+import {
+  GraduationCap,
+  Building2,
+  ArrowRight,
+  Calendar,
+  ClipboardList,
+  Trophy,
+  DoorOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 
 function AdminBookingPageContent() {
   const router = useRouter();
@@ -55,11 +65,11 @@ function AdminBookingPageContent() {
   // Calculate stats for selection view (when currentType === "all")
   const stats = useMemo(() => {
     if (currentType !== "all") {
-      return { 
-        classroom: { total: 0, pending: 0 }, 
+      return {
+        classroom: { total: 0, pending: 0 },
         meeting: { total: 0, pending: 0 },
         sport: { total: 0, pending: 0 },
-        hall: { total: 0, pending: 0 }
+        hall: { total: 0, pending: 0 },
       };
     }
 
@@ -103,8 +113,8 @@ function AdminBookingPageContent() {
   const statusTabs = [
     { id: "all", label: "ทั้งหมด", count: statusCounts.all, activeClass: "border-[#f26522] text-[#f26522]", countClass: "bg-[#f26522]/10 text-[#f26522]" },
     { id: "pending", label: "รอตรวจสอบ", count: statusCounts.pending, activeClass: "border-amber-500 text-amber-600", countClass: "bg-amber-500/10 text-amber-600" },
-    { id: "approved", label: "อนุมัติ", count: statusCounts.approved, activeClass: "border-emerald-500 text-emerald-600", countClass: "bg-emerald-500/10 text-emerald-600" },
-    { id: "completed", label: "เสร็จสิ้น", count: statusCounts.completed, activeClass: "border-blue-500 text-blue-600", countClass: "bg-blue-500/10 text-blue-600" },
+    { id: "approved", label: "อนุมัติ", count: statusCounts.approved, activeClass: "border-blue-500 text-blue-600", countClass: "bg-blue-500/10 text-blue-600" },
+    { id: "completed", label: "เสร็จสิ้น", count: statusCounts.completed, activeClass: "border-emerald-500 text-emerald-600", countClass: "bg-emerald-500/10 text-emerald-600" },
     { id: "rejected", label: "ปฏิเสธ", count: statusCounts.rejected, activeClass: "border-rose-500 text-rose-600", countClass: "bg-rose-500/10 text-rose-600" },
     { id: "cancelled", label: "ยกเลิก", count: statusCounts.cancelled, activeClass: "border-slate-500 text-slate-600", countClass: "bg-slate-500/10 text-slate-600" },
   ];
@@ -115,19 +125,17 @@ function AdminBookingPageContent() {
       <div className="p-8 space-y-8 animate-in fade-in duration-300">
         {/* Breadcrumb & Title */}
         <div className="space-y-4">
-          <AssetBreadcrumb
-            items={[
-              { label: "Admin", href: "/admin" },
-              { label: "ขอใช้พื้นที่" },
-            ]}
-          />
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">ขอใช้พื้นที่</h1>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+            ขอใช้พื้นที่
+          </h1>
         </div>
 
         {/* Section Header */}
         <div className="flex items-center gap-4 group">
           <div className="w-1.5 h-6 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.3)]" />
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">ประเภทการขอใช้พื้นที่</h2>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            ประเภทการขอใช้พื้นที่
+          </h2>
         </div>
 
         {/* Categories Grid */}
@@ -145,28 +153,44 @@ function AdminBookingPageContent() {
                   <GraduationCap size={28} strokeWidth={2.5} />
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 group-hover:text-[#f26522] group-hover:bg-[#f26522]/5 transition-all duration-300">
-                  <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                  <ArrowRight
+                    size={20}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 w-full">
-                <h3 className="text-2xl font-bold tracking-tight text-slate-800">ห้องเรียน</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-800">
+                  ห้องเรียน
+                </h3>
                 <p className="text-sm text-slate-400">
-                  ห้องบรรยาย, ห้องปฏิบัติการ, ห้องสัมมนา และห้องสำหรับการเรียนรู้อื่นๆ
+                  ห้องบรรยาย, ห้องปฏิบัติการ, ห้องสัมมนา
+                  และห้องสำหรับการเรียนรู้อื่นๆ
                 </p>
 
                 {/* Stat line */}
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">คำขอทั้งหมด</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      คำขอทั้งหมด
+                    </span>
                     <span className="text-2xl font-black text-slate-700">
-                      {loading ? "..." : stats.classroom.total} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.classroom.total}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">รออนุมัติ</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      รออนุมัติ
+                    </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {loading ? "..." : stats.classroom.pending} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.classroom.pending}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -187,28 +211,44 @@ function AdminBookingPageContent() {
                   <Building2 size={28} strokeWidth={2.5} />
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 group-hover:text-[#f26522] group-hover:bg-[#f26522]/5 transition-all duration-300">
-                  <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                  <ArrowRight
+                    size={20}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 w-full">
-                <h3 className="text-2xl font-bold tracking-tight text-slate-800">ห้องประชุม</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-800">
+                  ห้องประชุม
+                </h3>
                 <p className="text-sm text-slate-400">
-                  ห้องประชุมย่อย/ขนาดกลาง/ใหญ่, โถงกิจกรรม, ลานกิจกรรม และพื้นที่สาธารณะ
+                  ห้องประชุมย่อย/ขนาดกลาง/ใหญ่, โถงกิจกรรม, ลานกิจกรรม
+                  และพื้นที่สาธารณะ
                 </p>
 
                 {/* Stat line */}
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">คำขอทั้งหมด</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      คำขอทั้งหมด
+                    </span>
                     <span className="text-2xl font-black text-slate-700">
-                      {loading ? "..." : stats.meeting.total} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.meeting.total}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">รออนุมัติ</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      รออนุมัติ
+                    </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {loading ? "..." : stats.meeting.pending} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.meeting.pending}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -229,27 +269,42 @@ function AdminBookingPageContent() {
                   <Trophy size={28} strokeWidth={2.5} />
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 group-hover:text-[#f26522] group-hover:bg-[#f26522]/5 transition-all duration-300">
-                  <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                  <ArrowRight
+                    size={20}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 w-full">
-                <h3 className="text-2xl font-bold tracking-tight text-slate-800">สนามกีฬา</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-800">
+                  สนามกีฬา
+                </h3>
                 <p className="text-sm text-slate-400">
                   สนามกีฬาในร่มและกลางแจ้ง, สระว่ายน้ำ, ศูนย์ออกกำลังกาย
                 </p>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">คำขอทั้งหมด</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      คำขอทั้งหมด
+                    </span>
                     <span className="text-2xl font-black text-slate-700">
-                      {loading ? "..." : stats.sport.total} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.sport.total}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">รออนุมัติ</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      รออนุมัติ
+                    </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {loading ? "..." : stats.sport.pending} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.sport.pending}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -270,27 +325,42 @@ function AdminBookingPageContent() {
                   <DoorOpen size={28} strokeWidth={2.5} />
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 group-hover:text-[#f26522] group-hover:bg-[#f26522]/5 transition-all duration-300">
-                  <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+                  <ArrowRight
+                    size={20}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 w-full">
-                <h3 className="text-2xl font-bold tracking-tight text-slate-800">โถงอาคาร</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-800">
+                  โถงอาคาร
+                </h3>
                 <p className="text-sm text-slate-400">
                   พื้นที่โถงอเนกประสงค์, ลานนิทรรศการ, ลานกิจกรรมชั้นล่าง
                 </p>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">คำขอทั้งหมด</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      คำขอทั้งหมด
+                    </span>
                     <span className="text-2xl font-black text-slate-700">
-                      {loading ? "..." : stats.hall.total} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.hall.total}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">รออนุมัติ</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      รออนุมัติ
+                    </span>
                     <span className="text-2xl font-black text-amber-500">
-                      {loading ? "..." : stats.hall.pending} <span className="text-xs font-bold text-slate-400">รายการ</span>
+                      {loading ? "..." : stats.hall.pending}{" "}
+                      <span className="text-xs font-bold text-slate-400">
+                        รายการ
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -316,35 +386,32 @@ function AdminBookingPageContent() {
       {/* Header Section */}
       <BookingHeader
         title={`การจัดการขอใช้พื้นที่ - ${typeLabel}`}
-        breadcrumbs={[
-          { label: "Admin", href: "/admin" },
-          { label: "ขอใช้พื้นที่", href: "/admin/booking" }, // Clicking this clears type query and returns to cards
-          { label: typeLabel },
-        ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel={`ยื่นขอจอง${typeLabel}`}
       />
 
       {/* Status Tabs Section */}
       <div className="flex space-x-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
-        {statusTabs.map(tab => (
+        {statusTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setSelectedStatus(tab.id)}
             className={cn(
               "pb-4 text-sm font-bold flex items-center gap-2 border-b-[3px] whitespace-nowrap transition-all duration-200",
-              selectedStatus === tab.id 
-                ? tab.activeClass 
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              selectedStatus === tab.id
+                ? tab.activeClass
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
             )}
           >
             {tab.label}
-            <span className={cn(
-              "px-2.5 py-0.5 rounded-full text-xs transition-colors",
-              selectedStatus === tab.id 
-                ? tab.countClass 
-                : "bg-slate-100 text-slate-500"
-            )}>
+            <span
+              className={cn(
+                "px-2.5 py-0.5 rounded-full text-xs transition-colors",
+                selectedStatus === tab.id
+                  ? tab.countClass
+                  : "bg-slate-100 text-slate-500",
+              )}
+            >
               {tab.count}
             </span>
           </button>

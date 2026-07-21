@@ -3,10 +3,13 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"mime/multipart"
 	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/docpath"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
@@ -32,14 +35,288 @@ func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
 	}
 	var res []dto.BuildingResponse
 	for _, b := range buildings {
-		res = append(res, dto.BuildingResponse{
-			ID:        b.ID,
-			Name:      b.Name,
-			CreatedAt: b.CreatedAt,
-			UpdatedAt: b.UpdatedAt,
-		})
+		res = append(res, toBuildingResponse(b))
 	}
 	return res, nil
+}
+
+// toBuildingResponse map อาคาร + ราคาโถง (ราย วัตถุประสงค์) เป็น response
+func toBuildingResponse(b models.Buildings) dto.BuildingResponse {
+	pricings := make([]dto.BuildingHallPricingResponse, 0, len(b.HallPricings))
+	for _, hp := range b.HallPricings {
+		pr := dto.BuildingHallPricingResponse{
+			HallUsagePurposeID: hp.HallUsagePurposeID,
+			Price:              float64(hp.Price),
+			IsActive:           hp.IsActive,
+		}
+		if hp.HallUsagePurpose != nil {
+			pr.PurposeName = hp.HallUsagePurpose.Name
+			pr.PricingModel = hp.HallUsagePurpose.PricingModel
+		}
+		pricings = append(pricings, pr)
+	}
+	return dto.BuildingResponse{
+		ID:           b.ID,
+		Name:         b.Name,
+		HallPricings: pricings,
+		CreatedAt:    b.CreatedAt,
+		UpdatedAt:    b.UpdatedAt,
+	}
+}
+
+func toHallPurposeResponse(p models.HallUsagePurposes) dto.HallUsagePurposeResponse {
+	return dto.HallUsagePurposeResponse{
+		ID:           p.ID,
+		Name:         p.Name,
+		Description:  p.Description,
+		PricingModel: p.PricingModel,
+		DefaultPrice: float64(p.DefaultPrice),
+		IsActive:     p.IsActive,
+		SortOrder:    p.SortOrder,
+	}
+}
+
+// GetHallUsagePurposes คืน master data วัตถุประสงค์การขอใช้พื้นที่โถง
+// includeInactive=false → เฉพาะที่เปิดใช้งาน (ใช้ในหน้าตั้งราคา/หน้าจอง) ; true → ทั้งหมด (หน้าจัดการ)
+func (s *LocationService) GetHallUsagePurposes(includeInactive bool) ([]dto.HallUsagePurposeResponse, error) {
+	var purposes []models.HallUsagePurposes
+	var err error
+	if includeInactive {
+		purposes, err = s.locationRepo.FindAllHallUsagePurposes()
+	} else {
+		purposes, err = s.locationRepo.FindActiveHallUsagePurposes()
+	}
+	if err != nil {
+		return nil, err
+	}
+	res := make([]dto.HallUsagePurposeResponse, 0, len(purposes))
+	for _, p := range purposes {
+		res = append(res, toHallPurposeResponse(p))
+	}
+	return res, nil
+}
+
+// CreateHallUsagePurpose เพิ่มวัตถุประสงค์ใหม่ (pricing_model จำกัด 2 แบบเดิม เพื่อไม่กระทบ logic การคิดเงิน)
+func (s *LocationService) CreateHallUsagePurpose(req dto.CreateHallUsagePurposeRequest) (*dto.HallUsagePurposeResponse, error) {
+	if req.PricingModel != models.HallPricingPerSqm && req.PricingModel != models.HallPricingPerTypePerDay {
+		return nil, errors.New("รูปแบบการคิดราคาไม่ถูกต้อง")
+	}
+	exists, err := s.locationRepo.HallUsagePurposeNameExists(req.Name, 0)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errors.New("มีชื่อวัตถุประสงค์นี้อยู่แล้ว")
+	}
+
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	} else {
+		max, merr := s.locationRepo.MaxHallPurposeSortOrder()
+		if merr != nil {
+			return nil, merr
+		}
+		sortOrder = max + 1
+	}
+
+	p := &models.HallUsagePurposes{
+		Name:         req.Name,
+		Description:  req.Description,
+		PricingModel: req.PricingModel,
+		DefaultPrice: float64(req.DefaultPrice),
+		IsActive:     true,
+		SortOrder:    sortOrder,
+	}
+	if err := s.locationRepo.CreateHallUsagePurpose(p); err != nil {
+		return nil, err
+	}
+	res := toHallPurposeResponse(*p)
+	return &res, nil
+}
+
+// UpdateHallUsagePurpose แก้วัตถุประสงค์ (แก้ pricing_model ไม่ได้)
+func (s *LocationService) UpdateHallUsagePurpose(id uint, req dto.UpdateHallUsagePurposeRequest) (*dto.HallUsagePurposeResponse, error) {
+	p, err := s.locationRepo.FindHallUsagePurposeByID(id)
+	if err != nil {
+		return nil, errors.New("ไม่พบวัตถุประสงค์")
+	}
+	if req.Name != nil {
+		exists, eerr := s.locationRepo.HallUsagePurposeNameExists(*req.Name, id)
+		if eerr != nil {
+			return nil, eerr
+		}
+		if exists {
+			return nil, errors.New("มีชื่อวัตถุประสงค์นี้อยู่แล้ว")
+		}
+		p.Name = *req.Name
+	}
+	if req.Description != nil {
+		p.Description = *req.Description
+	}
+	if req.DefaultPrice != nil {
+		p.DefaultPrice = *req.DefaultPrice
+	}
+	if req.IsActive != nil {
+		p.IsActive = *req.IsActive
+	}
+	if req.SortOrder != nil {
+		p.SortOrder = *req.SortOrder
+	}
+	if err := s.locationRepo.UpdateHallUsagePurpose(p); err != nil {
+		return nil, err
+	}
+	res := toHallPurposeResponse(*p)
+	return &res, nil
+}
+
+// UpdateBuildingHallPricings ตั้ง/แก้ราคาโถงของอาคารหนึ่ง (bulk upsert รายวัตถุประสงค์) แล้วคืนอาคารพร้อมราคาล่าสุด
+func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.UpdateBuildingHallPricingsRequest) (*dto.BuildingResponse, error) {
+	if _, err := s.locationRepo.FindBuildingByID(buildingID); err != nil {
+		return nil, errors.New("ไม่พบอาคาร")
+	}
+
+	// ตรวจว่า purpose id ที่ส่งมามีจริง (กัน FK พังเงียบ)
+	purposes, err := s.locationRepo.FindActiveHallUsagePurposes()
+	if err != nil {
+		return nil, err
+	}
+	valid := make(map[uint]bool, len(purposes))
+	for _, p := range purposes {
+		valid[p.ID] = true
+	}
+
+	for _, in := range req.Pricings {
+		if !valid[in.HallUsagePurposeID] {
+			return nil, fmt.Errorf("ไม่พบวัตถุประสงค์การขอใช้พื้นที่ (id=%d)", in.HallUsagePurposeID)
+		}
+		if err := s.locationRepo.UpsertBuildingHallPricing(&models.BuildingHallPricings{
+			BuildingID:         buildingID,
+			HallUsagePurposeID: in.HallUsagePurposeID,
+			Price:              float64(in.Price),
+			IsActive:           in.IsActive,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	building, err := s.locationRepo.FindBuildingByID(buildingID)
+	if err != nil {
+		return nil, err
+	}
+	res := toBuildingResponse(*building)
+	return &res, nil
+}
+
+// hallPricingFloor = ขั้นต่ำ + สถานะเปิดใช้งานของวัตถุประสงค์หนึ่ง ตามที่อาคารตั้งไว้
+type hallPricingFloor struct {
+	Floor    float64
+	IsActive bool
+}
+
+// hallPricingFloors คืนวัตถุประสงค์ที่เปิดใช้งานทั้งหมด + ราคาขั้นต่ำของอาคารนั้นรายวัตถุประสงค์
+// fallback เป็น DefaultPrice เมื่ออาคารยังไม่ตั้งราคา — ให้ตรงกับ BookingService.priceHallPurposes
+func (s *LocationService) hallPricingFloors(buildingID *uint) ([]models.HallUsagePurposes, map[uint]hallPricingFloor, error) {
+	purposes, err := s.locationRepo.FindActiveHallUsagePurposes()
+	if err != nil {
+		return nil, nil, err
+	}
+	floors := make(map[uint]hallPricingFloor, len(purposes))
+	for _, p := range purposes {
+		floors[p.ID] = hallPricingFloor{Floor: float64(p.DefaultPrice), IsActive: true}
+	}
+	if buildingID != nil {
+		building, berr := s.locationRepo.FindBuildingByID(*buildingID)
+		if berr != nil {
+			return nil, nil, berr
+		}
+		for _, hp := range building.HallPricings {
+			floors[hp.HallUsagePurposeID] = hallPricingFloor{Floor: hp.Price, IsActive: hp.IsActive}
+		}
+	}
+	return purposes, floors, nil
+}
+
+// GetLocationHallPricings คืนราคาของโถงหนึ่งครบทุกวัตถุประสงค์ — ราคาอาคาร (ขั้นต่ำ), ราคาเฉพาะโถง, และราคาที่ใช้จริง
+func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.LocationHallPricingResponse, error) {
+	location, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return nil, errors.New("ไม่พบสถานที่")
+	}
+	purposes, floors, err := s.hallPricingFloors(location.BuildingID)
+	if err != nil {
+		return nil, err
+	}
+	overrides, err := s.locationRepo.FindLocationHallPricings(locationID)
+	if err != nil {
+		return nil, err
+	}
+	overrideByPurpose := make(map[uint]float64, len(overrides))
+	for _, o := range overrides {
+		overrideByPurpose[o.HallUsagePurposeID] = o.Price
+	}
+
+	res := make([]dto.LocationHallPricingResponse, 0, len(purposes))
+	for _, p := range purposes {
+		f := floors[p.ID]
+		row := dto.LocationHallPricingResponse{
+			HallUsagePurposeID: p.ID,
+			PurposeName:        p.Name,
+			PricingModel:       p.PricingModel,
+			BuildingPrice:      float64(f.Floor),
+			EffectivePrice:     float64(f.Floor),
+			IsActive:           f.IsActive,
+		}
+		if ov, ok := overrideByPurpose[p.ID]; ok {
+			price := float64(ov)
+			row.OverridePrice = &price
+			row.EffectivePrice = resolveHallUnitPrice(float64(f.Floor), &price)
+		}
+		res = append(res, row)
+	}
+	return res, nil
+}
+
+// UpdateLocationHallPricings ตั้ง/แก้ราคาเฉพาะโถง (ทำเลทอง) แล้วคืนราคาล่าสุดของโถงนั้น
+// price = nil → ล้าง override กลับไปใช้ราคาอาคาร ; ตั้งต่ำกว่าราคาอาคารไม่ได้
+func (s *LocationService) UpdateLocationHallPricings(locationID uint, req dto.UpdateLocationHallPricingsRequest) ([]dto.LocationHallPricingResponse, error) {
+	location, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return nil, errors.New("ไม่พบสถานที่")
+	}
+	purposes, floors, err := s.hallPricingFloors(location.BuildingID)
+	if err != nil {
+		return nil, err
+	}
+	nameByID := make(map[uint]string, len(purposes))
+	for _, p := range purposes {
+		nameByID[p.ID] = p.Name
+	}
+
+	for _, in := range req.Pricings {
+		f, ok := floors[in.HallUsagePurposeID]
+		if !ok {
+			return nil, fmt.Errorf("ไม่พบวัตถุประสงค์การขอใช้พื้นที่ (id=%d)", in.HallUsagePurposeID)
+		}
+		if in.Price == nil {
+			if derr := s.locationRepo.DeleteLocationHallPricing(locationID, in.HallUsagePurposeID); derr != nil {
+				return nil, derr
+			}
+			continue
+		}
+		if *in.Price < float64(f.Floor) {
+			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%.2f บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
+		}
+		if uerr := s.locationRepo.UpsertLocationHallPricing(&models.LocationHallPricings{
+			LocationID:         locationID,
+			HallUsagePurposeID: in.HallUsagePurposeID,
+			Price:              float64(*in.Price),
+		}); uerr != nil {
+			return nil, uerr
+		}
+	}
+
+	return s.GetLocationHallPricings(locationID)
 }
 
 func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationResponse, error) {
@@ -62,7 +339,15 @@ func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationRespon
 
 func (s *LocationService) GetByID(id uint, role string, userID uint) (*dto.LocationResponse, error) {
 	if role == "staff" && userID > 0 {
-		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		// ตรวจสอบว่า location นี้อยู่ในอาคารที่ staff ได้รับมอบหมายหรือไม่
+		loc, err := s.locationRepo.FindByID(id)
+		if err != nil {
+			return nil, err
+		}
+		if loc.BuildingID == nil {
+			return nil, errors.New("forbidden")
+		}
+		assigned, err := s.locationRepo.IsStaffAssignedToBuilding(userID, *loc.BuildingID)
 		if err != nil {
 			return nil, err
 		}
@@ -83,6 +368,7 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 		ParentID:    req.ParentID,
 		TypeID:      req.TypeID,
 		Name:        req.Name,
+		Description: req.Description,
 		BuildingID:  req.BuildingID,
 		ImageURL:    req.ImageURL,
 		RoomNumber:  req.RoomNumber,
@@ -93,10 +379,10 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 	if err := s.locationRepo.Create(location); err != nil {
 		return nil, err
 	}
-	// Auto-assign to staff who created it
-	if role == "staff" && userID > 0 {
-		sl := &models.StaffLocations{UserID: userID, LocationID: location.ID}
-		if err := s.locationRepo.AssignStaff(sl); err != nil {
+	// Auto-assign to staff who created it (based on building)
+	if role == "staff" && userID > 0 && location.BuildingID != nil {
+		sl := &models.StaffLocations{UserID: userID, BuildingID: *location.BuildingID}
+		if err := s.locationRepo.AssignStaffBuilding(sl); err != nil {
 			return nil, err
 		}
 	}
@@ -104,18 +390,21 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 }
 
 func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role string, userID uint) (*dto.LocationResponse, error) {
+	location, err := s.locationRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
 	if role == "staff" && userID > 0 {
-		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		if location.BuildingID == nil {
+			return nil, errors.New("forbidden")
+		}
+		assigned, err := s.locationRepo.IsStaffAssignedToBuilding(userID, *location.BuildingID)
 		if err != nil {
 			return nil, err
 		}
 		if !assigned {
 			return nil, errors.New("forbidden")
 		}
-	}
-	location, err := s.locationRepo.FindByID(id)
-	if err != nil {
-		return nil, err
 	}
 	if req.ParentID != nil {
 		location.ParentID = req.ParentID
@@ -125,6 +414,9 @@ func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role st
 	}
 	if req.Name != "" {
 		location.Name = req.Name
+	}
+	if req.Description != nil {
+		location.Description = req.Description
 	}
 	if req.BuildingID != nil {
 		location.BuildingID = req.BuildingID
@@ -156,8 +448,8 @@ func (s *LocationService) Delete(id uint) error {
 
 // ── Staff Location Management ─────────────────────────────────────────────────
 
-func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocationResponse, error) {
-	items, err := s.locationRepo.FindStaffByLocationID(locationID)
+func (s *LocationService) GetBuildingStaff(buildingID uint) ([]dto.StaffLocationResponse, error) {
+	items, err := s.locationRepo.FindStaffByBuildingID(buildingID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +457,7 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 	for _, sl := range items {
 		res := dto.StaffLocationResponse{
 			UserID:     sl.UserID,
-			LocationID: sl.LocationID,
+			BuildingID: sl.BuildingID,
 		}
 		if sl.User != nil {
 			res.Email = sl.User.Email
@@ -179,37 +471,37 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 	return result, nil
 }
 
-func (s *LocationService) AssignStaff(locationID, staffUserID uint) error {
-	sl := &models.StaffLocations{UserID: staffUserID, LocationID: locationID}
-	return s.locationRepo.AssignStaff(sl)
+func (s *LocationService) AssignStaffBuilding(buildingID, staffUserID uint) error {
+	sl := &models.StaffLocations{UserID: staffUserID, BuildingID: buildingID}
+	return s.locationRepo.AssignStaffBuilding(sl)
 }
 
-func (s *LocationService) UnassignStaff(locationID, staffUserID uint) error {
-	return s.locationRepo.UnassignStaff(staffUserID, locationID)
+func (s *LocationService) UnassignStaffBuilding(buildingID, staffUserID uint) error {
+	return s.locationRepo.UnassignStaffBuilding(staffUserID, buildingID)
 }
 
-func (s *LocationService) GetStaffLocations(staffID uint) ([]dto.LocationResponse, error) {
+func (s *LocationService) GetStaffBuildings(staffID uint) ([]dto.StaffBuildingResponse, error) {
 	staff, err := s.staffRepo.FindByID(staffID)
 	if err != nil {
 		return nil, err
 	}
-	locations, err := s.locationRepo.FindByStaffID(staff.UserID)
+	buildings, err := s.locationRepo.FindBuildingsByStaffID(staff.UserID)
 	if err != nil {
 		return nil, err
 	}
-	var result []dto.LocationResponse
-	for _, l := range locations {
-		result = append(result, s.toLocationResponse(l))
+	var result []dto.StaffBuildingResponse
+	for _, b := range buildings {
+		result = append(result, dto.StaffBuildingResponse{ID: b.ID, Name: b.Name})
 	}
 	return result, nil
 }
 
-func (s *LocationService) SetStaffLocations(staffID uint, locationIDs []uint) error {
+func (s *LocationService) SetStaffBuildings(staffID uint, buildingIDs []uint) error {
 	staff, err := s.staffRepo.FindByID(staffID)
 	if err != nil {
 		return err
 	}
-	return s.locationRepo.SetStaffLocations(staff.UserID, locationIDs)
+	return s.locationRepo.SetStaffBuildings(staff.UserID, buildingIDs)
 }
 
 // ── Unavailabilities ─────────────────────────────────────────────────────────
@@ -384,7 +676,6 @@ func (s *LocationService) GetAddonByID(id uint) (*dto.AddonResponse, error) {
 	return &res, nil
 }
 
-
 // ── Pricing Tiers ─────────────────────────────────────────────────────────────
 
 func (s *LocationService) CreatePricingTier(locationID uint, req dto.CreatePricingTierRequest) (*dto.PricingTierResponse, error) {
@@ -436,6 +727,7 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 		ParentID:    l.ParentID,
 		TypeID:      l.TypeID,
 		Name:        l.Name,
+		Description: l.Description,
 		BuildingID:  l.BuildingID,
 		ImageURL:    s.resolveImageURL(l.ImageURL),
 		RoomNumber:  l.RoomNumber,
@@ -568,6 +860,22 @@ func (s *LocationService) GetFloorPlanLocationIDs() ([]uint, error) {
 	return s.locationRepo.FindFloorPlanLocationIDs()
 }
 
+// UploadFloorPlanImage อัปโหลดรูปผัง (top-view) ของโถงไปเก็บที่ path มาตรฐาน:
+// "รูปภาพสถานที่/{ชื่ออาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}{ext}"
+// ชื่ออาคาร/ชื่อโถงดึงจาก DB (เชื่อถือได้ ไม่รับจาก client) แล้วคืน object_key + presigned URL
+func (s *LocationService) UploadFloorPlanImage(ctx context.Context, locationID uint, fh *multipart.FileHeader) (UploadResult, error) {
+	loc, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	building := "ไม่ระบุอาคาร"
+	if loc.Building != nil && loc.Building.Name != "" {
+		building = loc.Building.Name
+	}
+	key := docpath.HallFloorPlanKey(building, loc.Name, fh.Filename)
+	return s.storage.UploadWithKey(ctx, key, fh)
+}
+
 func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.HallFloorPlanResponse {
 	blocked := fp.BlockedCells
 	if blocked == nil {
@@ -589,6 +897,7 @@ func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.Hal
 		BlockedCells:    blocked,
 	}
 }
+
 // ── Global Addon Services ───────────────────────────────────────────────────
 
 func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
@@ -602,7 +911,3 @@ func (s *LocationService) GetGlobalAddons() ([]dto.AddonResponse, error) {
 	}
 	return result, nil
 }
-
-
-
-

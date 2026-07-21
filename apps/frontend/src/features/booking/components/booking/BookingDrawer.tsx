@@ -41,8 +41,10 @@ import {
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
+import { useAuthContext } from "@/lib/context/auth-context";
 import React, { useState, useMemo } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
+import HallBookingAreaSection from "./HallBookingAreaSection";
 import { mockRooms } from "../../data/rooms";
 import { addonService, Addon } from "@/lib/services/addon.service";
 import { getHoursFromTimeSlot } from "../../utils/time";
@@ -131,6 +133,7 @@ export default function BookingDrawer({
   onDelete,
   initialMode = "view",
 }: Props) {
+  const { user } = useAuthContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
   const [recurrenceActionType, setRecurrenceActionType] = useState<
@@ -319,6 +322,11 @@ export default function BookingDrawer({
 
   const currentStatus =
     BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+
+  // มีพื้นที่บูธที่ผู้ขอเลือก (การจองโถงแบบจำหน่ายสินค้า per_sqm) → แสดง section ผังพื้นที่ที่เลือก
+  const hasBoothArea = (booking.hallPurposes || []).some(
+    (p) => p.pricingModel === "per_sqm" && (p.selectedCells?.length ?? 0) > 0,
+  );
 
   const infoItems = [
     {
@@ -682,6 +690,19 @@ export default function BookingDrawer({
                 </div>
               )}
 
+              {/* Booking Created Date */}
+              <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                <Hash size={20} className="text-[#f26522]" />
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                    วันที่ยื่นคำขอจอง
+                  </span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {booking.createdAt}
+                  </span>
+                </div>
+              </div>
+
               {booking.repeat && (
                 <div className="p-4 rounded-[7px] border border-emerald-100 bg-emerald-50/40 space-y-2 text-left">
                   <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider block">
@@ -757,7 +778,16 @@ export default function BookingDrawer({
                 )}
             </div>
 
-
+            {/* Section: พื้นที่ที่เลือก (โถง — จำหน่ายสินค้า per_sqm) */}
+            {hasBoothArea && (
+              <>
+                <hr className="border-slate-100" />
+                <HallBookingAreaSection
+                  locationId={booking.locationId}
+                  purposes={booking.hallPurposes}
+                />
+              </>
+            )}
 
             {/* Section 4: Actions */}
             <div className="space-y-4">
@@ -819,19 +849,27 @@ export default function BookingDrawer({
               <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                 <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                  {user?.role !== "staff" ? (
+                    <>กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้</>
+                  ) : (
+                    <>โปรดตรวจสอบรายการจองให้ครบถ้วนก่อนทำการอนุมัติ</>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
-                className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
-              >
-                จัดการค่าใช้จ่าย
-              </Button>
+              {user?.role !== "staff" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
+                  className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+                >
+                  จัดการค่าใช้จ่าย
+                </Button>
+              ) : (
+                <div />
+              )}
               
               <div className="flex gap-2">
                 <Button

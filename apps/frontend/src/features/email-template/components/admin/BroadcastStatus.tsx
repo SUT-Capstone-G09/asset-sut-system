@@ -11,6 +11,7 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,8 @@ import type { BroadcastSummary } from "../../types";
 import BroadcastRecipients from "./BroadcastRecipients";
 
 const POLL_MS = 3000;
+// หยุด poll อัตโนมัติหลังครบเวลานี้ กัน API ถูกยิงไม่รู้จบตอน backend ค้าง (ผู้ใช้กด "รีเฟรช" ต่อได้)
+const MAX_POLL_MS = 5 * 60 * 1000;
 
 function statusOf(b: BroadcastSummary) {
   const inFlight = b.counts.pending + b.counts.sending;
@@ -45,31 +48,40 @@ function BackLink() {
 export default function BroadcastStatus({ id }: { id: number }) {
   const [b, setB] = useState<BroadcastSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
+    const startedAt = Date.now();
 
     const tick = async () => {
       try {
         const res = await getBroadcast(id);
         if (stopped) return;
         setB(res);
-        // Keep polling only while some recipients are still in flight.
+        // Keep polling only while some recipients are still in flight...
         if (res.counts.pending + res.counts.sending > 0) {
-          timer = setTimeout(tick, POLL_MS);
+          // ...แต่หยุดเมื่อครบเวลาสูงสุด แล้วให้ผู้ใช้กดรีเฟรชเอง (กันยิง API ไม่รู้จบตอน backend ค้าง)
+          if (Date.now() - startedAt >= MAX_POLL_MS) {
+            setStale(true);
+          } else {
+            timer = setTimeout(tick, POLL_MS);
+          }
         }
       } catch (e) {
         if (!stopped) setError(e instanceof Error ? e.message : "โหลดสถานะไม่สำเร็จ");
       }
     };
 
+    setStale(false);
     tick();
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   if (error) {
     return (
@@ -168,10 +180,22 @@ export default function BroadcastStatus({ id }: { id: number }) {
           </div>
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
             {inFlight > 0 ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" /> ส่งแล้ว {done}/{b.total_recipients} ·
-                อัปเดตอัตโนมัติ
-              </>
+              stale ? (
+                <>
+                  ส่งแล้ว {done}/{b.total_recipients} · หยุดอัปเดตอัตโนมัติชั่วคราว
+                  <button
+                    onClick={() => setReloadKey((k) => k + 1)}
+                    className="ml-1 inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+                  >
+                    <RefreshCw className="h-3 w-3" /> รีเฟรช
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> ส่งแล้ว {done}/{b.total_recipients} ·
+                  อัปเดตอัตโนมัติ
+                </>
+              )
             ) : (
               <>
                 <CheckCircle2 className="h-3 w-3 text-green-500" /> เสร็จสิ้น {done}/
