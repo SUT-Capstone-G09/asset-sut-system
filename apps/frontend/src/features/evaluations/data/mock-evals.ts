@@ -3,6 +3,7 @@ import { EvaluationRecord } from "../types/evaluation";
 export const mockEvaluations: EvaluationRecord[] = [
   {
     id: "EVAL-001",
+    requestId: "REQ-2024-001",
     storeName: "ร้านส้มตำแซ่บ",
     location: "โรงอาหารกลาง 1",
     category: "canteen",
@@ -12,6 +13,8 @@ export const mockEvaluations: EvaluationRecord[] = [
     warningCount: 0,
     image: "/shop-1.jpg",
     inspector: "เอกลักษณ์ ยอดเยี่ยม",
+    evaluatorType: "admin",
+    channel: "direct",
     lastAuditDate: "2024-01-12",
     details: [
       { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 10, max: 10, status: "Pass", note: "" },
@@ -22,6 +25,7 @@ export const mockEvaluations: EvaluationRecord[] = [
   },
   {
     id: "EVAL-002",
+    requestId: "REQ-2024-002",
     storeName: "ก๋วยเตี๋ยวเรืออยุธยา",
     location: "ศูนย์อาหารริมน้ำ",
     category: "canteen",
@@ -31,6 +35,8 @@ export const mockEvaluations: EvaluationRecord[] = [
     warningCount: 8,
     image: "/shop-2.jpg",
     inspector: "สมชาย สายตรวจ",
+    evaluatorType: "staff",
+    channel: "email",
     lastAuditDate: "2024-02-05",
     details: [
       { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 4, max: 10, status: "Fail", note: "พบคราบสกปรกบริเวณเตา" },
@@ -40,6 +46,7 @@ export const mockEvaluations: EvaluationRecord[] = [
   },
   {
     id: "EVAL-003",
+    requestId: "REQ-2024-003",
     storeName: "After You Dessert Cafe",
     location: "Zone A, 2nd Floor, Unit A204",
     category: "cafe_drink_snack",
@@ -49,6 +56,8 @@ export const mockEvaluations: EvaluationRecord[] = [
     warningCount: 0,
     image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80",
     inspector: "เอกลักษณ์ ยอดเยี่ยม",
+    evaluatorType: "admin",
+    channel: "direct",
     lastAuditDate: "2024-01-12",
     details: [
       { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 10, max: 10, status: "Pass", note: "" },
@@ -58,7 +67,106 @@ export const mockEvaluations: EvaluationRecord[] = [
       { item: "ป้ายราคาสินค้าและการแสดงข้อมูลผู้บริโภค", score: 5, max: 5, status: "Pass", note: "" },
       { item: "ระบบดับเพลิงและทางหนีไฟ", score: 5, max: 5, status: "Pass", note: "" },
     ]
-  }
+  },
+  {
+    id: "EVAL-004",
+    requestId: "REQ-2024-004",
+    storeName: "Wawee Coffee SUT",
+    location: "อาคารวิชาการ 2 ชั้น 1",
+    category: "cafe_drink_snack",
+    score: 72,
+    maxScore: 100,
+    status: "ปรับปรุง",
+    warningCount: 3,
+    image: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&q=80",
+    inspector: "นิตยา มาลัย",
+    evaluatorType: "staff",
+    channel: "qr",
+    lastAuditDate: "2024-03-10",
+    details: [
+      { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 7, max: 10, status: "Improvement", note: "โต๊ะบริการมีคราบน้ำตาล" },
+      { item: "ป้ายราคาสินค้าและการแสดงข้อมูล", score: 4, max: 5, status: "Pass", note: "" },
+      { item: "ระบบดับเพลิงและทางหนีไฟ", score: 5, max: 5, status: "Pass", note: "" },
+    ]
+  },
+  {
+    id: "EVAL-005",
+    requestId: "REQ-2024-005",
+    storeName: "7-Eleven SUT Branch",
+    location: "หน้าอาคารกิจกรรม",
+    category: "convenience_store",
+    score: 91,
+    maxScore: 100,
+    status: "ผ่าน",
+    warningCount: 0,
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80",
+    inspector: "ลูกค้า (ไม่ระบุชื่อ)",
+    evaluatorType: "external",
+    channel: "qr",
+    lastAuditDate: "2024-03-18",
+    details: [
+      { item: "ความสะอาดและความเป็นระเบียบ", score: 9, max: 10, status: "Pass", note: "" },
+      { item: "ราคาสินค้าตรงตามป้าย", score: 5, max: 5, status: "Pass", note: "" },
+      { item: "ความรวดเร็วในการบริการ", score: 9, max: 10, status: "Pass", note: "" },
+    ]
+  },
+  {
+    id: "EVAL-006",
+    requestId: "REQ-2024-006",
+    storeName: "ร้านข้าวมันไก่เจ้าอร่อย",
+    location: "โรงอาหารกลาง 2",
+    category: "canteen",
+    score: 58,
+    maxScore: 100,
+    status: "ปรับปรุง",
+    warningCount: 5,
+    inspector: "วิชัย ใจดี",
+    evaluatorType: "staff",
+    channel: "email",
+    lastAuditDate: "2024-04-02",
+    details: [
+      { item: "ความสะอาดพื้นผิวและอุปกรณ์ประกอบอาหาร", score: 6, max: 10, status: "Improvement", note: "" },
+      { item: "การกำจัดขยะและเศษอาหาร", score: 5, max: 10, status: "Improvement", note: "มีแมลงวันในบริเวณร้าน" },
+    ]
+  },
+  {
+    id: "EVAL-007",
+    requestId: "REQ-2024-007",
+    storeName: "True Move H (เสาสัญญาณ A)",
+    location: "หลังอาคาร F2",
+    category: "telecom_network",
+    score: 100,
+    maxScore: 100,
+    status: "ผ่าน",
+    warningCount: 0,
+    inspector: "ทีมตรวจสอบภายนอก (True Corp.)",
+    evaluatorType: "external",
+    channel: "sso",
+    lastAuditDate: "2024-04-15",
+    details: [
+      { item: "สภาพเสาและอุปกรณ์", score: 10, max: 10, status: "Pass", note: "" },
+      { item: "ความปลอดภัยรอบพื้นที่ติดตั้ง", score: 10, max: 10, status: "Pass", note: "" },
+    ]
+  },
+  {
+    id: "EVAL-008",
+    requestId: "REQ-2024-008",
+    storeName: "ร้านถ่ายเอกสาร ABC",
+    location: "อาคารวิชาการ 1 ชั้น G",
+    category: "copier_printer",
+    score: 33,
+    maxScore: 100,
+    status: "ไม่ผ่าน",
+    warningCount: 12,
+    inspector: "สุภาพร รักษ์ดี",
+    evaluatorType: "admin",
+    channel: "direct",
+    lastAuditDate: "2024-05-01",
+    details: [
+      { item: "ความสะอาดเครื่องและบริเวณโดยรอบ", score: 3, max: 10, status: "Fail", note: "เครื่องชำรุด มีน้ำหมึกหกเปื้อน" },
+      { item: "ป้ายราคาและข้อมูลบริการ", score: 2, max: 5, status: "Improvement", note: "" },
+    ]
+  },
 ];
 
 export const evalCategories = [
@@ -68,7 +176,7 @@ export const evalCategories = [
   { id: "vending_machine", label: "ตู้จำหน่ายสินค้าอัตโนมัติ" },
   { id: "laundromat", label: "ให้บริการเครื่องซักผ้าอัตโนมัติ" },
   { id: "atm", label: "ให้บริการติดตั้งตู้ ATM" },
-  { id: "telecom_network", label: "เครือข่ายโทรคมนาคม (เสารับ-ส่งสัญญาณ Small Cell Access Point)" },
+  { id: "telecom_network", label: "เครือข่ายโทรคมนาคม" },
   { id: "it_equipment", label: "จำหน่ายอุปกรณ์ IT" },
   { id: "public_relations_sign", label: "ป้ายและสื่อประชาสัมพันธ์" },
   { id: "copier_printer", label: "เครื่องพิมพ์เอกสาร" },
@@ -82,15 +190,4 @@ export const evaluationCriteria = [
   "3. การเก็บรักษาวัตถุดิบอาหารสดและแห้งอย่างถูกวิธี",
   "4. การกำจัดขยะ เศษอาหาร และระบบระบายน้ำเสีย",
   "5. การควบคุมสัตว์และแมลงพาหะนำโรคในบริเวณร้าน"
-];
-
-export const evalTableHeaders = [
-  { id: "image", label: "รูปภาพ", className: "w-[100px]" },
-  { id: "storeName", label: "ชื่อร้านค้า", className: "" },
-  { id: "location", label: "สถานที่", className: "" },
-  { id: "lastAuditDate", label: "วันที่ตรวจล่าสุด", className: "text-center" },
-  { id: "score", label: "คะแนน (100)", className: "text-center" },
-  { id: "status", label: "สถานะ", className: "" },
-  { id: "warning", label: "ต่ำกว่าเกณฑ์", className: "text-center" },
-  { id: "actions", label: "การดำเนินการ", className: "text-right" }
 ];

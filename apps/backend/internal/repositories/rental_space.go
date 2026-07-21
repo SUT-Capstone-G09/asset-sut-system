@@ -15,16 +15,27 @@ type RentalSpaceFilter struct {
 	MaxPrice   *float64
 }
 
-type RentalSpaceRepository struct {
+type RentalSpaceRepository interface {
+	FindAll(ctx context.Context, filter  RentalSpaceFilter) ([]models.RentalSpaces, error)
+	FindByID(ctx context.Context, id uint) (*models.RentalSpaces, error)
+	Create(ctx context.Context, space *models.RentalSpaces) error
+	Update(ctx context.Context, space *models.RentalSpaces) error
+	Delete(ctx context.Context, id uint) error
+}
+
+type rentalSpaceRepository struct {
 	db *gorm.DB
 }
 
-func NewRentalSpaceRepository(db *gorm.DB) *RentalSpaceRepository {
-	return &RentalSpaceRepository{db: db}
+func NewRentalSpaceRepository(db *gorm.DB) RentalSpaceRepository {
+	return &rentalSpaceRepository{db: db}
 }
 
 // FindAll retrieves all rental spaces matching the provided filter.
-func (r *RentalSpaceRepository) FindAll(ctx context.Context, filter RentalSpaceFilter) ([]models.RentalSpaces, error) {
+func (r *rentalSpaceRepository) FindAll(
+	ctx context.Context, 
+	filter RentalSpaceFilter,
+) ([]models.RentalSpaces, error) {
 	var spaces []models.RentalSpaces
 
 	query := r.db.WithContext(ctx).
@@ -60,7 +71,10 @@ func (r *RentalSpaceRepository) FindAll(ctx context.Context, filter RentalSpaceF
 }
 
 // FindByID retrieves a rental space by its ID.
-func (r *RentalSpaceRepository) FindByID(ctx context.Context, id uint) (*models.RentalSpaces, error) {
+func (r *rentalSpaceRepository) FindByID(
+	ctx context.Context, 
+	id uint,
+) (*models.RentalSpaces, error) {
 	var space models.RentalSpaces
 	
 	err := r.db.WithContext(ctx).
@@ -76,12 +90,20 @@ func (r *RentalSpaceRepository) FindByID(ctx context.Context, id uint) (*models.
 }
 
 // Create inserts a new rental space record.
-func (r *RentalSpaceRepository) Create(ctx context.Context, space *models.RentalSpaces) error {
+func (r *rentalSpaceRepository) Create(
+	ctx context.Context, 
+	space *models.RentalSpaces,
+) error {
+
 	return r.db.WithContext(ctx).Create(space).Error
 }
 
 // Update updates an existing rental space record.
-func (r *RentalSpaceRepository) Update(ctx context.Context, space *models.RentalSpaces) error {
+func (r *rentalSpaceRepository) Update(
+	ctx context.Context, 
+	space *models.RentalSpaces,
+) error {
+
 	return r.db.WithContext(ctx).
 		Model(&models.RentalSpaces{}).
 		Where("id = ?", space.ID).
@@ -89,7 +111,10 @@ func (r *RentalSpaceRepository) Update(ctx context.Context, space *models.Rental
 }
 
 // Delete performs a soft-delete of a rental space by its ID.
-func (r *RentalSpaceRepository) Delete(ctx context.Context, id uint) error {
+func (r *rentalSpaceRepository) Delete(
+	ctx context.Context, 
+	id uint,
+) error {
 	result := r.db.WithContext(ctx).Delete(&models.RentalSpaces{}, id)
 	if result.Error != nil {
 		return result.Error
