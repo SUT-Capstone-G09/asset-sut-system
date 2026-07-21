@@ -96,12 +96,6 @@ const menuGroups: MenuGroup[] = [
     label: "การจองพื้นที่",
     items: [
       {
-        id: "booking-requests",
-        label: "คำขอจองพื้นที่",
-        icon: LayoutDashboard,
-        href: "/admin/booking/requests",
-      },
-      {
         id: "booking",
         label: "ขอใช้พื้นที่",
         icon: Calendar,
