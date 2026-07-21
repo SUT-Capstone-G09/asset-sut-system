@@ -105,3 +105,14 @@ func parseSubID(ctx *gin.Context, param string) (uint, error) {
 	id, err := strconv.ParseUint(ctx.Param(param), 10, 64)
 	return uint(id), err
 }
+
+// isOwnerOrStaff reports whether the authenticated caller may access a
+// resource owned by resourceUserID: either they own it themselves, or they
+// hold a role (staff/admin) that manages resources on behalf of others.
+func isOwnerOrStaff(ctx *gin.Context, resourceUserID uint) bool {
+	role := ctx.GetString("role")
+	if role == "staff" || role == "admin" {
+		return true
+	}
+	return ctx.GetUint("user_id") == resourceUserID
+}

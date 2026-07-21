@@ -7,6 +7,7 @@ export interface AdminLocationDTO {
   type_id: number;
   type: string;
   name: string;
+  description?: string;
   building_id?: number;
   building?: string;
   image_url?: string;
@@ -18,9 +19,15 @@ export interface AdminLocationDTO {
   pricing_tiers?: { id: number; price: number; requester_type: string; rate_type: string }[];
 }
 
+export interface BuildingDTO {
+  id: number;
+  name: string;
+}
+
 export interface CreateLocationPayload {
   type_id: number;
   name: string;
+  description?: string;
   building_id?: number;
   image_url?: string;
   room_number?: number;
@@ -32,6 +39,7 @@ export interface CreateLocationPayload {
 export interface UpdateLocationPayload {
   type_id?: number;
   name?: string;
+  description?: string;
   building_id?: number;
   image_url?: string;
   room_number?: number;
@@ -65,6 +73,12 @@ export function locationToRoom(loc: AdminLocationDTO): Room {
   const externalDaily = loc.pricing_tiers?.find(
     (t) => t.requester_type?.includes("ภายนอก") && t.rate_type === "daily"
   )?.price ?? 0;
+  const internalOffPeak = loc.pricing_tiers?.find(
+    (t) => t.requester_type?.includes("ภายใน") && t.rate_type === "hourly_offpeak"
+  )?.price ?? 0;
+  const externalOffPeak = loc.pricing_tiers?.find(
+    (t) => t.requester_type?.includes("ภายนอก") && t.rate_type === "hourly_offpeak"
+  )?.price ?? 0;
 
   return {
     id: String(loc.id),
@@ -81,6 +95,8 @@ export function locationToRoom(loc: AdminLocationDTO): Room {
     rates: {
       hourlyInternal: internalHourly,
       hourlyExternal: externalHourly,
+      hourlyOffPeakInternal: internalOffPeak,
+      hourlyOffPeakExternal: externalOffPeak,
       dailyInternal: internalDaily,
       dailyExternal: externalDaily,
     },
@@ -93,6 +109,11 @@ export interface LocationTypeDTO {
   type: string;
 }
 
+export interface BuildingDTO {
+  id: number;
+  name: string;
+}
+
 export interface StaffLocationDTO {
   user_id: number;
   location_id: number;
@@ -103,6 +124,11 @@ export interface StaffLocationDTO {
 
 export async function getLocationTypes(): Promise<LocationTypeDTO[]> {
   return apiClient.get<LocationTypeDTO[]>("/location-types");
+}
+
+// อาคารทั้งหมด — ใช้เป็นตัวเลือกในฟอร์ม เพราะ backend บันทึกอาคารด้วย building_id ไม่ใช่ชื่อ
+export async function getBuildings(): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>("/buildings");
 }
 
 export async function getLocations(): Promise<AdminLocationDTO[]> {
@@ -129,6 +155,15 @@ export async function deletePricingTier(locationId: number, tierId: number): Pro
   await apiClient.delete(`/locations/${locationId}/pricing-tiers/${tierId}`);
 }
 
+export interface RateType {
+  id: number;
+  type: string;
+}
+
+export async function getRateTypes(): Promise<RateType[]> {
+  return apiClient.get<RateType[]>("/rate-types");
+}
+
 export async function getLocationStaff(locationId: number): Promise<StaffLocationDTO[]> {
   return apiClient.get<StaffLocationDTO[]>(`/locations/${locationId}/staff`);
 }
@@ -141,25 +176,75 @@ export async function unassignStaffFromLocation(locationId: number, userId: numb
   await apiClient.delete(`/locations/${locationId}/staff/${userId}`);
 }
 
-export async function getStaffLocations(staffUserId: number): Promise<AdminLocationDTO[]> {
-  return apiClient.get<AdminLocationDTO[]>(`/staffs/${staffUserId}/locations`);
+export async function getStaffBuildings(staffUserId: number): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>(`/staffs/${staffUserId}/locations`);
 }
 
-export async function setStaffLocations(staffUserId: number, locationIds: number[]): Promise<void> {
-  await apiClient.put(`/staffs/${staffUserId}/locations`, { location_ids: locationIds });
+export async function setStaffBuildings(staffUserId: number, buildingIds: number[]): Promise<void> {
+  await apiClient.put(`/staffs/${staffUserId}/locations`, { building_ids: buildingIds });
 }
 
-// requester_type_id: 1=ภายใน, 2=ภายนอก | rate_type_id: 1=hourly, 2=daily
+// Legacy aliases kept for backward compat
+export async function getStaffLocations(staffUserId: number): Promise<BuildingDTO[]> {
+  return getStaffBuildings(staffUserId);
+}
+
+export async function setStaffLocations(staffUserId: number, buildingIds: number[]): Promise<void> {
+  return setStaffBuildings(staffUserId, buildingIds);
+}
+
+// requester_type_id: 1=ภายใน, 2=ภายนอก (ยังไม่มี lookup endpoint สำหรับ requester types
+// จึงคงค่าคงที่ไว้ก่อน). rate_type_id resolve จากชื่อผ่าน GET /rate-types แทนการ hardcode
+// เลข เพื่อไม่ให้ผูกกับลำดับการ seed ข้อมูล
 export async function savePricingTiers(
   locationId: number,
-  rates: { hourlyInternal: number; hourlyExternal: number; dailyInternal: number; dailyExternal: number },
+  rates: {
+    hourlyInternal: number;
+    hourlyExternal: number;
+    hourlyOffPeakInternal?: number;
+    hourlyOffPeakExternal?: number;
+    dailyInternal: number;
+    dailyExternal: number;
+  },
   existingTierIds: number[] = []
 ): Promise<void> {
-  await Promise.all(existingTierIds.map((tid) => deletePricingTier(locationId, tid)));
-  await Promise.all([
-    createPricingTier(locationId, { requester_type_id: 1, rate_type_id: 1, price: rates.hourlyInternal }),
-    createPricingTier(locationId, { requester_type_id: 2, rate_type_id: 1, price: rates.hourlyExternal }),
-    createPricingTier(locationId, { requester_type_id: 1, rate_type_id: 2, price: rates.dailyInternal }),
-    createPricingTier(locationId, { requester_type_id: 2, rate_type_id: 2, price: rates.dailyExternal }),
+  // Fetch rate types while the old tiers are being deleted — we need the id
+  // that each rate-type name maps to, resolved from the backend rather than
+  // assumed from the seed insertion order.
+  const [rateTypes] = await Promise.all([
+    getRateTypes(),
+    ...existingTierIds.map((tid) => deletePricingTier(locationId, tid)),
   ]);
+  const rateTypeId = (name: string): number => {
+    const match = rateTypes.find((rt) => rt.type === name);
+    if (!match) throw new Error(`ไม่พบ rate type "${name}" จาก backend`);
+    return match.id;
+  };
+  const hourlyId = rateTypeId("hourly");
+  const dailyId = rateTypeId("daily");
+
+  const creates = [
+    createPricingTier(locationId, { requester_type_id: 1, rate_type_id: hourlyId, price: rates.hourlyInternal }),
+    createPricingTier(locationId, { requester_type_id: 2, rate_type_id: hourlyId, price: rates.hourlyExternal }),
+    createPricingTier(locationId, { requester_type_id: 1, rate_type_id: dailyId, price: rates.dailyInternal }),
+    createPricingTier(locationId, { requester_type_id: 2, rate_type_id: dailyId, price: rates.dailyExternal }),
+  ];
+  // Only persist an off-peak tier when the admin actually configured one —
+  // the backend's calculatePrice treats "no off-peak tier" as "bill at the
+  // office rate," and always writing a price: 0 row here would defeat that
+  // fallback for every location that hasn't opted into off-peak pricing.
+  if (rates.hourlyOffPeakInternal || rates.hourlyOffPeakExternal) {
+    const offPeakId = rateTypeId("hourly_offpeak");
+    if (rates.hourlyOffPeakInternal) {
+      creates.push(
+        createPricingTier(locationId, { requester_type_id: 1, rate_type_id: offPeakId, price: rates.hourlyOffPeakInternal })
+      );
+    }
+    if (rates.hourlyOffPeakExternal) {
+      creates.push(
+        createPricingTier(locationId, { requester_type_id: 2, rate_type_id: offPeakId, price: rates.hourlyOffPeakExternal })
+      );
+    }
+  }
+  await Promise.all(creates);
 }

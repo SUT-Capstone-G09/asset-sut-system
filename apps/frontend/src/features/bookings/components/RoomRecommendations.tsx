@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import RoomCard from "@/features/bookings/components/RoomCard";
-import { getLocations, locationToRoom, LocationDTO } from "@/features/bookings/services/location.service";
+import {
+  getLocations,
+  getRoomAvailabilityBadge,
+  locationToRoom,
+  LocationDTO,
+} from "@/features/bookings/services/location.service";
 import { Room } from "@/features/bookings/types";
 import { useAuthContext } from "@/lib/context/auth-context";
 
@@ -25,11 +30,24 @@ export default function RoomRecommendations({ category }: Props) {
 
   useEffect(() => {
     getLocations()
-      .then((locations) => {
+      .then(async (locations) => {
         const filtered = category
           ? locations.filter((loc: LocationDTO) => loc.type === CATEGORY_TO_TYPE[category])
           : locations;
-        setRooms(filtered.map((loc) => locationToRoom(loc, requesterTypeId)).slice(0, 6));
+        const base = filtered.map((loc) => locationToRoom(loc, requesterTypeId)).slice(0, 6);
+        setRooms(base);
+
+        // Upgrade the operational-status placeholder badge to a real,
+        // booking-derived one once each room's monthly data resolves.
+        const withRealAvailability = await Promise.all(
+          base.map(async (room) => {
+            const availability = await getRoomAvailabilityBadge(Number(room.id)).catch(
+              () => room.availability
+            );
+            return { ...room, availability };
+          })
+        );
+        setRooms(withRealAvailability);
       })
       .catch(() => setRooms([]));
   }, [requesterTypeId, category]);
@@ -52,7 +70,7 @@ export default function RoomRecommendations({ category }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {rooms.map((room) => (
-          <RoomCard key={room.id} room={room} dayCount={1} />
+          <RoomCard key={room.id} room={room} />
         ))}
       </div>
     </div>

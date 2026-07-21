@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
@@ -26,6 +27,15 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 	response.OK(ctx, types)
 }
 
+func (c *LocationController) GetRateTypes(ctx *gin.Context) {
+	rateTypes, err := c.locationService.GetRateTypes()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, rateTypes)
+}
+
 func (c *LocationController) GetBuildings(ctx *gin.Context) {
 	buildings, err := c.locationService.GetBuildings()
 	if err != nil {
@@ -33,6 +43,109 @@ func (c *LocationController) GetBuildings(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, buildings)
+}
+
+// GetHallUsagePurposes คืน master data วัตถุประสงค์การขอใช้พื้นที่โถง
+// ?include_inactive=true → คืนทั้งหมด (หน้าจัดการ) ; ค่าปกติคืนเฉพาะที่เปิดใช้งาน
+func (c *LocationController) GetHallUsagePurposes(ctx *gin.Context) {
+	includeInactive := ctx.Query("include_inactive") == "true"
+	purposes, err := c.locationService.GetHallUsagePurposes(includeInactive)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purposes)
+}
+
+// CreateHallUsagePurpose เพิ่มวัตถุประสงค์การขอใช้พื้นที่โถงใหม่
+func (c *LocationController) CreateHallUsagePurpose(ctx *gin.Context) {
+	var req dto.CreateHallUsagePurposeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	purpose, err := c.locationService.CreateHallUsagePurpose(req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purpose)
+}
+
+// UpdateHallUsagePurpose แก้วัตถุประสงค์ (ชื่อ/รายละเอียด/ราคาตั้งต้น/เปิด-ปิด/ลำดับ)
+func (c *LocationController) UpdateHallUsagePurpose(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateHallUsagePurposeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	purpose, err := c.locationService.UpdateHallUsagePurpose(id, req)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, purpose)
+}
+
+// UpdateBuildingHallPricings ตั้ง/แก้ราคาโถงของอาคาร (bulk upsert รายวัตถุประสงค์)
+func (c *LocationController) UpdateBuildingHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateBuildingHallPricingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	building, err := c.locationService.UpdateBuildingHallPricings(id, req)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, building)
+}
+
+// GetLocationHallPricings คืนราคาของโถงหนึ่ง (ราคาอาคาร = ขั้นต่ำ + ราคาเฉพาะโถง + ราคาที่ใช้จริง)
+func (c *LocationController) GetLocationHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	pricings, err := c.locationService.GetLocationHallPricings(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, pricings)
+}
+
+// UpdateLocationHallPricings ตั้ง/แก้ราคาเฉพาะโถง (ทำเลทอง) — ต่ำกว่าราคาอาคารไม่ได้
+func (c *LocationController) UpdateLocationHallPricings(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.UpdateLocationHallPricingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	pricings, err := c.locationService.UpdateLocationHallPricings(id, req)
+	if err != nil {
+		// ราคาต่ำกว่าขั้นต่ำ/ข้อมูลไม่ถูกต้อง = ความผิดฝั่งผู้เรียก ไม่ใช่ server error
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, pricings)
 }
 
 func (c *LocationController) GetAll(ctx *gin.Context) {
@@ -123,12 +236,12 @@ func (c *LocationController) Delete(ctx *gin.Context) {
 // ── Staff Location Assignment ─────────────────────────────────────────────────
 
 func (c *LocationController) GetLocationStaff(ctx *gin.Context) {
-	id, err := parseID(ctx)
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	staff, err := c.locationService.GetLocationStaff(id)
+	staff, err := c.locationService.GetBuildingStaff(buildingID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
@@ -136,8 +249,8 @@ func (c *LocationController) GetLocationStaff(ctx *gin.Context) {
 	response.OK(ctx, staff)
 }
 
-func (c *LocationController) AssignStaff(ctx *gin.Context) {
-	locationID, err := parseID(ctx)
+func (c *LocationController) AssignStaffBuilding(ctx *gin.Context) {
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
@@ -147,15 +260,15 @@ func (c *LocationController) AssignStaff(ctx *gin.Context) {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := c.locationService.AssignStaff(locationID, req.UserID); err != nil {
+	if err := c.locationService.AssignStaffBuilding(buildingID, req.UserID); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "staff assigned"})
+	response.OK(ctx, gin.H{"message": "staff assigned to building"})
 }
 
-func (c *LocationController) UnassignStaff(ctx *gin.Context) {
-	locationID, err := parseID(ctx)
+func (c *LocationController) UnassignStaffBuilding(ctx *gin.Context) {
+	buildingID, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
 		return
@@ -165,11 +278,11 @@ func (c *LocationController) UnassignStaff(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid staff user id")
 		return
 	}
-	if err := c.locationService.UnassignStaff(locationID, staffUserID); err != nil {
+	if err := c.locationService.UnassignStaffBuilding(buildingID, staffUserID); err != nil {
 		response.NotFound(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "staff unassigned"})
+	response.OK(ctx, gin.H{"message": "staff unassigned from building"})
 }
 
 func (c *LocationController) GetStaffLocations(ctx *gin.Context) {
@@ -178,12 +291,12 @@ func (c *LocationController) GetStaffLocations(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	locations, err := c.locationService.GetStaffLocations(staffUserID)
+	buildings, err := c.locationService.GetStaffBuildings(staffUserID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, locations)
+	response.OK(ctx, buildings)
 }
 
 func (c *LocationController) SetStaffLocations(ctx *gin.Context) {
@@ -192,16 +305,16 @@ func (c *LocationController) SetStaffLocations(ctx *gin.Context) {
 		response.BadRequest(ctx, "invalid id")
 		return
 	}
-	var req dto.AssignStaffLocationsRequest
+	var req dto.AssignStaffBuildingsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	if err := c.locationService.SetStaffLocations(staffUserID, req.LocationIDs); err != nil {
+	if err := c.locationService.SetStaffBuildings(staffUserID, req.BuildingIDs); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	response.OK(ctx, gin.H{"message": "locations updated"})
+	response.OK(ctx, gin.H{"message": "buildings updated"})
 }
 
 // ── Unavailabilities ──────────────────────────────────────────────────────────
@@ -271,6 +384,61 @@ func (c *LocationController) GetMonthlyAvailability(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, result)
+}
+
+// CheckAvailability handles GET /locations/availability?location_ids=1,2,3&dates=2026-08-01,2026-08-02[&start_time=09:00&end_time=11:00]
+// Batches an availability check across many locations/dates in one request —
+// see LocationService.CheckAvailability.
+func (c *LocationController) CheckAvailability(ctx *gin.Context) {
+	var q dto.AvailabilitySearchQuery
+	if err := ctx.ShouldBindQuery(&q); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	locationIDs, err := parseUintList(q.LocationIDs)
+	if err != nil || len(locationIDs) == 0 {
+		response.BadRequest(ctx, "invalid location_ids")
+		return
+	}
+	dates := splitNonEmpty(q.Dates)
+	if len(dates) == 0 {
+		response.BadRequest(ctx, "invalid dates")
+		return
+	}
+	if (q.StartTime == "") != (q.EndTime == "") {
+		response.BadRequest(ctx, "start_time and end_time must be given together")
+		return
+	}
+
+	result, err := c.locationService.CheckAvailability(locationIDs, dates, q.StartTime, q.EndTime)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, result)
+}
+
+func splitNonEmpty(s string) []string {
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+func parseUintList(s string) ([]uint, error) {
+	var out []uint
+	for _, part := range splitNonEmpty(s) {
+		id, err := strconv.ParseUint(part, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, uint(id))
+	}
+	return out, nil
 }
 
 // ── Equipments ────────────────────────────────────────────────────────────────
@@ -461,6 +629,59 @@ func (c *LocationController) GetFloorPlan(ctx *gin.Context) {
 	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null
 }
 
+// GetPublicFloorPlan อ่านผังโถงแบบ public สำหรับหน้าจองของผู้ใช้ (เลือกเซลล์บูธ)
+// ใช้ logic เดียวกับ GetFloorPlan แต่ไม่ต้อง auth — เปิดเผยเฉพาะข้อมูลผังที่จำเป็นต่อการจอง
+func (c *LocationController) GetPublicFloorPlan(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	fp, err := c.locationService.GetFloorPlan(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null (โถงยังไม่มีผัง)
+}
+
+// maxFloorPlanImageSize จำกัดขนาดรูปผังที่อัปโหลด (10 MB)
+const maxFloorPlanImageSize = 10 << 20
+
+// UploadFloorPlanImage อัปโหลดรูปผัง (top-view) ของโถง เก็บที่ path มาตรฐานของโถง
+// (รูปภาพสถานที่/ชื่ออาคาร/โถงอาคาร/แผนผัง/ชื่อโถง) แล้วคืน object_key + url
+func (c *LocationController) UploadFloorPlanImage(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	fh, err := ctx.FormFile("file")
+	if err != nil {
+		response.BadRequest(ctx, "missing form-data file field 'file'")
+		return
+	}
+	if fh.Size > maxFloorPlanImageSize {
+		response.BadRequest(ctx, "file too large (max 10MB)")
+		return
+	}
+	userID := ctx.GetUint("user_id")
+	res, err := c.locationService.UploadFloorPlanImage(ctx.Request.Context(), id, fh, userID)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.Created(ctx, dto.UploadResponse{
+		BucketName:  res.BucketName,
+		ObjectKey:   res.ObjectKey,
+		URL:         res.URL,
+		FileName:    res.FileName,
+		ContentType: res.ContentType,
+		Size:        res.Size,
+		ExpiresIn:   res.ExpiresIn,
+	})
+}
+
 func (c *LocationController) UpsertFloorPlan(ctx *gin.Context) {
 	id, err := parseID(ctx)
 	if err != nil {
@@ -489,4 +710,3 @@ func (c *LocationController) GetFloorPlanIDs(ctx *gin.Context) {
 	}
 	response.OK(ctx, ids)
 }
-

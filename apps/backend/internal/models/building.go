@@ -23,4 +23,7 @@ type Buildings struct {
 	RentalSpaces   []RentalSpaces `gorm:"foreignKey:BuildingID"`
 	FloorPlans     []FloorPlans   `gorm:"foreignKey:BuildingID"` 
 	Locations      []Locations    `gorm:"foreignKey:BuildingID"`
+	// ราคาการขอใช้พื้นที่โถงของอาคารนี้ ย้ายไปอยู่ตาราง BuildingHallPricings (ราย อาคาร × วัตถุประสงค์)
+	// ครอบคลุมทั้ง ตั้งบูธ (per_sqm) / แจกใบปลิว / แจกตัวอย่างสินค้า (per_type_per_day)
+	HallPricings []BuildingHallPricings `gorm:"foreignKey:BuildingID"`
 }

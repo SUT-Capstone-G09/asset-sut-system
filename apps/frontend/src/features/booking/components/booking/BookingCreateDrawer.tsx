@@ -143,7 +143,12 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
         notes: data.notes,
         equipment: data.equipment,
         attachedDocuments: data.attachedDocuments || [],
-        expenses: data.expenses || [],
+        expenses: (data.expenses || []).map((e) => ({
+          name: e.name,
+          amount: e.amount,
+          unitPrice: e.amount,
+          quantity: 1,
+        })),
         housekeeperPrice: data.housekeeperPrice || 0,
         housekeeperCount: data.housekeeperCount || 0,
         repeat: true,
@@ -183,7 +188,12 @@ export default function BookingCreateDrawer({ open, onClose, onAdd, type }: Prop
         notes: data.notes,
         equipment: data.equipment,
         attachedDocuments: data.attachedDocuments || [],
-        expenses: data.expenses || [],
+        expenses: (data.expenses || []).map((e) => ({
+          name: e.name,
+          amount: e.amount,
+          unitPrice: e.amount,
+          quantity: 1,
+        })),
         housekeeperPrice: data.housekeeperPrice || 0,
         housekeeperCount: data.housekeeperCount || 0
       };

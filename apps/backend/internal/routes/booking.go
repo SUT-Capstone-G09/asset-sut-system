@@ -15,6 +15,8 @@ func SetupBookingRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		// Requester
 		bookings.POST("", middleware.RequireRole("requester", "staff", "admin"), bc.Create)
 		bookings.GET("/my", bc.GetMyBookings)
+		// เจ้าของแก้ไข booking ที่ถูกตีกลับ (needs_revision) แล้วส่งใหม่ (ownership ตรวจใน service)
+		bookings.PUT("/:id/revise", middleware.RequireRole("requester", "staff", "admin"), bc.Revise)
 
 		// Staff / Admin
 		bookings.GET("", middleware.RequireRole("staff", "admin"), bc.GetAll)

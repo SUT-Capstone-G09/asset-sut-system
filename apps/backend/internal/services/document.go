@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
@@ -41,7 +42,15 @@ func (s *DocumentService) GetByID(id uint) (*dto.DocumentResponse, error) {
 	return &res, nil
 }
 
-func (s *DocumentService) Create(req dto.CreateDocumentRequest) (*dto.DocumentResponse, error) {
+func (s *DocumentService) Create(uploadedBy uint, req dto.CreateDocumentRequest) (*dto.DocumentResponse, error) {
+	// The caller only proved they can access req.BookingID — that says nothing
+	// about whether they're the one who actually uploaded req.ObjectKey. Without
+	// this check, anyone who learns another user's object key (e.g. a leaked or
+	// expired presigned URL) could attach that file to their own booking.
+	if err := s.storageService.VerifyObjectOwner(context.Background(), req.ObjectKey, uploadedBy); err != nil {
+		return nil, errors.New("object was not uploaded by this user")
+	}
+
 	doc := &models.Documents{
 		BookingID:      req.BookingID,
 		DocumentTypeID: req.DocumentTypeID,

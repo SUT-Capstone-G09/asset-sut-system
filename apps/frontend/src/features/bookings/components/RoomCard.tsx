@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Users, CheckCircle } from "lucide-react";
+import { MapPin, Users, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
@@ -12,20 +12,27 @@ const BADGE_STYLES: Record<string, string> = {
   Premium: "bg-yellow-500 text-white",
 };
 
+// "ว่างทุกวัน" (fully open this month) reads as an unambiguous green go-signal;
+// "ว่างบางวัน" (already has bookings) gets its own color+icon so the two
+// aren't visually identical at a glance despite meaning different things.
+const AVAILABILITY_STYLES: Record<string, { className: string; Icon: typeof CheckCircle }> = {
+  ว่างทุกวัน: { className: "bg-green-500 text-white", Icon: CheckCircle },
+  ว่างบางวัน: { className: "bg-amber-500 text-white", Icon: Clock },
+};
+
 interface RoomCardProps {
   room: Room;
-  dayCount: number;
 }
 
-export default function RoomCard({ room, dayCount }: RoomCardProps) {
-  const totalPrice = room.pricePerHour * 2 * dayCount; // 2h slot × days
-
+export default function RoomCard({ room }: RoomCardProps) {
   const capacityLabel =
     room.capacityMin === room.capacityMax
       ? `${room.capacityMax} คน`
       : `${room.capacityMin}-${room.capacityMax} คน`;
 
   const locationLabel = [room.building, room.floor].filter(Boolean).join(" ");
+  const availabilityStyle = AVAILABILITY_STYLES[room.availability] ?? AVAILABILITY_STYLES["ว่างทุกวัน"];
+  const AvailabilityIcon = availabilityStyle.Icon;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:-translate-y-1 hover:shadow-md transition-all duration-300">
@@ -45,8 +52,8 @@ export default function RoomCard({ room, dayCount }: RoomCardProps) {
           )}
         </div>
         <div className="absolute top-3 right-3">
-          <span className="flex items-center gap-1 text-xs font-semibold bg-green-500 text-white px-2.5 py-1 rounded-full">
-            <CheckCircle size={11} />
+          <span className={cn("flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full", availabilityStyle.className)}>
+            <AvailabilityIcon size={11} />
             {room.availability}
           </span>
         </div>
@@ -81,9 +88,6 @@ export default function RoomCard({ room, dayCount }: RoomCardProps) {
             <p className="text-brand-primary font-bold text-lg">
               ฿{room.pricePerHour.toLocaleString()}
               <span className="text-sm font-normal text-gray-500">/ชม.</span>
-            </p>
-            <p className="text-xs text-gray-400">
-              = ฿{totalPrice.toLocaleString()} รวม {dayCount} วัน
             </p>
           </div>
           <Link href={`/bookings/${room.id}`}>

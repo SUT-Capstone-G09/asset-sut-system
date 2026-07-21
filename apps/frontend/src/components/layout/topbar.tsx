@@ -33,18 +33,19 @@ export default function Navbar() {
   }, []);
 
   // ไม่แสดง Navbar ในหน้าที่มี Sidebar
-  const isDashboardPage = pathname?.startsWith("/admin") ||
-                          pathname?.startsWith("/operator") ||
-                          pathname?.startsWith("/user");
+  const isDashboardPage =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/operator") ||
+    pathname?.startsWith("/user");
 
   if (!mounted || isDashboardPage) return null;
 
   // เมนูนำทางหลัก
   const navItems = [
-    { label: "เกี่ยวกับเรา", href: "/about",
-      subItems: [
-        { label: "เกี่ยวกับเรา", href: "/about" },
-      ],
+    {
+      label: "เกี่ยวกับเรา",
+      href: "/about",
+      subItems: [{ label: "เกี่ยวกับเรา", href: "/about" }],
     },
     {
       label: "บริการ",
@@ -61,91 +62,108 @@ export default function Navbar() {
   ];
 
   // เมนูสำหรับผู้ใช้งานที่ Login แล้ว (แยกตาม Role)
-  const userMenuItems = user ? [
-    {
-      label: "จัดการระบบ",
-      href: "/admin/dashboard",
-      icon: Settings,
-      show: user.role === "admin",
-    },
-    {
-      label: "โปรไฟล์",
-      href: user.role === "operator" ? "/operator/profile" : "/user/profile",
-      icon: User,
-      show: user.role !== "admin",
-    },
-    {
-      label: "การจองของฉัน",
-      href: "/my-bookings",
-      icon: CalendarDays,
-      show: user.role === "requester",
-    },
-    {
-      label: "แจ้งปัญหา",
-      href: user.role === "operator" ? "/operator/report" : "/user/requests",
-      icon: AlertCircle,
-      show: user.role !== "admin",
-    },
-  ].filter(item => item.show) : [];
+  const userMenuItems = user
+    ? [
+        {
+          label: "จัดการระบบ",
+          href: "/admin/dashboard",
+          icon: Settings,
+          show: user.role === "admin",
+        },
+        {
+          label: "โปรไฟล์",
+          href:
+            user.role === "operator" ? "/operator/profile" : "/user/profile",
+          icon: User,
+          show: user.role !== "admin",
+        },
+        {
+          label: "การจองของฉัน",
+          href: "/my-bookings",
+          icon: CalendarDays,
+          show: user.role === "requester",
+        },
+        {
+          label: "แจ้งปัญหา",
+          href:
+            user.role === "operator" ? "/operator/report" : "/user/requests",
+          icon: AlertCircle,
+          show: user.role !== "admin",
+        },
+      ].filter((item) => item.show)
+    : [];
 
   return (
     <>
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-[1001] border-b border-slate-100 shadow-sm overflow-hidden no-scrollbar">
         <div className="max-w px-6 mx-auto h-20 flex items-center justify-between">
-          
           {/* Logo Section */}
-          <Link href="/" className="flex items-center gap-3 group transition-all">
+          <Link
+            href="/"
+            className="flex items-center gap-3 group transition-all"
+          >
             <div className="overflow-hidden transform group-hover:scale-105 transition-transform">
               <Image
-                src="/SUT_logo_orange.png"
+                src="/ASSET_EN.svg"
                 alt="SUT Logo"
                 width={0}
                 height={0}
                 sizes="100vw"
                 className="object-contain"
-                style={{ width: 'auto', height: '40px' }}
+                style={{ width: "auto", height: "55px" }}
                 priority
               />
             </div>
-            <div className="flex flex-col">
+            {/* <div className="flex flex-col">
               <span className="font-bold text-brand-primary tracking-tight text-2xl leading-none font-sut">
                 ASSET
               </span>
               <span className="text-[9px] font-medium text-brand-secondary tracking-[0.25em] uppercase leading-none mt-1 opacity-70">
                 Management
               </span>
-            </div>
+            </div> */}
           </Link>
 
           {/* Navigation Links */}
           <div className="flex items-center gap-10">
             <div className="hidden md:flex items-center gap-6">
               {navItems.map((item) => {
-                const isItemActive = item.href === "/" 
-                  ? pathname === "/" 
-                  : pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-                
-                const isSubItemActive = item.subItems?.some(sub => pathname === sub.href);
+                const isItemActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname === item.href ||
+                      (item.href !== "/" && pathname?.startsWith(item.href));
+
+                const isSubItemActive = item.subItems?.some(
+                  (sub) => pathname === sub.href,
+                );
                 const active = isItemActive || isSubItemActive;
 
                 return (
                   <div key={item.label} className="relative group">
                     {item.subItems ? (
                       <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger 
+                        <DropdownMenuTrigger
                           className={cn(
                             "flex items-center gap-1 font-medium text-base transition-colors relative py-2 outline-none cursor-pointer",
-                            active ? "text-brand-primary" : "text-brand-secondary hover:text-brand-primary"
+                            active
+                              ? "text-brand-primary"
+                              : "text-brand-secondary hover:text-brand-primary",
                           )}
                         >
                           {item.label}
                           <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                          <span className={cn(
-                            "absolute bottom-0 left-0 h-0.5 bg-brand-primary transition-all",
-                            active ? "w-full" : "w-0 group-hover:w-full"
-                          )} />
+                          <span
+                            className={cn(
+                              "absolute bottom-0 left-0 h-0.5 bg-brand-primary transition-all",
+                              active ? "w-full" : "w-0 group-hover:w-full",
+                            )}
+                          />
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56 p-2 z-[1100]">
+                        <DropdownMenuContent
+                          align="start"
+                          className="w-56 p-2 z-[1100]"
+                        >
                           {item.subItems.map((subItem) => {
                             const isSubActive = pathname === subItem.href;
                             return (
@@ -154,10 +172,14 @@ export default function Navbar() {
                                   href={subItem.href}
                                   className={cn(
                                     "w-full cursor-pointer p-3 transition-colors",
-                                    isSubActive ? "text-brand-primary bg-brand-primary/5" : "focus:text-brand-primary"
+                                    isSubActive
+                                      ? "text-brand-primary bg-brand-primary/5"
+                                      : "focus:text-brand-primary",
                                   )}
                                 >
-                                  <div className="text-sm font-medium">{subItem.label}</div>
+                                  <div className="text-sm font-medium">
+                                    {subItem.label}
+                                  </div>
                                 </Link>
                               </DropdownMenuItem>
                             );
@@ -169,14 +191,18 @@ export default function Navbar() {
                         href={item.href}
                         className={cn(
                           "font-medium text-base transition-colors relative py-2 block",
-                          active ? "text-brand-primary" : "text-brand-secondary hover:text-brand-primary"
+                          active
+                            ? "text-brand-primary"
+                            : "text-brand-secondary hover:text-brand-primary",
                         )}
                       >
                         {item.label}
-                        <span className={cn(
-                          "absolute bottom-0 left-0 h-0.5 bg-brand-primary transition-all",
-                          active ? "w-full" : "w-0 group-hover:w-full"
-                        )} />
+                        <span
+                          className={cn(
+                            "absolute bottom-0 left-0 h-0.5 bg-brand-primary transition-all",
+                            active ? "w-full" : "w-0 group-hover:w-full",
+                          )}
+                        />
                       </Link>
                     )}
                   </div>
@@ -193,12 +219,19 @@ export default function Navbar() {
                       <User className="w-5 h-5 text-brand-primary" />
                     </button>
                   </DropdownMenuTrigger>
-                  
-                  <DropdownMenuContent align="end" className="w-52 p-2 z-[1100]">
+
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-52 p-2 z-[1100]"
+                  >
                     {/* User Header */}
                     <div className="px-3 py-2 mb-1 border-b border-slate-50">
-                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">บัญชีผู้ใช้งาน</p>
-                      <p className="text-sm font-bold text-brand-secondary truncate">{user.email}</p>
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                        บัญชีผู้ใช้งาน
+                      </p>
+                      <p className="text-sm font-bold text-brand-secondary truncate">
+                        {user.email}
+                      </p>
                     </div>
 
                     {/* Dynamic Role Items */}
@@ -209,14 +242,16 @@ export default function Navbar() {
                           className="w-full cursor-pointer p-3 focus:text-brand-primary flex items-center gap-3 transition-colors"
                         >
                           <item.icon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary" />
-                          <span className="text-sm font-medium">{item.label}</span>
+                          <span className="text-sm font-medium">
+                            {item.label}
+                          </span>
                         </Link>
                       </DropdownMenuItem>
                     ))}
 
                     {/* Logout Button */}
                     <div className="mt-1 pt-1 border-t border-slate-50">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="w-full cursor-pointer p-3 focus:bg-red-50 focus:text-red-600 text-red-500 flex items-center gap-3 transition-colors"
                         onClick={() => logout()}
                       >
@@ -238,7 +273,6 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-
     </>
   );
 }

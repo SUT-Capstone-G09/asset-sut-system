@@ -13,6 +13,8 @@ export const roomSchema = z.object({
   rates: z.object({
     hourlyInternal: z.coerce.number().min(1, "กรุณากำหนดอัตราค่าใช้จ่ายรายชั่วโมง (ภายใน)"),
     hourlyExternal: z.coerce.number().min(1, "กรุณากำหนดอัตราค่าใช้จ่ายรายชั่วโมง (ภายนอก)"),
+    hourlyOffPeakInternal: z.coerce.number().optional(),
+    hourlyOffPeakExternal: z.coerce.number().optional(),
     dailyInternal: z.coerce.number().min(1, "กรุณากำหนดอัตราค่าใช้จ่ายรายวัน (ภายใน)"),
     dailyExternal: z.coerce.number().min(1, "กรุณากำหนดอัตราค่าใช้จ่ายรายวัน (ภายนอก)"),
   }),

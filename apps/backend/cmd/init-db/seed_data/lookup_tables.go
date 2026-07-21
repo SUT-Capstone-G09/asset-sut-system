@@ -24,7 +24,7 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	// Booking statuses
-	for _, s := range []string{"pending", "approved", "rejected", "cancelled", "completed"} {
+	for _, s := range []string{"pending", "approved", "needs_revision", "rejected", "cancelled", "completed"} {
 		if err := db.FirstOrCreate(&models.BookingStatuses{}, models.BookingStatuses{Status: s}).Error; err != nil {
 			return err
 		}
@@ -81,7 +81,7 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	// Rate types
-	for _, t := range []string{"hourly", "daily", "fixed"} {
+	for _, t := range []string{"hourly", "daily", "fixed", "hourly_offpeak"} {
 		if err := db.FirstOrCreate(&models.RateTypes{}, models.RateTypes{Type: t}).Error; err != nil {
 			return err
 		}
@@ -103,6 +103,26 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 		if err := db.Where("name = ? AND location_id IS NULL", a.Name).First(&existing).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				if err := db.Create(&a).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+	}
+
+	// Hall usage purposes (วัตถุประสงค์การขอใช้พื้นที่โถงอาคาร)
+	// ผู้ขอเลือกได้หลายข้อพร้อมกัน แต่ละข้อคิดราคาแยกแล้วบวกรวม
+	hallPurposes := []models.HallUsagePurposes{
+		{Name: "การให้บริการและการจำหน่ายสินค้า (ตั้งบูธ)", Description: "คิดราคาตามพื้นที่ที่ใช้ (ตร.ม.) ตามเรทของอาคาร", PricingModel: models.HallPricingPerSqm, DefaultPrice: 0, IsActive: true, SortOrder: 1},
+		{Name: "แจกใบปลิวหรือสื่อโฆษณาอื่นๆ", Description: "คิดราคาแบบ /วัน/ประเภทสินค้า", PricingModel: models.HallPricingPerTypePerDay, DefaultPrice: 500, IsActive: true, SortOrder: 2},
+		{Name: "การแจกตัวอย่างสินค้า", Description: "คิดราคาแบบ /วัน/ประเภทสินค้า", PricingModel: models.HallPricingPerTypePerDay, DefaultPrice: 500, IsActive: true, SortOrder: 3},
+	}
+	for _, p := range hallPurposes {
+		var existing models.HallUsagePurposes
+		if err := db.Where("name = ?", p.Name).First(&existing).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				if err := db.Create(&p).Error; err != nil {
 					return err
 				}
 			} else {

@@ -24,9 +24,16 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-// Signature must be a transparent PNG, not a flat-colored background — check
-// the decoded pixels for any non-opaque alpha value.
-function hasTransparentPixel(dataUrl: string): Promise<boolean> {
+// Signature must be a mostly-transparent PNG (transparent canvas with only
+// opaque pen strokes), not a flat-colored background — require a meaningful
+// fraction of pixels to be transparent rather than just one, otherwise a
+// solid-background scan with a single faked corner pixel would pass. Mirrors
+// hasTransparentBackground() in apps/backend/internal/services/signature.go,
+// which is the check that actually matters since this one only saves the
+// user a round-trip — the backend re-validates regardless.
+const MIN_TRANSPARENT_PIXEL_RATIO = 0.2;
+
+function hasTransparentBackground(dataUrl: string): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -38,10 +45,13 @@ function hasTransparentPixel(dataUrl: string): Promise<boolean> {
       ctx.drawImage(img, 0, 0);
       try {
         const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let transparent = 0;
+        let total = 0;
         for (let i = 3; i < data.length; i += 4) {
-          if (data[i] < 255) { resolve(true); return; }
+          total++;
+          if (data[i] < 128) transparent++;
         }
-        resolve(false);
+        resolve(total > 0 && transparent / total >= MIN_TRANSPARENT_PIXEL_RATIO);
       } catch {
         resolve(true); // can't read pixels (e.g. CORS) — don't block the user
       }
@@ -64,16 +74,24 @@ export default function SignaturePad({ onChange, onModeChange }: { onChange: (ur
   const [savingSig, setSavingSig] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [deletingSaved, setDeletingSaved] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadSaved = () => {
+    setLoadError(false);
+    getSavedSignature()
+      .then((result) => {
+        if (result) {
+          setSaved(result);
+          setMode("saved");
+          onChange(result.url);
+          onModeChange?.("saved");
+        }
+      })
+      .catch(() => setLoadError(true));
+  };
 
   useEffect(() => {
-    getSavedSignature().then((result) => {
-      if (result) {
-        setSaved(result);
-        setMode("saved");
-        onChange(result.url);
-        onModeChange?.("saved");
-      }
-    });
+    loadSaved();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -185,7 +203,7 @@ export default function SignaturePad({ onChange, onModeChange }: { onChange: (ur
     }
 
     const dataUrl = await fileToDataUrl(file);
-    const transparent = await hasTransparentPixel(dataUrl);
+    const transparent = await hasTransparentBackground(dataUrl);
     if (!transparent) {
       setUploadError("กรุณาใช้ไฟล์ PNG ที่มีพื้นหลังโปร่งใส (ไม่มีพื้นหลังสีทึบ)");
       return;
@@ -205,6 +223,15 @@ export default function SignaturePad({ onChange, onModeChange }: { onChange: (ur
           </button>
         )}
       </div>
+
+      {loadError && (
+        <div className="flex items-center justify-between gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mb-1.5">
+          <span>โหลดลายเซ็นที่บันทึกไว้ไม่สำเร็จ</span>
+          <button type="button" onClick={loadSaved} className="font-semibold underline underline-offset-2 shrink-0">
+            ลองใหม่
+          </button>
+        </div>
+      )}
 
       {/* Mode tabs */}
       <div className="flex gap-1.5 mb-1.5">

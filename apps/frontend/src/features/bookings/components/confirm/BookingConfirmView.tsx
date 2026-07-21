@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createBooking } from "@/features/bookings/services/booking.service";
+import { calendarDraftKey } from "@/features/bookings/hooks/useBookingCalendar";
 import { createDocument } from "@/features/payment/services/document.service";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
+import { calculateSlotPrice } from "@/features/bookings/utils/pricing";
 import { cn } from "@/lib/utils";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
@@ -97,10 +99,14 @@ function splitByType(
   return { fullDay, hourly };
 }
 
+interface DocumentEntry {
+  file: File;
+  source: "manual" | "generated";
+}
+
 export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   const router = useRouter();
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [generateDoc, setGenerateDoc] = useState(false);
+  const [documents, setDocuments] = useState<DocumentEntry[]>([]);
   const [showDocModal, setShowDocModal] = useState(false);
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -121,21 +127,37 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
   if (!draft) return null;
 
-  const hasDocument = uploadedFiles.length > 0 || generateDoc;
+  const hasDocument = documents.length > 0;
+  const hasManualUpload = documents.some((d) => d.source === "manual");
+  const hasGeneratedDoc = documents.some((d) => d.source === "generated");
   const { fullDay: fullDaySlots, hourly: hourlySlots } = splitByType(draft.timeslots, room.pricePerDay);
   const fullDayTotal = fullDaySlots.length * (room.pricePerDay ?? 0);
   const hourlyHours = calcTotalHours(hourlySlots);
-  const hourlyTotal = hourlyHours * room.pricePerHour;
+  const hourlyTotal = hourlySlots.reduce(
+    (sum, ts) =>
+      sum +
+      calculateSlotPrice(
+        ts.startTime,
+        ts.endTime,
+        room.pricePerHour,
+        room.pricePerHourOffPeak ?? room.pricePerHour,
+        room.pricePerDay
+      ),
+    0
+  );
   const totalHours = calcTotalHours(draft.timeslots);
   const totalPrice = fullDayTotal + hourlyTotal;
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
-    setUploadedFiles((prev) => [...prev, ...Array.from(files)]);
+    setDocuments((prev) => [
+      ...prev,
+      ...Array.from(files).map((file): DocumentEntry => ({ file, source: "manual" })),
+    ]);
   };
 
   const removeFile = (index: number) =>
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+    setDocuments((prev) => prev.filter((_, i) => i !== index));
 
   const openLocalFile = (file: File) => {
     const url = URL.createObjectURL(file);
@@ -151,27 +173,49 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
   const handleConfirm = async () => {
     if (!draft || !purpose.trim()) return;
+
+    // Guard against degenerate slots (end ≤ start) so we never submit a request
+    // the backend will reject anyway — full-day slots always carry start < end.
+    const hasInvalidSlot = draft.timeslots.some((ts) => !isFullDaySlot(ts) && ts.endTime <= ts.startTime);
+    if (hasInvalidSlot) {
+      const msg = "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม";
+      setSubmitError(msg);
+      toast.error(msg);
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     try {
+      // Send explicit +07:00 (Bangkok) offsets instead of converting through
+      // the browser's local timezone via toISOString() — the backend reads
+      // the clock-time component directly (see calculatePrice/minutesOfDay
+      // in booking.go) to decide office-hours vs. off-peak pricing, so the
+      // wire format must preserve the Thai wall-clock hour the user picked
+      // regardless of what timezone the browser itself is running in.
       const timeslots = draft.timeslots.map((ts) => ({
         location_id: Number(draft.locationId),
-        date: new Date(`${ts.date}T00:00:00`).toISOString(),
-        start_time: new Date(`${ts.date}T${ts.startTime}:00`).toISOString(),
-        end_time: new Date(`${ts.date}T${ts.endTime}:00`).toISOString(),
+        date: `${ts.date}T00:00:00+07:00`,
+        start_time: `${ts.date}T${ts.startTime}:00+07:00`,
+        end_time: `${ts.date}T${ts.endTime}:00+07:00`,
         is_full_day: !!ts.isFullDay,
       }));
       const booking = await createBooking({ purpose: purpose.trim(), timeslots });
       sessionStorage.removeItem(`booking_draft_${room.id}`);
+      sessionStorage.removeItem(calendarDraftKey(room.id));
 
       // Upload each document — ส่งวันที่จองและชื่อสถานที่เพื่อตั้งชื่อไฟล์และจัด folder
       const bookingDate = draft.timeslots[0]?.date; // "YYYY-MM-DD"
-      for (const file of uploadedFiles) {
+      let uploadFailures = 0;
+      for (const { file } of documents) {
         try {
           const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, room.name, booking.id);
           await createDocument({
             booking_id: booking.id,
-            document_type_id: file.type === "application/pdf" ? 2 : 4,
+            // "other" (4) — this generic upload slot has no reliable way to tell
+            // a booking form from an ID card scan etc. from MIME type alone, so
+            // guessing "booking_form" for any PDF mislabeled non-form PDFs too.
+            document_type_id: 4,
             file_name: uploaded.file_name,
             bucket_name: uploaded.bucket_name,
             object_key: uploaded.object_key,
@@ -180,11 +224,19 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             method_id: 1,
           });
         } catch {
-          toast.warning(`อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว`);
+          uploadFailures++;
+          toast.error(
+            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว แต่ต้องอัปโหลดเอกสารนี้ใหม่ในหน้ารายละเอียดการจอง`,
+            { duration: 10000 }
+          );
         }
       }
 
-      router.push("/my-bookings");
+      // A document is required to submit (see the disabled-button guard
+      // below), so if every upload failed, the booking now sits with none —
+      // land the user on the detail page where "อัปโหลดเอกสารเพิ่มเติม" lets
+      // them fix it, instead of the generic list where the gap is invisible.
+      router.push(uploadFailures > 0 ? `/my-bookings/${booking.id}` : "/my-bookings");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
     } finally {
@@ -195,10 +247,12 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
   return (
     <>
     <div className="max-w-7xl mx-auto px-6 py-10">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">สรุปรายละเอียดการจอง</h1>
         <p className="text-gray-500 text-sm mt-1">ตรวจสอบข้อมูลการจองห้องและช่วงเวลาที่เลือกก่อนยืนยัน</p>
       </div>
+
+      <BookingStatusStepper steps={STEPS} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
         {/* ── Left column ──────────────────────────────────────────── */}
@@ -299,27 +353,32 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                 icon={<FileUp size={28} className="text-brand-primary" />}
                 title="อัปโหลดเอกสาร"
                 description="สำหรับผู้ที่มีเอกสารพร้อมแล้ว"
-                selected={uploadedFiles.length > 0}
+                selected={hasManualUpload}
                 onClick={() => fileInputRef.current?.click()}
               />
               <DocCard
                 icon={<FilePen size={28} className="text-brand-primary" />}
                 title="สร้างเอกสารผ่านระบบ"
                 description="สร้างไฟล์ PDF อัตโนมัติจากข้อมูลการจอง"
-                selected={generateDoc}
+                selected={hasGeneratedDoc}
                 onClick={() => setShowDocModal(true)}
               />
             </div>
 
-            {uploadedFiles.length > 0 && (
+            {documents.length > 0 && (
               <div className="mt-4 flex flex-col gap-2">
-                {uploadedFiles.map((file, i) => (
+                {documents.map(({ file, source }, i) => (
                   <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-100">
                     <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
                       <FileText size={14} className="text-brand-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                        <span className="shrink-0 text-[10px] font-medium text-brand-primary bg-orange-50 px-1.5 py-0.5 rounded-full">
+                          {source === "manual" ? "อัปโหลด" : "สร้างอัตโนมัติ"}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -359,7 +418,9 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
           {totalHours > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Receipt size={16} className="text-brand-primary" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-100 text-brand-primary shrink-0">
+                  <Receipt size={15} />
+                </div>
                 <h3 className="font-bold text-gray-900">สรุปค่าใช้จ่าย</h3>
               </div>
               <div className="flex flex-col gap-2 text-sm">
@@ -396,39 +457,8 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             </div>
           )}
 
-          {/* Status stepper */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-5">สถานะการจอง</h3>
-            <div className="flex flex-col">
-              {STEPS.map((step, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold",
-                      step.done ? "bg-brand-primary text-white" : "bg-gray-100 text-gray-400"
-                    )}>
-                      {step.done ? <Check size={14} strokeWidth={3} /> : i + 1}
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <div className="w-px flex-1 bg-gray-100 my-1" style={{ minHeight: 20 }} />
-                    )}
-                  </div>
-                  <div className="pb-5">
-                    <p className={cn(
-                      "text-sm font-semibold",
-                      step.done ? "text-brand-primary" : "text-gray-400"
-                    )}>
-                      {step.label}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Purpose input */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <label className="text-sm font-semibold text-gray-700 block mb-2">
               วัตถุประสงค์การจอง <span className="text-red-400">*</span>
             </label>
@@ -442,7 +472,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
           </div>
 
           {/* Terms and Conditions */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <label className="text-sm font-semibold text-gray-700 block mb-2">
               ข้อตกลงและเงื่อนไข <span className="text-red-400">*</span>
             </label>
@@ -494,10 +524,9 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                 ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับข้อปฏิบัติในการจองพื้นที่ทุกประการ
               </span>
             </label>
-          </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-2">
+            <div className="h-px bg-gray-100 my-4" />
+
             <Button
               onClick={handleConfirm}
               disabled={!hasDocument || !purpose.trim() || !termsAccepted || submitting}
@@ -506,7 +535,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
               {submitting ? "กำลังส่งคำขอ..." : "ยืนยันการจอง"}
             </Button>
             {(!hasDocument || !purpose.trim() || !termsAccepted) && (
-              <p className="text-xs text-red-400 text-center">
+              <p className="text-xs text-red-400 text-center mt-2">
                 {!purpose.trim()
                   ? "กรุณาระบุวัตถุประสงค์การจอง"
                   : !hasDocument
@@ -515,7 +544,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
               </p>
             )}
             {submitError && (
-              <p className="text-xs text-red-500 text-center">{submitError}</p>
+              <p className="text-xs text-red-500 text-center mt-2">{submitError}</p>
             )}
           </div>
 
@@ -547,14 +576,58 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
         room={room}
         timeslots={draft.timeslots}
         purpose={purpose}
+        onPurposeChange={setPurpose}
         onClose={() => setShowDocModal(false)}
         onGenerated={(file) => {
-          setUploadedFiles((prev) => [...prev, file]);
-          setGenerateDoc(true);
+          setDocuments((prev) => [...prev, { file, source: "generated" }]);
         }}
       />
     )}
     </>
+  );
+}
+
+function BookingStatusStepper({ steps }: { steps: typeof STEPS }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-6">
+      <div className="flex items-start">
+        {steps.map((step, i) => (
+          <div key={i} className={cn("flex items-start", i < steps.length - 1 && "flex-1")}>
+            <div className="flex flex-col items-center gap-2 w-16 sm:w-28 shrink-0">
+              <div
+                className={cn(
+                  "w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold",
+                  step.done ? "bg-brand-primary text-white" : "bg-gray-100 text-gray-400"
+                )}
+              >
+                {step.done ? <Check size={15} strokeWidth={3} /> : i + 1}
+              </div>
+              <div className="text-center">
+                <p
+                  className={cn(
+                    "text-[11px] sm:text-xs font-semibold leading-tight",
+                    step.done ? "text-brand-primary" : "text-gray-400"
+                  )}
+                >
+                  {step.label}
+                </p>
+                <p className="hidden sm:block text-[11px] text-gray-400 mt-0.5 leading-snug">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+            {i < steps.length - 1 && (
+              <div
+                className={cn(
+                  "h-px flex-1 mt-4 sm:mt-4.5 mx-1 sm:mx-2",
+                  step.done ? "bg-brand-primary" : "bg-gray-100"
+                )}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -567,8 +640,8 @@ function SectionHeader({ icon, label }: { icon: string; label: string }) {
   const Icon = icons[icon];
   return (
     <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-orange-100 text-brand-primary">
-        {Icon && <Icon size={14} />}
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-100 text-brand-primary shrink-0">
+        {Icon && <Icon size={15} />}
       </div>
       <h2 className="font-bold text-gray-900">{label}</h2>
     </div>

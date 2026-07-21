@@ -42,7 +42,7 @@ func (c *ImageController) Upload(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.storage.UploadMultipart(ctx.Request.Context(), emailImageFolder, fh)
+	result, err := c.storage.UploadMultipart(ctx.Request.Context(), emailImageFolder, fh, ctx.GetUint("user_id"))
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return

@@ -20,13 +20,18 @@ const SEGMENT_LABELS: Record<string, string> = {
   areas: "พื้นที่",
   admin: "จัดการระบบ",
   staff: "Staff Portal",
-  booking: "การจอง",
+  booking: "การขอใช้พื้นที่",
   "manage-rooms": "จัดการห้อง",
-  verify: "ตรวจสอบ",
+  verify: "ตรวจสอบการชำระเงิน",
   "access-setting": "ตั้งค่าสิทธิ์",
   "news-management": "จัดการข่าวสาร",
-  "requests": "คำร้องขอ",
+  requests: "คำร้องขอ",
   "manage-requests": "รายละเอียดคำร้อง",
+  "email-templates": "จัดการเทมเพลตอีเมล",
+  "send": "ส่งอีเมล",
+  "broadcasts": "รายการส่งอีเมล",
+  "manage-halls": "จัดการโถงอาคาร",
+  "calendar": "ปฏิทินรายการขอใช้พื้นที่",
   create: "สร้างใหม่",
   finance: "การเงิน",
   invoices: "ใบแจ้งหนี้",
@@ -50,6 +55,17 @@ const SEGMENT_LABELS: Record<string, string> = {
 const VALID_REFERRER_SECTIONS: Record<string, string[]> = {
   "/bookings": ["/my-bookings", "/dashboard"],
   "/payment": ["/my-bookings"],
+};
+
+// ซ่อน Path ที่ไม่มีหน้า UI จริง เพื่อไม่ให้แสดงเป็นคำคั่นตรงกลาง
+const GHOST_PATHS = new Set([
+  "/admin/payment",
+  "/admin/booking",
+]);
+
+// แทนที่ Path ที่คลิกแล้วให้วิ่งไปหน้าที่ต้องการ (เช่น คลิก "จัดการระบบ" ให้วิ่งไป "แดชบอร์ด")
+const PATH_REDIRECTS: Record<string, string> = {
+  "/admin": "/admin/dashboard",
 };
 
 const SKIP_PATHS = new Set(["/", "/login", "/contact-us"]);
@@ -143,13 +159,16 @@ function computeNext(newPath: string, history: Crumb[]): Crumb[] {
     const lastSection = getSection(last.href);
     if (validReferrers.includes(lastSection)) {
       // เก็บ crumbs จาก referrer section + เพิ่ม URL crumbs ของหน้าใหม่
-      const refCrumbs = history.filter((c) => getSection(c.href) === lastSection);
+      const refCrumbs = history.filter(
+        (c) => getSection(c.href) === lastSection,
+      );
       const newUrlCrumbs = buildUrlCrumbs(newPath).filter(
-        (c) => getSection(c.href) !== lastSection
+        (c) => getSection(c.href) !== lastSection,
       );
       const combined = [...refCrumbs, ...newUrlCrumbs];
-      const sliced = combined.length > MAX_CRUMBS ? combined.slice(-MAX_CRUMBS) : combined;
-      return sanitizeCrumbs(sliced);
+      return combined.length > MAX_CRUMBS
+        ? combined.slice(-MAX_CRUMBS)
+        : combined;
     }
   }
 
@@ -201,11 +220,17 @@ export default function Breadcrumb({ className }: { className?: string }) {
     }
 
     const next = computeNext(pathname, loadCrumbs());
-    saveCrumbs(next);
-    setCrumbs(next);
+    // รีเฟรช label จาก href เสมอ — กัน label เก่าที่ถูก cache ไว้ใน sessionStorage ค้าง
+    // (เช่น crumb ที่ถูกเก็บก่อนเพิ่ม SEGMENT_LABELS จะยังโชว์ seg ดิบ เช่น "send"/"broadcasts")
+    const refreshed = next.map((c) => ({ ...c, label: labelForPath(c.href) }));
+    saveCrumbs(refreshed);
+    setCrumbs(refreshed);
   }, [pathname, mounted]);
 
   if (!mounted || crumbs.length === 0) return null;
+
+  // กรองเอาเฉพาะ Path ที่ไม่ใช่ Ghost Path ออกมาแสดง
+  const displayCrumbs = crumbs.filter((c) => !GHOST_PATHS.has(c.href));
 
   return (
     <nav
@@ -219,9 +244,9 @@ export default function Breadcrumb({ className }: { className?: string }) {
         <Home size={13} />
       </Link>
 
-      {crumbs.map((crumb, i) => {
-        const isLast = i === crumbs.length - 1;
-        const isUnclickable = UNCLICKABLE_PATHS.has(crumb.href);
+      {displayCrumbs.map((crumb, i) => {
+        const isLast = i === displayCrumbs.length - 1;
+        const targetHref = PATH_REDIRECTS[crumb.href] || crumb.href;
         
         return (
           <span
@@ -230,11 +255,11 @@ export default function Breadcrumb({ className }: { className?: string }) {
             style={{ animationDelay: `${i * 40}ms`, animationFillMode: "both" }}
           >
             <ChevronRight size={13} className="text-gray-300 shrink-0" />
-            {isLast || isUnclickable ? (
+            {isLast ? (
               <span className={cn(isLast ? "text-gray-700 font-medium" : "text-gray-400")}>{crumb.label}</span>
             ) : (
               <Link
-                href={crumb.href}
+                href={targetHref}
                 className="text-gray-400 hover:text-brand-primary transition-colors"
               >
                 {crumb.label}

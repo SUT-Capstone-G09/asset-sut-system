@@ -57,6 +57,14 @@ func (r *PaymentRepository) FindStatusByName(name string) (*models.PaymentStatus
 	return &status, err
 }
 
+// FindAllStatuses lets callers resolve a status name to its ID at runtime
+// instead of hardcoding IDs that shift whenever the seeded status list changes.
+func (r *PaymentRepository) FindAllStatuses() ([]models.PaymentStatuses, error) {
+	var statuses []models.PaymentStatuses
+	err := r.db.Order("id").Find(&statuses).Error
+	return statuses, err
+}
+
 func (r *PaymentRepository) FindMethodByID(id uint) (*models.PaymentMethods, error) {
 	var method models.PaymentMethods
 	err := r.db.First(&method, id).Error

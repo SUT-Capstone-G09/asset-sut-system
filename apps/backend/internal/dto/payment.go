@@ -9,7 +9,7 @@ type InvoiceResponse struct {
 	BookingID   uint      `json:"booking_id"`
 	Status      string    `json:"status"`
 	StatusID    uint      `json:"status_id"`
-	TotalAmount int       `json:"total_amount"`
+	TotalAmount float64   `json:"total_amount"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -24,6 +24,13 @@ type CreatePaymentRequest struct {
 type VerifyPaymentRequest struct {
 	StatusID uint   `json:"status_id" binding:"required"`
 	Note     string `json:"note"`
+}
+
+// PaymentStatusResponse lets clients resolve a status name (e.g. "confirmed")
+// to its current ID instead of hardcoding IDs that shift with the seed order.
+type PaymentStatusResponse struct {
+	ID     uint   `json:"id"`
+	Status string `json:"status"`
 }
 
 type PaymentTransactionResponse struct {

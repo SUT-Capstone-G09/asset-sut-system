@@ -5,6 +5,7 @@ import (
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TimeslotRepository struct {
@@ -30,15 +31,50 @@ func (r *TimeslotRepository) FindByLocationAndDate(locationID uint, date time.Ti
 	return slots, err
 }
 
-// IsSlotTaken returns true if any existing booking overlaps [startTime, endTime).
-// Uses start_time/end_time (timestamptz) directly — avoids the unreliable date column.
-func (r *TimeslotRepository) IsSlotTaken(locationID uint, startTime, endTime time.Time) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Timeslots{}).
-		Where(`location_id = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ?`,
-			locationID, endTime, startTime).
-		Count(&count).Error
-	return count > 0, err
+// rejectedOrCancelledBookingIDs is a subquery selecting the IDs of bookings
+// that no longer actually occupy their timeslots. Once a booking is rejected
+// or cancelled, nothing else in this codebase clears its timeslots'
+// booking_id — so every slot-availability query must exclude these statuses
+// explicitly, or a rejected/cancelled booking permanently squats on its slot.
+func (r *TimeslotRepository) rejectedOrCancelledBookingIDs() *gorm.DB {
+	return r.db.Table("bookings").
+		Select("bookings.id").
+		Joins("JOIN booking_statuses ON booking_statuses.id = bookings.status_id").
+		Where("booking_statuses.status IN ?", []string{"rejected", "cancelled"})
+}
+
+// LockOverlapping returns (and row-locks) any existing, booked timeslots for
+// locationID on date that overlap [startTime, endTime). Intended for use
+// inside a transaction that already holds the parent location's FOR UPDATE
+// lock (see LocationRepository.LockByID) — that lock is what actually closes
+// the race; this lock is defense-in-depth and satisfies "SELECT ... FOR
+// UPDATE during the overlap check" directly.
+//
+// start_time/end_time are stored as `type:time` (clock-time only, no date
+// component), so the date column must be filtered explicitly here — without
+// it, two bookings on entirely different dates whose clock-times happen to
+// overlap would be reported as conflicting.
+func (r *TimeslotRepository) LockOverlapping(locationID uint, date, startTime, endTime time.Time) ([]models.Timeslots, error) {
+	var slots []models.Timeslots
+	err := r.db.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where(`location_id = ? AND date = ? AND booking_id IS NOT NULL AND start_time < ? AND end_time > ? AND booking_id NOT IN (?)`,
+			locationID, date.Format("2006-01-02"), endTime, startTime, r.rejectedOrCancelledBookingIDs()).
+		Find(&slots).Error
+	return slots, err
+}
+
+// FindBookedSlotsByLocationsAndDates returns booked timeslots across many
+// locations and (not-necessarily-contiguous) dates in a single query, for
+// batch availability checks (e.g. room search across a whole result page)
+// instead of one query per location.
+func (r *TimeslotRepository) FindBookedSlotsByLocationsAndDates(locationIDs []uint, dates []string) ([]models.Timeslots, error) {
+	var slots []models.Timeslots
+	err := r.db.
+		Where("location_id IN (?) AND date IN (?) AND booking_id IS NOT NULL AND booking_id NOT IN (?)",
+			locationIDs, dates, r.rejectedOrCancelledBookingIDs()).
+		Find(&slots).Error
+	return slots, err
 }
 
 func (r *TimeslotRepository) Create(ts *models.Timeslots) error {
@@ -60,15 +96,18 @@ func (r *TimeslotRepository) FindStatusByName(name string) (*models.TimeslotStat
 }
 
 // FindBookedSlotsByMonth returns all booked timeslots for a location within a given month.
-// Uses start_time range in Bangkok timezone to match what users actually see on the calendar.
+// Filters on the `date` column (not start_time) to match FindByLocationAndDate/
+// LockOverlapping in this file — date is what actually determines which
+// calendar cell a booking belongs to, and doesn't depend on start_time's date
+// component staying in sync with it.
 func (r *TimeslotRepository) FindBookedSlotsByMonth(locationID uint, year, month int) ([]models.Timeslots, error) {
 	bkk, _ := time.LoadLocation("Asia/Bangkok")
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, bkk)
 	end := start.AddDate(0, 1, 0)
 	var slots []models.Timeslots
 	err := r.db.
-		Where("location_id = ? AND start_time >= ? AND start_time < ? AND booking_id IS NOT NULL",
-			locationID, start, end).
+		Where("location_id = ? AND date >= ? AND date < ? AND booking_id IS NOT NULL AND booking_id NOT IN (?)",
+			locationID, start.Format("2006-01-02"), end.Format("2006-01-02"), r.rejectedOrCancelledBookingIDs()).
 		Find(&slots).Error
 	return slots, err
 }

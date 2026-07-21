@@ -11,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,8 @@ import { listBroadcasts } from "../../services/email-broadcast.service";
 import type { BroadcastSummary } from "../../types";
 
 const POLL_MS = 4000;
+// หยุด poll อัตโนมัติหลังครบเวลานี้ กัน API ถูกยิงไม่รู้จบตอน backend ค้าง (ผู้ใช้กด "รีเฟรช" ต่อได้)
+const MAX_POLL_MS = 5 * 60 * 1000;
 
 // Derives a single overall badge state from per-recipient counts.
 function statusOf(b: BroadcastSummary) {
@@ -37,12 +40,15 @@ export default function BroadcastList() {
   const [items, setItems] = useState<BroadcastSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Load once, then keep polling while any broadcast still has work in flight so
   // progress updates live. setState runs after the await (not in the effect body).
   useEffect(() => {
     let ignore = false;
     let timer: ReturnType<typeof setTimeout>;
+    const startedAt = Date.now();
     const load = async () => {
       try {
         const data = await listBroadcasts();
@@ -51,7 +57,12 @@ export default function BroadcastList() {
         setError(null);
         setLoading(false);
         if (data.some((b) => b.counts.pending + b.counts.sending > 0)) {
-          timer = setTimeout(load, POLL_MS);
+          // หยุด poll เมื่อครบเวลาสูงสุด แล้วให้ผู้ใช้กดรีเฟรชเอง (กันยิง API ไม่รู้จบตอน backend ค้าง)
+          if (Date.now() - startedAt >= MAX_POLL_MS) {
+            setStale(true);
+          } else {
+            timer = setTimeout(load, POLL_MS);
+          }
         }
       } catch (e) {
         if (ignore) return;
@@ -59,12 +70,13 @@ export default function BroadcastList() {
         setLoading(false);
       }
     };
+    setStale(false);
     load();
     return () => {
       ignore = true;
       clearTimeout(timer);
     };
-  }, []);
+  }, [reloadKey]);
 
   return (
     <div className="space-y-4">
@@ -76,8 +88,16 @@ export default function BroadcastList() {
       )}
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">
+        <p className="flex items-center gap-2 text-sm text-gray-400">
           {loading ? "กำลังโหลด..." : `ทั้งหมด ${items.length} ครั้ง`}
+          {stale && (
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> อัปเดตหยุดชั่วคราว · รีเฟรช
+            </button>
+          )}
         </p>
         <Button asChild className="bg-brand-primary text-white hover:bg-brand-primary/90">
           <Link href="/admin/email-templates/send">

@@ -13,11 +13,14 @@ export interface Room {
   capacityMin: number;
   capacityMax: number;
   pricePerHour: number;
+  pricePerHourOffPeak?: number;
   pricePerDay?: number;
   amenities: string[];
   image: string;
   badge?: RoomBadge;
   availability: AvailabilityStatus;
+  type?: string; // ประเภทสถานที่ (เช่น "โถงอาคาร") — ใช้แยก flow การจองโถง
+  buildingId?: number; // อาคารของสถานที่ (FK) — ใช้กับราคา/ผังโถง
 }
 
 export interface RoomSearchParams {

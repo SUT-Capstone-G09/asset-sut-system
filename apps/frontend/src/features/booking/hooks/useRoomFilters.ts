@@ -13,6 +13,7 @@ import {
   deleteLocation,
   savePricingTiers,
   locationToRoom,
+  getStaffBuildings,
 } from "../services/locationService";
 import { getCurrentUser } from "@/lib/utils/auth";
 
@@ -33,7 +34,18 @@ export function useRoomFilters() {
   const fetchRooms = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, types] = await Promise.all([getLocations(), getLocationTypes()]);
+      const [allData, types, staffBuildings] = await Promise.all([
+        getLocations(), 
+        getLocationTypes(),
+        currentUser?.role === "staff" ? getStaffBuildings(currentUser.id) : Promise.resolve(null),
+      ]);
+
+      let data = allData;
+      if (currentUser?.role === "staff" && staffBuildings) {
+        const allowedBuildingIds = new Set(staffBuildings.map(b => b.id));
+        data = data.filter(loc => loc.building_id && allowedBuildingIds.has(loc.building_id));
+      }
+
       setRooms(data.map(locationToRoom));
 
       const dtoMap = new Map<string, AdminLocationDTO>();
@@ -86,7 +98,7 @@ export function useRoomFilters() {
     const created = await createLocation({
       type_id: typeId,
       name: newRoom.roomName,
-      building: newRoom.building || undefined,
+      building_id: newRoom.buildingId ? Number(newRoom.buildingId) : undefined,
       image_url: newRoom.image || undefined,
       room_number: newRoom.roomNumber ? parseInt(newRoom.roomNumber) : undefined,
       capacity: newRoom.capacity,
@@ -121,7 +133,7 @@ export function useRoomFilters() {
     await updateLocation(Number(updatedRoom.id), {
       ...(typeId && { type_id: typeId }),
       name: updatedRoom.roomName,
-      building: updatedRoom.building || undefined,
+      building_id: updatedRoom.buildingId ? Number(updatedRoom.buildingId) : undefined,
       ...(newImageKey !== undefined && { image_url: newImageKey }),
       room_number: updatedRoom.roomNumber ? parseInt(updatedRoom.roomNumber) : undefined,
       capacity: updatedRoom.capacity,

@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"time"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
 )
@@ -50,6 +52,16 @@ func (r *EmailOutboxRepository) MarkFailed(id uint, attempts int, lastErr string
 
 func (r *EmailOutboxRepository) RequeueStuckSending() (int64, error) {
 	res := r.db.Model(&models.EmailOutbox{}).Where("status = ?", models.OutboxSending).
+		Update("status", models.OutboxPending)
+	return res.RowsAffected, res.Error
+}
+
+// RequeueStuckSendingOlderThan กู้ row ที่ค้างสถานะ 'sending' นานเกินกำหนด (updated_at เก่ากว่า cutoff)
+// กลับเป็น 'pending' — ใช้กวาดเป็นระยะระหว่างรัน (self-healing) เผื่อ process ตายกลางคัน
+// หรือ mark status ไม่สำเร็จ จะได้ไม่ค้างถาวรจนกว่าจะ restart (RequeueStuckSending รันแค่ตอน startup)
+func (r *EmailOutboxRepository) RequeueStuckSendingOlderThan(cutoff time.Time) (int64, error) {
+	res := r.db.Model(&models.EmailOutbox{}).
+		Where("status = ? AND updated_at < ?", models.OutboxSending, cutoff).
 		Update("status", models.OutboxPending)
 	return res.RowsAffected, res.Error
 }

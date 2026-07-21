@@ -32,9 +32,6 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
           onNext={cal.nextMonth}
           onToday={cal.goToToday}
           onClearAll={cal.clearAll}
-          onSelectWeekend={cal.selectWeekend}
-          onSelectNextWeekdays={cal.selectNextWeekdays}
-          onSelectThisWeek={cal.selectThisWeek}
           getDayInfo={cal.getDayInfo}
         />
 
@@ -47,6 +44,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
             removeDate={cal.removeDate}
             fullDayDates={cal.fullDayDates}
             toggleFullDay={cal.toggleFullDay}
+            hasExistingBooking={cal.hasExistingBooking}
             isFullDayAvailable={cal.isFullDayAvailable}
             allFullDay={cal.allFullDay}
             setAllFullDay={cal.setAllFullDay}

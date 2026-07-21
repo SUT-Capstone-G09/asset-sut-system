@@ -64,6 +64,17 @@ export async function getAllPayments(): Promise<PaymentTransactionDTO[]> {
   return apiClient.get<PaymentTransactionDTO[]>("/payments");
 }
 
+export interface PaymentStatusDTO {
+  id: number;
+  status: string;
+}
+
+// The seeded status list (and therefore each status's ID) can change over
+// time — look statuses up by name instead of hardcoding IDs in callers.
+export async function getPaymentStatuses(): Promise<PaymentStatusDTO[]> {
+  return apiClient.get<PaymentStatusDTO[]>("/payments/statuses");
+}
+
 // ── QR generation ──────────────────────────────────────────────────────────
 
 export type QRMode = "promptpay" | "biller";

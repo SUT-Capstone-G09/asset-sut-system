@@ -21,16 +21,13 @@ interface MonthlyCalendarProps {
   onNext: () => void;
   onToday: () => void;
   onClearAll: () => void;
-  onSelectWeekend: () => void;
-  onSelectNextWeekdays: () => void;
-  onSelectThisWeek: () => void;
   getDayInfo: (date: Date) => DayInfo;
 }
 
 export default function MonthlyCalendar({
   currentMonth, today, minBookableDate, selectedDates,
   onToggleDate, onPrev, onNext, onToday,
-  onClearAll, onSelectWeekend, onSelectNextWeekdays, onSelectThisWeek,
+  onClearAll,
   getDayInfo,
 }: MonthlyCalendarProps) {
   const monthStart = startOfMonth(currentMonth);
@@ -64,22 +61,7 @@ export default function MonthlyCalendar({
         </div>
       </div>
 
-      {/* Quick Select */}
       <div className="flex flex-wrap gap-2 text-sm">
-        <span className="text-gray-500 self-center">เลือกเร็ว:</span>
-        {[
-          { label: "สุดสัปดาห์นี้", fn: onSelectWeekend },
-          { label: "สัปดาห์หน้า (จ-ศ)", fn: onSelectNextWeekdays },
-          { label: "ทั้งสัปดาห์", fn: onSelectThisWeek },
-        ].map(({ label, fn }) => (
-          <button
-            key={label}
-            onClick={fn}
-            className="px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-brand-primary hover:text-brand-primary transition-colors"
-          >
-            {label}
-          </button>
-        ))}
         <button
           onClick={onClearAll}
           className="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500 transition-colors flex items-center gap-1"
@@ -96,6 +78,22 @@ export default function MonthlyCalendar({
           <span className="font-semibold">{format(minBookableDate, "d MMMM yyyy", { locale: th })}</span>{" "}
           เป็นต้นไป
         </span>
+      </div>
+
+      {/* Legend — shown before the grid so color meanings are known before picking */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {[
+          { color: "bg-brand-primary", label: "เลือกแล้ว" },
+          { color: "bg-white border border-gray-200", label: "ว่าง" },
+          { color: "bg-red-50 border border-red-100", label: "เต็ม" },
+          { color: "bg-orange-50 border border-orange-100", label: "มีช่วงเวลาที่ถูกจอง" },
+          { color: "bg-gray-100", label: "ไม่เปิดให้บริการ" },
+        ].map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className={cn("w-3.5 h-3.5 rounded-sm shrink-0", color)} />
+            <span className="text-xs text-gray-500">{label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Day-of-week headers */}
@@ -180,22 +178,6 @@ export default function MonthlyCalendar({
             </button>
           );
         })}
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-100">
-        {[
-          { color: "bg-brand-primary", label: "เลือกแล้ว" },
-          { color: "bg-white border border-gray-200", label: "ว่าง" },
-          { color: "bg-red-50 border border-red-100", label: "เต็ม" },
-          { color: "bg-orange-50 border border-orange-100", label: "มีช่วงเวลาที่ถูกจอง" },
-          { color: "bg-gray-100", label: "ไม่เปิดให้บริการ" },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={cn("w-3.5 h-3.5 rounded-sm shrink-0", color)} />
-            <span className="text-xs text-gray-500">{label}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

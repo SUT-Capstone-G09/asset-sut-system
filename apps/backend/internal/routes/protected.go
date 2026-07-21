@@ -17,5 +17,7 @@ func SetupProtectedRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		protected.GET("/me/admin", middleware.RequireRole("admin"), deps.AdminController.GetMyProfile)
 		protected.GET("/me/staff", middleware.RequireRole("staff"), deps.StaffController.GetMyProfile)
 		protected.GET("/me/requester", middleware.RequireRole("requester", "user"), deps.RequesterController.GetMyProfile)
+
+		protected.GET("/staffs/:id/locations", middleware.RequireRole("admin", "staff"), deps.LocationController.GetStaffLocations)
 	}
 }

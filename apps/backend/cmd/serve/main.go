@@ -98,7 +98,7 @@ func main() {
 	locationCtrl := controllers.NewLocationController(locationService)
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService, paymentVerifyService)
-	documentCtrl := controllers.NewDocumentController(documentService)
+	documentCtrl := controllers.NewDocumentController(documentService, bookingService)
 	rentalSpaceCtrl := controllers.NewRentalSpaceController(rentalSpaceService)
 	floorPlanCtrl := controllers.NewFloorPlanController(floorPlanService)
 	mapLayerCtrl := controllers.NewMapLayerController(mapLayerService)

@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { Coins } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import BookingHeader from "@/features/booking/components/booking/BookingHeader";
 import RoomFilters from "@/features/booking/components/rooms/RoomFilters";
 import HallGrid from "@/features/halls/components/admin/HallGrid";
 import HallCreateDrawer from "@/features/halls/components/admin/HallCreateDrawer";
+import HallPricingDrawer from "@/features/halls/components/admin/HallPricingDrawer";
 import { useHalls } from "@/features/halls/hooks/useHalls";
 
 export default function ManageHallsPage() {
   const {
     loading,
     isAdmin,
+    pricingVersion,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -30,6 +34,7 @@ export default function ManageHallsPage() {
   } = useHalls();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   return (
     <div className="p-8 space-y-8">
@@ -37,11 +42,20 @@ export default function ManageHallsPage() {
         title="จัดการโถงพื้นที่"
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
-          { label: "การจองพื้นที่" },
           { label: "จัดการโถงพื้นที่" },
         ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="เพิ่มโถงพื้นที่"
+        extraAction={
+          <Button
+            variant="outline"
+            onClick={() => setIsPricingOpen(true)}
+            className="h-11 px-5 rounded-[7px] font-bold text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 cursor-pointer"
+          >
+            <Coins size={18} strokeWidth={2.5} className="text-primary" />
+            <span>ตั้งราคาโถงตามอาคาร</span>
+          </Button>
+        }
       />
 
       <RoomFilters
@@ -67,12 +81,18 @@ export default function ManageHallsPage() {
         onEdit={handleEditHall}
         onDelete={handleDeleteHall}
         canDelete={isAdmin}
+        pricingVersion={pricingVersion}
       />
 
       <HallCreateDrawer
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSave={handleAddHall}
+      />
+
+      <HallPricingDrawer
+        open={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
       />
     </div>
   );

@@ -117,7 +117,7 @@ func LoadConfig() (*Config, error) {
 			Password: mustGetEnv("POSTGRES_PASSWORD"),
 			DBName:   mustGetEnv("POSTGRES_DB"),
 			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
-			LogMode:  getEnv("POSTGRES_LOGMODE", "false"),
+			LogMode:  getEnv("POSTGRES_LOG_MODE", "error"),
 		},
 		Server: ServerConfig{
 			Port:          getEnv("SERVER_PORT", "8080"),
@@ -140,7 +140,7 @@ func LoadConfig() (*Config, error) {
 			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
 			AccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
 			SecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
-			Bucket:    getEnv("MINIO_BUCKET", "payment-qr"),
+			Bucket:    getEnv("MINIO_BUCKET", "asset-sut"),
 			UseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
 			URLExpiry: parseDuration(getEnv("MINIO_URL_EXPIRY", "15m")),
 		},

@@ -1,6 +1,6 @@
 "use client"
 
-import { MapPin, ArrowRight, Banknote, LayoutGrid } from "lucide-react";
+import { MapPin, ArrowRight, LayoutGrid } from "lucide-react";
 import { Hall } from "../../types/hall";
 import { cn } from "@/lib/utils";
 import {
@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardContent,
   CardFooter,
 } from "@/components/ui/card";
 
@@ -93,25 +92,7 @@ export default function HallCard({ hall, hasFloorPlan, onClick }: HallCardProps)
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="p-5 py-4 space-y-3">
-        {/* Rate Info */}
-        <div className="rounded-[7px] bg-slate-50 px-4 py-3 flex items-start gap-2.5">
-          <Banknote size={14} className="text-slate-400 mt-0.5 shrink-0" />
-          <div className="min-w-0 text-left">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">อัตราค่าใช้จ่าย (ภายใน)</p>
-            {hall.rates.hourlyInternal > 0 ? (
-              <p className="text-[14px] font-black text-slate-700 mt-1">
-                ฿{hall.rates.hourlyInternal.toLocaleString()}
-                <span className="text-[11px] font-normal text-slate-500">/ชม.</span>
-              </p>
-            ) : (
-              <p className="text-[11px] font-bold text-amber-500 mt-1">ยังไม่ได้กำหนดราคา</p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-
-      <CardFooter className="p-5 pt-0">
+      <CardFooter className="p-5 pt-4">
         <button
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[7px] bg-slate-50 py-3",

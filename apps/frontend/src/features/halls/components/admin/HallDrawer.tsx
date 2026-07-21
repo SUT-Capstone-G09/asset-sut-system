@@ -1,23 +1,28 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   X,
-  MapPin,
   Wrench,
   Pencil,
   Trash2,
   FileText,
   Building,
-  CreditCard,
   LayoutGrid,
 } from "lucide-react";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import HallEditDrawer from "./HallEditDrawer";
 import HallFloorPlanModal from "./floorplan/HallFloorPlanModal";
+import HallPurposePricing from "./HallPurposePricing";
 import { useAppDialog } from "../../hooks/useAppDialog";
 import { toast } from "sonner";
 
@@ -26,10 +31,17 @@ interface HallDrawerProps {
   open: boolean;
   onClose: () => void;
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
-  onEdit: (updatedHall: Hall) => void;
+  // ต้อง return promise ให้ HallEditDrawer await ได้ ไม่งั้น error ตอนบันทึกจะเงียบหาย
+  onEdit: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
   onDelete: (id: string) => void;
   canDelete?: boolean;
   onFloorPlanChange?: () => void;
+  // เปลี่ยนค่าทุกครั้งที่บันทึกสำเร็จ — drawer นี้ไม่ได้ปิดตอนแก้ไข (HallEditDrawer ซ้อนอยู่ข้างบน)
+  // ราคาจึงค้างถ้าไม่มีสัญญาณบอกให้โหลดใหม่
+  pricingVersion?: number;
 }
 
 export default function HallDrawer({
@@ -41,6 +53,7 @@ export default function HallDrawer({
   onDelete,
   canDelete = true,
   onFloorPlanChange,
+  pricingVersion = 0,
 }: HallDrawerProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false);
@@ -66,7 +79,9 @@ export default function HallDrawer({
   const handleToggleStatus = () => {
     const nextStatus = isAvailable ? "maintenance" : "available";
     onUpdateStatus(hall.id, nextStatus);
-    toast.success(`เปลี่ยนสถานะเป็น ${nextStatus === "available" ? "ใช้งานได้" : "ปิดปรับปรุง"} เรียบร้อยแล้ว`);
+    toast.success(
+      `เปลี่ยนสถานะเป็น ${nextStatus === "available" ? "ใช้งานได้" : "ปิดปรับปรุง"} เรียบร้อยแล้ว`,
+    );
   };
 
   return (
@@ -78,12 +93,20 @@ export default function HallDrawer({
           className="w-full sm:max-w-[540px] p-0 border-none bg-slate-50/50 backdrop-blur-md flex flex-col h-full shadow-2xl"
         >
           {/* a11y: ชื่อ/คำอธิบายสำหรับ screen reader (ซ่อนด้วยสายตา) */}
-          <SheetTitle className="sr-only">รายละเอียดโถงพื้นที่ {hall.name}</SheetTitle>
-          <SheetDescription className="sr-only">ข้อมูล สถานะ ราคา และการจัดการผังพื้นที่ของ {hall.name}</SheetDescription>
+          <SheetTitle className="sr-only">
+            รายละเอียดโถงพื้นที่ {hall.name}
+          </SheetTitle>
+          <SheetDescription className="sr-only">
+            ข้อมูล สถานะ ราคา และการจัดการผังพื้นที่ของ {hall.name}
+          </SheetDescription>
 
           {/* Header Image */}
           <div className="relative h-64 w-full shrink-0 bg-slate-200">
-            <img src={hall.image} alt={hall.name} className="w-full h-full object-cover" />
+            <img
+              src={hall.image}
+              alt={hall.name}
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
 
             <button
@@ -97,7 +120,9 @@ export default function HallDrawer({
               <span className="px-2.5 py-0.5 rounded-[4px] bg-[#f26522] text-white text-[9px] font-black uppercase tracking-wider">
                 {hall.category}
               </span>
-              <h2 className="text-2xl font-black text-white truncate mt-2 leading-tight">{hall.name}</h2>
+              <h2 className="text-2xl font-black text-white truncate mt-2 leading-tight">
+                {hall.name}
+              </h2>
               <p className="text-xs font-bold text-white/70 mt-1 flex items-center gap-1.5">
                 <Building size={14} className="text-[#f26522]" />
                 {hall.building}
@@ -109,10 +134,22 @@ export default function HallDrawer({
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
             {/* Status */}
             <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between text-left">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">สถานะการใช้งาน</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                สถานะการใช้งาน
+              </span>
               <div className="flex items-center gap-2 mt-2">
-                <div className={cn("size-3 rounded-full animate-pulse", isAvailable ? "bg-emerald-500" : "bg-red-400")} />
-                <span className={cn("text-base font-black", isAvailable ? "text-emerald-600" : "text-red-500")}>
+                <div
+                  className={cn(
+                    "size-3 rounded-full animate-pulse",
+                    isAvailable ? "bg-emerald-500" : "bg-red-400",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-base font-black",
+                    isAvailable ? "text-emerald-600" : "text-red-500",
+                  )}
+                >
                   {isAvailable ? "ใช้งานได้" : "ปิดปรับปรุง"}
                 </span>
               </div>
@@ -125,7 +162,8 @@ export default function HallDrawer({
                 ผังพื้นที่ (Floor Plan)
               </h3>
               <p className="text-xs font-semibold text-slate-500 leading-relaxed">
-                อัปโหลดรูปผัง top-view, ตั้งสเกลระยะจริง, ปรับกรอบกริด และระบายช่องห้ามจอง
+                อัปโหลดรูปผัง top-view, ตั้งสเกลระยะจริง, ปรับกรอบกริด
+                และระบายช่องห้ามจอง
               </p>
               <Button
                 onClick={() => setIsFloorPlanOpen(true)}
@@ -136,41 +174,8 @@ export default function HallDrawer({
               </Button>
             </div>
 
-            {/* Rates */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4 text-left">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard size={14} className="text-[#f26522]" />
-                อัตราค่าใช้จ่าย
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายชั่วโมง (Hourly)</span>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคลากรภายใน:</span>
-                      <span className="text-[#f26522]">{hall.rates?.hourlyInternal || 0} ฿</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคคลภายนอก:</span>
-                      <span>{hall.rates?.hourlyExternal || 0} ฿</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายวัน (Daily)</span>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคลากรภายใน:</span>
-                      <span className="text-[#0284c7]">{hall.rates?.dailyInternal || 0} ฿</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคคลภายนอก:</span>
-                      <span>{hall.rates?.dailyExternal || 0} ฿</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Rates — ราคาอาคารเป็นขั้นต่ำ + ราคาเฉพาะโถงถ้าเป็นทำเลทอง */}
+            <HallPurposePricing key={`${hall.id}:${pricingVersion}`} hallId={hall.id} />
 
             {/* Notes */}
             {hall.notes && (
@@ -194,7 +199,7 @@ export default function HallDrawer({
                 "flex-1 h-12 rounded-[7px] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer",
                 isAvailable
                   ? "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20"
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20",
               )}
             >
               <Wrench size={16} className="mr-2" />
@@ -226,10 +231,7 @@ export default function HallDrawer({
         hall={hall}
         open={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        onSave={(updatedHall) => {
-          onEdit(updatedHall);
-          Object.assign(hall, updatedHall);
-        }}
+        onSave={onEdit}
       />
 
       <HallFloorPlanModal
