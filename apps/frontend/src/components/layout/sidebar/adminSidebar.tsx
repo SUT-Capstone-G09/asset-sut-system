@@ -15,6 +15,7 @@ import {
   Mail,
   LayoutGrid,
   ChevronDown,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
@@ -59,18 +60,15 @@ const menuGroups: MenuGroup[] = [
     items: [
       {
         id: "areas",
-        label: "พื้นที่เช่า",
+        label: "พื้นที่เช่า & ร้านค้า",
         icon: Building,
-        href: "/admin/areas",
+        href: "/admin/space-rental",
       },
       {
-        id: "tenants",
-        label: "ผู้ประกอบการ & ร้านค้า",
-        icon: Store,
-        subItems: [
-          { label: "รายชื่อผู้ประกอบการ", href: "/admin/tenants/lists" },
-          { label: "ผลการประเมินผู้ประกอบการ", href: "/admin/tenants/eval" },
-        ],
+        id: "evaluations",
+        label: "ผลการประเมินร้านค้า",
+        icon: Star,
+        href: "/admin/tenants/eval",
       },
       {
         id: "contracts",

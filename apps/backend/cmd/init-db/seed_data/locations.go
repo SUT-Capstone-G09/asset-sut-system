@@ -101,6 +101,10 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 	if err := db.Where("type = ?", "daily").First(&dailyRate).Error; err != nil {
 		return err
 	}
+	var offpeakRate models.RateTypes
+	if err := db.Where("type = ?", "hourly_offpeak").First(&offpeakRate).Error; err != nil {
+		return err
+	}
 	var internalType models.RequesterTypes
 	if err := db.Where("type = ?", "ผู้ขอใช้บริการภายใน").First(&internalType).Error; err != nil {
 		return err
@@ -111,6 +115,13 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	for _, r := range roomSeeds {
+		// Get or create building — done unconditionally (not just for new
+		// locations) so pre-existing seeded locations get backfilled below too.
+		var bldg models.Buildings
+		if err := db.FirstOrCreate(&bldg, models.Buildings{Name: r.Building}).Error; err != nil {
+			return err
+		}
+
 		// Get or create location (existing locations are reused so newly added
 		// pricing tiers below still get applied to them)
 		var location models.Locations
@@ -120,15 +131,6 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 			if err := db.FirstOrCreate(&locType, models.LocationTypes{Type: r.TypeName}).Error; err != nil {
 				return err
 			}
-
-			// Get or create building (ราคาโถงย้ายไปตั้งในตาราง BuildingHallPricings — ดู seedBuildingHallPricings)
-			var bldg models.Buildings
-			if err := db.
-				Where(models.Buildings{Name: r.Building}).
-				FirstOrCreate(&bldg).Error; err != nil {
-				return err
-			}
-
 			location = models.Locations{
 				Name:        r.Name,
 				BuildingID:  &bldg.ID,
@@ -138,6 +140,12 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 				FloorNumber: r.FloorNumber,
 			}
 			if err := db.Create(&location).Error; err != nil {
+				return err
+			}
+		} else if location.BuildingID == nil {
+			// Backfill: location already existed from before buildings were tracked.
+			location.BuildingID = &bldg.ID
+			if err := db.Model(&location).Update("building_id", bldg.ID).Error; err != nil {
 				return err
 			}
 		}
@@ -156,11 +164,14 @@ func seedLocations(db *gorm.DB, cfg *config.Config) error {
 			db.FirstOrCreate(&le, models.LocationEquipments{LocationID: location.ID, EquipmentID: eq.ID})
 		}
 
-		// Pricing tiers — internal & external, hourly & daily.
+		// Pricing tiers — internal & external, hourly (office hours), hourly_offpeak & daily.
 		// Daily rate ≈ 8 effective hours (discount vs. booking by the hour all day).
+		// Off-peak rate defaults to 1.5x the office-hours rate; admins can adjust per location later.
 		tiers := []models.LocationPricingTiers{
 			{LocationID: location.ID, RequesterTypeID: internalType.ID, RateTypeID: hourlyRate.ID, Price: r.PriceHourly},
 			{LocationID: location.ID, RequesterTypeID: externalType.ID, RateTypeID: hourlyRate.ID, Price: r.PriceHourly * 2},
+			{LocationID: location.ID, RequesterTypeID: internalType.ID, RateTypeID: offpeakRate.ID, Price: r.PriceHourly * 3 / 2},
+			{LocationID: location.ID, RequesterTypeID: externalType.ID, RateTypeID: offpeakRate.ID, Price: (r.PriceHourly * 2) * 3 / 2},
 			{LocationID: location.ID, RequesterTypeID: internalType.ID, RateTypeID: dailyRate.ID, Price: r.PriceHourly * 8},
 			{LocationID: location.ID, RequesterTypeID: externalType.ID, RateTypeID: dailyRate.ID, Price: (r.PriceHourly * 2) * 8},
 		}

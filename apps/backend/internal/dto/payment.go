@@ -26,6 +26,13 @@ type VerifyPaymentRequest struct {
 	Note     string `json:"note"`
 }
 
+// PaymentStatusResponse lets clients resolve a status name (e.g. "confirmed")
+// to its current ID instead of hardcoding IDs that shift with the seed order.
+type PaymentStatusResponse struct {
+	ID     uint   `json:"id"`
+	Status string `json:"status"`
+}
+
 type PaymentTransactionResponse struct {
 	ID             uint       `json:"id"`
 	InvoiceID      uint       `json:"invoice_id"`

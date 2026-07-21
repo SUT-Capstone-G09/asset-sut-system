@@ -345,9 +345,6 @@ export default function HallBookingView({ room }: Props) {
           onNext={cal.nextMonth}
           onToday={cal.goToToday}
           onClearAll={cal.clearAll}
-          onSelectWeekend={cal.selectWeekend}
-          onSelectNextWeekdays={cal.selectNextWeekdays}
-          onSelectThisWeek={cal.selectThisWeek}
           getDayInfo={cal.getDayInfo}
         />
 

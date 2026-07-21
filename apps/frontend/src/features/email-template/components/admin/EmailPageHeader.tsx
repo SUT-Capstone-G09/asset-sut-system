@@ -1,14 +1,22 @@
+import {
+  AssetBreadcrumb,
+  type BreadcrumbItemType,
+} from "@/components/layout/AssetBreadcrumb";
+
 interface EmailPageHeaderProps {
+  breadcrumbs: BreadcrumbItemType[];
   title: string;
   description?: string;
 }
 
 export default function EmailPageHeader({
+  breadcrumbs,
   title,
   description,
 }: EmailPageHeaderProps) {
   return (
     <div className="space-y-4">
+      <AssetBreadcrumb items={breadcrumbs} />
       <div>
         <h1 className="page-title text-2xl font-black text-slate-900 tracking-tight">
           {title}

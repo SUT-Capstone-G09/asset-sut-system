@@ -52,6 +52,10 @@ func (c *BookingController) GetByID(ctx *gin.Context) {
 		response.NotFound(ctx, "booking not found")
 		return
 	}
+	if !isOwnerOrStaff(ctx, booking.UserID) {
+		response.NotFound(ctx, "booking not found")
+		return
+	}
 	response.OK(ctx, booking)
 }
 
@@ -163,6 +167,15 @@ func (c *BookingController) GetInvoice(ctx *gin.Context) {
 	id, err := parseID(ctx)
 	if err != nil {
 		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	booking, err := c.bookingService.GetByID(id)
+	if err != nil {
+		response.NotFound(ctx, "invoice not found")
+		return
+	}
+	if !isOwnerOrStaff(ctx, booking.UserID) {
+		response.NotFound(ctx, "invoice not found")
 		return
 	}
 	invoice, err := c.invoiceService.GetByBookingID(id)

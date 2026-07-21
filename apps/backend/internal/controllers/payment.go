@@ -97,6 +97,17 @@ func (c *PaymentController) VerifySlip(ctx *gin.Context) {
 	response.OK(ctx, resp)
 }
 
+// GetAllStatuses returns every payment status (id + name) so clients can
+// resolve a status by name instead of hardcoding IDs.
+func (c *PaymentController) GetAllStatuses(ctx *gin.Context) {
+	resp, err := c.paymentService.GetAllStatuses()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, resp)
+}
+
 // GetAll returns all payment transactions.
 func (c *PaymentController) GetAll(ctx *gin.Context) {
 	resp, err := c.paymentService.GetAll()
@@ -131,7 +142,7 @@ func (c *PaymentController) Create(ctx *gin.Context) {
 		return
 	}
 
-	resp, err := c.paymentService.Create(req)
+	resp, err := c.paymentService.Create(ctx.GetUint("user_id"), ctx.GetString("role"), req)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return

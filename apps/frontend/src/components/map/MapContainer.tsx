@@ -3,11 +3,11 @@
 import { MapContainer as LeafletMap, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { useRouter } from 'next/navigation';
-import { Location } from '@/features/areas/types/location';
+import { RentalSpace } from '@/features/space-rental/types/rental-space';
 import { MapPin } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { useEffect, useRef } from 'react';
-import { getCategoryIcon } from '@/features/areas/components/public/LocationCard';
+import { getCategoryIcon } from '@/utils/commercial-category-icons';
 
 const customIcon = L.divIcon({
   html: renderToString(
@@ -22,7 +22,7 @@ const customIcon = L.divIcon({
 });
 
 interface MapContainerProps {
-  locations: Location[];
+  locations: RentalSpace[];
   hoveredId?: string | null;
   onHoveredIdChange?: (id: string | null) => void;
 }
@@ -130,11 +130,13 @@ export default function MapContainer({
 
       <ZoomControl position="bottomright" />
 
-      {locations.map((loc) => (
-        <Marker
-          key={loc.id}
-          position={loc.coordinates}
-          icon={customIcon}
+      {locations
+        .filter((loc) => !!loc.coordinates)
+        .map((loc) => (
+          <Marker
+            key={loc.id}
+            position={loc.coordinates as [number, number]}
+            icon={customIcon}
           riseOnHover={true}
           ref={(el) => {
             if (el) {
@@ -181,10 +183,15 @@ export default function MapContainer({
                 <div>
                   {/* Category Badge */}
                   <div className="flex mb-1">
-                    <span className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-bold bg-brand-primary/8 text-brand-primary">
-                      {getCategoryIcon(loc.category)}
-                      {loc.category}
-                    </span>
+                    {(() => {
+                      const CategoryIcon = getCategoryIcon(loc.area);
+                      return (
+                        <span className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-bold bg-brand-primary/8 text-brand-primary">
+                          <CategoryIcon size={8} />
+                          {loc.area}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {/* Name */}
                   <h4 className="font-extrabold text-gray-900 text-[11px] leading-snug line-clamp-2">

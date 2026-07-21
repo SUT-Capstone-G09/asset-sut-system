@@ -81,7 +81,7 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	// Rate types
-	for _, t := range []string{"hourly", "daily", "fixed"} {
+	for _, t := range []string{"hourly", "daily", "fixed", "hourly_offpeak"} {
 		if err := db.FirstOrCreate(&models.RateTypes{}, models.RateTypes{Type: t}).Error; err != nil {
 			return err
 		}

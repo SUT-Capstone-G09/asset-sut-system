@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
@@ -26,6 +29,10 @@ func NewLocationService(locationRepo *repositories.LocationRepository, timeslotR
 
 func (s *LocationService) GetTypes() ([]models.LocationTypes, error) {
 	return s.locationRepo.FindAllTypes()
+}
+
+func (s *LocationService) GetRateTypes() ([]models.RateTypes, error) {
+	return s.locationRepo.FindAllRateTypes()
 }
 
 func (s *LocationService) GetBuildings() ([]dto.BuildingResponse, error) {
@@ -560,10 +567,16 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 	if err != nil {
 		return nil, err
 	}
+	blocks, err := s.locationRepo.FindUnavailabilities(locationID)
+	if err != nil {
+		return nil, err
+	}
 
 	type dayData struct {
-		hours  float64
-		ranges [][2]string
+		hours   float64
+		booked  [][2]int // booking-only [startMin, endMin) — basis for the "full" decision
+		ranges  [][2]string
+		blocked bool
 	}
 	days := make(map[string]*dayData)
 
@@ -574,17 +587,37 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 		}
 		hours := slot.EndTime.Sub(slot.StartTime).Hours()
 		days[dateStr].hours += hours
+		if startMin, endMin := minutesOfDay(slot.StartTime), minutesOfDay(slot.EndTime); endMin > startMin {
+			days[dateStr].booked = append(days[dateStr].booked, [2]int{startMin, endMin})
+		}
 		days[dateStr].ranges = append(days[dateStr].ranges, [2]string{
 			slot.StartTime.Format("15:04"),
 			slot.EndTime.Format("15:04"),
 		})
 	}
 
-	const fullThreshold = 8.0
+	// Staff-configured unavailability windows (maintenance, closures, etc.)
+	// block the whole day in the calendar, same as a fully-booked day, so the
+	// frontend's existing "full" handling hides it without any FE change.
+	for _, b := range blocks {
+		if int(b.Date.Year()) != year || b.Date.Month() != time.Month(month) {
+			continue
+		}
+		dateStr := b.Date.Format("2006-01-02")
+		if days[dateStr] == nil {
+			days[dateStr] = &dayData{}
+		}
+		days[dateStr].blocked = true
+		days[dateStr].ranges = append(days[dateStr].ranges, [2]string{
+			b.StartTime.Format("15:04"),
+			b.EndTime.Format("15:04"),
+		})
+	}
+
 	result := make(dto.MonthlyAvailabilityResponse)
 	for dateStr, d := range days {
 		status := "partial"
-		if d.hours >= fullThreshold {
+		if d.blocked || freeMinutesInWindow(d.booked) < minBookableFreeMinutes {
 			status = "full"
 		}
 		result[dateStr] = dto.DayAvailability{
@@ -594,6 +627,133 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 		}
 	}
 	return result, nil
+}
+
+// CheckAvailability batches an availability check across many locations and
+// dates in one round trip (see dto.AvailabilitySearchQuery) — the room-search
+// equivalent of GetMonthlyAvailability, which only ever handles one location
+// at a time and would otherwise mean one request per room in a result page.
+//
+// A location is available only if every requested date passes:
+//   - a staff-configured unavailability block on that date always fails it
+//   - with an exact [startTime, endTime) window given: no booked timeslot on
+//     that date may overlap it
+//   - without one: the date must still have at least minBookableFreeMinutes
+//     of free time in the bookable window — the same rule GetMonthlyAvailability
+//     uses to decide a day is "full", reused here so the two never disagree.
+func (s *LocationService) CheckAvailability(locationIDs []uint, dates []string, startTime, endTime string) (dto.AvailabilitySearchResponse, error) {
+	slots, err := s.timeslotRepo.FindBookedSlotsByLocationsAndDates(locationIDs, dates)
+	if err != nil {
+		return nil, err
+	}
+	blocks, err := s.locationRepo.FindUnavailabilitiesByLocationsAndDates(locationIDs, dates)
+	if err != nil {
+		return nil, err
+	}
+
+	type dayKey struct {
+		locationID uint
+		date       string
+	}
+	booked := make(map[dayKey][][2]int)
+	for _, slot := range slots {
+		k := dayKey{slot.LocationID, slot.Date.Format("2006-01-02")}
+		if startMin, endMin := minutesOfDay(slot.StartTime), minutesOfDay(slot.EndTime); endMin > startMin {
+			booked[k] = append(booked[k], [2]int{startMin, endMin})
+		}
+	}
+	blocked := make(map[dayKey]bool)
+	for _, b := range blocks {
+		blocked[dayKey{b.LocationID, b.Date.Format("2006-01-02")}] = true
+	}
+
+	hasWindow := startTime != "" && endTime != ""
+	var reqStart, reqEnd int
+	if hasWindow {
+		reqStart, reqEnd = parseClockMinutes(startTime), parseClockMinutes(endTime)
+	}
+
+	result := make(dto.AvailabilitySearchResponse, len(locationIDs))
+	for _, locID := range locationIDs {
+		available := true
+		for _, date := range dates {
+			k := dayKey{locID, date}
+			if blocked[k] {
+				available = false
+				break
+			}
+			ranges := booked[k]
+			if hasWindow {
+				for _, r := range ranges {
+					if reqStart < r[1] && reqEnd > r[0] {
+						available = false
+						break
+					}
+				}
+			} else if freeMinutesInWindow(ranges) < minBookableFreeMinutes {
+				available = false
+			}
+			if !available {
+				break
+			}
+		}
+		result[locID] = available
+	}
+	return result, nil
+}
+
+// parseClockMinutes converts "HH:MM" to minutes since midnight. Malformed
+// input parses as 0 (start of day) — callers only ever pass values the
+// frontend's own fixed time-option <select> produced.
+func parseClockMinutes(s string) int {
+	h, m := 0, 0
+	if parts := strings.SplitN(s, ":", 2); len(parts) == 2 {
+		h, _ = strconv.Atoi(parts[0])
+		m, _ = strconv.Atoi(parts[1])
+	}
+	return h*60 + m
+}
+
+// minBookableFreeMinutes: a day counts as "full" once less than this much
+// genuinely free time is left in the bookable window (fullDayStartMinute..
+// fullDayEndMinute, defined in booking.go) — matches the 30-minute step
+// every time picker in the app uses, so a smaller leftover gap isn't
+// practically bookable.
+const minBookableFreeMinutes = 30
+
+// freeMinutesInWindow merges booked [start,end) minute intervals (clipped to
+// the bookable window) and returns how many minutes of the window remain
+// free. Summing booked *hours* alone is the wrong signal for "full": four
+// disjoint 2h meetings total 8h booked but still leave 6h genuinely free, and
+// shouldn't lock out the whole day.
+func freeMinutesInWindow(booked [][2]int) int {
+	type interval struct{ start, end int }
+	intervals := make([]interval, 0, len(booked))
+	for _, b := range booked {
+		start, end := b[0], b[1]
+		if start < fullDayStartMinute {
+			start = fullDayStartMinute
+		}
+		if end > fullDayEndMinute {
+			end = fullDayEndMinute
+		}
+		if end > start {
+			intervals = append(intervals, interval{start, end})
+		}
+	}
+	sort.Slice(intervals, func(i, j int) bool { return intervals[i].start < intervals[j].start })
+
+	covered, cursor := 0, fullDayStartMinute
+	for _, iv := range intervals {
+		if iv.start > cursor {
+			cursor = iv.start
+		}
+		if iv.end > cursor {
+			covered += iv.end - cursor
+			cursor = iv.end
+		}
+	}
+	return (fullDayEndMinute - fullDayStartMinute) - covered
 }
 
 // ── Equipments ───────────────────────────────────────────────────────────────
@@ -863,7 +1023,7 @@ func (s *LocationService) GetFloorPlanLocationIDs() ([]uint, error) {
 // UploadFloorPlanImage อัปโหลดรูปผัง (top-view) ของโถงไปเก็บที่ path มาตรฐาน:
 // "รูปภาพสถานที่/{ชื่ออาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}{ext}"
 // ชื่ออาคาร/ชื่อโถงดึงจาก DB (เชื่อถือได้ ไม่รับจาก client) แล้วคืน object_key + presigned URL
-func (s *LocationService) UploadFloorPlanImage(ctx context.Context, locationID uint, fh *multipart.FileHeader) (UploadResult, error) {
+func (s *LocationService) UploadFloorPlanImage(ctx context.Context, locationID uint, fh *multipart.FileHeader, uploadedBy uint) (UploadResult, error) {
 	loc, err := s.locationRepo.FindByID(locationID)
 	if err != nil {
 		return UploadResult{}, err
@@ -873,7 +1033,7 @@ func (s *LocationService) UploadFloorPlanImage(ctx context.Context, locationID u
 		building = loc.Building.Name
 	}
 	key := docpath.HallFloorPlanKey(building, loc.Name, fh.Filename)
-	return s.storage.UploadWithKey(ctx, key, fh)
+	return s.storage.UploadWithKey(ctx, key, fh, uploadedBy)
 }
 
 func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.HallFloorPlanResponse {

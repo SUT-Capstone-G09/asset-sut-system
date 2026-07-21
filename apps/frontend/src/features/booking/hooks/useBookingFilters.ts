@@ -64,10 +64,14 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     id: String(b.id),
     basePrice: b.base_price || 0,
     totalPrice: b.total_price || 0,
-    discountPrice: b.discount_price || 0,
+    discountPrice: 0,
     roomName: loc?.name || firstSlot?.location_name || "ไม่ระบุห้อง",
     roomNumber: loc?.room_number ? String(loc.room_number) : "",
-    building: loc?.building ?? "",
+    // Falls back to a label (never "") — BookingGrid groups the list by
+    // building, and an empty string gets stripped by the buildings list's
+    // .filter(Boolean), which makes the whole grid disappear whenever every
+    // booking in view happens to be on a location with no building set.
+    building: loc?.building || "ไม่ระบุอาคาร",
     category: loc?.type ?? "",
     requesterName: b.requester_name || b.user_name || "ไม่ทราบชื่อ",
     requesterId: b.requester_id || String(b.user_id),
@@ -130,6 +134,30 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
 
 export type BookingTypeFilter = "classroom" | "meeting" | "sport" | "hall" | "all";
 
+// location_types in the DB is more granular than the 4 top-level cards shown
+// in the admin booking selection page — group each raw type into its card's
+// bucket (per each card's own description) instead of comparing it verbatim,
+// otherwise bookings on any subtype room (e.g. "ห้องประชุมขนาดเล็ก",
+// "พื้นที่สาธารณะ") silently disappear from every card's count.
+const rawTypeToBucket: Record<string, Exclude<BookingTypeFilter, "all">> = {
+  "ห้องเรียน": "classroom",
+  "ห้องบรรยาย": "classroom",
+  "ห้องปฏิบัติการ": "classroom",
+  "ห้องสัมมนา": "classroom",
+  "อื่นๆ": "classroom",
+  "ห้องประชุม": "meeting",
+  "ห้องประชุมขนาดเล็ก": "meeting",
+  "ห้องประชุมขนาดกลาง": "meeting",
+  "ห้องประชุมขนาดใหญ่": "meeting",
+  "พื้นที่สาธารณะ": "meeting",
+  "สนามกีฬา": "sport",
+  "โถงอาคาร": "hall",
+};
+
+export function getBookingTypeBucket(rawType: string): BookingTypeFilter | undefined {
+  return rawTypeToBucket[rawType];
+}
+
 export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -184,6 +212,19 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
     updateQueryParam("building", val);
   };
 
+  // The admin booking page keeps this hook mounted across category switches
+  // (only the "type" query param changes), so filters left over from a
+  // previous category would otherwise silently hide everything in the next
+  // one — reset them (and their URL params) whenever the active category
+  // changes.
+  useEffect(() => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedStatus("all");
+    setSelectedBuilding("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -193,17 +234,17 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
         staffUserId ? getStaffBuildings(staffUserId) : Promise.resolve(null),
       ]);
       setLocations(locationsData);
-      
+
       const locMap = new Map<number, AdminLocationDTO>();
       locationsData.forEach((loc) => locMap.set(loc.id, loc));
-      
+
       let bookingsData = allBookingsData ?? [];
-      
+
       if (staffUserId && staffBuildings) {
         const allowedBuildingIds = new Set(staffBuildings.map((b: any) => b.id));
         const locationToBuildingMap = new Map<number, number | undefined>();
         locationsData.forEach((loc) => locationToBuildingMap.set(loc.id, loc.building_id));
-        
+
         bookingsData = bookingsData.filter((booking) => {
           return booking.timeslots?.some((ts) => {
             const buildingId = locationToBuildingMap.get(ts.location_id);
@@ -211,22 +252,14 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
           });
         });
       }
-      
+
       const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
-      
-      // Filter by exactly matched DB categories
-      const typeToCategory: Record<string, string> = {
-        classroom: "ห้องเรียน",
-        meeting: "ห้องประชุม",
-        sport: "สนามกีฬา",
-        hall: "โถงอาคาร",
-      };
-      
+
       const filtered = mappedBookings.filter((b) => {
         if (type === "all") return true;
-        return b.category === typeToCategory[type];
+        return getBookingTypeBucket(b.category) === type;
       });
-      
+
       setBookings(filtered);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
@@ -290,17 +323,24 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
       }
       const startTimeStr = timeMatch[1];
       const endTimeStr = timeMatch[2];
+      if (endTimeStr <= startTimeStr) {
+        throw new Error("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม");
+      }
 
-      const dateStr = newBooking.date; 
-      const startTimeISO = new Date(`${dateStr}T${startTimeStr}:00`).toISOString();
-      const endTimeISO = new Date(`${dateStr}T${endTimeStr}:00`).toISOString();
+      const dateStr = newBooking.date;
+      // Explicit +07:00 (Bangkok) offset — see BookingConfirmView.tsx for why:
+      // the backend reads the clock-time component directly to decide
+      // office-hours vs. off-peak pricing, so this must not go through the
+      // browser's local timezone via toISOString().
+      const startTimeISO = `${dateStr}T${startTimeStr}:00+07:00`;
+      const endTimeISO = `${dateStr}T${endTimeStr}:00+07:00`;
 
       const payload: CreateBookingPayload = {
         purpose: newBooking.purpose,
         timeslots: [
           {
             location_id: location.id,
-            date: new Date(`${dateStr}T00:00:00`).toISOString(),
+            date: `${dateStr}T00:00:00+07:00`,
             start_time: startTimeISO,
             end_time: endTimeISO,
             addon_ids: [],
@@ -334,7 +374,7 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
     await updateBookingStatus(Number(updatedBooking.id), { status: updatedBooking.status });
     if (updatedBooking.timeslots && updatedBooking.timeslots.length > 0) {
       await updateBookingExpenses(Number(updatedBooking.id), {
-        discount_price: updatedBooking.discountPrice || 0,
+        is_waived: false,
         timeslots: updatedBooking.timeslots.map((ts) => ({
           timeslot_id: ts.id,
           expenses: ts.expenses.map((exp) => ({
@@ -346,7 +386,7 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
       });
     } else {
       await updateBookingExpenses(Number(updatedBooking.id), {
-        discount_price: updatedBooking.discountPrice || 0,
+        is_waived: false,
         timeslots: [
           {
             timeslot_id: 0,
@@ -362,11 +402,15 @@ export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number)
     await fetchAll();
   };
 
-  const handleDeleteBooking = async (idOrFilter: string | { id: string }) => {
-    const id = typeof idOrFilter === "string" ? idOrFilter : idOrFilter.id;
-    // Note: Backend setup doesn't have a direct delete booking endpoint, 
-    // so we delete from local state.
-    setBookings((prev) => prev.filter((b) => b.id !== id));
+  // There's no hard-delete endpoint for bookings, and there shouldn't be —
+  // once a booking exists it may already have payments/documents attached,
+  // so removing it would destroy that audit trail. "Delete" from the UI maps
+  // to the "cancelled" status instead; validBookingTransitions on the
+  // backend (booking.go) already rejects this for completed/rejected/
+  // cancelled bookings, so no extra guard is needed here.
+  const handleDeleteBooking = async (id: string) => {
+    await updateBookingStatus(Number(id), { status: "cancelled" });
+    await fetchAll();
   };
 
   return {

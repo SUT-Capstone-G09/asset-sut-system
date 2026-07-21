@@ -90,6 +90,12 @@ func (r *LocationRepository) FindAllTypes() ([]models.LocationTypes, error) {
 	return types, err
 }
 
+func (r *LocationRepository) FindAllRateTypes() ([]models.RateTypes, error) {
+	var rateTypes []models.RateTypes
+	err := r.db.Find(&rateTypes).Error
+	return rateTypes, err
+}
+
 func (r *LocationRepository) FindAll() ([]models.Locations, error) {
 	var locations []models.Locations
 	err := r.db.
@@ -116,6 +122,24 @@ func (r *LocationRepository) FindByID(id uint) (*models.Locations, error) {
 	return &location, err
 }
 
+// LockByID takes a SELECT ... FOR UPDATE row lock on the location before
+// returning it, with pricing tiers preloaded for callers that need to price
+// a booking. Used to serialize concurrent booking attempts on the same
+// location: a plain "FOR UPDATE" on Timeslots only locks rows that already
+// exist, so two transactions racing to book the same still-empty slot would
+// each see zero conflicts. Locking the parent Locations row (which always
+// exists) forces the second transaction to wait for the first to commit or
+// roll back before it can even run its own overlap check.
+func (r *LocationRepository) LockByID(id uint) (*models.Locations, error) {
+	var location models.Locations
+	err := r.db.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Preload("PricingTiers.RequesterType").
+		Preload("PricingTiers.RateType").
+		First(&location, id).Error
+	return &location, err
+}
+
 func (r *LocationRepository) Create(location *models.Locations) error {
 	return r.db.Create(location).Error
 }
@@ -136,6 +160,15 @@ func (r *LocationRepository) Delete(id uint) error {
 func (r *LocationRepository) FindUnavailabilities(locationID uint) ([]models.LocationUnavailabilities, error) {
 	var items []models.LocationUnavailabilities
 	err := r.db.Where("location_id = ?", locationID).Find(&items).Error
+	return items, err
+}
+
+// FindUnavailabilitiesByLocationsAndDates is the batch counterpart of
+// FindUnavailabilities, for checking many locations across many dates in one
+// query (see LocationService.CheckAvailability).
+func (r *LocationRepository) FindUnavailabilitiesByLocationsAndDates(locationIDs []uint, dates []string) ([]models.LocationUnavailabilities, error) {
+	var items []models.LocationUnavailabilities
+	err := r.db.Where("location_id IN (?) AND date IN (?)", locationIDs, dates).Find(&items).Error
 	return items, err
 }
 

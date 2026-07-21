@@ -5,15 +5,31 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/config"
 	"github.com/minio/minio-go/v7"
 )
+
+// uploaderMetaKey tags every uploaded object with who uploaded it, so a later
+// step (e.g. attaching it to a document/booking) can verify the caller
+// actually owns the object instead of trusting a client-supplied object_key
+// at face value — otherwise anyone who learns another user's object key
+// (e.g. from a leaked/expired presigned URL) could attach that file to their
+// own records.
+//
+// Must be exactly "Uploaded-By" (not e.g. "uploaded-by"): minio-go sends it as
+// header "x-amz-meta-Uploaded-By", and on read, ObjectInfo.UserMetadata is
+// keyed by the header's canonical form with the "X-Amz-Meta-" prefix
+// stripped — Go's http.Header canonicalizes to Title-Case on both ends, so
+// the map key comes back as "Uploaded-By" regardless of the case used here.
+const uploaderMetaKey = "Uploaded-By"
 
 // StorageService is a thin, reusable wrapper around MinIO. Any module can inject
 // it to store a file and get back a presigned URL without touching the client.
@@ -44,7 +60,9 @@ type UploadResult struct {
 
 // UploadMultipart stores an uploaded form file under folder/ and returns its
 // metadata including a presigned URL. Easiest entry point for HTTP handlers.
-func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh *multipart.FileHeader) (UploadResult, error) {
+// uploadedBy is tagged onto the object so VerifyObjectOwner can later confirm
+// whoever attaches this object to a record is the one who actually uploaded it.
+func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh *multipart.FileHeader, uploadedBy uint) (UploadResult, error) {
 	file, err := fh.Open()
 	if err != nil {
 		return UploadResult{}, fmt.Errorf("open upload: %w", err)
@@ -58,7 +76,8 @@ func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh 
 
 	objectKey := s.BuildObjectKey(folder, fh.Filename)
 	if _, err := s.client.PutObject(ctx, s.bucket, objectKey, file, fh.Size, minio.PutObjectOptions{
-		ContentType: contentType,
+		ContentType:  contentType,
+		UserMetadata: map[string]string{uploaderMetaKey: strconv.FormatUint(uint64(uploadedBy), 10)},
 	}); err != nil {
 		return UploadResult{}, fmt.Errorf("upload object: %w", err)
 	}
@@ -81,8 +100,9 @@ func (s *StorageService) UploadMultipart(ctx context.Context, folder string, fh 
 
 // UploadWithKey stores an uploaded form file under the exact objectKey provided.
 // Use this when the key has already been built by a trusted source (e.g. docpath.ObjectKey)
-// and must not be sanitized or randomized.
-func (s *StorageService) UploadWithKey(ctx context.Context, objectKey string, fh *multipart.FileHeader) (UploadResult, error) {
+// and must not be sanitized or randomized. uploadedBy is tagged onto the object;
+// see UploadMultipart.
+func (s *StorageService) UploadWithKey(ctx context.Context, objectKey string, fh *multipart.FileHeader, uploadedBy uint) (UploadResult, error) {
 	file, err := fh.Open()
 	if err != nil {
 		return UploadResult{}, fmt.Errorf("open upload: %w", err)
@@ -95,7 +115,8 @@ func (s *StorageService) UploadWithKey(ctx context.Context, objectKey string, fh
 	}
 
 	if _, err := s.client.PutObject(ctx, s.bucket, objectKey, file, fh.Size, minio.PutObjectOptions{
-		ContentType: contentType,
+		ContentType:  contentType,
+		UserMetadata: map[string]string{uploaderMetaKey: strconv.FormatUint(uint64(uploadedBy), 10)},
 	}); err != nil {
 		return UploadResult{}, fmt.Errorf("upload object: %w", err)
 	}
@@ -145,6 +166,22 @@ func (s *StorageService) Stream(ctx context.Context, objectKey string) (*minio.O
 // a user's saved signature).
 func (s *StorageService) Delete(ctx context.Context, objectKey string) error {
 	return s.client.RemoveObject(ctx, s.bucket, objectKey, minio.RemoveObjectOptions{})
+}
+
+// VerifyObjectOwner confirms objectKey was uploaded by userID, per the
+// uploaded-by tag set in UploadMultipart/UploadWithKey. Callers that accept a
+// client-supplied object_key (e.g. attaching an upload to a document/booking)
+// must call this before trusting it, so a leaked or guessed key belonging to
+// someone else's upload can't be attached to the caller's own records.
+func (s *StorageService) VerifyObjectOwner(ctx context.Context, objectKey string, userID uint) error {
+	info, err := s.client.StatObject(ctx, s.bucket, objectKey, minio.StatObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("object not found: %w", err)
+	}
+	if info.UserMetadata[uploaderMetaKey] != strconv.FormatUint(uint64(userID), 10) {
+		return errors.New("object was not uploaded by this user")
+	}
+	return nil
 }
 
 // PresignedURL returns a temporary download URL for an object.

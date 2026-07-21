@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
@@ -24,6 +25,15 @@ func (c *LocationController) GetTypes(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, types)
+}
+
+func (c *LocationController) GetRateTypes(ctx *gin.Context) {
+	rateTypes, err := c.locationService.GetRateTypes()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, rateTypes)
 }
 
 func (c *LocationController) GetBuildings(ctx *gin.Context) {
@@ -376,6 +386,61 @@ func (c *LocationController) GetMonthlyAvailability(ctx *gin.Context) {
 	response.OK(ctx, result)
 }
 
+// CheckAvailability handles GET /locations/availability?location_ids=1,2,3&dates=2026-08-01,2026-08-02[&start_time=09:00&end_time=11:00]
+// Batches an availability check across many locations/dates in one request —
+// see LocationService.CheckAvailability.
+func (c *LocationController) CheckAvailability(ctx *gin.Context) {
+	var q dto.AvailabilitySearchQuery
+	if err := ctx.ShouldBindQuery(&q); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	locationIDs, err := parseUintList(q.LocationIDs)
+	if err != nil || len(locationIDs) == 0 {
+		response.BadRequest(ctx, "invalid location_ids")
+		return
+	}
+	dates := splitNonEmpty(q.Dates)
+	if len(dates) == 0 {
+		response.BadRequest(ctx, "invalid dates")
+		return
+	}
+	if (q.StartTime == "") != (q.EndTime == "") {
+		response.BadRequest(ctx, "start_time and end_time must be given together")
+		return
+	}
+
+	result, err := c.locationService.CheckAvailability(locationIDs, dates, q.StartTime, q.EndTime)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, result)
+}
+
+func splitNonEmpty(s string) []string {
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+func parseUintList(s string) ([]uint, error) {
+	var out []uint
+	for _, part := range splitNonEmpty(s) {
+		id, err := strconv.ParseUint(part, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, uint(id))
+	}
+	return out, nil
+}
+
 // ── Equipments ────────────────────────────────────────────────────────────────
 
 func (c *LocationController) AddEquipment(ctx *gin.Context) {
@@ -600,7 +665,8 @@ func (c *LocationController) UploadFloorPlanImage(ctx *gin.Context) {
 		response.BadRequest(ctx, "file too large (max 10MB)")
 		return
 	}
-	res, err := c.locationService.UploadFloorPlanImage(ctx.Request.Context(), id, fh)
+	userID := ctx.GetUint("user_id")
+	res, err := c.locationService.UploadFloorPlanImage(ctx.Request.Context(), id, fh, userID)
 	if err != nil {
 		response.InternalError(ctx, err.Error())
 		return

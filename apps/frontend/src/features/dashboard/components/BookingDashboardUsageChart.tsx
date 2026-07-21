@@ -95,7 +95,7 @@ export function BookingDashboardUsageChart({ bookings }: BookingDashboardUsageCh
 
     } else if (filter === "monthly") {
       // ── รายเดือน ────────────────────────────────────────────
-      const chartData: { key: string; name: string; fullDate: string; value: number }[] = [];
+      const chartData: { key: string; name: string; fullDate: string; value: number; showLabel: boolean }[] = [];
 
       for (let i = 0; i < 12; i++) {
         const d = new Date(year, i, 1);

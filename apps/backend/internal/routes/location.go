@@ -12,6 +12,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 	rg.GET("/buildings", lc.GetBuildings)
 	rg.GET("/location-types", lc.GetTypes)
+	rg.GET("/rate-types", lc.GetRateTypes)
 	rg.GET("/hall-usage-purposes", lc.GetHallUsagePurposes)
 
 	// ตั้ง/แก้ราคาโถงราย อาคาร (staff/admin) — เป็นเรทกลาง/ขั้นต่ำของทุกโถงในอาคาร
@@ -37,6 +38,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	{
 		// Optional auth: staff gets filtered list, others get all
 		locations.GET("", optAuth, lc.GetAll)
+		locations.GET("/availability", lc.CheckAvailability)
 		locations.GET("/:id", optAuth, lc.GetByID)
 		locations.GET("/:id/monthly-availability", lc.GetMonthlyAvailability)
 

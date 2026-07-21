@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { RoomFormValues } from "../../../schemas/room-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import RoomRateModal from "../RoomRateModal";
 import {
   getLocations,
@@ -103,6 +103,8 @@ export default function RoomFormFields({
   const rates = watch("rates") || {
     hourlyInternal: 0,
     hourlyExternal: 0,
+    hourlyOffPeakInternal: 0,
+    hourlyOffPeakExternal: 0,
     dailyInternal: 0,
     dailyExternal: 0,
   };
@@ -136,7 +138,9 @@ export default function RoomFormFields({
     rates.hourlyInternal > 0 ||
     rates.hourlyExternal > 0 ||
     rates.dailyInternal > 0 ||
-    rates.dailyExternal > 0;
+    rates.dailyExternal > 0 ||
+    (rates.hourlyOffPeakInternal ?? 0) > 0 ||
+    (rates.hourlyOffPeakExternal ?? 0) > 0;
 
   return (
     <div className="space-y-8">
@@ -555,3 +559,4 @@ export default function RoomFormFields({
     </div>
   );
 }
+

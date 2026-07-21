@@ -156,7 +156,12 @@ export default function BookingEditDrawer({
       notes: data.notes,
       image: data.image || booking.image,
       equipment: data.equipment,
-      expenses: data.expenses,
+      expenses: data.expenses?.map((e) => ({
+        name: e.name,
+        amount: e.amount,
+        unitPrice: e.amount,
+        quantity: 1,
+      })),
       receiptImage: data.receiptImage,
       officialReceipt: data.officialReceipt,
       attachedDocuments: data.attachedDocuments,

@@ -1,4 +1,4 @@
-import { Eye, Calendar, Printer, CheckCircle2, Download } from "lucide-react"
+import { Eye, Calendar, Printer, CheckCircle2, Download, FileText } from "lucide-react"
 
 interface NewsPreviewProps {
   data: {
@@ -10,6 +10,10 @@ interface NewsPreviewProps {
     contractDuration: string;
     areaSize: string;
     entranceFee: string;
+    mainImagePreview?: string | null;
+    attachedFiles?: { file: File; id: string }[];
+    startDate?: string;
+    endDate?: string;
   };
 }
 
@@ -23,13 +27,13 @@ export function NewsPreview({ data }: NewsPreviewProps) {
   const displayAreaSize = data.areaSize
   const displayEntranceFee = data.entranceFee
 
-  const qualsList = data.qualifications.length > 0
+  const qualsList = data.qualifications
     ? data.qualifications.map((q) => q.text).filter((t) => t.trim() !== "")
-    : ["มีสัญชาติไทย", "มีประสบการณ์ด้านโภชนาการไม่น้อยกว่า 3 ปี"];
+    : []
 
-  const docsList = data.documents.length > 0
+  const docsList = data.documents
     ? data.documents.map((d) => d.name).filter((n) => n.trim() !== "")
-    : ["สำเนาบัตรประชาชน", "ทะเบียนบ้าน"]; 
+    : [] 
 
 
   // จำลองวันที่ปัจจุบัน
@@ -38,6 +42,24 @@ export function NewsPreview({ data }: NewsPreviewProps) {
     month: "long",
     day: "numeric",
   })
+
+  const formatThaiDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      return date.toLocaleDateString("th-TH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const displayStartDate = formatThaiDate(data.startDate) || today;
+  const displayEndDate = formatThaiDate(data.endDate);
 
   return (
     <div className="mt-16 pt-8 border-t-4 border-brand-primary">
@@ -50,11 +72,19 @@ export function NewsPreview({ data }: NewsPreviewProps) {
         
         {/* Main Content Area Preview */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-4xl mx-auto">
-            {/* Hero Section Placeholder */}
+            {/* Hero Section Placeholder / Image */}
             <div className="relative aspect-[16/7] w-full bg-zinc-200">
-                <div className="absolute inset-0 flex items-center justify-center text-zinc-400 font-medium">
-                  [ ภาพหน้าปกประกาศ ]
-                </div>
+                {data.mainImagePreview ? (
+                    <img
+                        src={data.mainImagePreview}
+                        alt="ภาพหลักของประกาศ"
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-zinc-400 font-medium">
+                      [ ภาพหน้าปกประกาศ ]
+                    </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                 
                 <div className="absolute bottom-6 left-8">
@@ -66,11 +96,17 @@ export function NewsPreview({ data }: NewsPreviewProps) {
 
             <div className="p-8 lg:p-12">
                 {/* Metadata */}
-                <div className="flex items-center gap-6 text-sm text-gray-500 mb-8 font-medium">
+                <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 mb-8 font-medium">
                     <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-orange-500" />
-                        <span>ประกาศเมื่อ: {today}</span>
+                        <span>ประกาศเมื่อ: {displayStartDate}</span>
                     </div>
+                    {displayEndDate && (
+                      <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-red-500" />
+                          <span>สิ้นสุดประกาศ: {displayEndDate}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                         <Eye className="w-4 h-4 text-orange-500" />
                         <span>เข้าชมแล้ว: 0 ครั้ง</span>
@@ -86,36 +122,42 @@ export function NewsPreview({ data }: NewsPreviewProps) {
                         {displayDetails}
                     </p>
 
-                    <h2 className="text-2xl font-bold text-[#C2410C] mb-6">คุณสมบัติเบื้องต้น</h2>
-                    <div className="space-y-4 mb-12">
-                        {qualsList.map((text, i) => (
-                            <div key={i} className="flex gap-4 items-start group">
-                                <div className="mt-1 bg-orange-100 rounded-full p-0.5">
-                                    <CheckCircle2 className="w-5 h-5 text-orange-500" />
-                                </div>
-                                <span className="text-gray-700 font-medium">
-                                    {text.replace(/^- /, '')}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Required Documents Grid */}
-                    <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 mb-12">
-                        <h3 className="text-xl font-bold text-gray-900 mb-6">เอกสารที่ต้องใช้ในการสมัคร</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {docsList.map((doc, index) => (
-                                <div key={index} className="bg-white p-4 rounded-xl border border-gray-200 flex gap-4 items-center">
-                                    <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center font-bold text-sm shrink-0">
-                                        {index + 1}
-                                    </span>
-                                    <span className="text-sm text-gray-700 font-medium">
-                                        {doc.replace(/^- /, '')}
+                    {qualsList.length > 0 && (
+                      <>
+                        <h2 className="text-2xl font-bold text-[#C2410C] mb-6">คุณสมบัติเบื้องต้น</h2>
+                        <div className="space-y-4 mb-12">
+                            {qualsList.map((text, i) => (
+                                <div key={i} className="flex gap-4 items-start group">
+                                    <div className="mt-1 bg-orange-100 rounded-full p-0.5">
+                                        <CheckCircle2 className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <span className="text-gray-700 font-medium">
+                                        {text.replace(/^- /, '')}
                                     </span>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                      </>
+                    )}
+
+                    {/* Required Documents Grid */}
+                    {docsList.length > 0 && (
+                      <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 mb-12">
+                          <h3 className="text-xl font-bold text-gray-900 mb-6">เอกสารที่ต้องใช้ในการสมัคร</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {docsList.map((doc, index) => (
+                                  <div key={index} className="bg-white p-4 rounded-xl border border-gray-200 flex gap-4 items-center">
+                                      <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center font-bold text-sm shrink-0">
+                                          {index + 1}
+                                      </span>
+                                      <span className="text-sm text-gray-700 font-medium">
+                                          {doc.replace(/^- /, '')}
+                                      </span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                    )}
 
                     {hasContractInfo && (
                       <>
@@ -146,6 +188,32 @@ export function NewsPreview({ data }: NewsPreviewProps) {
                             )}
                         </div>
                       </>
+                    )}
+
+                    {/* Attached files for download (เอกสารดาวน์โหลดเพิ่มเติม - ย้ายมาไว้ล่างสุด) */}
+                    {data.attachedFiles && data.attachedFiles.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-6">เอกสารดาวน์โหลดเพิ่มเติม</h3>
+                        <div className="space-y-3">
+                          {data.attachedFiles.map((item) => {
+                            const formattedSize = (item.file.size / (1024 * 1024)).toFixed(2) + " MB";
+                            return (
+                              <div key={item.id} className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-xl">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <FileText className="w-6 h-6 text-orange-500 flex-shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-zinc-800 truncate max-w-xs sm:max-w-md">{item.file.name}</p>
+                                    <p className="text-xs text-zinc-500">{formattedSize}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-orange-500 cursor-pointer hover:text-orange-600 flex-shrink-0 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors">
+                                  <Download className="w-4 h-4" /> ดาวน์โหลด
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
 
                 </div>

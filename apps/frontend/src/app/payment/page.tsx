@@ -38,8 +38,6 @@ function PaymentContent() {
             location={mockPaymentData.location}
             bookingDate={mockPaymentData.bookingDate}
             bookingTime={mockPaymentData.bookingTime}
-            hourlyRate={mockPaymentData.hourlyRate}
-            hours={mockPaymentData.hours}
             totalPrice={totalPrice}
           />
           <HelpCard />

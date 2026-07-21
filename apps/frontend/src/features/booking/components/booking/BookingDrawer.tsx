@@ -16,39 +16,28 @@ import {
 import {
   MapPin,
   Pencil,
-  Banknote,
   Building2,
   Maximize2,
   FileText,
   X,
   ExternalLink,
   Calendar,
-  LayoutGrid,
   CreditCard,
-  Hash,
   User,
   Clock,
   CheckCircle2,
-  XCircle,
   Phone,
   Mail,
   Trash2,
-  Briefcase,
-  Download,
-  Plus,
-  Search,
   AlertCircle,
+  Hash,
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
+import React, { useState } from "react";
 import { useAuthContext } from "@/lib/context/auth-context";
-import React, { useState, useMemo } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
 import HallBookingAreaSection from "./HallBookingAreaSection";
-import { mockRooms } from "../../data/rooms";
-import { addonService, Addon } from "@/lib/services/addon.service";
-import { getHoursFromTimeSlot } from "../../utils/time";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -97,6 +86,18 @@ const getRecurrenceText = (booking: Booking): string => {
   return `${freq}${end}`;
 };
 
+// Mirrors validBookingTransitions in apps/backend/internal/services/booking.go —
+// keeps the dropdown from offering a move the backend will reject anyway.
+// rejected/cancelled/completed are terminal; approved can only move forward
+// to completed (or be cancelled, which isn't one of this dropdown's options).
+const VALID_NEXT_BOOKING_STATUS: Record<string, string[]> = {
+  pending: ["approved", "rejected"],
+  approved: ["completed"],
+  rejected: [],
+  cancelled: [],
+  completed: [],
+};
+
 interface Props {
   booking: Booking | null;
   open: boolean;
@@ -109,18 +110,9 @@ interface Props {
       | "rejected"
       | "cancelled"
       | "completed",
-  ) => void;
-  onEdit: (updated: Booking, mode: "this" | "following" | "all") => void;
-  onDelete: (
-    idOrFilter:
-      | string
-      | {
-          id: string;
-          recurringGroupId: string;
-          mode: "this" | "following" | "all";
-          date: string;
-        },
-  ) => void;
+  ) => Promise<void> | void;
+  onEdit: (updated: Booking) => void;
+  onDelete: (id: string) => void;
   initialMode?: "view" | "edit";
 }
 
@@ -135,193 +127,24 @@ export default function BookingDrawer({
 }: Props) {
   const { user } = useAuthContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
-  const [recurrenceActionType, setRecurrenceActionType] = useState<
-    "edit" | "delete" | null
-  >(null);
-  const [selectedRecurrenceMode, setSelectedRecurrenceMode] = useState<
-    "this" | "following" | "all"
-  >("this");
-
-  const [isEditingExpenses, setIsEditingExpenses] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const router = useRouter();
-  const [editedExpenses, setEditedExpenses] = useState<any[]>([]);
-  const [housekeeperPrice, setHousekeeperPrice] = useState(0);
-  const [housekeeperCount, setHousekeeperCount] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-  const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
-  const [masterAddons, setMasterAddons] = useState<Addon[]>([]);
 
   React.useEffect(() => {
-    if (open) {
-      setIsEditOpen(initialMode === "edit");
-      addonService.getAll()
-        .then(setMasterAddons)
-        .catch((err) => console.error("Failed to load master addons in drawer:", err));
-    } else {
-      setIsEditOpen(false);
-    }
+    (() => {
+      setIsEditOpen(open && initialMode === "edit");
+    })();
   }, [open, initialMode]);
-
-  React.useEffect(() => {
-    if (booking) {
-      const customExps = (booking.expenses || []).filter(
-        (exp) =>
-          !exp.name.startsWith("ค่าห้อง") &&
-          !exp.name.startsWith("ค่าแม่บ้าน") &&
-          !exp.name.startsWith("ส่วนลด"),
-      );
-      setEditedExpenses(customExps);
-      setHousekeeperPrice(booking.housekeeperPrice || 0);
-      setHousekeeperCount(booking.housekeeperCount || 0);
-      const discountExp = (booking.expenses || []).find((exp) => exp.name.startsWith("ส่วนลด"));
-      setDiscount(discountExp ? Math.abs(discountExp.amount) : 0);
-      setIsEditingExpenses(false);
-    }
-  }, [booking]);
-
-  const handleAddExpenseItem = () => {
-    setEditedExpenses((prev) => [...prev, { name: "", amount: 0, unitPrice: 0, quantity: 1 }]);
-  };
-
-  const handleRemoveExpenseItem = (index: number) => {
-    setEditedExpenses((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const handleExpenseChange = (
-    index: number,
-    key: "name" | "amount" | "unitPrice" | "quantity",
-    value: any,
-  ) => {
-    setEditedExpenses((prev) =>
-      prev.map((exp, idx) => {
-        if (idx === index) {
-          if (key === "name") return { ...exp, name: value };
-          
-          let newUnitPrice = exp.unitPrice || 0;
-          let newQuantity = exp.quantity || 1;
-          let newAmount = exp.amount || 0;
-          
-          if (key === "quantity") {
-            newQuantity = Math.max(1, Number(value) || 1);
-            newAmount = newUnitPrice * newQuantity;
-          } else if (key === "unitPrice") {
-            newUnitPrice = Number(value) || 0;
-            newAmount = newUnitPrice * newQuantity;
-          } else if (key === "amount") {
-            newAmount = Number(value) || 0;
-            newUnitPrice = newAmount / newQuantity;
-          }
-          
-          return {
-            ...exp,
-            unitPrice: newUnitPrice,
-            quantity: newQuantity,
-            amount: newAmount,
-          };
-        }
-        return exp;
-      }),
-    );
-  };
-
-  // Helper values for auto-calculated expenses
-  const room = booking
-    ? mockRooms.find(
-        (r) =>
-          r.roomNumber === booking.roomNumber ||
-          r.roomName === booking.roomName,
-      )
-    : null;
-  const isInternal = booking
-    ? booking.requesterType === "student" || booking.requesterType === "staff"
-    : false;
-  const hours = booking ? getHoursFromTimeSlot(booking.timeSlot || "") : 0;
-  const useDaily = hours > 4;
-  const hourlyRate = isInternal
-    ? (room?.rates?.hourlyInternal ?? 150)
-    : (room?.rates?.hourlyExternal ?? 400);
-  const dailyRate = isInternal
-    ? (room?.rates?.dailyInternal ?? 1000)
-    : (room?.rates?.dailyExternal ?? 2500);
-  // Use actual seeded basePrice from backend if available, fallback to computed
-  const actualHourlyRate = booking?.basePrice ? (booking.basePrice / hours) : hourlyRate;
-  const actualDailyRate = booking?.basePrice ? booking.basePrice : dailyRate;
-  const roomFeeAmount = booking?.basePrice || (useDaily ? dailyRate : hourlyRate * hours);
-  
-  const roomFeeName = useDaily
-    ? "ค่าห้องรายวัน"
-    : `ค่าห้องรายชั่วโมง (${actualHourlyRate} บาท/ชม. x ${hours} ชม.)`;
-
-  const housekeeperFeeName = `ค่าแม่บ้าน (${housekeeperPrice} บาท/คน x ${housekeeperCount} คน)`;
-  const housekeeperFeeAmount = housekeeperPrice * housekeeperCount;
-
-  const totalExpensesComputed = Math.max(
-    0,
-    roomFeeAmount +
-      housekeeperFeeAmount +
-      editedExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) -
-      discount
-  );
-
-  const handleSaveExpenses = () => {
-    if (!booking) return;
-
-    const finalExpenses: import("../../types/booking").BookingExpense[] = [
-      { 
-        name: roomFeeName, 
-        unitPrice: booking?.basePrice ? (useDaily ? booking.basePrice : booking.basePrice / hours) : (useDaily ? dailyRate : hourlyRate),
-        quantity: useDaily ? 1 : hours,
-        amount: booking?.basePrice || roomFeeAmount 
-      },
-      ...(housekeeperFeeAmount > 0
-        ? [{ 
-            name: housekeeperFeeName, 
-            unitPrice: housekeeperPrice, 
-            quantity: housekeeperCount, 
-            amount: housekeeperFeeAmount 
-          }]
-        : []),
-      ...editedExpenses.map(exp => ({
-        name: exp.name,
-        unitPrice: exp.unitPrice || exp.amount, // Default to total amount if unit price is missing
-        quantity: exp.quantity || 1, // Default to 1 if missing
-        amount: exp.amount
-      })),
-      ...(discount > 0
-        ? [{ name: `ส่วนลด`, unitPrice: discount, quantity: 1, amount: discount }]
-        : []),
-    ];
-
-    const updated: Booking = {
-      ...booking,
-      expenses: finalExpenses,
-      housekeeperPrice,
-      housekeeperCount,
-      expenseStatus: "draft",
-    };
-    onEdit(updated, "this");
-    setIsEditingExpenses(false);
-    alert("บันทึกค่าใช้จ่ายชั่วคราวแล้ว (ต้องกดแจ้งผู้ใช้เพื่อส่งข้อมูล)");
-  };
-
-  const handleNotifyExpenses = () => {
-    if (!booking) return;
-    const updated: Booking = {
-      ...booking,
-      expenseStatus: "sent",
-    };
-    onEdit(updated, "this");
-    alert("แจ้งค่าใช้จ่ายไปยังผู้ขอใช้พื้นที่สำเร็จแล้ว!");
-  };
 
   if (!booking) return null;
 
   const currentStatus =
     BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+
+  const validNextStatuses = VALID_NEXT_BOOKING_STATUS[booking.status] ?? [];
+  const isStatusSelectable = (status: string) =>
+    status === booking.status || validNextStatuses.includes(status);
 
   // มีพื้นที่บูธที่ผู้ขอเลือก (การจองโถงแบบจำหน่ายสินค้า per_sqm) → แสดง section ผังพื้นที่ที่เลือก
   const hasBoothArea = (booking.hallPurposes || []).some(
@@ -365,43 +188,15 @@ export default function BookingDrawer({
   };
 
   const handleDelete = () => {
-    if (booking.recurringGroupId) {
-      setRecurrenceActionType("delete");
-      setSelectedRecurrenceMode("this");
-      setRecurrenceDialogOpen(true);
-    } else {
-      if (confirm("คุณแน่ใจหรือไม่ที่จะลบรายการขอจองนี้?")) {
-        onDelete(booking.id);
-        alert("ลบรายการขอจองสำเร็จ!");
-        onClose();
-      }
+    if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกรายการขอจองนี้?")) {
+      onDelete(booking.id);
+      alert("ยกเลิกรายการขอจองสำเร็จ!");
+      onClose();
     }
   };
 
   const handleEditClick = () => {
-    if (booking.recurringGroupId) {
-      setRecurrenceActionType("edit");
-      setSelectedRecurrenceMode("this");
-      setRecurrenceDialogOpen(true);
-    } else {
-      setIsEditOpen(true);
-    }
-  };
-
-  const handleConfirmRecurrenceAction = () => {
-    setRecurrenceDialogOpen(false);
-    if (recurrenceActionType === "delete") {
-      onDelete({
-        id: booking.id,
-        recurringGroupId: booking.recurringGroupId!,
-        mode: selectedRecurrenceMode,
-        date: booking.date,
-      });
-      alert("ลบรายการขอจองสำเร็จ!");
-      onClose();
-    } else if (recurrenceActionType === "edit") {
-      setIsEditOpen(true);
-    }
+    setIsEditOpen(true);
   };
 
   return (
@@ -423,11 +218,19 @@ export default function BookingDrawer({
                 <div className="flex items-center gap-1.5 text-left">
                   <Select
                     value={booking.status}
-                    onValueChange={(val) => {
+                    onValueChange={async (val) => {
                       if (val === "approved" && booking.status === "pending") {
                         setShowApproveModal(true);
-                      } else {
-                        onUpdateStatus(booking.id, val as any);
+                        return;
+                      }
+                      try {
+                        await onUpdateStatus(booking.id, val as any);
+                      } catch (err) {
+                        alert(
+                          err instanceof Error
+                            ? err.message
+                            : "เปลี่ยนสถานะไม่สำเร็จ"
+                        );
                       }
                     }}
                   >
@@ -443,6 +246,7 @@ export default function BookingDrawer({
                     <SelectContent className="bg-white z-[200]">
                       <SelectItem
                         value="pending"
+                        disabled={!isStatusSelectable("pending")}
                         className="text-xs font-bold text-amber-700 focus:bg-amber-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -452,6 +256,7 @@ export default function BookingDrawer({
                       </SelectItem>
                       <SelectItem
                         value="approved"
+                        disabled={!isStatusSelectable("approved")}
                         className="text-xs font-bold text-emerald-700 focus:bg-emerald-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -461,6 +266,7 @@ export default function BookingDrawer({
                       </SelectItem>
                       <SelectItem
                         value="rejected"
+                        disabled={!isStatusSelectable("rejected")}
                         className="text-xs font-bold text-red-600 focus:bg-red-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -471,6 +277,7 @@ export default function BookingDrawer({
 
                       <SelectItem
                         value="completed"
+                        disabled={!isStatusSelectable("completed")}
                         className="text-xs font-bold text-teal-700 focus:bg-teal-50"
                       >
                         <div className="flex items-center gap-1.5">
@@ -810,7 +617,7 @@ export default function BookingDrawer({
                     className="h-12 rounded-[7px] bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Trash2 size={16} />
-                    ลบคำขอจอง
+                    ยกเลิกคำขอจอง
                   </button>
                 </div>
               </div>
@@ -899,9 +706,6 @@ export default function BookingDrawer({
       <BookingEditDrawer
         booking={booking}
         open={isEditOpen}
-        recurrenceMode={
-          booking.recurringGroupId ? selectedRecurrenceMode : "this"
-        }
         onClose={() => {
           if (initialMode === "edit") {
             onClose();
@@ -910,10 +714,7 @@ export default function BookingDrawer({
           }
         }}
         onSave={(updated) => {
-          onEdit(
-            updated,
-            booking.recurringGroupId ? selectedRecurrenceMode : "this",
-          );
+          onEdit(updated);
           if (initialMode === "edit") {
             onClose();
           } else {
@@ -921,136 +722,7 @@ export default function BookingDrawer({
           }
         }}
       />
-
-      <Dialog
-        open={recurrenceDialogOpen}
-        onOpenChange={setRecurrenceDialogOpen}
-      >
-        <DialogContent className="w-[95vw] max-w-[440px] p-6 bg-white rounded-[20px] border-none shadow-2xl flex flex-col gap-4 overflow-hidden transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 text-left">
-          <DialogHeader className="pb-2 border-b border-slate-100">
-            <DialogTitle className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-              {recurrenceActionType === "edit" ? (
-                <>
-                  <Pencil
-                    className="text-[#f26522]"
-                    size={18}
-                    strokeWidth={2.5}
-                  />
-                  <span>คุณต้องการแก้ไขรายการนี้อย่างไร?</span>
-                </>
-              ) : (
-                <>
-                  <Trash2
-                    className="text-red-500"
-                    size={18}
-                    strokeWidth={2.5}
-                  />
-                  <span>คุณต้องการลบรายการนี้อย่างไร?</span>
-                </>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Option 1: Only this event */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="this"
-                checked={selectedRecurrenceMode === "this"}
-                onChange={() => setSelectedRecurrenceMode("this")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขเฉพาะรอบนี้เท่านั้น"
-                    : "ลบเฉพาะรอบนี้เท่านั้น"}{" "}
-                  (Only this event)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "ปลดล็อกห้องให้ว่างแค่เฉพาะวันนี้ วันอื่นในสัปดาห์ถัดๆ ไปยังคงจองอยู่เหมือนเดิม"
-                    : "ปลดล็อกห้องให้ว่างแค่เฉพาะวันนี้ วันอื่นยังคงจองอยู่เหมือนเดิม"}
-                </p>
-              </div>
-            </label>
-
-            {/* Option 2: This and following events */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="following"
-                checked={selectedRecurrenceMode === "following"}
-                onChange={() => setSelectedRecurrenceMode("following")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขตั้งแต่รอบนี้เป็นต้นไป"
-                    : "ลบตั้งแต่รอบนี้เป็นต้นไป"}{" "}
-                  (This and following events)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "เปลี่ยนแปลงตารางตั้งแต่รอบนี้ยาวไปจนจบ"
-                    : "ลบตารางตั้งแต่รอบนี้เป็นต้นไปจนจบ"}
-                </p>
-              </div>
-            </label>
-
-            {/* Option 3: All events */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="all"
-                checked={selectedRecurrenceMode === "all"}
-                onChange={() => setSelectedRecurrenceMode("all")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขทั้งหมด"
-                    : "ลบทั้งหมด"}{" "}
-                  (All events)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "เปลี่ยนโครงสร้างตารางทั้งหมดตั้งแต่วันแรกที่เริ่มสร้าง"
-                    : "ลบตารางทั้งหมดตั้งแต่วันแรกที่เริ่มสร้าง"}
-                </p>
-              </div>
-            </label>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setRecurrenceDialogOpen(false)}
-              className="flex-1 h-10 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmRecurrenceAction}
-              className={cn(
-                "flex-1 h-10 rounded-lg text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer",
-                recurrenceActionType === "edit"
-                  ? "bg-[#f26522] hover:bg-[#d8561d] shadow-[#f26522]/10"
-                  : "bg-red-600 hover:bg-red-700 shadow-red-600/10",
-              )}
-            >
-              ยืนยัน
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
+

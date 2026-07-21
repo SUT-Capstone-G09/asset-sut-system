@@ -40,6 +40,10 @@ export default function ManageHallsPage() {
     <div className="p-8 space-y-8">
       <BookingHeader
         title="จัดการโถงพื้นที่"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "จัดการโถงพื้นที่" },
+        ]}
         onCreateClick={() => setIsCreateOpen(true)}
         buttonLabel="เพิ่มโถงพื้นที่"
         extraAction={

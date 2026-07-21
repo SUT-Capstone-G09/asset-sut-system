@@ -16,7 +16,7 @@ import {
 import { Building2, Image as ImageIcon, LayoutGrid } from "lucide-react";
 import { HallFormValues } from "../../../schemas/hall-schema";
 import { cn } from "@/lib/utils";
-import ImageUpload from "@/features/areas/components/admin/forms/ImageUpload";
+import ImageUpload from "@/components/ui/image-upload";
 import { getBuildings } from "../../../services/hallService";
 
 export default function HallFormFields({

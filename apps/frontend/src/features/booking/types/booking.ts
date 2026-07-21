@@ -62,7 +62,6 @@ export interface Booking {
   housekeeperPrice?: number;
   housekeeperCount?: number;
   discountPrice?: number;
-  recurringGroupId?: string;
   expenseStatus?: "draft" | "sent";
   repeat?: boolean;
   repeatFrequency?: "daily" | "weekly" | "monthly" | "custom";

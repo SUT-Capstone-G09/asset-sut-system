@@ -53,15 +53,23 @@ type PaymentTransactions struct {
 	Status         *PaymentStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 
 	SlipTransRef string     `gorm:"uniqueIndex" json:"slip_trans_ref"`
-	SlipRef1     string     `gorm:"index" json:"slip_ref1"`  // ref read from slip → matched to Invoice.QRRef1
-	SlipAmount   int        `json:"slip_amount"`             // amount EasySlip read from the slip
-	SlipReceiver string     `json:"slip_receiver"`           // receiver name/account printed on the slip
-	SlipSender   string     `json:"slip_sender"`             // sender name printed on the slip
-	SlipPaidAt   *time.Time `json:"slip_paid_at"`            // transaction datetime on the slip
-	SlipPayload  string     `json:"slip_payload"`            // raw QR payload embedded in the slip (audit)
-	EasySlipRaw  string     `gorm:"type:jsonb" json:"-"`     // raw EasySlip response, kept for audit
-	ReceiverFlag bool       `gorm:"default:false" json:"receiver_flag"` // receiver name did not match → needs staff review
+	SlipRef1     string     `gorm:"index" json:"slip_ref1"` // ref read from slip → matched to Invoice.QRRef1
+	SlipAmount   int        `json:"slip_amount"`            // amount EasySlip read from the slip
+	SlipReceiver string     `json:"slip_receiver"`          // receiver name/account printed on the slip
+	SlipSender   string     `json:"slip_sender"`            // sender name printed on the slip
+	SlipPaidAt   *time.Time `json:"slip_paid_at"`           // transaction datetime on the slip
+	SlipPayload  string     `json:"slip_payload"`           // raw QR payload embedded in the slip (audit)
+	// default:'{}' matters: GORM omits zero-value fields with a `default` tag
+	// from INSERT so the DB applies it — without it, Create() (the plain manual
+	// payment path, which never sets this) sends Go's "" zero value, and
+	// Postgres rejects an empty string as invalid jsonb.
+	EasySlipRaw  string `gorm:"type:jsonb;default:'{}'" json:"-"`   // raw EasySlip response, kept for audit
+	ReceiverFlag bool   `gorm:"default:false" json:"receiver_flag"` // receiver name did not match → needs staff review
 
+	// ── Staff confirmation ──
+	// Verifier references Users (not Profiles directly) — Profiles/Admins/Staffs
+	// were unified into a single Profiles-per-User model; going through Users
+	// here is what lets toPaymentResponse do tx.Verifier.Profiles safely.
 	VerifyBy   *uint      `json:"verify_by"`
 	Verifier   *Users     `gorm:"foreignKey:VerifyBy;references:ID" json:"verifier,omitempty"`
 	VerifyNote string     `json:"verify_note"`

@@ -5,7 +5,7 @@ export const mockEvaluations: EvaluationRecord[] = [
     id: "EVAL-001",
     storeName: "ร้านส้มตำแซ่บ",
     location: "โรงอาหารกลาง 1",
-    category: "food",
+    category: "canteen",
     score: 85,
     maxScore: 100,
     status: "ผ่าน",
@@ -24,7 +24,7 @@ export const mockEvaluations: EvaluationRecord[] = [
     id: "EVAL-002",
     storeName: "ก๋วยเตี๋ยวเรืออยุธยา",
     location: "ศูนย์อาหารริมน้ำ",
-    category: "food",
+    category: "canteen",
     score: 45,
     maxScore: 100,
     status: "ไม่ผ่าน",
@@ -42,7 +42,7 @@ export const mockEvaluations: EvaluationRecord[] = [
     id: "EVAL-003",
     storeName: "After You Dessert Cafe",
     location: "Zone A, 2nd Floor, Unit A204",
-    category: "snack",
+    category: "cafe_drink_snack",
     score: 94,
     maxScore: 100,
     status: "ผ่าน",
@@ -62,10 +62,18 @@ export const mockEvaluations: EvaluationRecord[] = [
 ];
 
 export const evalCategories = [
-    { id: "all", label: "ทั้งหมด" },
-    { id: "food", label: "อาหาร" },
-    { id: "drink", label: "เครื่องดื่ม" },
-    { id: "snack", label: "ของว่าง" },
+  { id: "all", label: "ทั้งหมด" },
+  { id: "cafe_drink_snack", label: "กาแฟสด เครื่องดื่ม อาหารว่าง" },
+  { id: "convenience_store", label: "ร้านสะดวกซื้อ/มินิมาร์ท" },
+  { id: "vending_machine", label: "ตู้จำหน่ายสินค้าอัตโนมัติ" },
+  { id: "laundromat", label: "ให้บริการเครื่องซักผ้าอัตโนมัติ" },
+  { id: "atm", label: "ให้บริการติดตั้งตู้ ATM" },
+  { id: "telecom_network", label: "เครือข่ายโทรคมนาคม (เสารับ-ส่งสัญญาณ Small Cell Access Point)" },
+  { id: "it_equipment", label: "จำหน่ายอุปกรณ์ IT" },
+  { id: "public_relations_sign", label: "ป้ายและสื่อประชาสัมพันธ์" },
+  { id: "copier_printer", label: "เครื่องพิมพ์เอกสาร" },
+  { id: "space_utilization", label: "ใช้พื้นที่" },
+  { id: "canteen", label: "โรงอาหาร" },
 ];
 
 export const evaluationCriteria = [

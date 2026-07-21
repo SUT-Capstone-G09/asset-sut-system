@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Calendar as CalendarIcon, ChevronDown, Clock, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ for (let h = 7; h <= 21; h++) {
 }
 
 const CAPACITY_OPTIONS = [10, 30, 50, 100, 300, 500, 1500];
+
+// Must match backend MinBookingLeadDays (apps/backend/internal/services/booking.go)
+const MIN_BOOKING_LEAD_DAYS = 7;
 
 const MODES: { label: string; value: BookingMode }[] = [
   { label: "วันเดียว", value: "single" },
@@ -63,7 +66,7 @@ function DatePickerButton({
             mode="single"
             selected={date}
             onSelect={(d) => { onChange(d); setOpen(false); }}
-            disabled={{ before: minDate ?? new Date() }}
+            disabled={{ before: minDate ?? addDays(new Date(), MIN_BOOKING_LEAD_DAYS) }}
           />
         </PopoverContent>
       </Popover>
@@ -188,7 +191,7 @@ export default function RoomSearchForm({ params, onUpdate, onSearch }: RoomSearc
             label="วันสิ้นสุด"
             date={params.endDate}
             onChange={(d) => onUpdate("endDate", d)}
-            minDate={params.startDate ?? new Date()}
+            minDate={params.startDate ?? addDays(new Date(), MIN_BOOKING_LEAD_DAYS)}
           />
         )}
 

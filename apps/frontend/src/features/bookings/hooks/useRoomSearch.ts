@@ -1,8 +1,24 @@
 import { useState, useMemo, useEffect } from "react";
-import { differenceInCalendarDays } from "date-fns";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { Room, RoomSearchParams, SortOption, ViewMode } from "@/features/bookings/types";
-import { getLocations, locationToRoom, LocationDTO } from "@/features/bookings/services/location.service";
+import {
+  checkAvailabilityBatch,
+  getLocations,
+  getRoomAvailabilityBadge,
+  locationToRoom,
+  LocationDTO,
+} from "@/features/bookings/services/location.service";
 import { useAuthContext } from "@/lib/context/auth-context";
+
+function enumerateRequestedDates(p: RoomSearchParams): string[] {
+  if (!p.startDate) return [];
+  const end = p.mode === "range" && p.endDate ? p.endDate : p.startDate;
+  const dates: string[] = [];
+  for (let d = p.startDate; d <= end; d = addDays(d, 1)) {
+    dates.push(format(d, "yyyy-MM-dd"));
+  }
+  return dates;
+}
 
 const CATEGORY_TO_TYPE: Record<string, string> = {
   meeting: "ห้องประชุม",
@@ -31,26 +47,79 @@ export function useRoomSearch(category?: string) {
 
   useEffect(() => {
     getLocations()
-      .then((locations) => {
+      .then(async (locations) => {
         const filtered = category
           ? locations.filter((loc: LocationDTO) => loc.type === CATEGORY_TO_TYPE[category])
           : locations;
-        setAllRooms(filtered.map((loc) => locationToRoom(loc, requesterTypeId)));
+        const base = filtered.map((loc) => locationToRoom(loc, requesterTypeId));
+        setAllRooms(base);
+
+        // Upgrade the operational-status placeholder badge to a real,
+        // booking-derived one once each room's monthly data resolves.
+        const withRealAvailability = await Promise.all(
+          base.map(async (room) => {
+            const availability = await getRoomAvailabilityBadge(Number(room.id)).catch(
+              () => room.availability
+            );
+            return { ...room, availability };
+          })
+        );
+        setAllRooms(withRealAvailability);
       })
       .catch(() => setAllRooms([]));
   }, [requesterTypeId, category]);
 
+  const [unavailableIds, setUnavailableIds] = useState<Set<string>>(new Set());
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+
+  useEffect(() => {
+    const dates = appliedParams ? enumerateRequestedDates(appliedParams) : [];
+    if (dates.length === 0 || allRooms.length === 0) {
+      return;
+    }
+    const candidates = allRooms.filter((r) =>
+      appliedParams!.capacity == null || r.capacityMax >= appliedParams!.capacity
+    );
+    let cancelled = false;
+    (async () => {
+      setCheckingAvailability(true);
+      // One batched request covering every candidate room, instead of one
+      // request per room — see LocationService.CheckAvailability (backend).
+      const availability = await checkAvailabilityBatch(
+        candidates.map((r) => Number(r.id)),
+        dates,
+        appliedParams!.startTime,
+        appliedParams!.endTime
+      ).catch(() => null); // fail-open — a check error shouldn't hide every room
+      if (cancelled) return;
+      const bad = availability
+        ? candidates.filter((r) => availability[Number(r.id)] === false).map((r) => r.id)
+        : [];
+      setUnavailableIds(new Set(bad));
+      setCheckingAvailability(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedParams, allRooms]);
+
   const results = useMemo<Room[]>(() => {
     if (!appliedParams) return [];
-    const filtered = allRooms.filter((r) =>
-      appliedParams.capacity == null || r.capacityMax >= appliedParams.capacity
+    // Only consult unavailableIds when a date was actually requested — otherwise
+    // it may hold stale results from a previous search that this effect hasn't
+    // reset yet (avoids needing a redundant "reset" setState in the effect above).
+    const hasDateFilter = enumerateRequestedDates(appliedParams).length > 0;
+    const filtered = allRooms.filter(
+      (r) =>
+        (appliedParams.capacity == null || r.capacityMax >= appliedParams.capacity) &&
+        (!hasDateFilter || !unavailableIds.has(r.id))
     );
     return [...filtered].sort((a, b) => {
       if (sortBy === "price_asc") return a.pricePerHour - b.pricePerHour;
       if (sortBy === "price_desc") return b.pricePerHour - a.pricePerHour;
       return b.capacityMax - a.capacityMax;
     });
-  }, [appliedParams, sortBy, allRooms]);
+  }, [appliedParams, sortBy, allRooms, unavailableIds]);
 
   const handleSearch = () => setAppliedParams({ ...searchParams });
 
@@ -79,6 +148,7 @@ export function useRoomSearch(category?: string) {
     handleSearch,
     results,
     hasSearched: appliedParams !== null,
+    checkingAvailability,
     sortBy,
     setSortBy,
     viewMode,

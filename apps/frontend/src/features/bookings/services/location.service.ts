@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/services/api-client";
-import { Room } from "@/features/bookings/types";
+import { AvailabilityStatus, Room } from "@/features/bookings/types";
 
 export interface LocationDTO {
   id: number;
@@ -92,6 +92,44 @@ export async function getMonthlyAvailability(
   );
 }
 
+// Real (booking-derived) availability badge for the current month, from today
+// onward — replaces the old "loc.status === available" heuristic, which only
+// reflects whether the room is in service, not whether it's actually booked.
+export async function getRoomAvailabilityBadge(locationId: number): Promise<AvailabilityStatus> {
+  const now = new Date();
+  const map = await getMonthlyAvailability(locationId, now.getFullYear(), now.getMonth() + 1);
+  const todayStr = now.toISOString().slice(0, 10);
+  const hasBookedDay = Object.entries(map).some(
+    ([dateStr, day]) => dateStr >= todayStr && day.status !== "available"
+  );
+  return hasBookedDay ? "ว่างบางวัน" : "ว่างทุกวัน";
+}
+
+// Checks whether each of `locationIds` is free for every date in `dates`
+// (each "yyyy-MM-dd"), in a single batched request — one round trip covering
+// every room in a result page, instead of one request per room. Backed by
+// the server's CheckAvailability, which applies the exact same "full day"
+// rule (freeMinutesInWindow/minBookableFreeMinutes) used everywhere else, so
+// this can never disagree with what the calendar itself shows.
+export async function checkAvailabilityBatch(
+  locationIds: number[],
+  dates: string[],
+  startTime?: string,
+  endTime?: string
+): Promise<Record<number, boolean>> {
+  if (locationIds.length === 0 || dates.length === 0) return {};
+
+  const params = new URLSearchParams({
+    location_ids: locationIds.join(","),
+    dates: dates.join(","),
+  });
+  if (startTime && endTime) {
+    params.set("start_time", startTime);
+    params.set("end_time", endTime);
+  }
+  return apiClient.get<Record<number, boolean>>(`/locations/availability?${params.toString()}`);
+}
+
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";
 
 function pickHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number {
@@ -115,6 +153,17 @@ function pickDailyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: n
   );
 }
 
+// Returns undefined when the location has no off-peak hourly tier configured
+// (callers should fall back to the normal hourly rate in that case).
+function pickOffPeakHourlyPrice(tiers: LocationDTO["pricing_tiers"], requesterTypeId?: number): number | undefined {
+  const isExternal = requesterTypeId === 2;
+  const typeKeyword = isExternal ? "ภายนอก" : "ภายใน";
+  return (
+    tiers?.find((t) => t.requester_type?.includes(typeKeyword) && t.rate_type === "hourly_offpeak")?.price ??
+    tiers?.find((t) => t.rate_type === "hourly_offpeak")?.price
+  );
+}
+
 export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room {
   return {
     id: String(loc.id),
@@ -124,6 +173,7 @@ export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerHourOffPeak: pickOffPeakHourlyPrice(loc.pricing_tiers, requesterTypeId),
     pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: [],
     image: loc.image_url ?? DEFAULT_IMAGE,
@@ -142,6 +192,7 @@ export function locationDetailToRoom(loc: LocationDetailDTO, requesterTypeId?: n
     capacityMin: loc.capacity,
     capacityMax: loc.capacity,
     pricePerHour: pickHourlyPrice(loc.pricing_tiers, requesterTypeId),
+    pricePerHourOffPeak: pickOffPeakHourlyPrice(loc.pricing_tiers, requesterTypeId),
     pricePerDay: pickDailyPrice(loc.pricing_tiers, requesterTypeId),
     amenities: loc.equipments?.map((e) => e.name) ?? [],
     image: loc.image_url ?? DEFAULT_IMAGE,

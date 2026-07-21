@@ -17,6 +17,11 @@ func NewBookingRepository(db *gorm.DB) *BookingRepository {
 	return &BookingRepository{db: db}
 }
 
+// DB exposes the underlying *gorm.DB so the service layer can open a
+// transaction spanning multiple repositories (see BookingService.Create).
+// Repository constructors already accept any *gorm.DB, including a *gorm.DB
+// handed back from Transaction(), so tx-scoped repos are built the same way
+// as the normal ones.
 func (r *BookingRepository) DB() *gorm.DB {
 	return r.db
 }
@@ -182,6 +187,12 @@ func (r *BookingRepository) CreateStatusLog(log *models.BookingStatusLogs) error
 func (r *BookingRepository) FindStatusByName(name string) (*models.BookingStatuses, error) {
 	var status models.BookingStatuses
 	err := r.db.Where("status = ?", name).First(&status).Error
+	return &status, err
+}
+
+func (r *BookingRepository) FindStatusByID(id uint) (*models.BookingStatuses, error) {
+	var status models.BookingStatuses
+	err := r.db.First(&status, id).Error
 	return &status, err
 }
 

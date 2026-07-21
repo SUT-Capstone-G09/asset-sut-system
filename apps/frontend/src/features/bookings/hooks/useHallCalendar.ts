@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  addMonths, subMonths, format, startOfWeek, endOfWeek,
-  addDays, nextMonday, isBefore, startOfDay,
-} from "date-fns";
+import { addMonths, subMonths, format, addDays, isBefore, startOfDay } from "date-fns";
 import { DayInfo } from "@/features/bookings/types/booking-calendar";
 
 // การจองโถงเลือกเฉพาะ "วัน" (ไม่มีเวลา) — ต่างจาก useBookingCalendar ที่มี dayTimes/fullDay/ราคา
@@ -21,13 +18,6 @@ export function useHallCalendar() {
     setSelectedDates((prev) =>
       prev.includes(dateStr) ? prev.filter((d) => d !== dateStr) : [...prev, dateStr].sort()
     );
-  };
-
-  const selectDates = (dates: Date[]) => {
-    const strs = dates
-      .filter((d) => !isBefore(startOfDay(d), minBookableDate))
-      .map((d) => format(d, "yyyy-MM-dd"));
-    setSelectedDates((prev) => [...new Set([...prev, ...strs])].sort());
   };
 
   return {
@@ -49,19 +39,6 @@ export function useHallCalendar() {
       if (sorted.length > 0) {
         setCurrentMonth(startOfDay(new Date(`${sorted[0]}T00:00:00`)));
       }
-    },
-    selectWeekend: () => {
-      const sat = endOfWeek(today, { weekStartsOn: 0 });
-      const sun = startOfWeek(today, { weekStartsOn: 0 });
-      selectDates([sun, sat]);
-    },
-    selectNextWeekdays: () => {
-      const mon = nextMonday(today);
-      selectDates(Array.from({ length: 5 }, (_, i) => addDays(mon, i)));
-    },
-    selectThisWeek: () => {
-      const sun = startOfWeek(today, { weekStartsOn: 0 });
-      selectDates(Array.from({ length: 7 }, (_, i) => addDays(sun, i)));
     },
     getDayInfo: (): DayInfo => ({ status: "available" }),
   };

@@ -13,7 +13,7 @@ export const DEFAULT_REQUEST_INFO = {
   location: 'อาคารเรียนรวม 1 ชั้น 1 ห้องบรรยาย B1102',
   eventDate: '11 ตุลาคม 2567 (ประมาณ 14:00 น.)',
   attachments: [
-    'https://dasintergroup.com/daswp/wp-content/uploads/2025/07/1.1-แอร์พัง-มีไฟกระพริบ-เกิดจากอะไร.webp',
+    'https://dasintergroup.com/daswp/wp-content/uploads/2025/07/1.1-%E0%B9%81%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%9E%E0%B8%B1%E0%B8%87-%E0%B8%A1%E0%B8%B5%E0%B9%84%E0%B8%9F%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%9E%E0%B8%A3%E0%B8%B4%E0%B8%9A-%E0%B9%80%E0%B8%81%E0%B8%B4%E0%B8%94%E0%B8%88%E0%B8%B2%E0%B8%81%E0%B8%AD%E0%B8%B0%E0%B9%84%E0%B8%A3.webp',
     'https://www.chiangmaiaircare.com/images/2015/04/500756.jpg',
   ]
 };

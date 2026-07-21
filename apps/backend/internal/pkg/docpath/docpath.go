@@ -1,6 +1,8 @@
 package docpath
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -18,16 +20,28 @@ func MonthFolder(t time.Time) string {
 	return fmt.Sprintf("%s_%d", thaiMonths[t.Month()-1], t.Year()+543)
 }
 
-// FileName builds "{location}_{month}_{year}_#{bookingID}.{ext}".
+// uniqueSuffix returns a short random hex string so files sharing the same
+// location/month/year/booking-ID/extension (e.g. two PDFs on one booking)
+// don't collide on the same storage key and silently overwrite each other.
+func uniqueSuffix() string {
+	b := make([]byte, 3)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano()%1000000)
+	}
+	return hex.EncodeToString(b)
+}
+
+// FileName builds "{location}_{month}_{year}_#{bookingID}_{suffix}.{ext}".
 // If bookingID is 0, the booking-ID segment is omitted.
 func FileName(locationName string, bookingDate time.Time, bookingID int, original string) string {
 	ext := strings.ToLower(filepath.Ext(original))
 	month := thaiMonths[bookingDate.Month()-1]
 	year := bookingDate.Year() + 543
+	suffix := uniqueSuffix()
 	if bookingID > 0 {
-		return fmt.Sprintf("%s_%s_%d_#%d%s", locationName, month, year, bookingID, ext)
+		return fmt.Sprintf("%s_%s_%d_#%d_%s%s", locationName, month, year, bookingID, suffix, ext)
 	}
-	return fmt.Sprintf("%s_%s_%d%s", locationName, month, year, ext)
+	return fmt.Sprintf("%s_%s_%d_%s%s", locationName, month, year, suffix, ext)
 }
 
 // ObjectKey returns the full storage path:
@@ -76,8 +90,9 @@ type DocType struct {
 // To add a new doc type: add one line here.
 // To move a type from "both" to "Drive only": set StoreMinio = false.
 var DocTypes = map[string]DocType{
-	"location-pics": {FolderName: "รูปภาพสถานที่", StoreMinio: true, StoreDrive: true},
-	"booking-docs": {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
-	"payment-slip": {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
-	"other":        {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
+	"location-pics":   {FolderName: "รูปภาพสถานที่", StoreMinio: true, StoreDrive: true},
+	"booking-docs":    {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
+	"payment-slip":    {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
+	"payment-receipt": {FolderName: "ใบเสร็จรับเงิน", StoreMinio: true, StoreDrive: true},
+	"other":           {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
 }

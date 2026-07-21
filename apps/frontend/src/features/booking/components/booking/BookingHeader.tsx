@@ -8,6 +8,7 @@ import { AssetBreadcrumb } from "@/components/layout/AssetBreadcrumb";
 
 interface BookingHeaderProps {
   title: string;
+  breadcrumbs: { label: string; href?: string }[];
   onCreateClick?: () => void;
   buttonLabel?: string;
   extraAction?: React.ReactNode;
@@ -15,6 +16,7 @@ interface BookingHeaderProps {
 
 export default function BookingHeader({
   title,
+  breadcrumbs,
   onCreateClick,
   buttonLabel = "เพิ่มคำขอจองใหม่",
   extraAction,
@@ -23,6 +25,10 @@ export default function BookingHeader({
     <div className="space-y-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-4">
+          <div className="flex items-center justify-between lg:justify-start lg:gap-4">
+            <AssetBreadcrumb items={breadcrumbs} />
+          </div>
+
           <div>
             <h1 className="page-title text-2xl font-black text-slate-900 tracking-tight">
               {title}
