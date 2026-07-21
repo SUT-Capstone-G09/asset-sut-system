@@ -564,6 +564,58 @@ func (c *LocationController) GetFloorPlan(ctx *gin.Context) {
 	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null
 }
 
+// GetPublicFloorPlan อ่านผังโถงแบบ public สำหรับหน้าจองของผู้ใช้ (เลือกเซลล์บูธ)
+// ใช้ logic เดียวกับ GetFloorPlan แต่ไม่ต้อง auth — เปิดเผยเฉพาะข้อมูลผังที่จำเป็นต่อการจอง
+func (c *LocationController) GetPublicFloorPlan(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	fp, err := c.locationService.GetFloorPlan(id)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, fp) // fp เป็น nil ได้ → data: null (โถงยังไม่มีผัง)
+}
+
+// maxFloorPlanImageSize จำกัดขนาดรูปผังที่อัปโหลด (10 MB)
+const maxFloorPlanImageSize = 10 << 20
+
+// UploadFloorPlanImage อัปโหลดรูปผัง (top-view) ของโถง เก็บที่ path มาตรฐานของโถง
+// (รูปภาพสถานที่/ชื่ออาคาร/โถงอาคาร/แผนผัง/ชื่อโถง) แล้วคืน object_key + url
+func (c *LocationController) UploadFloorPlanImage(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	fh, err := ctx.FormFile("file")
+	if err != nil {
+		response.BadRequest(ctx, "missing form-data file field 'file'")
+		return
+	}
+	if fh.Size > maxFloorPlanImageSize {
+		response.BadRequest(ctx, "file too large (max 10MB)")
+		return
+	}
+	res, err := c.locationService.UploadFloorPlanImage(ctx.Request.Context(), id, fh)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.Created(ctx, dto.UploadResponse{
+		BucketName:  res.BucketName,
+		ObjectKey:   res.ObjectKey,
+		URL:         res.URL,
+		FileName:    res.FileName,
+		ContentType: res.ContentType,
+		Size:        res.Size,
+		ExpiresIn:   res.ExpiresIn,
+	})
+}
+
 func (c *LocationController) UpsertFloorPlan(ctx *gin.Context) {
 	id, err := parseID(ctx)
 	if err != nil {

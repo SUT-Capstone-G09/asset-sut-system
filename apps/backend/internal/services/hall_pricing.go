@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 )
@@ -38,7 +39,8 @@ type HallPurposeInput struct {
 	CellSizeM     float64 // ขนาดเซลล์ (เมตร) จากผังของโถงนั้น
 
 	// per_type_per_day (แจกใบปลิว / ตัวอย่าง)
-	ProductTypeCount int // จำนวนประเภทสินค้า
+	ProductTypeCount int      // จำนวนประเภทสินค้า
+	ProductNames     []string // ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท) — ไม่กระทบราคา แต่ต้องระบุครบตอนสร้าง booking
 
 	// ราคาที่ผู้ขอเสนอ (ยอดรวมต่อวัตถุประสงค์นี้) — nil = ไม่เสนอ ใช้ราคาระบบ
 	ProposedPrice *int
@@ -90,6 +92,21 @@ func CalculateHallPurpose(in HallPurposeInput, days int) (*models.BookingPurpose
 		count := in.ProductTypeCount
 		bp.ProductTypeCount = &count
 		bp.UnitPriceSnapshot = in.UnitPrice
+		// เก็บชื่อสินค้าที่จะแจก (ตัดช่องว่าง/ทิ้งชื่อว่าง) — จำกัดไม่เกินจำนวนประเภท
+		// การบังคับ "ต้องระบุครบ" อยู่ที่ validateHallProductNames (เรียกตอนสร้าง/แก้ไข booking เท่านั้น
+		// ไม่ใช่ตอน quote ราคา เพราะ quote ไม่ได้ส่งชื่อสินค้ามา)
+		names := make([]string, 0, len(in.ProductNames))
+		for _, n := range in.ProductNames {
+			if t := strings.TrimSpace(n); t != "" {
+				names = append(names, t)
+			}
+		}
+		if len(names) > count {
+			names = names[:count]
+		}
+		if len(names) > 0 {
+			bp.ProductNames = names
+		}
 		computed = in.UnitPrice * count * days
 
 	default:
@@ -134,4 +151,24 @@ func CalculateHallPurposes(inputs []HallPurposeInput, days int) (lines []models.
 		lines = append(lines, *bp)
 	}
 	return lines, basePrice, addonPrice, nil
+}
+
+// validateHallProductNames บังคับให้วัตถุประสงค์แบบ per_type_per_day (แจกใบปลิว/ตัวอย่างสินค้า)
+// ต้องระบุชื่อสินค้าที่จะแจกให้ครบทุกประเภท (จำนวนชื่อ ≥ ProductTypeCount)
+// เรียกเฉพาะตอนสร้าง/แก้ไข booking — ไม่เรียกตอน quote ราคา (quote ไม่ส่งชื่อสินค้ามา)
+// ทำงานบน lines ที่ CalculateHallPurpose สร้างแล้ว (ชื่อถูก trim/ตัดว่าง/จำกัดจำนวนไว้แล้ว)
+func validateHallProductNames(lines []models.BookingPurposes) error {
+	for _, l := range lines {
+		if l.PricingModel != models.HallPricingPerTypePerDay {
+			continue
+		}
+		count := 0
+		if l.ProductTypeCount != nil {
+			count = *l.ProductTypeCount
+		}
+		if len(l.ProductNames) < count {
+			return fmt.Errorf("กรุณาระบุชื่อสินค้าที่จะแจกให้ครบทั้ง %d ประเภท", count)
+		}
+	}
+	return nil
 }

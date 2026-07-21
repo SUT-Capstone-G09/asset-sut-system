@@ -45,16 +45,21 @@ type TimeslotStatuses struct {
 	Timeslots []Timeslots `gorm:"foreignKey:StatusID" json:"timeslots,omitempty"`
 }
 
+// idx_timeslot_slot (location_id, date, start_time) เป็น partial unique index — บังคับเฉพาะ
+// IsShared=false (การจองห้อง/สนาม/อาคารเรียน กันเวลาซ้ำเป๊ะ) ; timeslot ของโถง (IsShared=true)
+// ยกเว้น เพราะโถงแชร์วันเดียวกันหลายบูธได้ กันชนกันด้วยการตรวจเซลล์แทน slot lock
+// index ถูกสร้างเป็น partial ผ่าน raw SQL ใน cmd/init-db (GORM tag ทำ WHERE ไม่ได้)
 type Timeslots struct {
 	Base
-	LocationID    uint                    `gorm:"not null;uniqueIndex:idx_timeslot_slot" json:"location_id"`
+	LocationID    uint                    `gorm:"not null" json:"location_id"`
 	Location      *Locations              `gorm:"foreignKey:LocationID" json:"location,omitempty"`
 	BookingID     *uint                   `json:"booking_id"`
 	Booking       *Bookings               `gorm:"foreignKey:BookingID" json:"booking,omitempty"`
-	Date          time.Time               `gorm:"type:date;not null;uniqueIndex:idx_timeslot_slot" json:"date"`
-	StartTime     time.Time               `gorm:"type:time;not null;uniqueIndex:idx_timeslot_slot" json:"start_time"`
+	Date          time.Time               `gorm:"type:date;not null" json:"date"`
+	StartTime     time.Time               `gorm:"type:time;not null" json:"start_time"`
 	EndTime       time.Time               `gorm:"type:time;not null" json:"end_time"`
 	IsFullDay     bool                    `gorm:"not null;default:false" json:"is_full_day"`
+	IsShared      bool                    `gorm:"not null;default:false" json:"is_shared"` // true = timeslot ของโถง (แชร์วันได้ ยกเว้นจาก unique index)
 	PriceSnapshot int                     `gorm:"not null;default:0" json:"price_snapshot"`
 	StatusID      uint                    `gorm:"not null" json:"status_id"`
 	Status        *TimeslotStatuses       `gorm:"foreignKey:StatusID" json:"status,omitempty"`

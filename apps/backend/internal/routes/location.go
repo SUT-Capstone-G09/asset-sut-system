@@ -40,6 +40,11 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		locations.GET("/:id", optAuth, lc.GetByID)
 		locations.GET("/:id/monthly-availability", lc.GetMonthlyAvailability)
 
+		// Public (หน้าจองของผู้ใช้): ผังโถง + เซลล์ที่ถูกจองแล้วตามวันที่ (เลือกบูธ) + ราคาที่ระบบคำนวณ
+		locations.GET("/:id/public-floor-plan", lc.GetPublicFloorPlan)
+		locations.GET("/:id/booked-cells", deps.BookingController.GetBookedCells)
+		locations.POST("/:id/hall-price-quote", deps.BookingController.QuoteHallPrice)
+
 		// Staff/Admin mutations (ownership enforced in service for staff)
 		mgmt := locations.Group("")
 		mgmt.Use(auth, middleware.RequireRole("staff", "admin"))
@@ -68,6 +73,8 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 			// ผังพื้นที่โถง (top-view + สเกล + กรอบ + ช่องห้ามจอง)
 			mgmt.GET("/:id/floor-plan", middleware.RequirePermission("location_mgmt", "read"), lc.GetFloorPlan)
 			mgmt.PUT("/:id/floor-plan", middleware.RequirePermission("location_mgmt", "update"), lc.UpsertFloorPlan)
+			// อัปโหลดรูปผัง → เก็บที่ path "รูปภาพสถานที่/{อาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}"
+			mgmt.POST("/:id/floor-plan/image", middleware.RequirePermission("location_mgmt", "update"), lc.UploadFloorPlanImage)
 		}
 
 		// Admin-only: delete location, manage staff assignments per location

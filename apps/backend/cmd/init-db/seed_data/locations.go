@@ -76,7 +76,7 @@ var roomSeeds = []roomSeed{
 	},
 	// โถงอาคาร
 	{
-		Name: "ห้อง Co-Working Space", TypeName: "โถงอาคาร", Building: "อาคารเครื่องมือ F1",
+		Name: "โถงกลาง", TypeName: "โถงอาคาร", Building: "อาคารเรียนรวม 1",
 		FloorNumber: intPtr(4), Capacity: 30, PriceHourly: 300,
 		Equipments: []string{"WiFi", "ที่จอดรถ"},
 	},

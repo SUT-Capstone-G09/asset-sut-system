@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
 	"gorm.io/gorm"
@@ -28,6 +29,7 @@ func (r *BookingRepository) FindAll() ([]models.Bookings, error) {
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
 		Preload("Documents").
+		Preload("Purposes.HallUsagePurpose"). // วัตถุประสงค์โถง (+ เซลล์ที่เลือก) เพื่อแสดงในหน้า admin
 		Find(&bookings).Error
 	return bookings, err
 }
@@ -45,6 +47,7 @@ func (r *BookingRepository) FindByUserID(userID uint) ([]models.Bookings, error)
 		Preload("Invoice.Status").
 		Preload("Invoice.Transactions.Status").
 		Preload("Documents").
+		Preload("Purposes.HallUsagePurpose"). // วัตถุประสงค์โถง (+ เซลล์ที่เลือก) สำหรับ my-bookings
 		Find(&bookings).Error
 	return bookings, err
 }
@@ -96,6 +99,58 @@ func (r *BookingRepository) FindLocationHallPricings(locationID uint) ([]models.
 	var pricings []models.LocationHallPricings
 	err := r.db.Where("location_id = ?", locationID).Find(&pricings).Error
 	return pricings, err
+}
+
+// FindBookedCells คืนเซลล์ (ผังบูธ) ที่ถูกจองแล้วในโถงหนึ่ง สำหรับชุดวันที่กำหนด (union ไม่ซ้ำ)
+// นับเฉพาะ booking ที่ยัง active (สถานะไม่ใช่ cancelled/rejected) และวัตถุประสงค์แบบ per_sqm
+// ใช้ทั้งฝั่งแสดงผัง (ผู้ขอเห็นเซลล์ที่ไม่ว่าง) และตอน validate ตอนสร้าง booking กันจองทับ
+func (r *BookingRepository) FindBookedCells(locationID uint, dates []time.Time) ([][]int, error) {
+	if len(dates) == 0 {
+		return [][]int{}, nil
+	}
+	dateStrs := make([]string, len(dates))
+	for i, d := range dates {
+		dateStrs[i] = d.Format("2006-01-02")
+	}
+
+	// หา booking ที่มี timeslot ในโถงนี้ตรงวันที่ขอ และสถานะยัง active
+	var bookingIDs []uint
+	if err := r.db.Model(&models.Timeslots{}).
+		Joins("JOIN bookings ON bookings.id = timeslots.booking_id").
+		Joins("JOIN booking_statuses ON booking_statuses.id = bookings.status_id").
+		Where("timeslots.location_id = ? AND timeslots.booking_id IS NOT NULL AND timeslots.date IN ?", locationID, dateStrs).
+		Where("booking_statuses.status NOT IN ?", []string{"cancelled", "rejected"}).
+		Where("bookings.deleted_at IS NULL").
+		Distinct().
+		Pluck("timeslots.booking_id", &bookingIDs).Error; err != nil {
+		return nil, err
+	}
+	if len(bookingIDs) == 0 {
+		return [][]int{}, nil
+	}
+
+	var purposes []models.BookingPurposes
+	if err := r.db.Where("booking_id IN ? AND pricing_model = ?", bookingIDs, "per_sqm").
+		Find(&purposes).Error; err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{})
+	cells := make([][]int, 0)
+	for _, p := range purposes {
+		for _, c := range p.SelectedCells {
+			if len(c) < 2 {
+				continue
+			}
+			key := fmt.Sprintf("%d,%d", c[0], c[1])
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			cells = append(cells, []int{c[0], c[1]})
+		}
+	}
+	return cells, nil
 }
 
 // CreatePurposes บันทึกแถว BookingPurposes ที่คำนวณราคาแล้ว

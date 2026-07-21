@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { HallFloorPlan, Overlay } from "../../../types/floorplan";
-import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
+import { uploadHallFloorPlanImage } from "@/features/halls/services/hallFloorPlanService";
 import { useAppDialog } from "../../../hooks/useAppDialog";
 import { toast } from "sonner";
 
@@ -163,7 +163,7 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
       setNaturalH(img.naturalHeight);
       setUploading(true);
       try {
-        const res = await uploadFile(file, UPLOAD_FOLDERS.LOCATION_PICS);
+        const res = await uploadHallFloorPlanImage(initial.hallId, file);
         setImageUrl(res.url); // presigned URL สำหรับ preview
         setImageKey(res.object_key); // เก็บ key ไว้ส่งตอนบันทึก
         setMode("frame");
@@ -552,8 +552,8 @@ export default function HallFloorPlanEditor({ initial, onSave }: Props) {
                               isBlocked
                                 ? "bg-red-500/70 border-red-600/80" // เลือกห้ามจองแล้ว = แดงเข้ม
                                 : mode === "block"
-                                  ? "bg-white/5 border-white/50 hover:bg-red-500/30" // hover = preview แดงจาง
-                                  : "bg-transparent border-white/40",
+                                  ? "bg-white/5 border-gray-300/70 hover:bg-red-500/30" // hover = preview แดงจาง
+                                  : "bg-transparent border-gray-300/70",
                             )}
                             style={{
                               left: `${(c / gridCols) * 100}%`,

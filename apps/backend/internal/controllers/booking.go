@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"strings"
+	"time"
+
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/response"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/services"
@@ -105,6 +108,55 @@ func (c *BookingController) Revise(ctx *gin.Context) {
 		return
 	}
 	response.OK(ctx, booking)
+}
+
+// GetBookedCells คืนเซลล์บูธที่ถูกจองแล้วในโถงหนึ่ง ตามวันที่ผู้ขอเลือก (public)
+// query: ?dates=YYYY-MM-DD,YYYY-MM-DD → คืน [][]int (union ไม่ซ้ำ)
+func (c *BookingController) GetBookedCells(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var dates []time.Time
+	for _, s := range strings.Split(ctx.Query("dates"), ",") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		d, perr := time.Parse("2006-01-02", s)
+		if perr != nil {
+			response.BadRequest(ctx, "invalid date format, expected YYYY-MM-DD")
+			return
+		}
+		dates = append(dates, d)
+	}
+	cells, err := c.bookingService.GetBookedCells(id, dates)
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, cells)
+}
+
+// QuoteHallPrice คำนวณราคาที่ระบบคิดสำหรับการจองโถง (preview ก่อนสร้าง) — public
+func (c *BookingController) QuoteHallPrice(ctx *gin.Context) {
+	id, err := parseID(ctx)
+	if err != nil {
+		response.BadRequest(ctx, "invalid id")
+		return
+	}
+	var req dto.HallPriceQuoteRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	quote, err := c.bookingService.QuoteHallPurposes(id, req.Days, req.Purposes)
+	if err != nil {
+		response.BadRequest(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, quote)
 }
 
 func (c *BookingController) GetInvoice(ctx *gin.Context) {

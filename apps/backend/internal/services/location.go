@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"strings"
 
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/dto"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/models"
+	"github.com/SUT-Capstone-G09/asset-sut-system/internal/pkg/docpath"
 	"github.com/SUT-Capstone-G09/asset-sut-system/internal/repositories"
 )
 
@@ -845,6 +847,22 @@ func (s *LocationService) UpsertFloorPlan(locationID uint, req dto.UpsertHallFlo
 
 func (s *LocationService) GetFloorPlanLocationIDs() ([]uint, error) {
 	return s.locationRepo.FindFloorPlanLocationIDs()
+}
+
+// UploadFloorPlanImage อัปโหลดรูปผัง (top-view) ของโถงไปเก็บที่ path มาตรฐาน:
+// "รูปภาพสถานที่/{ชื่ออาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}{ext}"
+// ชื่ออาคาร/ชื่อโถงดึงจาก DB (เชื่อถือได้ ไม่รับจาก client) แล้วคืน object_key + presigned URL
+func (s *LocationService) UploadFloorPlanImage(ctx context.Context, locationID uint, fh *multipart.FileHeader) (UploadResult, error) {
+	loc, err := s.locationRepo.FindByID(locationID)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	building := "ไม่ระบุอาคาร"
+	if loc.Building != nil && loc.Building.Name != "" {
+		building = loc.Building.Name
+	}
+	key := docpath.HallFloorPlanKey(building, loc.Name, fh.Filename)
+	return s.storage.UploadWithKey(ctx, key, fh)
 }
 
 func (s *LocationService) toFloorPlanResponse(fp *models.HallFloorPlans) dto.HallFloorPlanResponse {

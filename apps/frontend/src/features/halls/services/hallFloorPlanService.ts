@@ -67,6 +67,20 @@ export async function saveHallFloorPlan(
   return fromDTO(hallId, dto);
 }
 
+// อัปโหลดรูปผัง (top-view) ของโถง — backend เก็บที่ path มาตรฐาน
+// "รูปภาพสถานที่/{ชื่ออาคาร}/โถงอาคาร/แผนผัง/{ชื่อโถง}" (ดึงชื่ออาคาร/โถงจาก DB) แล้วคืน object_key + url
+export async function uploadHallFloorPlanImage(
+  hallId: string,
+  file: File
+): Promise<{ object_key: string; url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiClient.upload<{ object_key: string; url: string }>(
+    `/locations/${hallId}/floor-plan/image`,
+    formData
+  );
+}
+
 // เซ็ตของ hallId ที่มีผังแล้ว (ใช้โชว์ป้าย "มีผัง")
 export async function getFloorPlanHallIds(): Promise<Set<string>> {
   const ids = await apiClient.get<number[]>("/hall-floor-plans");

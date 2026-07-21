@@ -23,7 +23,8 @@ type BookingPurposes struct {
 	AreaSqm           *float64 `gorm:"type:decimal(12,2)" json:"area_sqm,omitempty"`    // = จำนวนเซลล์ × CellSizeMSnapshot²
 
 	// per_type_per_day (แจกใบปลิว / แจกตัวอย่างสินค้า)
-	ProductTypeCount *int `json:"product_type_count,omitempty"`
+	ProductTypeCount *int     `json:"product_type_count,omitempty"`
+	ProductNames     []string `gorm:"serializer:json" json:"product_names,omitempty"` // ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท ; ยาว = ProductTypeCount)
 
 	// ราคา (snapshot) — เก็บเป็น int ชั่วคราว รอแปลงทั้งระบบเป็น decimal(12,2) ใน session ถัดไป
 	UnitPriceSnapshot int  `gorm:"not null;default:0" json:"unit_price_snapshot"` // ราคาต่อหน่วยของอาคารสำหรับ purpose นี้ (จาก BuildingHallPricings.Price ; fallback HallUsagePurposes.DefaultPrice)

@@ -73,6 +73,42 @@ func (s *BookingService) GetByID(id uint) (*dto.BookingResponse, error) {
 	return &res, nil
 }
 
+// GetBookedCells คืนเซลล์บูธที่ถูกจองแล้วในโถงหนึ่ง สำหรับชุดวันที่กำหนด (ใช้แสดงผังฝั่งผู้ขอ)
+func (s *BookingService) GetBookedCells(locationID uint, dates []time.Time) ([][]int, error) {
+	return s.bookingRepo.FindBookedCells(locationID, dates)
+}
+
+// QuoteHallPurposes คำนวณราคาที่ระบบคิด (preview) โดยไม่สร้าง booking และไม่ตรวจ ProposedPrice
+// ใช้ให้ frontend แสดงราคาระบบ + validate ราคาที่ผู้ขอเสนอ (ต้องไม่ต่ำกว่า ComputedPrice)
+func (s *BookingService) QuoteHallPurposes(locationID uint, days int, purposeInputs []dto.BookingPurposeInput) (*dto.HallPriceQuoteResponse, error) {
+	if days < 1 {
+		days = 1
+	}
+	// ตัดราคาที่เสนอออก เพื่อให้ได้ ComputedPrice ล้วน (priceHallPurposes จะ reject ถ้า proposed < computed)
+	clean := make([]dto.BookingPurposeInput, len(purposeInputs))
+	for i, p := range purposeInputs {
+		clean[i] = p
+		clean[i].ProposedPrice = nil
+	}
+	lines, _, _, err := s.priceHallPurposes(locationID, days, clean)
+	if err != nil {
+		return nil, err
+	}
+	res := &dto.HallPriceQuoteResponse{Days: days}
+	for _, l := range lines {
+		res.Purposes = append(res.Purposes, dto.HallPurposeQuote{
+			HallUsagePurposeID: l.HallUsagePurposeID,
+			PricingModel:       l.PricingModel,
+			AreaSqm:            l.AreaSqm,
+			ProductTypeCount:   l.ProductTypeCount,
+			UnitPrice:          l.UnitPriceSnapshot,
+			ComputedPrice:      l.ComputedPrice,
+		})
+		res.TotalComputed += l.ComputedPrice
+	}
+	return res, nil
+}
+
 func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto.BookingResponse, error) {
 	now := time.Now()
 	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -92,19 +128,24 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 		return nil, errors.New("timeslot status not configured")
 	}
 
-	// Check all slots are free before creating anything
-	for _, ts := range req.Timeslots {
-		taken, err := s.timeslotRepo.IsSlotTaken(ts.LocationID, ts.StartTime, ts.EndTime)
-		if err != nil {
-			return nil, err
-		}
-		if taken {
-			return nil, errors.New("one or more timeslots are already taken")
+	// การจองโถง (มีวัตถุประสงค์) แชร์วันเดียวกันหลายบูธได้ จึงไม่ใช้ slot-lock แบบห้อง
+	// แต่ไปตรวจการทับเซลล์แทน ; ห้อง/สนาม/อาคารเรียนยังกันเวลาซ้ำด้วย IsSlotTaken เหมือนเดิม
+	isHall := len(req.Purposes) > 0
+
+	// Check all slots are free before creating anything (เฉพาะการจองที่ไม่ใช่โถง)
+	if !isHall {
+		for _, ts := range req.Timeslots {
+			taken, err := s.timeslotRepo.IsSlotTaken(ts.LocationID, ts.StartTime, ts.EndTime)
+			if err != nil {
+				return nil, err
+			}
+			if taken {
+				return nil, errors.New("one or more timeslots are already taken")
+			}
 		}
 	}
 
 	// Hall booking: คำนวณ+ตรวจราคาวัตถุประสงค์ก่อนสร้างอะไร (เสนอราคาต่ำกว่าเกณฑ์จะถูก reject ตรงนี้ ไม่มี booking ค้าง)
-	isHall := len(req.Purposes) > 0
 	var hallLines []models.BookingPurposes
 	var purposeBase, purposeAddon int
 	if isHall {
@@ -115,8 +156,16 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 				return nil, errors.New("การจองพื้นที่โถงต้องเป็นสถานที่เดียวต่อการจอง")
 			}
 		}
+		// กันจองบูธทับช่องห้ามจอง / เซลล์ที่ผู้อื่นจองไว้แล้วในวันเดียวกัน
+		if err := s.validateHallCellAvailability(locationID, req.Timeslots, req.Purposes); err != nil {
+			return nil, err
+		}
 		hallLines, purposeBase, purposeAddon, err = s.priceHallPurposes(locationID, distinctDateCount(req.Timeslots), req.Purposes)
 		if err != nil {
+			return nil, err
+		}
+		// แจกใบปลิว/ตัวอย่างสินค้า ต้องระบุชื่อสินค้าที่จะแจกให้ครบทุกประเภท
+		if err := validateHallProductNames(hallLines); err != nil {
 			return nil, err
 		}
 	}
@@ -165,6 +214,7 @@ func (s *BookingService) Create(userID uint, req dto.CreateBookingRequest) (*dto
 			StartTime:     tsInput.StartTime,
 			EndTime:       tsInput.EndTime,
 			IsFullDay:     tsInput.IsFullDay,
+			IsShared:      isHall, // โถง = แชร์วันได้ ยกเว้นจาก partial unique index idx_timeslot_slot
 			PriceSnapshot: priceSnapshot,
 			StatusID:      availableStatus.ID,
 		}
@@ -244,6 +294,10 @@ func (s *BookingService) Revise(bookingID, userID uint, req dto.ReviseBookingReq
 
 	lines, base, addon, err := s.priceHallPurposes(locationID, days, req.Purposes)
 	if err != nil {
+		return nil, err
+	}
+	// แจกใบปลิว/ตัวอย่างสินค้า ต้องระบุชื่อสินค้าที่จะแจกให้ครบทุกประเภท
+	if err := validateHallProductNames(lines); err != nil {
 		return nil, err
 	}
 
@@ -549,11 +603,79 @@ func (s *BookingService) priceHallPurposes(locationID uint, days int, purposeInp
 			SelectedCells:    p.SelectedCells,
 			CellSizeM:        cellSize,
 			ProductTypeCount: p.ProductTypeCount,
+			ProductNames:     p.ProductNames,
 			ProposedPrice:    p.ProposedPrice,
 		})
 	}
 
 	return CalculateHallPurposes(inputs, days)
+}
+
+// validateHallCellAvailability ตรวจว่าเซลล์บูธ (per_sqm) ที่ผู้ขอเลือก ไม่ทับช่องห้ามจองบนผัง
+// และไม่ทับเซลล์ที่ booking อื่น (active) จองไว้แล้วในวันเดียวกัน — กันหลายบูธจองที่เดียวกัน
+func (s *BookingService) validateHallCellAvailability(locationID uint, slots []dto.TimeslotInput, purposes []dto.BookingPurposeInput) error {
+	// รวมเซลล์ที่ผู้ขอเลือก (per_sqm)
+	var requested [][]int
+	for _, p := range purposes {
+		requested = append(requested, p.SelectedCells...)
+	}
+	if len(requested) == 0 {
+		return nil // ไม่มีบูธ ไม่ต้องตรวจเซลล์
+	}
+
+	// ช่องห้ามจองจากผังของโถง
+	blocked := make(map[string]struct{})
+	if fp, err := s.locationRepo.FindFloorPlanByLocationID(locationID); err == nil && fp != nil {
+		for _, c := range fp.BlockedCells {
+			if len(c) >= 2 {
+				blocked[cellKey(c[0], c[1])] = struct{}{}
+			}
+		}
+	}
+
+	// เซลล์ที่ถูกจองแล้วในวันที่ขอ
+	bookedCells, err := s.bookingRepo.FindBookedCells(locationID, distinctDates(slots))
+	if err != nil {
+		return err
+	}
+	booked := make(map[string]struct{})
+	for _, c := range bookedCells {
+		if len(c) >= 2 {
+			booked[cellKey(c[0], c[1])] = struct{}{}
+		}
+	}
+
+	for _, c := range requested {
+		if len(c) < 2 {
+			continue
+		}
+		k := cellKey(c[0], c[1])
+		if _, ok := blocked[k]; ok {
+			return errors.New("พื้นที่ที่เลือกมีช่องที่ห้ามจอง กรุณาเลือกพื้นที่ใหม่")
+		}
+		if _, ok := booked[k]; ok {
+			return errors.New("พื้นที่ที่เลือกถูกจองแล้วในวันดังกล่าว กรุณาเลือกพื้นที่อื่น")
+		}
+	}
+	return nil
+}
+
+func cellKey(r, c int) string { return fmt.Sprintf("%d,%d", r, c) }
+
+// distinctDates คืนวันไม่ซ้ำ (time.Time) จากช่วงเวลาที่ผู้ขอส่งมา
+func distinctDates(slots []dto.TimeslotInput) []time.Time {
+	seen := make(map[string]struct{}, len(slots))
+	var out []time.Time
+	for _, ts := range slots {
+		y, m, d := ts.Date.Date()
+		key := fmt.Sprintf("%04d-%02d-%02d", y, m, d)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, ts.Date)
+	}
+	return out
 }
 
 // distinctDateCount นับจำนวนวันไม่ซ้ำจากช่วงเวลาที่ผู้ขอส่งมา
@@ -695,6 +817,7 @@ func (s *BookingService) toBookingResponse(b models.Bookings) dto.BookingRespons
 			SelectedCells:      p.SelectedCells,
 			AreaSqm:            p.AreaSqm,
 			ProductTypeCount:   p.ProductTypeCount,
+			ProductNames:       p.ProductNames,
 			UnitPriceSnapshot:  p.UnitPriceSnapshot,
 			ComputedPrice:      p.ComputedPrice,
 			ProposedPrice:      p.ProposedPrice,

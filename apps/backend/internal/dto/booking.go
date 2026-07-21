@@ -21,10 +21,34 @@ type CreateBookingRequest struct {
 
 // BookingPurposeInput = วัตถุประสงค์ 1 ข้อที่ผู้ขอเลือกตอนจองพื้นที่โถง (เลือกได้หลายข้อ)
 type BookingPurposeInput struct {
-	HallUsagePurposeID uint    `json:"hall_usage_purpose_id" binding:"required"`
-	SelectedCells      [][]int `json:"selected_cells"`     // per_sqm: เซลล์ที่เลือกบนผัง [[row,col], ...]
-	ProductTypeCount   int     `json:"product_type_count"` // per_type_per_day: จำนวนประเภทสินค้า
-	ProposedPrice      *int    `json:"proposed_price"`     // ราคาที่เสนอ (optional; ต้องไม่ต่ำกว่าเกณฑ์ระบบ)
+	HallUsagePurposeID uint     `json:"hall_usage_purpose_id" binding:"required"`
+	SelectedCells      [][]int  `json:"selected_cells"`     // per_sqm: เซลล์ที่เลือกบนผัง [[row,col], ...]
+	ProductTypeCount   int      `json:"product_type_count"` // per_type_per_day: จำนวนประเภทสินค้า
+	ProductNames       []string `json:"product_names"`      // per_type_per_day: ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท)
+	ProposedPrice      *int     `json:"proposed_price"`     // ราคาที่เสนอ (optional; ต้องไม่ต่ำกว่าเกณฑ์ระบบ)
+}
+
+// HallPriceQuoteRequest = ขอให้ระบบคำนวณราคา (ตัวอย่าง/preview) ก่อนสร้าง booking โถง
+// ไม่ตรวจ ProposedPrice — คืนเฉพาะราคาที่ระบบคิด (ComputedPrice) เพื่อให้ frontend แสดง + validate
+type HallPriceQuoteRequest struct {
+	Days     int                   `json:"days"` // จำนวนวัน (จำนวนวันที่เลือก) ; < 1 คิดเป็น 1
+	Purposes []BookingPurposeInput `json:"purposes" binding:"required,min=1"`
+}
+
+// HallPurposeQuote = ราคาที่ระบบคำนวณของวัตถุประสงค์ 1 ข้อ (ไม่ผูก booking)
+type HallPurposeQuote struct {
+	HallUsagePurposeID uint     `json:"hall_usage_purpose_id"`
+	PricingModel       string   `json:"pricing_model"`
+	AreaSqm            *float64 `json:"area_sqm,omitempty"`
+	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
+	UnitPrice          int      `json:"unit_price"`
+	ComputedPrice      int      `json:"computed_price"` // ราคาขั้นต่ำที่ระบบคิด = เกณฑ์ที่ ProposedPrice ห้ามต่ำกว่า
+}
+
+type HallPriceQuoteResponse struct {
+	Days          int                `json:"days"`
+	Purposes      []HallPurposeQuote `json:"purposes"`
+	TotalComputed int                `json:"total_computed"`
 }
 
 type UpdateBookingStatusRequest struct {
@@ -104,6 +128,7 @@ type BookingPurposeResponse struct {
 	SelectedCells      [][]int  `json:"selected_cells,omitempty"`
 	AreaSqm            *float64 `json:"area_sqm,omitempty"`
 	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
+	ProductNames       []string `json:"product_names,omitempty"`
 	UnitPriceSnapshot  int      `json:"unit_price_snapshot"`
 	ComputedPrice      int      `json:"computed_price"`
 	ProposedPrice      *int     `json:"proposed_price,omitempty"`
