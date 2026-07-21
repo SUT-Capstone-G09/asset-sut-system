@@ -42,17 +42,8 @@ interface BookingGridProps {
       | "cancelled"
       | "completed",
   ) => void;
-  onEdit: (updatedBooking: Booking, mode: "this" | "following" | "all") => void;
-  onDelete: (
-    idOrFilter:
-      | string
-      | {
-          id: string;
-          recurringGroupId: string;
-          mode: "this" | "following" | "all";
-          date: string;
-        },
-  ) => void;
+  onEdit: (updatedBooking: Booking) => void;
+  onDelete: (id: string) => void;
   isLoading?: boolean;
 }
 

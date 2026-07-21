@@ -324,8 +324,7 @@ export function useBookingFilters(type: BookingTypeFilter) {
   // to the "cancelled" status instead; validBookingTransitions on the
   // backend (booking.go) already rejects this for completed/rejected/
   // cancelled bookings, so no extra guard is needed here.
-  const handleDeleteBooking = async (idOrFilter: string | { id: string }) => {
-    const id = typeof idOrFilter === "string" ? idOrFilter : idOrFilter.id;
+  const handleDeleteBooking = async (id: string) => {
     await updateBookingStatus(Number(id), { status: "cancelled" });
     await fetchAll();
   };

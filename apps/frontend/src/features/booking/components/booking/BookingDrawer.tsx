@@ -120,17 +120,8 @@ interface Props {
       | "cancelled"
       | "completed",
   ) => Promise<void> | void;
-  onEdit: (updated: Booking, mode: "this" | "following" | "all") => void;
-  onDelete: (
-    idOrFilter:
-      | string
-      | {
-          id: string;
-          recurringGroupId: string;
-          mode: "this" | "following" | "all";
-          date: string;
-        },
-  ) => void;
+  onEdit: (updated: Booking) => void;
+  onDelete: (id: string) => void;
   initialMode?: "view" | "edit";
 }
 
@@ -144,13 +135,6 @@ export default function BookingDrawer({
   initialMode = "view",
 }: Props) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
-  const [recurrenceActionType, setRecurrenceActionType] = useState<
-    "edit" | "delete" | null
-  >(null);
-  const [selectedRecurrenceMode, setSelectedRecurrenceMode] = useState<
-    "this" | "following" | "all"
-  >("this");
 
   const [isEditingExpenses, setIsEditingExpenses] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
@@ -312,7 +296,7 @@ export default function BookingDrawer({
       housekeeperCount,
       expenseStatus: "draft",
     };
-    onEdit(updated, "this");
+    onEdit(updated);
     setIsEditingExpenses(false);
     alert("บันทึกค่าใช้จ่ายชั่วคราวแล้ว (ต้องกดแจ้งผู้ใช้เพื่อส่งข้อมูล)");
   };
@@ -323,7 +307,7 @@ export default function BookingDrawer({
       ...booking,
       expenseStatus: "sent",
     };
-    onEdit(updated, "this");
+    onEdit(updated);
     alert("แจ้งค่าใช้จ่ายไปยังผู้ขอใช้พื้นที่สำเร็จแล้ว!");
   };
 
@@ -373,43 +357,15 @@ export default function BookingDrawer({
   };
 
   const handleDelete = () => {
-    if (booking.recurringGroupId) {
-      setRecurrenceActionType("delete");
-      setSelectedRecurrenceMode("this");
-      setRecurrenceDialogOpen(true);
-    } else {
-      if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกรายการขอจองนี้?")) {
-        onDelete(booking.id);
-        alert("ยกเลิกรายการขอจองสำเร็จ!");
-        onClose();
-      }
+    if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกรายการขอจองนี้?")) {
+      onDelete(booking.id);
+      alert("ยกเลิกรายการขอจองสำเร็จ!");
+      onClose();
     }
   };
 
   const handleEditClick = () => {
-    if (booking.recurringGroupId) {
-      setRecurrenceActionType("edit");
-      setSelectedRecurrenceMode("this");
-      setRecurrenceDialogOpen(true);
-    } else {
-      setIsEditOpen(true);
-    }
-  };
-
-  const handleConfirmRecurrenceAction = () => {
-    setRecurrenceDialogOpen(false);
-    if (recurrenceActionType === "delete") {
-      onDelete({
-        id: booking.id,
-        recurringGroupId: booking.recurringGroupId!,
-        mode: selectedRecurrenceMode,
-        date: booking.date,
-      });
-      alert("ยกเลิกรายการขอจองสำเร็จ!");
-      onClose();
-    } else if (recurrenceActionType === "edit") {
-      setIsEditOpen(true);
-    }
+    setIsEditOpen(true);
   };
 
   return (
@@ -889,9 +845,6 @@ export default function BookingDrawer({
       <BookingEditDrawer
         booking={booking}
         open={isEditOpen}
-        recurrenceMode={
-          booking.recurringGroupId ? selectedRecurrenceMode : "this"
-        }
         onClose={() => {
           if (initialMode === "edit") {
             onClose();
@@ -900,10 +853,7 @@ export default function BookingDrawer({
           }
         }}
         onSave={(updated) => {
-          onEdit(
-            updated,
-            booking.recurringGroupId ? selectedRecurrenceMode : "this",
-          );
+          onEdit(updated);
           if (initialMode === "edit") {
             onClose();
           } else {
@@ -911,136 +861,6 @@ export default function BookingDrawer({
           }
         }}
       />
-
-      <Dialog
-        open={recurrenceDialogOpen}
-        onOpenChange={setRecurrenceDialogOpen}
-      >
-        <DialogContent className="w-[95vw] max-w-[440px] p-6 bg-white rounded-[20px] border-none shadow-2xl flex flex-col gap-4 overflow-hidden transform -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 text-left">
-          <DialogHeader className="pb-2 border-b border-slate-100">
-            <DialogTitle className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-              {recurrenceActionType === "edit" ? (
-                <>
-                  <Pencil
-                    className="text-[#f26522]"
-                    size={18}
-                    strokeWidth={2.5}
-                  />
-                  <span>คุณต้องการแก้ไขรายการนี้อย่างไร?</span>
-                </>
-              ) : (
-                <>
-                  <Trash2
-                    className="text-red-500"
-                    size={18}
-                    strokeWidth={2.5}
-                  />
-                  <span>คุณต้องการลบรายการนี้อย่างไร?</span>
-                </>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Option 1: Only this event */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="this"
-                checked={selectedRecurrenceMode === "this"}
-                onChange={() => setSelectedRecurrenceMode("this")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขเฉพาะรอบนี้เท่านั้น"
-                    : "ลบเฉพาะรอบนี้เท่านั้น"}{" "}
-                  (Only this event)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "ปลดล็อกห้องให้ว่างแค่เฉพาะวันนี้ วันอื่นในสัปดาห์ถัดๆ ไปยังคงจองอยู่เหมือนเดิม"
-                    : "ปลดล็อกห้องให้ว่างแค่เฉพาะวันนี้ วันอื่นยังคงจองอยู่เหมือนเดิม"}
-                </p>
-              </div>
-            </label>
-
-            {/* Option 2: This and following events */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="following"
-                checked={selectedRecurrenceMode === "following"}
-                onChange={() => setSelectedRecurrenceMode("following")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขตั้งแต่รอบนี้เป็นต้นไป"
-                    : "ลบตั้งแต่รอบนี้เป็นต้นไป"}{" "}
-                  (This and following events)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "เปลี่ยนแปลงตารางตั้งแต่รอบนี้ยาวไปจนจบ"
-                    : "ลบตารางตั้งแต่รอบนี้เป็นต้นไปจนจบ"}
-                </p>
-              </div>
-            </label>
-
-            {/* Option 3: All events */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer group">
-              <input
-                type="radio"
-                name="recurrenceMode"
-                value="all"
-                checked={selectedRecurrenceMode === "all"}
-                onChange={() => setSelectedRecurrenceMode("all")}
-                className="accent-[#f26522] size-4 mt-0.5 cursor-pointer shrink-0"
-              />
-              <div className="space-y-0.5 select-none">
-                <p className="text-xs font-black text-slate-700">
-                  {recurrenceActionType === "edit"
-                    ? "แก้ไขทั้งหมด"
-                    : "ลบทั้งหมด"}{" "}
-                  (All events)
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium text-left">
-                  {recurrenceActionType === "edit"
-                    ? "เปลี่ยนโครงสร้างตารางทั้งหมดตั้งแต่วันแรกที่เริ่มสร้าง"
-                    : "ลบตารางทั้งหมดตั้งแต่วันแรกที่เริ่มสร้าง"}
-                </p>
-              </div>
-            </label>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setRecurrenceDialogOpen(false)}
-              className="flex-1 h-10 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all cursor-pointer"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmRecurrenceAction}
-              className={cn(
-                "flex-1 h-10 rounded-lg text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer",
-                recurrenceActionType === "edit"
-                  ? "bg-[#f26522] hover:bg-[#d8561d] shadow-[#f26522]/10"
-                  : "bg-red-600 hover:bg-red-700 shadow-red-600/10",
-              )}
-            >
-              ยืนยัน
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
