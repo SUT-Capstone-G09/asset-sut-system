@@ -1,72 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import {
-  Building2,
-  Banknote,
-  Image as ImageIcon,
-  LayoutGrid,
-} from "lucide-react";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import { Building2, Image as ImageIcon, LayoutGrid } from "lucide-react";
 import { HallFormValues } from "../../../schemas/hall-schema";
 import { cn } from "@/lib/utils";
 import ImageUpload from "@/components/ui/image-upload";
-import RoomRateModal from "@/features/booking/components/rooms/RoomRateModal";
-import { getBuildings, BuildingDTO } from "@/features/bookings/services/location.service";
+import { getBuildings } from "../../../services/hallService";
 
-export default function HallFormFields() {
+export default function HallFormFields({
+  portalContainer,
+}: {
+  // portal dropdown ของ combobox เข้า Sheet (ฟอร์มอยู่ใน drawer) ไม่งั้นถูกบังหลัง Sheet
+  portalContainer?: HTMLElement | null;
+}) {
   const {
     register,
     control,
-    watch,
-    setValue,
     formState: { errors },
   } = useFormContext<HallFormValues>();
 
-  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
-  const [buildings, setBuildings] = useState<BuildingDTO[]>([]);
+  // ต้องเลือกจากอาคารที่มีจริงเท่านั้น — backend บันทึกด้วย building_id ชื่อที่พิมพ์เองจะ resolve ไม่ได้
+  const [buildings, setBuildings] = useState<string[]>([]);
 
   useEffect(() => {
     getBuildings()
-      .then(setBuildings)
-      .catch((error) => console.error("Failed to fetch buildings", error));
+      .then((list) => setBuildings(list.map((b) => b.name)))
+      .catch((err) => console.error("Failed to load buildings:", err));
   }, []);
 
   const themeColor = "#f26522";
   const themeBg = "bg-[#f26522]/10";
   const themeRing = "focus-visible:ring-[#f26522]/30";
-
-  const rates = watch("rates") || {
-    hourlyInternal: 0,
-    hourlyExternal: 0,
-    hourlyOffPeakInternal: 0,
-    hourlyOffPeakExternal: 0,
-    dailyInternal: 0,
-    dailyExternal: 0,
-  };
-
-  const handleSaveRates = (newRates: typeof rates) => {
-    setValue("rates", newRates, { shouldValidate: true, shouldDirty: true });
-  };
-
-  const isRatesConfigured =
-    rates.hourlyInternal > 0 ||
-    rates.hourlyExternal > 0 ||
-    rates.dailyInternal > 0 ||
-    rates.dailyExternal > 0 ||
-    (rates.hourlyOffPeakInternal ?? 0) > 0 ||
-    (rates.hourlyOffPeakExternal ?? 0) > 0;
 
   return (
     <div className="space-y-8">
@@ -153,32 +129,37 @@ export default function HallFormFields() {
               ชื่ออาคาร (Building Name)
             </Label>
             <Controller
-              name="buildingId"
+              name="building"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger
+                <Combobox
+                  items={buildings}
+                  value={field.value || null}
+                  onValueChange={(v) => field.onChange(v ?? "")}
+                >
+                  <ComboboxInput
+                    placeholder="เลือกอาคาร / พิมพ์ชื่อ..."
                     className={cn(
-                      "rounded-[7px] h-12 data-[size=default]:h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 transition-all w-full pl-4 ",
-                      themeRing,
-                      errors.buildingId && "border-red-500",
+                      "h-12 w-full rounded-[7px] bg-slate-50",
+                      errors.building && "border-red-500",
                     )}
-                  >
-                    <SelectValue placeholder="เลือกอาคาร" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buildings.map((bldg) => (
-                      <SelectItem key={bldg.id} value={bldg.id.toString()}>
-                        {bldg.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  />
+                  <ComboboxContent container={portalContainer}>
+                    <ComboboxEmpty>ไม่พบอาคาร</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item: string) => (
+                        <ComboboxItem key={item} value={item}>
+                          {item}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
               )}
             />
-            {errors.buildingId && (
+            {errors.building && (
               <p className="text-[10px] font-bold text-red-500 ml-1">
-                {errors.buildingId.message}
+                {errors.building.message}
               </p>
             )}
           </div>
@@ -192,50 +173,6 @@ export default function HallFormFields() {
           <div className="flex items-center gap-2.5 h-12 px-4 rounded-[7px] bg-slate-50 border border-slate-100 text-sm font-bold text-slate-600">
             <LayoutGrid size={16} className="text-[#f26522]" />
             โถงอาคาร
-          </div>
-        </div>
-
-        {/* ราคา */}
-        <div className="space-y-2">
-          <Label className="text-xs font-bold text-slate-500">
-            อัตราค่าใช้จ่าย (Rate)
-          </Label>
-          <div className="flex flex-col sm:flex-row gap-4 items-start">
-            <Button
-              type="button"
-              onClick={() => setIsRateModalOpen(true)}
-              className="h-12 px-6 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold gap-2 shadow-lg shadow-[#f26522]/15 transition-all hover:scale-[1.01] cursor-pointer shrink-0"
-            >
-              <Banknote size={18} />
-              กำหนดค่าใช้จ่าย
-            </Button>
-
-            {isRatesConfigured ? (
-              <div className="flex-1 text-xs bg-slate-50 border border-slate-100 rounded-lg p-3 w-full grid grid-cols-2 gap-2 text-slate-600 font-bold">
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-black uppercase">
-                    รายชั่วโมง (Internal / External)
-                  </span>
-                  <span className="text-[#f26522]">
-                    {rates.hourlyInternal} ฿
-                  </span>{" "}
-                  / <span>{rates.hourlyExternal} ฿</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-black uppercase">
-                    รายวัน (Internal / External)
-                  </span>
-                  <span className="text-[#0284c7]">
-                    {rates.dailyInternal} ฿
-                  </span>{" "}
-                  / <span>{rates.dailyExternal} ฿</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs font-bold text-slate-400 self-center">
-                ยังไม่ได้กำหนดอัตราค่าใช้จ่าย (อัตราเริ่มต้นเป็น 0 ฿)
-              </p>
-            )}
           </div>
         </div>
 
@@ -255,12 +192,6 @@ export default function HallFormFields() {
         </div>
       </div>
 
-      <RoomRateModal
-        open={isRateModalOpen}
-        onClose={() => setIsRateModalOpen(false)}
-        initialRates={rates}
-        onSave={handleSaveRates}
-      />
     </div>
   );
 }

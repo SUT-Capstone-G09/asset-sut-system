@@ -27,6 +27,9 @@ const (
 	emailSendTimeout   = 30 * time.Second
 	outboxPollInterval = 3 * time.Second
 	outboxBatchSize    = 20
+	// กวาด row ที่ค้าง 'sending' นานผิดปกติกลับเป็น pending เป็นระยะ (self-healing ระหว่างรัน)
+	stuckSweepInterval = 1 * time.Minute
+	stuckSendingTTL    = 10 * time.Minute
 )
 
 type emailTemplate struct {
@@ -205,7 +208,19 @@ func (s *EmailService) sendWithTimeout(m *gomail.Message) error {
 func (s *EmailService) outboxWorker() {
 	ticker := time.NewTicker(outboxPollInterval)
 	defer ticker.Stop()
+	lastSweep := time.Now()
 	for range ticker.C {
+		// กู้ row ที่ค้าง 'sending' นานเกินปกติ (process ตายกลางคัน/mark status ไม่สำเร็จ) กลับเป็น pending
+		// เป็นระยะ — ไม่ต้องรอ restart เพื่อให้ counts เดินหน้าจนจบ (frontend จะได้เลิก poll)
+		if time.Since(lastSweep) >= stuckSweepInterval {
+			lastSweep = time.Now()
+			if n, err := s.outboxRepo.RequeueStuckSendingOlderThan(time.Now().Add(-stuckSendingTTL)); err != nil {
+				log.Printf("outbox: requeue stale 'sending' failed: %v", err)
+			} else if n > 0 {
+				log.Printf("outbox: requeued %d stale 'sending' rows", n)
+			}
+		}
+
 		rows, err := s.outboxRepo.ClaimPending(outboxBatchSize)
 		if err != nil {
 			log.Printf("outbox: claim pending failed: %v", err)

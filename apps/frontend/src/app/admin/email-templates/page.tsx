@@ -5,7 +5,10 @@ export default function EmailTemplatesPage() {
   return (
     <div className="space-y-6 p-8">
       <EmailPageHeader
-        breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Email Templates" }]}
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Email Templates" },
+        ]}
         title="Email Templates"
         description="จัดการเทมเพลตอีเมล — เปิด/ปิดการใช้งานได้ตลอด เมื่อปิดจะกลับไปใช้เทมเพลตในโค้ดอัตโนมัติ"
       />

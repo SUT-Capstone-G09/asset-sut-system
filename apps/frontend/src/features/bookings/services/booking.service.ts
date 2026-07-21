@@ -10,9 +10,19 @@ export interface TimeslotInput {
   addon_ids?: number[];
 }
 
+// วัตถุประสงค์การขอใช้พื้นที่โถง 1 ข้อ (ตรงกับ dto.BookingPurposeInput ฝั่ง backend)
+export interface BookingPurposeInput {
+  hall_usage_purpose_id: number;
+  selected_cells?: number[][]; // per_sqm: [[row,col], ...]
+  product_type_count?: number; // per_type_per_day: จำนวนประเภทสินค้า
+  product_names?: string[]; // per_type_per_day: ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท)
+  proposed_price?: number | null; // ราคาที่เสนอ (optional; backend คุมให้ ≥ เกณฑ์ระบบ)
+}
+
 export interface CreateBookingPayload {
   purpose: string;
   timeslots: TimeslotInput[];
+  purposes?: BookingPurposeInput[]; // ถ้ามี = การจองพื้นที่โถง (คิดราคาจากวัตถุประสงค์)
 }
 
 export interface UpdateBookingStatusPayload {
@@ -78,7 +88,24 @@ export interface BookingResponseDTO {
     method: string;
     created_at: string;
   }[];
+  purposes?: BookingPurposeResponseDTO[]; // วัตถุประสงค์การขอใช้พื้นที่โถง (per_sqm มี selected_cells)
   created_at: string;
+}
+
+// วัตถุประสงค์การขอใช้พื้นที่โถง 1 ข้อ (snapshot) — ตรงกับ dto.BookingPurposeResponse ฝั่ง backend
+export interface BookingPurposeResponseDTO {
+  id: number;
+  hall_usage_purpose_id: number;
+  purpose_name: string;
+  pricing_model: string; // "per_sqm" | "per_type_per_day"
+  selected_cells?: number[][]; // per_sqm: [[row,col], ...]
+  area_sqm?: number;
+  product_type_count?: number;
+  product_names?: string[];
+  unit_price_snapshot: number;
+  computed_price: number;
+  proposed_price?: number;
+  total_price: number;
 }
 
 export async function getMyBookings(): Promise<BookingResponseDTO[]> {

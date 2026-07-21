@@ -4,20 +4,20 @@ import React, { useState } from "react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   X,
-  MapPin,
   Wrench,
   Pencil,
   Trash2,
   FileText,
   Building,
-  CreditCard,
   LayoutGrid,
 } from "lucide-react";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import HallEditDrawer from "./HallEditDrawer";
 import HallFloorPlanModal from "./floorplan/HallFloorPlanModal";
+import HallPurposePricing from "./HallPurposePricing";
 import { useAppDialog } from "../../hooks/useAppDialog";
 import { toast } from "sonner";
 
@@ -26,10 +26,17 @@ interface HallDrawerProps {
   open: boolean;
   onClose: () => void;
   onUpdateStatus: (id: string, status: "available" | "maintenance") => void;
-  onEdit: (updatedHall: Hall) => void;
+  // ต้อง return promise ให้ HallEditDrawer await ได้ ไม่งั้น error ตอนบันทึกจะเงียบหาย
+  onEdit: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
   onDelete: (id: string) => void;
   canDelete?: boolean;
   onFloorPlanChange?: () => void;
+  // เปลี่ยนค่าทุกครั้งที่บันทึกสำเร็จ — drawer นี้ไม่ได้ปิดตอนแก้ไข (HallEditDrawer ซ้อนอยู่ข้างบน)
+  // ราคาจึงค้างถ้าไม่มีสัญญาณบอกให้โหลดใหม่
+  pricingVersion?: number;
 }
 
 export default function HallDrawer({
@@ -41,6 +48,7 @@ export default function HallDrawer({
   onDelete,
   canDelete = true,
   onFloorPlanChange,
+  pricingVersion = 0,
 }: HallDrawerProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false);
@@ -136,41 +144,8 @@ export default function HallDrawer({
               </Button>
             </div>
 
-            {/* Rates */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4 text-left">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard size={14} className="text-[#f26522]" />
-                อัตราค่าใช้จ่าย
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายชั่วโมง (Hourly)</span>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคลากรภายใน:</span>
-                      <span className="text-[#f26522]">{hall.rates?.hourlyInternal || 0} ฿</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคคลภายนอก:</span>
-                      <span>{hall.rates?.hourlyExternal || 0} ฿</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายวัน (Daily)</span>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคลากรภายใน:</span>
-                      <span className="text-[#0284c7]">{hall.rates?.dailyInternal || 0} ฿</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold text-slate-600">
-                      <span>บุคคลภายนอก:</span>
-                      <span>{hall.rates?.dailyExternal || 0} ฿</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Rates — ราคาอาคารเป็นขั้นต่ำ + ราคาเฉพาะโถงถ้าเป็นทำเลทอง */}
+            <HallPurposePricing key={`${hall.id}:${pricingVersion}`} hallId={hall.id} />
 
             {/* Notes */}
             {hall.notes && (
@@ -226,10 +201,7 @@ export default function HallDrawer({
         hall={hall}
         open={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        onSave={(updatedHall) => {
-          onEdit(updatedHall);
-          Object.assign(hall, updatedHall);
-        }}
+        onSave={onEdit}
       />
 
       <HallFloorPlanModal

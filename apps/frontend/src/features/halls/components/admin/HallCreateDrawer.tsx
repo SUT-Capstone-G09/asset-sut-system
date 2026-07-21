@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Save, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Hall } from "../../types/hall";
 import { hallSchema, HallFormValues } from "../../schemas/hall-schema";
 import HallFormFields from "./forms/HallFormFields";
@@ -24,28 +25,25 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   name: "ชื่อโถงพื้นที่",
-  buildingId: "อาคาร",
+  building: "อาคาร",
   image: "รูปพื้นที่จริง",
 };
 
 export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  );
 
   const methods = useForm<HallFormValues>({
     resolver: zodResolver(hallSchema) as any,
     defaultValues: {
       name: "",
-      buildingId: "",
+      building: "",
       image: "",
       status: "available",
       notes: "",
-      rates: {
-        hourlyInternal: 0,
-        hourlyExternal: 0,
-        dailyInternal: 0,
-        dailyExternal: 0,
-      },
     },
   });
 
@@ -56,15 +54,14 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
       const newHall: Hall = {
         id: "",
         name: data.name,
-        buildingId: data.buildingId,
-        building: "",
+        building: data.building,
         category: "โถงอาคาร",
         image: data.image,
         status: data.status,
         notes: data.notes,
-        rates: data.rates,
       };
       await onSave(newHall);
+      toast.success("เพิ่มโถงพื้นที่เรียบร้อยแล้ว");
       methods.reset();
       onClose();
     } catch (err) {
@@ -89,6 +86,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
+        ref={setPortalContainer}
         side="right"
         showCloseButton={false}
         className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
@@ -132,7 +130,7 @@ export default function HallCreateDrawer({ open, onClose, onSave }: Props) {
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <HallFormFields />
+              <HallFormFields portalContainer={portalContainer} />
             </div>
 
             <div className="px-6 py-5 border-t border-slate-100 flex flex-col gap-3 bg-white/90 backdrop-blur-md shrink-0">

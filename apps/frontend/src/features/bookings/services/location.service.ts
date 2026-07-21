@@ -178,6 +178,8 @@ export function locationToRoom(loc: LocationDTO, requesterTypeId?: number): Room
     amenities: [],
     image: loc.image_url ?? DEFAULT_IMAGE,
     availability: loc.status === "available" ? "ว่างทุกวัน" : "ว่างบางวัน",
+    type: loc.type,
+    buildingId: loc.building_id,
   };
 }
 
@@ -195,5 +197,7 @@ export function locationDetailToRoom(loc: LocationDetailDTO, requesterTypeId?: n
     amenities: loc.equipments?.map((e) => e.name) ?? [],
     image: loc.image_url ?? DEFAULT_IMAGE,
     availability: loc.status === "available" ? "ว่างทุกวัน" : "ว่างบางวัน",
+    type: loc.type,
+    buildingId: loc.building_id,
   };
 }

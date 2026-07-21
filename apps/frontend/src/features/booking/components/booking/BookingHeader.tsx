@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { Plus } from "lucide-react";
@@ -19,7 +19,7 @@ export default function BookingHeader({
   breadcrumbs,
   onCreateClick,
   buttonLabel = "เพิ่มคำขอจองใหม่",
-  extraAction
+  extraAction,
 }: BookingHeaderProps) {
   return (
     <div className="space-y-6">
@@ -46,7 +46,7 @@ export default function BookingHeader({
                 className={cn(
                   "h-11 px-6 rounded-[7px] font-bold text-xs text-white",
                   "bg-primary hover:bg-brand-primary-600 transition-all",
-                  "shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer"
+                  "shadow-lg shadow-[#f26522]/20 gap-2 cursor-pointer",
                 )}
               >
                 <Plus size={18} strokeWidth={3} />

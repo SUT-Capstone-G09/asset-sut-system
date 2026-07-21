@@ -4,8 +4,11 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import PageContainer from "@/components/layout/PageContainer";
 import BookingConfirmView from "@/features/bookings/components/confirm/BookingConfirmView";
+import HallBookingConfirm from "@/features/bookings/components/hall/HallBookingConfirm";
 import { useRoom } from "@/features/bookings/hooks/useRoom";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const HALL_TYPE = "โถงอาคาร";
 
 export default function BookingConfirmPage({
   params,
@@ -43,7 +46,11 @@ export default function BookingConfirmPage({
 
   return (
     <PageContainer>
-      <BookingConfirmView room={room} />
+      {room.type === HALL_TYPE ? (
+        <HallBookingConfirm room={room} />
+      ) : (
+        <BookingConfirmView room={room} />
+      )}
     </PageContainer>
   );
 }

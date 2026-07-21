@@ -180,7 +180,9 @@ func (s *EmailBroadcastService) Options() (*dto.AudienceOptionsResponse, error) 
 }
 
 func (s *EmailBroadcastService) SearchRecipients(q string) ([]dto.Recipient, error) {
-	return s.recipientRepo.Search(q, 20)
+	// No cap: an empty query lists every user (browse the full roster) and a text
+	// query returns every match — the picker lets admins scroll and filter it.
+	return s.recipientRepo.Search(q, 0)
 }
 
 func describeAudience(spec dto.AudienceSpec) string {

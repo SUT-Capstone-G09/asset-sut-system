@@ -5,19 +5,24 @@ import { Hall } from "../types/hall";
 import {
   getHalls,
   getHallTypeId,
+  getBuildings,
   locationToHall,
   createLocation,
   updateLocation,
   deleteLocation,
-  savePricingTiers,
+  BuildingDTO,
 } from "../services/hallService";
-import { AdminLocationDTO, StatusMeta } from "@/features/booking/services/locationService";
+import { StatusMeta } from "@/features/booking/services/locationService";
+import { updateHallPricings } from "../services/hallPricingService";
+import { UpdateHallPricingInput } from "../types/pricing";
 import { getCurrentUser } from "@/lib/utils/auth";
 
 export function useHalls() {
   const [halls, setHalls] = useState<Hall[]>([]);
-  const [locationDTOs, setLocationDTOs] = useState<Map<string, AdminLocationDTO>>(new Map());
+  // ราคาไม่ได้อยู่ใน halls (แต่ละ component ไปดึงเอง) — bump ตัวนี้เพื่อบอกให้โหลดราคาใหม่หลังบันทึก
+  const [pricingVersion, setPricingVersion] = useState(0);
   const [statusMeta, setStatusMeta] = useState<StatusMeta[]>([]);
+  const [buildingOptions, setBuildingOptions] = useState<BuildingDTO[]>([]);
   const [typeId, setTypeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,13 +36,14 @@ export function useHalls() {
   const fetchHalls = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, tId] = await Promise.all([getHalls(), getHallTypeId()]);
+      const [data, tId, blds] = await Promise.all([
+        getHalls(),
+        getHallTypeId(),
+        getBuildings(),
+      ]);
       setHalls(data.map(locationToHall));
       setTypeId(tId);
-
-      const dtoMap = new Map<string, AdminLocationDTO>();
-      data.forEach((loc) => dtoMap.set(String(loc.id), loc));
-      setLocationDTOs(dtoMap);
+      setBuildingOptions(blds);
 
       const statusMap = new Map<number, string>();
       data.forEach((loc) => statusMap.set(loc.status_id, loc.status));
@@ -75,6 +81,16 @@ export function useHalls() {
 
   const resolveTypeId = useCallback(async () => typeId ?? (await getHallTypeId()), [typeId]);
 
+  // backend เก็บอาคารเป็น building_id — ฟอร์มให้มาเป็นชื่อ จึงต้อง map กลับ (ชื่ออาคาร unique ใน DB)
+  const resolveBuildingId = useCallback(
+    (buildingName: string) => {
+      const match = buildingOptions.find((b) => b.name === buildingName);
+      if (!match) throw new Error(`ไม่พบอาคาร: ${buildingName}`);
+      return match.id;
+    },
+    [buildingOptions],
+  );
+
   const handleAddHall = async (newHall: Hall) => {
     const tId = await resolveTypeId();
     const statusId = statusMeta.find((s) => s.status === newHall.status)?.status_id ?? 1;
@@ -82,15 +98,13 @@ export function useHalls() {
     const created = await createLocation({
       type_id: tId,
       name: newHall.name,
-      building_id: newHall.buildingId ? Number(newHall.buildingId) : undefined,
+      description: newHall.notes ?? "",
+      building_id: resolveBuildingId(newHall.building),
       image_url: newHall.image || undefined,
       capacity: 0, // โถงไม่มีความจุ แต่ backend ต้องการค่า
       status_id: statusId,
     });
-    await savePricingTiers(created.id, newHall.rates);
-    const createdHall = locationToHall(created);
-    setHalls((prev) => [{ ...createdHall, rates: newHall.rates }, ...prev]);
-    setLocationDTOs((prev) => new Map(prev).set(String(created.id), created));
+    setHalls((prev) => [locationToHall(created), ...prev]);
   };
 
   const handleUpdateHallStatus = async (id: string, status: "available" | "maintenance") => {
@@ -101,30 +115,34 @@ export function useHalls() {
     setHalls((prev) => prev.map((h) => (h.id === id ? { ...h, status } : h)));
   };
 
-  const handleEditHall = async (updatedHall: Hall) => {
+  const handleEditHall = async (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[] = [],
+  ) => {
     const statusId = statusMeta.find((s) => s.status === updatedHall.status)?.status_id;
-    const existingDTO = locationDTOs.get(updatedHall.id);
-    const existingTierIds = existingDTO?.pricing_tiers?.map((t) => t.id) ?? [];
 
     // ส่ง image_url เฉพาะเมื่อเป็น object_key ใหม่ (ไม่ใช่ presigned URL เดิม)
     const newImageKey =
       updatedHall.image && !updatedHall.image.startsWith("http") ? updatedHall.image : undefined;
 
-    await updateLocation(Number(updatedHall.id), {
+    const saved = await updateLocation(Number(updatedHall.id), {
       name: updatedHall.name,
-      building_id: updatedHall.buildingId ? Number(updatedHall.buildingId) : undefined,
+      description: updatedHall.notes ?? "",
+      building_id: resolveBuildingId(updatedHall.building),
       ...(newImageKey !== undefined && { image_url: newImageKey }),
       capacity: 0,
       ...(statusId && { status_id: statusId }),
     });
-    await savePricingTiers(Number(updatedHall.id), updatedHall.rates, existingTierIds);
-    setHalls((prev) => prev.map((h) => (h.id === updatedHall.id ? updatedHall : h)));
-    setLocationDTOs((prev) => {
-      const next = new Map(prev);
-      const old = next.get(updatedHall.id);
-      if (old) next.set(updatedHall.id, { ...old, building: updatedHall.building, pricing_tiers: [] });
-      return next;
-    });
+
+    // ต้องบันทึกอาคารก่อน — ถ้า admin ย้ายอาคารพร้อมกัน backend จะได้ตรวจขั้นต่ำเทียบอาคารใหม่
+    if (pricings.length > 0) {
+      await updateHallPricings(Number(updatedHall.id), pricings);
+    }
+
+    // ใช้ค่าที่ backend ตอบกลับ เพื่อไม่ให้ UI แสดงค่าที่ยังไม่ได้ลง DB จริง
+    setHalls((prev) => prev.map((h) => (h.id === updatedHall.id ? locationToHall(saved) : h)));
+    // bump ทุกครั้งที่บันทึกสำเร็จ ไม่ใช่เฉพาะตอนแก้ราคา — ย้ายอาคารก็ทำให้ราคาที่ใช้จริงเปลี่ยน (ราคาอาคาร = ขั้นต่ำ)
+    setPricingVersion((v) => v + 1);
   };
 
   const handleDeleteHall = async (id: string) => {
@@ -136,6 +154,7 @@ export function useHalls() {
     halls,
     loading,
     isAdmin,
+    pricingVersion,
     searchQuery,
     setSearchQuery,
     selectedCategory,

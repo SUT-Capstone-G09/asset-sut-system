@@ -5,6 +5,7 @@ var AllEntities = []any{
 	&Users{},
 	&Profiles{},
 	&RequesterTypes{},
+	&Profiles{},
 	&Roles{},
 	&Permissions{},
 	&RefreshTokens{},
@@ -23,10 +24,13 @@ var AllEntities = []any{
 	&RateTypes{},
 	&LocationPricingTiers{},
 	&HallFloorPlans{},
+	&HallUsagePurposes{},
 
 	// Commercial Leasing / Area
 	&BuildingTypes{},
 	&Buildings{},
+	&BuildingHallPricings{}, // ราคาโถงราย อาคาร × วัตถุประสงค์ (อ้าง Buildings + HallUsagePurposes)
+	&LocationHallPricings{}, // ราคาเฉพาะโถง (ทำเลทอง) ราย โถง × วัตถุประสงค์ — override ราคาอาคาร
 	&RentalSpaces{},
 	&RentalSpaceImages{},
 	&RentalSpaceTags{},
@@ -41,6 +45,7 @@ var AllEntities = []any{
 	&TimeslotStatuses{},
 	&Timeslots{},
 	&BookingTimeslotAddons{},
+	&BookingPurposes{},
 
 	// Payment
 	&InvoiceStatuses{},

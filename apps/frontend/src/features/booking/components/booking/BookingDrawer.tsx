@@ -35,6 +35,7 @@ import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
+import HallBookingAreaSection from "./HallBookingAreaSection";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -141,6 +142,11 @@ export default function BookingDrawer({
   const validNextStatuses = VALID_NEXT_BOOKING_STATUS[booking.status] ?? [];
   const isStatusSelectable = (status: string) =>
     status === booking.status || validNextStatuses.includes(status);
+
+  // มีพื้นที่บูธที่ผู้ขอเลือก (การจองโถงแบบจำหน่ายสินค้า per_sqm) → แสดง section ผังพื้นที่ที่เลือก
+  const hasBoothArea = (booking.hallPurposes || []).some(
+    (p) => p.pricingModel === "per_sqm" && (p.selectedCells?.length ?? 0) > 0,
+  );
 
   const infoItems = [
     {
@@ -563,7 +569,16 @@ export default function BookingDrawer({
                 )}
             </div>
 
-
+            {/* Section: พื้นที่ที่เลือก (โถง — จำหน่ายสินค้า per_sqm) */}
+            {hasBoothArea && (
+              <>
+                <hr className="border-slate-100" />
+                <HallBookingAreaSection
+                  locationId={booking.locationId}
+                  purposes={booking.hallPurposes}
+                />
+              </>
+            )}
 
             {/* Section 4: Actions */}
             <div className="space-y-4">

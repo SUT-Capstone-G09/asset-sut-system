@@ -64,7 +64,7 @@ func main() {
 	locationService := services.NewLocationService(locationRepo, timeslotRepo, staffRepo, storageService)
 	invoiceService := services.NewInvoiceService(invoiceRepo)
 	paymentService := services.NewPaymentService(paymentRepo, invoiceRepo, bookingRepo)
-	bookingService := services.NewBookingService(bookingRepo, invoiceRepo, storageService)
+	bookingService := services.NewBookingService(bookingRepo, timeslotRepo, locationRepo, invoiceRepo, requesterRepo, storageService)
 	paymentQRService := services.NewPaymentQRService(bookingRepo, invoiceRepo, storageService, cfg.Payment)
 	easySlipClient := easyslip.New(cfg.EasySlip.APIKey, cfg.EasySlip.VerifyURL)
 	paymentVerifyService := services.NewPaymentVerifyService(easySlipClient, paymentRepo, invoiceRepo, documentRepo, storageService, cfg.Payment)

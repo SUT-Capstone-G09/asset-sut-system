@@ -12,36 +12,44 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Pencil, X, Save, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Hall } from "../../types/hall";
+import { UpdateHallPricingInput } from "../../types/pricing";
 import { hallSchema, HallFormValues } from "../../schemas/hall-schema";
 import HallFormFields from "./forms/HallFormFields";
+import HallPricingFields from "./forms/HallPricingFields";
 
 interface Props {
   hall: Hall | null;
   open: boolean;
   onClose: () => void;
-  onSave: (updatedHall: Hall) => void | Promise<void>;
+  onSave: (
+    updatedHall: Hall,
+    pricings: UpdateHallPricingInput[],
+  ) => void | Promise<void>;
 }
 
 const FIELD_LABELS: Record<string, string> = {
   name: "ชื่อโถงพื้นที่",
-  buildingId: "อาคาร",
+  building: "อาคาร",
   image: "รูปพื้นที่จริง",
 };
 
 export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  );
 
   const methods = useForm<HallFormValues>({
     resolver: zodResolver(hallSchema) as any,
     defaultValues: {
       name: "",
-      buildingId: "",
+      building: "",
       image: "",
       status: "available",
       notes: "",
-      rates: { hourlyInternal: 0, hourlyExternal: 0, dailyInternal: 0, dailyExternal: 0 },
     },
   });
 
@@ -49,11 +57,10 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
     if (hall) {
       methods.reset({
         name: hall.name || "",
-        buildingId: hall.buildingId || "",
+        building: hall.building || "",
         image: hall.image || "",
         status: hall.status || "available",
         notes: hall.notes || "",
-        rates: hall.rates || { hourlyInternal: 0, hourlyExternal: 0, dailyInternal: 0, dailyExternal: 0 },
       });
     }
   }, [hall, methods]);
@@ -66,13 +73,13 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
       const updatedHall: Hall = {
         ...hall,
         name: data.name,
-        buildingId: data.buildingId,
+        building: data.building,
         image: data.image || hall.image,
         status: data.status,
         notes: data.notes,
-        rates: data.rates,
       };
-      await onSave(updatedHall);
+      await onSave(updatedHall, data.pricings ?? []);
+      toast.success("บันทึกการแก้ไขเรียบร้อยแล้ว");
       onClose();
     } catch (err) {
       console.error("Failed to update hall:", err);
@@ -98,6 +105,7 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
+        ref={setPortalContainer}
         side="right"
         showCloseButton={false}
         className="w-full sm:max-w-[640px] p-0 border-none bg-white flex flex-col h-full shadow-2xl"
@@ -130,8 +138,10 @@ export default function HallEditDrawer({ hall, open, onClose, onSave }: Props) {
               </button>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <HallFormFields />
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+              <HallFormFields portalContainer={portalContainer} />
+              {/* key: remount ตอนสลับโถง ไม่งั้นราคาของโถงเดิมค้างอยู่จนกว่า fetch ใหม่จะเสร็จ */}
+              <HallPricingFields key={hall.id} hallId={hall.id} />
             </div>
 
             <div className="px-6 py-5 border-t border-slate-100 flex flex-col gap-3 bg-white/90 backdrop-blur-md shrink-0">

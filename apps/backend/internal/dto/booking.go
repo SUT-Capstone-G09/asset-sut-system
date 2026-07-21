@@ -14,8 +14,41 @@ type TimeslotInput struct {
 }
 
 type CreateBookingRequest struct {
-	Purpose   string          `json:"purpose" binding:"required"`
-	Timeslots []TimeslotInput `json:"timeslots" binding:"required,min=1"`
+	Purpose   string                `json:"purpose" binding:"required"`
+	Timeslots []TimeslotInput       `json:"timeslots" binding:"required,min=1"`
+	Purposes  []BookingPurposeInput `json:"purposes"` // วัตถุประสงค์การขอใช้พื้นที่โถง (ถ้ามี = จองแบบโถง คิดราคาจากวัตถุประสงค์)
+}
+
+// BookingPurposeInput = วัตถุประสงค์ 1 ข้อที่ผู้ขอเลือกตอนจองพื้นที่โถง (เลือกได้หลายข้อ)
+type BookingPurposeInput struct {
+	HallUsagePurposeID uint     `json:"hall_usage_purpose_id" binding:"required"`
+	SelectedCells      [][]int  `json:"selected_cells"`     // per_sqm: เซลล์ที่เลือกบนผัง [[row,col], ...]
+	ProductTypeCount   int      `json:"product_type_count"` // per_type_per_day: จำนวนประเภทสินค้า
+	ProductNames       []string `json:"product_names"`      // per_type_per_day: ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท)
+	ProposedPrice      *int     `json:"proposed_price"`     // ราคาที่เสนอ (optional; ต้องไม่ต่ำกว่าเกณฑ์ระบบ)
+}
+
+// HallPriceQuoteRequest = ขอให้ระบบคำนวณราคา (ตัวอย่าง/preview) ก่อนสร้าง booking โถง
+// ไม่ตรวจ ProposedPrice — คืนเฉพาะราคาที่ระบบคิด (ComputedPrice) เพื่อให้ frontend แสดง + validate
+type HallPriceQuoteRequest struct {
+	Days     int                   `json:"days"` // จำนวนวัน (จำนวนวันที่เลือก) ; < 1 คิดเป็น 1
+	Purposes []BookingPurposeInput `json:"purposes" binding:"required,min=1"`
+}
+
+// HallPurposeQuote = ราคาที่ระบบคำนวณของวัตถุประสงค์ 1 ข้อ (ไม่ผูก booking)
+type HallPurposeQuote struct {
+	HallUsagePurposeID uint     `json:"hall_usage_purpose_id"`
+	PricingModel       string   `json:"pricing_model"`
+	AreaSqm            *float64 `json:"area_sqm,omitempty"`
+	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
+	UnitPrice          int      `json:"unit_price"`
+	ComputedPrice      int      `json:"computed_price"` // ราคาขั้นต่ำที่ระบบคิด = เกณฑ์ที่ ProposedPrice ห้ามต่ำกว่า
+}
+
+type HallPriceQuoteResponse struct {
+	Days          int                `json:"days"`
+	Purposes      []HallPurposeQuote `json:"purposes"`
+	TotalComputed int                `json:"total_computed"`
 }
 
 type UpdateBookingStatusRequest struct {
@@ -24,17 +57,24 @@ type UpdateBookingStatusRequest struct {
 	Note     string `json:"note"`
 }
 
+// ReviseBookingRequest = ผู้ขอแก้ไขวัตถุประสงค์ของ booking ที่ถูกตีกลับ (needs_revision) แล้วส่งใหม่
+// v1: แก้ได้เฉพาะ purposes + ราคาเสนอ (วัน/timeslots เดิมไม่เปลี่ยน)
+type ReviseBookingRequest struct {
+	Purposes []BookingPurposeInput `json:"purposes" binding:"required,min=1"`
+	Purpose  *string               `json:"purpose"` // อัปเดตคำอธิบายงาน (optional)
+}
+
 type TimeslotResponse struct {
-	ID            uint      `json:"id"`
-	LocationID    uint      `json:"location_id"`
-	LocationName  string    `json:"location_name"`
-	LocationImage *string   `json:"location_image"`
-	Date          time.Time `json:"date"`
-	StartTime     time.Time `json:"start_time"`
-	EndTime       time.Time `json:"end_time"`
-	IsFullDay     bool      `json:"is_full_day"`
-	PriceSnapshot int       `json:"price_snapshot"`
-	Status        string    `json:"status"`
+	ID            uint                   `json:"id"`
+	LocationID    uint                   `json:"location_id"`
+	LocationName  string                 `json:"location_name"`
+	LocationImage *string                `json:"location_image"`
+	Date          time.Time              `json:"date"`
+	StartTime     time.Time              `json:"start_time"`
+	EndTime       time.Time              `json:"end_time"`
+	IsFullDay     bool                   `json:"is_full_day"`
+	PriceSnapshot int                    `json:"price_snapshot"`
+	Status        string                 `json:"status"`
 	Addons        []BookingAddonResponse `json:"addons"`
 }
 
@@ -47,35 +87,52 @@ type BookingAddonResponse struct {
 }
 
 type StatusLogResponse struct {
-	ID           uint      `json:"id"`
-	FromStatus   string    `json:"from_status"`
-	ToStatus     string    `json:"to_status"`
-	ChangedBy    uint      `json:"changed_by"`
-	ChangedByName string   `json:"changed_by_name"`
-	ChangedAt    time.Time `json:"changed_at"`
-	Note         string    `json:"note"`
+	ID            uint      `json:"id"`
+	FromStatus    string    `json:"from_status"`
+	ToStatus      string    `json:"to_status"`
+	ChangedBy     uint      `json:"changed_by"`
+	ChangedByName string    `json:"changed_by_name"`
+	ChangedAt     time.Time `json:"changed_at"`
+	Note          string    `json:"note"`
 }
 
 type BookingResponse struct {
-	ID            uint               `json:"id"`
-	UserID        uint               `json:"user_id"`
-	UserName      string             `json:"user_name"`
-	RequesterName string             `json:"requester_name"`
-	RequesterID   string             `json:"requester_id"`
-	RequesterType string             `json:"requester_type"`
-	ContactPhone  string             `json:"contact_phone"`
-	ContactEmail  string             `json:"contact_email"`
-	Purpose       string             `json:"purpose"`
-	BasePrice     int                `json:"base_price"`
-	AddonPrice    int                `json:"addon_price"`
-	TotalPrice    int                `json:"total_price"`
-	Status        string             `json:"status"`
-	StatusID      uint               `json:"status_id"`
-	Timeslots     []TimeslotResponse `json:"timeslots"`
-	StatusLogs    []StatusLogResponse `json:"status_logs"`
-	BookingAddons []BookingAddonResponse `json:"booking_addons"`
-	Documents     []DocumentResponse     `json:"documents"`
-	CreatedAt     time.Time          `json:"created_at"`
+	ID            uint                     `json:"id"`
+	UserID        uint                     `json:"user_id"`
+	UserName      string                   `json:"user_name"`
+	RequesterName string                   `json:"requester_name"`
+	RequesterID   string                   `json:"requester_id"`
+	RequesterType string                   `json:"requester_type"`
+	ContactPhone  string                   `json:"contact_phone"`
+	ContactEmail  string                   `json:"contact_email"`
+	Purpose       string                   `json:"purpose"`
+	BasePrice     int                      `json:"base_price"`
+	AddonPrice    int                      `json:"addon_price"`
+	TotalPrice    int                      `json:"total_price"`
+	Status        string                   `json:"status"`
+	StatusID      uint                     `json:"status_id"`
+	Timeslots     []TimeslotResponse       `json:"timeslots"`
+	StatusLogs    []StatusLogResponse      `json:"status_logs"`
+	BookingAddons []BookingAddonResponse   `json:"booking_addons"`
+	Purposes      []BookingPurposeResponse `json:"purposes"`
+	Documents     []DocumentResponse       `json:"documents"`
+	CreatedAt     time.Time                `json:"created_at"`
+}
+
+// BookingPurposeResponse = วัตถุประสงค์การขอใช้พื้นที่โถงที่ถูกคิดราคาแล้ว (snapshot)
+type BookingPurposeResponse struct {
+	ID                 uint     `json:"id"`
+	HallUsagePurposeID uint     `json:"hall_usage_purpose_id"`
+	PurposeName        string   `json:"purpose_name"`
+	PricingModel       string   `json:"pricing_model"`
+	SelectedCells      [][]int  `json:"selected_cells,omitempty"`
+	AreaSqm            *float64 `json:"area_sqm,omitempty"`
+	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
+	ProductNames       []string `json:"product_names,omitempty"`
+	UnitPriceSnapshot  int      `json:"unit_price_snapshot"`
+	ComputedPrice      int      `json:"computed_price"`
+	ProposedPrice      *int     `json:"proposed_price,omitempty"`
+	TotalPrice         int      `json:"total_price"`
 }
 
 type BookingAddonInput struct {
