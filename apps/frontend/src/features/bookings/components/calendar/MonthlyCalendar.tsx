@@ -21,16 +21,13 @@ interface MonthlyCalendarProps {
   onNext: () => void;
   onToday: () => void;
   onClearAll: () => void;
-  onSelectWeekend: () => void;
-  onSelectNextWeekdays: () => void;
-  onSelectThisWeek: () => void;
   getDayInfo: (date: Date) => DayInfo;
 }
 
 export default function MonthlyCalendar({
   currentMonth, today, minBookableDate, selectedDates,
   onToggleDate, onPrev, onNext, onToday,
-  onClearAll, onSelectWeekend, onSelectNextWeekdays, onSelectThisWeek,
+  onClearAll,
   getDayInfo,
 }: MonthlyCalendarProps) {
   const monthStart = startOfMonth(currentMonth);
@@ -64,22 +61,7 @@ export default function MonthlyCalendar({
         </div>
       </div>
 
-      {/* Quick Select */}
       <div className="flex flex-wrap gap-2 text-sm">
-        <span className="text-gray-500 self-center">เลือกเร็ว:</span>
-        {[
-          { label: "สุดสัปดาห์นี้", fn: onSelectWeekend },
-          { label: "สัปดาห์หน้า (จ-ศ)", fn: onSelectNextWeekdays },
-          { label: "ทั้งสัปดาห์", fn: onSelectThisWeek },
-        ].map(({ label, fn }) => (
-          <button
-            key={label}
-            onClick={fn}
-            className="px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-brand-primary hover:text-brand-primary transition-colors"
-          >
-            {label}
-          </button>
-        ))}
         <button
           onClick={onClearAll}
           className="px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500 transition-colors flex items-center gap-1"

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
-  addMonths, subMonths, format, startOfWeek, endOfWeek,
-  addDays, nextMonday, isBefore, startOfDay,
+  addMonths, subMonths, format,
+  addDays, isBefore, startOfDay,
 } from "date-fns";
 import { toast } from "sonner";
 import { Room } from "@/features/bookings/types";
@@ -232,41 +232,6 @@ export function useBookingCalendar(room: Room) {
 
   const clearAll = () => setSelectedDates([]);
 
-  const selectDates = (dates: Date[]) => {
-    if (!isAuthenticated) {
-      toast.error("กรุณาเข้าสู่ระบบก่อนเลือกวันจอง");
-      return;
-    }
-    const valid = dates.filter((d) => {
-      const dateStr = format(d, "yyyy-MM-dd");
-      const info = toDayInfo(availabilityMap, dateStr);
-      return !isBefore(startOfDay(d), minBookableDate) && info.status !== "full";
-    });
-    const strs = valid.map((d) => format(d, "yyyy-MM-dd"));
-    setSelectedDates((prev) => [...new Set([...prev, ...strs])].sort());
-    setDayTimes((prev) => {
-      const next = { ...prev };
-      strs.forEach((s) => { if (!next[s]) next[s] = sameTimeForAll ? globalTime : DEFAULT_TIME; });
-      return next;
-    });
-  };
-
-  const selectWeekend = () => {
-    const sat = endOfWeek(today, { weekStartsOn: 0 });
-    const sun = startOfWeek(today, { weekStartsOn: 0 });
-    selectDates([sun, sat]);
-  };
-
-  const selectNextWeekdays = () => {
-    const mon = nextMonday(today);
-    selectDates(Array.from({ length: 5 }, (_, i) => addDays(mon, i)));
-  };
-
-  const selectThisWeek = () => {
-    const sun = startOfWeek(today, { weekStartsOn: 0 });
-    selectDates(Array.from({ length: 7 }, (_, i) => addDays(sun, i)));
-  };
-
   const totalStats = useMemo(() => {
     let totalHours = 0;
     let totalPrice = 0;
@@ -306,9 +271,6 @@ export function useBookingCalendar(room: Room) {
     updateGlobalTime,
     getEffectiveTime,
     clearAll,
-    selectWeekend,
-    selectNextWeekdays,
-    selectThisWeek,
     totalStats,
     availabilityMap,
     getDayInfo: (date: Date) => toDayInfo(availabilityMap, format(date, "yyyy-MM-dd")),
