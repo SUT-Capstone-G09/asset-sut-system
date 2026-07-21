@@ -173,10 +173,10 @@ export function AdminEvalForm() {
           {/* Action Buttons */}
           <Card className="border-none shadow-sm ring-1 ring-slate-200 bg-slate-50/50">
             <CardContent className="flex flex-col gap-3 pt-6">
-              <Button className="w-full bg-black hover:bg-slate-800 text-white font-bold h-12">
+              <Button className="w-full font-bold h-12">
                 บันทึกการประเมิน
               </Button>
-              <Button variant="outline" className="w-full border-slate-200 hover:bg-white h-12">
+              <Button variant="secondary" className="w-full h-12">
                 ยกเลิก
               </Button>
             </CardContent>

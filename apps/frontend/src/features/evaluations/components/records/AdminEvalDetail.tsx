@@ -7,22 +7,72 @@ import {
   Info as InfoIcon,
   Calendar,
   User,
-  Loader2
+  Loader2,
+  ShieldCheck, 
+  Users, 
+  Mail, 
+  QrCode, 
+  KeyRound, 
+  CheckSquare, 
+  ClipboardCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { EvalAssessmentCriteria } from "./EvalAssessmentCriteria"
 import { cn } from "@/lib/utils"
+import { EvaluatorType, EvalChannel } from "../../types/evaluation"
+
+// Helper for evaluator type badge
+const getEvaluatorBadge = (type: EvaluatorType) => {
+  switch (type) {
+    case "admin":
+      return { label: "แอดมิน", color: "bg-violet-100 text-violet-700 border-violet-200", icon: ShieldCheck };
+    case "staff":
+      return { label: "บุคลากร", color: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckSquare };
+    case "external":
+      return { label: "ภายนอก", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: Users };
+    default:
+      return { label: "ไม่ระบุ", color: "bg-slate-100 text-slate-700 border-slate-200", icon: Users };
+  }
+};
+
+// Helper for channel icon
+const getChannelIcon = (channel: EvalChannel) => {
+  switch (channel) {
+    case "email": return <Mail className="w-3.5 h-3.5" />;
+    case "qr": return <QrCode className="w-3.5 h-3.5" />;
+    case "sso": return <KeyRound className="w-3.5 h-3.5" />;
+    case "direct": return <ClipboardCheck className="w-3.5 h-3.5" />;
+    default: return null;
+  }
+};
+
+type EvaluationHistoryRecord = {
+  id: string;
+  date: string;
+  score: number;
+  rank: string;
+  color: string;
+  evaluatorType: EvaluatorType;
+  inspector: string;
+  channel: EvalChannel;
+  requestId: string;
+  criteria: any;
+};
 
 // Full historical evaluation records with different criteria details
-const EVALUATION_HISTORY = [
+const EVALUATION_HISTORY: EvaluationHistoryRecord[] = [
   {
     id: "EVAL-H1",
     date: "12 ม.ค. 2567",
     score: 94,
     rank: "A+",
     color: "green",
+    evaluatorType: "admin",
+    inspector: "เอกลักษณ์ ยอดเยี่ยม",
+    channel: "direct",
+    requestId: "REQ-2024-003",
     criteria: {
       hygiene: [
         { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 5, note: "" },
@@ -48,6 +98,10 @@ const EVALUATION_HISTORY = [
     score: 96,
     rank: "A+",
     color: "green",
+    evaluatorType: "external",
+    inspector: "ลูกค้า (สแกน QR Code)",
+    channel: "qr",
+    requestId: "REQ-2023-112",
     criteria: {
       hygiene: [
         { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 5, note: "" },
@@ -73,6 +127,10 @@ const EVALUATION_HISTORY = [
     score: 92,
     rank: "A",
     color: "blue",
+    evaluatorType: "staff",
+    inspector: "สมชาย สายตรวจ",
+    channel: "email",
+    requestId: "REQ-2023-098",
     criteria: {
       hygiene: [
         { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 4, note: "คราบน้ำมันเกาะบริเวณหน้าเตา" },
@@ -98,6 +156,10 @@ const EVALUATION_HISTORY = [
     score: 88,
     rank: "A",
     color: "blue",
+    evaluatorType: "admin",
+    inspector: "เอกลักษณ์ ยอดเยี่ยม",
+    channel: "direct",
+    requestId: "REQ-2023-085",
     criteria: {
       hygiene: [
         { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 4, note: "พบคราบฝุ่นบริเวณชั้นวางของ" },
@@ -123,6 +185,10 @@ const EVALUATION_HISTORY = [
     score: 82,
     rank: "B",
     color: "orange",
+    evaluatorType: "staff",
+    inspector: "นิตยา มาลัย",
+    channel: "qr",
+    requestId: "REQ-2023-070",
     criteria: {
       hygiene: [
         { id: "h1", text: "1. ความสะอาดของสถานที่ประกอบอาหารและอุปกรณ์", score: 3, note: "พบคราบคราบน้ำมันหนาแน่นและพื้นลื่นมาก" },
@@ -145,7 +211,7 @@ const EVALUATION_HISTORY = [
 ];
 
 export function AdminEvalDetail() {
-  const [selectedEval, setSelectedEval] = useState(EVALUATION_HISTORY[0]);
+  const [selectedEval, setSelectedEval] = useState<EvaluationHistoryRecord>(EVALUATION_HISTORY[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
 
@@ -176,7 +242,7 @@ export function AdminEvalDetail() {
     };
   }, [selectedEval]);
 
-  const handleSelectHistory = (evalItem: typeof EVALUATION_HISTORY[0]) => {
+  const handleSelectHistory = (evalItem: EvaluationHistoryRecord) => {
     if (selectedEval.id === evalItem.id) return;
     setIsLoading(true);
     // Simulate dynamic data fetching API call
@@ -189,6 +255,9 @@ export function AdminEvalDetail() {
   const visibleHistory = showAllHistory 
     ? EVALUATION_HISTORY 
     : EVALUATION_HISTORY.slice(0, 3); // Show latest 3 initially
+
+  const currentBadge = getEvaluatorBadge(selectedEval.evaluatorType);
+  const CurrentIcon = currentBadge.icon;
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 mt-8">
@@ -239,8 +308,8 @@ export function AdminEvalDetail() {
             <span className="flex items-center gap-2">
               <Star className="size-4 text-orange-500 fill-orange-500" /> 4.8 / 5.0 (รีวิวจากส่วนกลาง)
             </span>
-            <span className="flex items-center gap-2">
-              <Calendar className="size-4 text-orange-500" /> ตรวจสอบเมื่อ: {selectedEval.date}
+            <span className="flex items-center gap-2 font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+              <Calendar className="size-4 text-slate-500" /> ข้อมูลจากวันที่: {selectedEval.date}
             </span>
           </div>
         </div>
@@ -264,7 +333,7 @@ export function AdminEvalDetail() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <span className="w-1 h-6 bg-orange-500 rounded-full" />
-                รายการตรวจสอบประเมินผล (Latest Audit)
+                รายละเอียดการประเมินผล
               </h2>
             </div>
 
@@ -276,7 +345,7 @@ export function AdminEvalDetail() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <span className="w-1 h-6 bg-orange-400 rounded-full" />
-                ประวัติการประเมินย้อนหลัง
+                ประวัติการถูกประเมินย้อนหลังทั้งหมด
               </h2>
               {!showAllHistory && EVALUATION_HISTORY.length > 3 && (
                 <Button 
@@ -288,40 +357,65 @@ export function AdminEvalDetail() {
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {visibleHistory.map((his) => (
-                <Card 
-                  key={his.id} 
-                  onClick={() => handleSelectHistory(his)}
-                  className={cn(
-                    "shadow-none border transition-all duration-200 group cursor-pointer relative overflow-hidden",
-                    selectedEval.id === his.id 
-                      ? "border-orange-500 bg-orange-50/20 ring-1 ring-orange-500" 
-                      : "border-slate-200 hover:border-orange-300 hover:bg-slate-50/50"
-                  )}
-                >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "size-10 rounded-full flex items-center justify-center transition-colors",
-                        selectedEval.id === his.id 
-                          ? "bg-orange-500 text-white" 
-                          : "bg-slate-100 text-slate-500 group-hover:bg-orange-50 group-hover:text-orange-500"
-                      )}>
-                        <History className="size-5" />
+            <div className="flex flex-col gap-3">
+              {visibleHistory.map((his) => {
+                const badge = getEvaluatorBadge(his.evaluatorType);
+                const Icon = badge.icon;
+                
+                return (
+                  <Card 
+                    key={his.id} 
+                    onClick={() => handleSelectHistory(his)}
+                    className={cn(
+                      "shadow-none border transition-all duration-200 group cursor-pointer relative overflow-hidden",
+                      selectedEval.id === his.id 
+                        ? "border-orange-500 bg-orange-50/20 ring-1 ring-orange-500" 
+                        : "border-slate-200 hover:border-orange-300 hover:bg-slate-50/50"
+                    )}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "size-10 rounded-xl flex items-center justify-center transition-colors shrink-0",
+                          selectedEval.id === his.id 
+                            ? "bg-orange-500 text-white" 
+                            : "bg-slate-100 text-slate-500 group-hover:bg-orange-50 group-hover:text-orange-500"
+                        )}>
+                          <History className="size-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-900">{his.date}</p>
+                            <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase", badge.color)}>
+                              <Icon className="w-3 h-3" />
+                              {badge.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span className="font-medium">{his.inspector}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              {getChannelIcon(his.channel)} {his.channel}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{his.date}</p>
-                        <p className="text-xs text-slate-500">Audit Rank: {his.rank}</p>
+                      <div className="text-right flex items-center gap-4">
+                        <Badge variant="outline" className="hidden sm:flex">{his.rank} Grade</Badge>
+                        <div>
+                          <p className={cn(
+                            "text-xl font-black",
+                            selectedEval.id === his.id ? "text-orange-600" : "text-slate-900"
+                          )}>
+                            {his.score}
+                          </p>
+                          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Score</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-slate-900">{his.score}%</p>
-                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Score</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -331,9 +425,14 @@ export function AdminEvalDetail() {
           {/* Total Score Card */}
           <Card className="bg-black text-white border-none shadow-xl">
             <CardContent className="p-6 space-y-6">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="size-5 text-orange-500" />
-                <span className="text-sm font-bold uppercase tracking-widest text-slate-400">Total Audit Score</span>
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-5 text-orange-500" />
+                  <span className="text-sm font-bold uppercase tracking-widest text-slate-400">คะแนนรอบที่เลือก</span>
+                </div>
+                <div className="text-xs text-slate-400 bg-white/10 px-2 py-1 rounded">
+                  {selectedEval.date}
+                </div>
               </div>
               
               <div className="flex items-center gap-6">
@@ -345,7 +444,7 @@ export function AdminEvalDetail() {
                     / 100 
                   </div>
                   <div className="text-xs text-slate-500 uppercase font-bold tracking-widest mt-1">
-                    {selectedEval.score >= 94 ? "Excellent Performance" : selectedEval.score >= 90 ? "Very Good Performance" : "Good Performance"}
+                    {selectedEval.score >= 94 ? "Excellent" : selectedEval.score >= 90 ? "Very Good" : "Good"}
                   </div>
                 </div>
               </div>
@@ -394,20 +493,41 @@ export function AdminEvalDetail() {
             </div>
           </div>
 
-          {/* Auditor Info */}
-          <div className="p-6 border rounded-2xl bg-white shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">ผู้ทำการตรวจสอบ</h3>
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border">
-                 <User className="size-6 text-slate-400" />
+          {/* Auditor Info (Updated) */}
+          <div className="p-6 border rounded-2xl bg-white shadow-sm space-y-5 relative overflow-hidden">
+            <div className={cn(
+              "absolute top-0 left-0 w-full h-1",
+              currentBadge.color.split(" ")[0]
+            )} />
+            
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">ข้อมูลผู้ทำการตรวจสอบรอบนี้</h3>
+            <div className="flex items-start gap-4">
+              <div className={cn(
+                "size-12 rounded-full flex items-center justify-center border shrink-0",
+                currentBadge.color
+              )}>
+                 <CurrentIcon className="size-6" />
               </div>
               <div>
-                <p className="font-bold text-slate-900">เอกลักษณ์ ยอดเยี่ยม</p>
-                <p className="text-xs text-slate-500">Operation Manager (Admin)</p>
+                <p className="font-bold text-slate-900 text-[15px] leading-tight">{selectedEval.inspector}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className={cn("text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded", currentBadge.color)}>
+                    {currentBadge.label}
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                    {getChannelIcon(selectedEval.channel)} {selectedEval.channel}
+                  </span>
+                </div>
               </div>
             </div>
-            <Button variant="outline" className="w-full text-xs font-bold py-5">
-               <InfoIcon className="size-4 mr-2 text-orange-500" /> บันทึกการตรวจสอบฉบับเต็ม
+            
+            <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500 font-mono border border-slate-100">
+              Request ID: {selectedEval.requestId}
+            </div>
+
+            <Button variant="outline" className="w-full text-xs font-bold py-5 mt-2">
+               <InfoIcon className="size-4 mr-2 text-slate-400" /> ดูบันทึกฉบับเต็ม
             </Button>
           </div>
         </div>
