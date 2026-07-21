@@ -50,8 +50,8 @@ export function useCreateContract({
   const [scholarship, setScholarship] = useState("2000");
   const [terms, setTerms] = useState("");
   const [note, setNote] = useState("");
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
-  const [uploadedVerificationFile, setUploadedVerificationFile] = useState<{ name: string; size: string } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedVerificationFile, setUploadedVerificationFile] = useState<File | null>(null);
 
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

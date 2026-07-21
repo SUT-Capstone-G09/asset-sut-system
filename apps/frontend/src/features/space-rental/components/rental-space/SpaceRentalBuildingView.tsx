@@ -103,6 +103,7 @@ export default function SpaceRentalBuildingView({
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-300 pb-16">
+
       {/* Header Section (Flat & Clean, matching type category style) */}
       <div className="border-b border-slate-100 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
@@ -148,7 +149,9 @@ export default function SpaceRentalBuildingView({
           viewMode={viewMode}
           setViewMode={setViewMode}
           showCategoryFilter={false}
-          hasFloorPlan={building.has_floor_plan || !!building.floor_plan_image}
+          showBuildingFilter={false}
+          showBusinessTypeFilter={false}
+          hasFloorPlan={building.has_floor_plan || !!building.blueprint_url}
         />
 
         {/* Section label & Optional Edit Floor Plan Button */}
@@ -160,7 +163,7 @@ export default function SpaceRentalBuildingView({
             </h2>
           </div>
 
-          {viewMode === "map" && !building.floor_plan_image && (
+          {viewMode === "map" && !building.blueprint_url && (
             <button
               onClick={() => router.push(`/admin/space-rental/floor-plan/${building.id}`)}
               className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all shadow-xs cursor-pointer"
@@ -175,12 +178,12 @@ export default function SpaceRentalBuildingView({
         {viewMode === "map" ? (
           (() => {
             // Case 1: If building has a static blueprint/floor plan image, render it directly
-            if (building.floor_plan_image) {
+            if (building.blueprint_url) {
               return (
                 <div className="bg-white p-6 rounded-md border border-slate-200/60 shadow-sm animate-in fade-in duration-300 space-y-4">
                   <div className="relative w-full rounded-md overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center min-h-[350px] max-h-[600px] group shadow-inner">
                     <img
-                      src={building.floor_plan_image}
+                      src={building.blueprint_url}
                       alt={`Floor plan blueprint of ${building.name}`}
                       className="max-w-full max-h-[550px] object-contain transition-transform duration-300 group-hover:scale-[1.01]"
                     />
@@ -199,7 +202,7 @@ export default function SpaceRentalBuildingView({
                 <div className="bg-white p-6 rounded-md border border-slate-200/60 shadow-sm animate-in fade-in duration-300">
                   <FloorPlanViewer
                     data={floorPlan}
-                    backgroundImageUrl={building.floor_plan_image}
+                    backgroundImageUrl={building.blueprint_url}
                     onStallClick={(stall) => {
                       router.push(`/admin/space-rental/building/${building.id}/space/${stall.id}?tab=tenant`);
                     }}

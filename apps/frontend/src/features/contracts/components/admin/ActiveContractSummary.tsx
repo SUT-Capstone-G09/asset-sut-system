@@ -28,7 +28,7 @@ export default function ActiveContractSummary({ activeContract }: ActiveContract
   };
 
   return (
-    <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm space-y-6">
+    <div className="bg-white rounded-[7px] p-8 border border-slate-100 shadow-sm space-y-6">
       <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-100 pb-3">
         สัญญาปัจจุบันที่กำลังใช้อยู่
       </span>

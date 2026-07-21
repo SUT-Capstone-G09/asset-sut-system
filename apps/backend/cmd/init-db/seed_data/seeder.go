@@ -16,6 +16,7 @@ var AllSeeders = []Seeder{
 	seedStaffs,
 	seedRequesters,
 	seedUsers,
+	seedOperators,
 	seedLocations,
 	seedBookings,
 	seedInvoices,

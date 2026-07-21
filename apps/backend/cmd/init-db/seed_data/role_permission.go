@@ -42,7 +42,7 @@ func seedPermissions(db *gorm.DB, cfg *config.Config) error {
 }
 
 func seedRoles(db *gorm.DB, cfg *config.Config) error {
-	roles := []string{"admin", "staff", "requester", "user"}
+	roles := []string{"admin", "staff", "requester", "user", "operator"}
 	for _, name := range roles {
 		role := models.Roles{Name: name}
 		if err := db.FirstOrCreate(&role, models.Roles{Name: name}).Error; err != nil {

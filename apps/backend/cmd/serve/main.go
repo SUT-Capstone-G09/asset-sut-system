@@ -51,11 +51,16 @@ func main() {
 	emailBroadcastRepo := repositories.NewEmailBroadcastRepository(db)
 	recipientRepo := repositories.NewRecipientRepository(db)
 	signatureRepo := repositories.NewSignatureRepository(db)
+	tenantRepo := repositories.NewTenantRepository(db)
+	rentalSpaceRepo := repositories.NewRentalSpaceRepository(db)
+	floorPlanRepo := repositories.NewFloorPlanRepository(db)
+	mapLayerRepo := repositories.NewMapLayerRepository(db)
+	buildingRepo := repositories.NewBuildingRepository(db)
 
 	// ----------------------------------------
 	// Services
 	// ----------------------------------------
-	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
+	authService := services.NewAuthService(userRepo, adminRepo, staffRepo, requesterRepo, tenantRepo, roleRepo, refreshTokenRepo, permissionRepo, cfg.JWT.Secret)
 	adminService := services.NewAdminService(userRepo, adminRepo, roleRepo)
 	staffService := services.NewStaffService(userRepo, staffRepo, roleRepo, permissionRepo)
 	requesterService := services.NewRequesterService(userRepo, requesterRepo)
@@ -78,6 +83,9 @@ func main() {
 		recipientRepo, emailTemplateRepo, emailBroadcastRepo, emailOutboxRepo, emailService, roleRepo, requesterRepo,
 	)
 	signatureService := services.NewSignatureService(signatureRepo, storageService)
+	rentalSpaceService := services.NewRentalSpaceService(rentalSpaceRepo, buildingRepo)
+	floorPlanService := services.NewFloorPlanService(floorPlanRepo, buildingRepo)
+	mapLayerService := services.NewMapLayerService(mapLayerRepo, floorPlanRepo, rentalSpaceRepo)
 
 	// ----------------------------------------
 	// Controllers
@@ -91,6 +99,9 @@ func main() {
 	bookingCtrl := controllers.NewBookingController(bookingService, invoiceService)
 	paymentCtrl := controllers.NewPaymentController(paymentService, paymentQRService, paymentVerifyService)
 	documentCtrl := controllers.NewDocumentController(documentService, bookingService)
+	rentalSpaceCtrl := controllers.NewRentalSpaceController(rentalSpaceService)
+	floorPlanCtrl := controllers.NewFloorPlanController(floorPlanService)
+	mapLayerCtrl := controllers.NewMapLayerController(mapLayerService)
 
 	// Google Drive (optional — ข้ามถ้าไม่ได้ตั้งค่า credentials)
 	var driveService *services.DriveService
@@ -134,6 +145,9 @@ func main() {
 		EmailBroadcastController: emailBroadcastCtrl,
 		ImageController:          imageCtrl,
 		SignatureController:      signatureCtrl,
+		RentalSpaceController:    rentalSpaceCtrl,
+		FloorPlanController:      floorPlanCtrl,
+		MapLayerController:       mapLayerCtrl,
 	})
 
 	addr := ":" + cfg.Server.Port

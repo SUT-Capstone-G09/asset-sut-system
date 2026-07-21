@@ -16,7 +16,7 @@ import { AREA_CATEGORIES, BUILDINGS, AREA_TO_BUILDINGS } from "../../constants";
 import { cn } from "@/lib/utils";
 import { AreaFormValues } from "../../schemas/area-schema";
 
-import { FileDropzone } from "@/components/ui/file-dropzone";
+import { FileDropzone } from "@/components/ui/MultiDropZone";
 import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
 
 interface AreaFormFieldsProps {
@@ -25,8 +25,8 @@ interface AreaFormFieldsProps {
 }
 
 export default function AreaFormFields({ isEdit = false, isLockedContext = false }: AreaFormFieldsProps) {
-  const { 
-    register, 
+  const {
+    register,
     control,
     watch,
     setValue,
@@ -54,19 +54,19 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
       {/* 1. รูปภาพประกอบ (กว้างเต็ม 2 คอลัมน์) */}
       <div className="col-span-2 space-y-2.5">
         <Label className="text-xs font-bold text-slate-500 ml-1">รูปภาพประกอบ</Label>
-        
+
         <Controller
           name="image"
           control={control}
           render={({ field }) => {
             const existingFiles = field.value
               ? [
-                  {
-                    id: "saved-img",
-                    name: field.value.split("/").pop() || "รูปภาพประกอบ.jpg",
-                    url: field.value,
-                  },
-                ]
+                {
+                  id: "saved-img",
+                  name: field.value.split("/").pop() || "รูปภาพประกอบ.jpg",
+                  url: field.value,
+                },
+              ]
               : [];
 
             const handleFilesChange = async (newFiles: File[]) => {
@@ -109,13 +109,13 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
           ชื่อพื้นที่เช่า
           <span className="text-red-500 ml-0.5">*</span>
         </Label>
-        <Input 
+        <Input
           {...register("name")}
-          placeholder="เช่น ร้านกาแฟ, ล็อคอาหาร A01" 
+          placeholder="เช่น ร้านกาแฟ, ล็อคอาหาร A01"
           className={cn(
-            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal", 
+            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal",
             errors.name && "border-red-500 focus-visible:ring-red-500/30"
-          )} 
+          )}
         />
         {errors.name && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.name.message}</p>}
       </div>
@@ -126,13 +126,13 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
           รหัสพื้นที่ (Area Code)
           <span className="text-red-500 ml-0.5">*</span>
         </Label>
-        <Input 
+        <Input
           {...register("areaCode")}
-          placeholder="เช่น CAF-01, DORM-101" 
+          placeholder="เช่น CAF-01, DORM-101"
           className={cn(
-            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal", 
+            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal",
             errors.areaCode && "border-red-500 focus-visible:ring-red-500/30"
-          )} 
+          )}
         />
         {errors.areaCode && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.areaCode.message}</p>}
       </div>
@@ -150,7 +150,7 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
             render={({ field }) => (
               <Select onValueChange={(val) => handleAreaChange(val, field.onChange)} value={field.value} disabled={isLockedContext}>
                 <SelectTrigger className={cn(
-                  "rounded-md !h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 focus:ring-brand-primary/30 transition-all text-slate-900 font-normal w-full disabled:opacity-100 disabled:text-slate-900", 
+                  "rounded-md !h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 focus:ring-brand-primary/30 transition-all text-slate-900 font-normal w-full disabled:opacity-100 disabled:text-slate-900",
                   errors.area && "border-red-500",
                   isLockedContext && "opacity-100 bg-slate-100 cursor-not-allowed"
                 )}>
@@ -167,7 +167,7 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
           {errors.area && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.area.message}</p>}
         </div>
       )}
-      
+
       {/* 5. อาคาร / สถานที่ย่อย (ฝั่งขวา / เต็มคอลัมน์เมื่อเป็นอาคารเดี่ยว) */}
       <div className={cn("flex flex-col gap-1.5", isStandalone ? "col-span-2" : "col-span-1")}>
         <Label className="text-xs font-bold text-slate-500 ml-1">
@@ -180,7 +180,7 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
           render={({ field }) => (
             <Select onValueChange={field.onChange} value={field.value} disabled={isLockedContext}>
               <SelectTrigger className={cn(
-                "rounded-md !h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 focus:ring-brand-primary/30 transition-all text-slate-900 font-normal w-full disabled:opacity-100 disabled:text-slate-900", 
+                "rounded-md !h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-1 focus:ring-brand-primary/30 transition-all text-slate-900 font-normal w-full disabled:opacity-100 disabled:text-slate-900",
                 errors.building && "border-red-500",
                 isLockedContext && "opacity-100 bg-slate-100 cursor-not-allowed"
               )}>
@@ -200,13 +200,13 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
       {/* 6. ขนาดพื้นที่ (ตร.ม.) (ฝั่งซ้าย) */}
       <div className="space-y-2.5">
         <Label className="text-xs font-bold text-slate-500 ml-1">ขนาดพื้นที่ (ตร.ม.)</Label>
-        <Input 
+        <Input
           {...register("size")}
-          placeholder="0.00" 
+          placeholder="0.00"
           className={cn(
-            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal", 
+            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal",
             errors.size && "border-red-500 focus-visible:ring-red-500/30"
-          )} 
+          )}
         />
         {errors.size && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.size.message}</p>}
       </div>
@@ -214,25 +214,25 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
       {/* 7. ค่าเช่า/เดือน (บาท) (ฝั่งขวา) */}
       <div className="space-y-2.5">
         <Label className="text-xs font-bold text-slate-500 ml-1">ค่าเช่า/เดือน (บาท)</Label>
-        <Input 
-          type="number" 
+        <Input
+          type="number"
           {...register("price")}
-          placeholder="0.00" 
+          placeholder="0.00"
           className={cn(
-            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal", 
+            "rounded-md h-12 bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all text-slate-900 font-normal",
             errors.price && "border-red-500 focus-visible:ring-red-500/30"
-          )} 
+          )}
         />
-        {errors.price && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.price.message}</p>}
+        {errors.price && <p className="text-[10px] font-bold text-red-500 ml-1">{errors.price.message as string}</p>}
       </div>
 
       {/* 8. รายละเอียด / หมายเหตุ (กว้างเต็ม 2 คอลัมน์) */}
       <div className="col-span-2 space-y-2.5">
         <Label className="text-xs font-bold text-slate-500 ml-1">รายละเอียด / หมายเหตุ</Label>
-        <Textarea 
+        <Textarea
           {...register("description")}
-          placeholder="ระบุรายละเอียดเพิ่มเติม..." 
-          className="rounded-md min-h-[120px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all p-4 resize-none text-slate-900 font-normal" 
+          placeholder="ระบุรายละเอียดเพิ่มเติม..."
+          className="rounded-md min-h-[120px] bg-slate-50 border-transparent focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-brand-primary/30 transition-all p-4 resize-none text-slate-900 font-normal"
         />
       </div>
     </div>

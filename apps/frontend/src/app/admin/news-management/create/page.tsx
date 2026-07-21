@@ -1,12 +1,14 @@
 "use client"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { NewsCreateHeader } from "@/features/news/components/admin/NewsCreateHeader"
-import { NewsBasicInfo } from "@/features/news/components/admin/NewsBasicInfo"
-import { NewsQualificationsInfo } from "@/features/news/components/admin/NewsQualificationsInfo"
-import { NewsContractInfo } from "@/features/news/components/admin/NewsContractInfo"
-import { NewsUploads } from "@/features/news/components/admin/NewsUploads"
-import { NewsPreview } from "@/features/news/components/admin/NewsPreview"
+import { NewsCreateHeader } from "@/features/news/components/admin/layout/NewsCreateHeader"
+import { NewsBasicInfo } from "@/features/news/components/admin/form/NewsBasicInfo"
+import { NewsQualificationsInfo } from "@/features/news/components/admin/form/NewsQualificationsInfo"
+import { NewsContractInfo } from "@/features/news/components/admin/form/NewsContractInfo"
+import { NewsUploads } from "@/features/news/components/admin/form/NewsUploads"
+import { NewsPreview } from "@/features/news/components/admin/preview/NewsPreview"
 
 export default function NewsManagementPage() {
   const [formData, setFormData] = useState<{
@@ -56,8 +58,20 @@ export default function NewsManagementPage() {
     attachedFiles: [],
   })
 
+  const router = useRouter()
+
   const handleChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSaveDraft = () => {
+    toast.success("บันทึกแบบร่างเรียบร้อยแล้ว!")
+    router.push("/admin/news-management")
+  }
+
+  const handleCreate = () => {
+    toast.success("สร้างประกาศเรียบร้อยแล้ว!")
+    router.push("/admin/news-management")
   }
 
   return (
@@ -82,8 +96,20 @@ export default function NewsManagementPage() {
 
         {/* Action Buttons */}
         <div className="border-t-2 border-brand-secondary/20 pt-6 flex justify-end gap-3">
-          <Button variant="outline" className="w-32 border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary/10 font-bold">บันทึกร่าง</Button>
-          <Button className="w-44 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold">ยืนยันสร้างประกาศ</Button>
+          <Button 
+            variant="secondary" 
+            onClick={handleSaveDraft}
+            className="w-32 font-bold"
+          >
+            บันทึกร่าง
+          </Button>
+          <Button 
+            variant="default"
+            onClick={handleCreate}
+            className="w-44 font-bold text-white"
+          >
+            ยืนยันสร้างประกาศ
+          </Button>
         </div>
       </div>
 

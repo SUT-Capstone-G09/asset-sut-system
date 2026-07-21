@@ -14,14 +14,14 @@ interface TenantProfileSummaryProps {
 
 export default function TenantProfileSummary({ tenant, areaName }: TenantProfileSummaryProps) {
   return (
-    <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm space-y-6">
+    <div className="bg-white rounded-[7px] p-8 border border-slate-100 shadow-sm space-y-6">
       <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-100 pb-3">
         ผู้ประกอบการ / คู่สัญญาเช่า
       </span>
 
       <div className="space-y-1">
         <h2 className="text-2xl font-black text-slate-800 tracking-tight">{tenant.ownerName}</h2>
-        <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-md">
+        <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-[7px]">
           {tenant.businessType}
         </span>
       </div>

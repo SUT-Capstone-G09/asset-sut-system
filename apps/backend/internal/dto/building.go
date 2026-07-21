@@ -21,19 +21,29 @@ type BuildingTypeResponse struct {
 // ทำหน้าที่เป็น Container ของ RentalSpaces และ FloorPlan
 
 type CreateBuildingRequest struct {
-	Name           string   `json:"name" binding:"required,min=3,max=100"`
-	BuildingTypeID *uint    `json:"building_type_id"` // Nullable สำหรับกรณีตึกเดี่ยว
-	Lat            *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
-	Lng            *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
-	Address        string   `json:"address"`
+	Name             string   `json:"name" binding:"required,min=3,max=100"`
+	BuildingTypeID   *uint    `json:"building_type_id"` // Nullable สำหรับกรณีตึกเดี่ยว
+	BuildingTypeName *string  `json:"building_type_name"`
+	Description      *string  `json:"description"`
+	FloorCount       *int     `json:"floor_count" binding:"omitempty,min=1"`
+	Lat              *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
+	Lng              *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
+	Address          string   `json:"address"`
+	HasFloorPlan     *bool    `json:"has_floor_plan"`
+	BlueprintURL     *string  `json:"blueprint_url"`
 }
 
 type UpdateBuildingRequest struct {
-	Name           *string  `json:"name"`
-	BuildingTypeID *uint    `json:"building_type_id"`
-	Lat            *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
-	Lng            *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
-	Address        *string  `json:"address"`
+	Name             *string  `json:"name"`
+	BuildingTypeID   *uint    `json:"building_type_id"`
+	BuildingTypeName *string  `json:"building_type_name"`
+	Description      *string  `json:"description"`
+	FloorCount       *int     `json:"floor_count" binding:"omitempty,min=1"`
+	Lat              *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
+	Lng              *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
+	Address          *string  `json:"address"`
+	HasFloorPlan     *bool    `json:"has_floor_plan"`
+	BlueprintURL     *string  `json:"blueprint_url"`
 }
 
 // BuildingHallPricingResponse = ราคาการขอใช้พื้นที่โถงของอาคาร แยกราย 1 วัตถุประสงค์
@@ -98,7 +108,8 @@ type BuildingResponse struct {
 
 	// ที่ตั้งของตึก (nil ถ้ายังไม่กำหนดพิกัด)
 	Coordinates *[2]float64 `json:"coordinates,omitempty"` // [lat, lng]
-	Address     string      `json:"address"`
+	Address       string      `json:"address"`
+	BlueprintURL     *string     `json:"blueprint_url,omitempty"`
 
 	RentalSpaceCount int       `json:"rental_space_count"` // จำนวน Rental Space ภายใน
 	HasFloorPlan     bool      `json:"has_floor_plan"`     // มีแผนผังหรือไม่

@@ -32,7 +32,7 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<AreaFormValues>({
-    resolver: zodResolver(areaSchema) as any,
+    resolver: zodResolver(areaSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: {
@@ -63,7 +63,7 @@ export default function SpaceEditDrawer({ location, open, onClose, onUpdateLocat
     }
   }, [location, methods]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: AreaFormValues) => {
     if (!location) return;
     setIsSubmitting(true);
     console.log("Updating Area Data:", data);

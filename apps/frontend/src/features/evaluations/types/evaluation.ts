@@ -1,9 +1,12 @@
 // src/features/evaluations/types/evaluation.ts
 
 export type EvalStatus = 'ผ่าน' | 'ไม่ผ่าน' | 'ปรับปรุง';
+export type EvaluatorType = 'admin' | 'staff' | 'external';
+export type EvalChannel = 'direct' | 'email' | 'qr' | 'sso';
 
 export interface EvaluationRecord {
   id: string;
+  requestId?: string;
   storeName: string;
   location: string;
   category:
@@ -24,6 +27,8 @@ export interface EvaluationRecord {
   warningCount: number;
   image?: string;
   inspector: string;
+  evaluatorType: EvaluatorType;
+  channel: EvalChannel;
   lastAuditDate: string;
   details: {
     item: string;

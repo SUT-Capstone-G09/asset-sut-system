@@ -42,12 +42,13 @@ type RentalSpaceTags struct {
 // เป็น optional — ไม่ใช่ทุก Building จำเป็นต้องมีแผนผัง
 type FloorPlans struct {
 	UUIDBase
-	BuildingID uint        `gorm:"unique;not null"`
-	Building   *Buildings  `gorm:"foreignKey:BuildingID"`
-	Name       string      `gorm:"not null"`
-	Width      int         `gorm:"not null"`
-	Height     int         `gorm:"not null"`
-	MapLayers  []MapLayers `gorm:"foreignKey:FloorPlanID"`
+	BuildingID  uint        `gorm:"uniqueIndex:idx_building_floor;not null"`
+	Building    *Buildings  `gorm:"foreignKey:BuildingID"`
+	FloorNumber int         `gorm:"uniqueIndex:idx_building_floor;not null;default:1"`
+	Name        string      `gorm:"not null"`
+	Width       int         `gorm:"not null"`
+	Height      int         `gorm:"not null"`
+	MapLayers   []MapLayers `gorm:"foreignKey:FloorPlanID"`
 }
 
 // MapLayers คือ Layer ภายใน Floor Plan ใช้จัดกลุ่ม Map Element
