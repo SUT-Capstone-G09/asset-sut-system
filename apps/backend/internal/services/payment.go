@@ -117,8 +117,8 @@ func (s *PaymentService) Create(userID uint, role string, req dto.CreatePaymentR
 // covers what's owed on an invoice — the same rule the EasySlip auto-verify
 // path already enforces in evaluate() (payment_verify.go), applied here so
 // the manual staff-verify path can't confirm an arbitrary/wrong amount.
-func paymentCoversInvoice(amountPaid, invoiceTotal int) bool {
-	return amountPaid == invoiceTotal
+func paymentCoversInvoice(amountPaid int, invoiceTotal float64) bool {
+	return float64(amountPaid) == invoiceTotal
 }
 
 func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentRequest) (*dto.PaymentTransactionResponse, error) {
@@ -142,7 +142,7 @@ func (s *PaymentService) Verify(id, verifierID uint, req dto.VerifyPaymentReques
 		}
 		if !paymentCoversInvoice(tx.AmountPaid, invoice.TotalAmount) {
 			return nil, fmt.Errorf(
-				"payment amount (%d) does not match invoice total (%d)",
+				"payment amount (%d) does not match invoice total (%.2f)",
 				tx.AmountPaid, invoice.TotalAmount,
 			)
 		}

@@ -35,14 +35,14 @@ type Locations struct {
 	Addons           []LocationAddons           `gorm:"foreignKey:LocationID" json:"addons,omitempty"`
 	PricingTiers     []LocationPricingTiers     `gorm:"foreignKey:LocationID" json:"pricing_tiers,omitempty"`
 	Unavailabilities []LocationUnavailabilities `gorm:"foreignKey:LocationID" json:"unavailabilities,omitempty"`
-	StaffLocations   []StaffLocations           `gorm:"foreignKey:LocationID" json:"staff_locations,omitempty"`
+
 }
 
 type StaffLocations struct {
 	UserID     uint       `gorm:"primaryKey" json:"user_id"`
-	LocationID uint       `gorm:"primaryKey" json:"location_id"`
+	BuildingID uint       `gorm:"primaryKey" json:"building_id"`
 	User       *Users     `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Location   *Locations `gorm:"foreignKey:LocationID" json:"location,omitempty"`
+	Building   *Buildings `gorm:"foreignKey:BuildingID" json:"building,omitempty"`
 }
 
 type LocationUnavailabilities struct {

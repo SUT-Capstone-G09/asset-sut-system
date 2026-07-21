@@ -1,7 +1,14 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import { LayoutGrid, List, MapPin, ArrowRight, Search, Users } from "lucide-react";
+import {
+  LayoutGrid,
+  List,
+  MapPin,
+  ArrowRight,
+  Search,
+  Users,
+} from "lucide-react";
 import RoomCard from "./RoomCard";
 import RoomDrawer from "./RoomDrawer";
 import { Room } from "@/features/booking/types/room";
@@ -130,7 +137,15 @@ export default function RoomGrid({
   );
 }
 
-function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean; onClick: () => void; icon: React.ElementType }) {
+function ViewToggleButton({
+  isActive,
+  onClick,
+  icon: Icon,
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+}) {
   return (
     <button
       onClick={onClick}
@@ -138,7 +153,7 @@ function ViewToggleButton({ isActive, onClick, icon: Icon }: { isActive: boolean
         "p-1.5 rounded-md transition-all duration-300 cursor-pointer",
         isActive
           ? "bg-white text-[#f26522] shadow-md shadow-slate-200 scale-105"
-          : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+          : "text-slate-400 hover:text-slate-600 hover:bg-white/50",
       )}
     >
       <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -168,7 +183,7 @@ function ListRow({ room, onClick }: { room: Room; onClick: () => void }) {
       className={cn(
         "bg-white rounded-lg border border-slate-100 p-5",
         "flex items-center gap-6 cursor-pointer group transition-all duration-300",
-        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1"
+        "hover:shadow-xl hover:shadow-slate-200/50 hover:border-[#f26522]/20 hover:-translate-x-1",
       )}
     >
       <div className="relative size-20 rounded-md overflow-hidden shrink-0 shadow-sm">
@@ -203,19 +218,33 @@ function ListRow({ room, onClick }: { room: Room; onClick: () => void }) {
           </p>
         </div>
         <div className="text-center space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">สถานะห้อง</p>
-          <span className={cn("px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0", status.bg, status.text)}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            สถานะห้อง
+          </p>
+          <span
+            className={cn(
+              "px-2.5 py-0.5 rounded-[4px] border text-[9px] font-black uppercase tracking-wider shrink-0",
+              status.bg,
+              status.text,
+            )}
+          >
             {status.label}
           </span>
         </div>
       </div>
 
-      <button className={cn(
-        "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
-        "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
-        "transition-all duration-300 flex items-center justify-center"
-      )}>
-        <ArrowRight size={20} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
+      <button
+        className={cn(
+          "shrink-0 size-12 rounded-md bg-slate-50 text-slate-400 cursor-pointer",
+          "group-hover:bg-[#f26522] group-hover:text-white group-hover:shadow-lg group-hover:shadow-[#f26522]/30",
+          "transition-all duration-300 flex items-center justify-center",
+        )}
+      >
+        <ArrowRight
+          size={20}
+          strokeWidth={2.5}
+          className="transition-transform group-hover:translate-x-1"
+        />
       </button>
     </div>
   );
@@ -227,10 +256,12 @@ function EmptyState({ onResetFilters }: { onResetFilters: () => void }) {
       <div className="p-6 bg-white rounded-lg shadow-xl shadow-slate-200 mb-4">
         <Search size={48} className="text-slate-300" />
       </div>
-      <p className="text-lg font-bold text-slate-900">ไม่พบห้องที่ตรงเงื่อนไข</p>
+      <p className="text-lg font-bold text-slate-900">
+        ไม่พบห้องที่ตรงเงื่อนไข
+      </p>
       <p className="text-sm text-slate-400">ลองปรับการค้นหาหรือล้างตัวกรอง</p>
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={onResetFilters}
         className="mt-6 rounded-[7px] border-slate-200 text-slate-600 font-bold cursor-pointer"
       >

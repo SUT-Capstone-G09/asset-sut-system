@@ -19,6 +19,11 @@ export interface AdminLocationDTO {
   pricing_tiers?: { id: number; price: number; requester_type: string; rate_type: string }[];
 }
 
+export interface BuildingDTO {
+  id: number;
+  name: string;
+}
+
 export interface CreateLocationPayload {
   type_id: number;
   name: string;
@@ -171,12 +176,21 @@ export async function unassignStaffFromLocation(locationId: number, userId: numb
   await apiClient.delete(`/locations/${locationId}/staff/${userId}`);
 }
 
-export async function getStaffLocations(staffUserId: number): Promise<AdminLocationDTO[]> {
-  return apiClient.get<AdminLocationDTO[]>(`/staffs/${staffUserId}/locations`);
+export async function getStaffBuildings(staffUserId: number): Promise<BuildingDTO[]> {
+  return apiClient.get<BuildingDTO[]>(`/staffs/${staffUserId}/locations`);
 }
 
-export async function setStaffLocations(staffUserId: number, locationIds: number[]): Promise<void> {
-  await apiClient.put(`/staffs/${staffUserId}/locations`, { location_ids: locationIds });
+export async function setStaffBuildings(staffUserId: number, buildingIds: number[]): Promise<void> {
+  await apiClient.put(`/staffs/${staffUserId}/locations`, { building_ids: buildingIds });
+}
+
+// Legacy aliases kept for backward compat
+export async function getStaffLocations(staffUserId: number): Promise<BuildingDTO[]> {
+  return getStaffBuildings(staffUserId);
+}
+
+export async function setStaffLocations(staffUserId: number, buildingIds: number[]): Promise<void> {
+  return setStaffBuildings(staffUserId, buildingIds);
 }
 
 // requester_type_id: 1=ภายใน, 2=ภายนอก (ยังไม่มี lookup endpoint สำหรับ requester types

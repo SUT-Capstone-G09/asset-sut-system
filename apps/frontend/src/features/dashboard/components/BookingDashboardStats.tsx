@@ -3,21 +3,24 @@
 import { Calendar, Users, Wallet, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BookingResponseDTO } from "@/features/bookings/services/booking.service";
+import { useAuthContext } from "@/lib/context/auth-context";
 
 interface BookingDashboardStatsProps {
   bookings: BookingResponseDTO[];
 }
 
 export function BookingDashboardStats({ bookings }: BookingDashboardStatsProps) {
+  const { user } = useAuthContext();
+
   // 1. Total bookings
   const totalBookings = bookings.length;
 
   // 2. Total Users (unique users)
   const uniqueUsers = new Set(bookings.map((b) => b.user_id)).size;
 
-  // 3. Revenue (only completed or approved)
+  // 3. Revenue (only completed bookings)
   const revenue = bookings
-    .filter((b) => b.status === "completed" || b.status === "approved")
+    .filter((b) => b.status === "completed")
     .reduce((sum, b) => sum + b.total_price, 0);
 
   // 4. Occupancy Rate (Mock logic for now: (Total Bookings / 100) * 100 capped at 100%)
@@ -62,9 +65,11 @@ export function BookingDashboardStats({ bookings }: BookingDashboardStatsProps) 
     },
   ];
 
+  const visibleStats = user?.role === "staff" ? stats.filter(s => s.title !== "รายรับจากการขอใช้บริการ") : stats;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, index) => {
+      {visibleStats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <div

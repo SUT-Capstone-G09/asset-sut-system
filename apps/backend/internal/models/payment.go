@@ -14,7 +14,7 @@ type Invoices struct {
 	Booking     *Bookings        `gorm:"foreignKey:BookingID" json:"booking,omitempty"`
 	StatusID    uint             `gorm:"not null" json:"status_id"`
 	Status      *InvoiceStatuses `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	TotalAmount int              `gorm:"not null;default:0" json:"total_amount"`
+	TotalAmount float64          `gorm:"not null;default:0" json:"total_amount"`
 
 	// ── Issued QR (the "expected" side used to match uploaded slips) ──
 	// QRRef1 is the reference embedded in the QR (e.g. "BK123"); it is the key an

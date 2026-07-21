@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { MoreHorizontal, Eye, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,25 +14,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { updateBookingStatus } from "@/features/bookings/services/booking.service";
 import type { BookingResponseDTO } from "@/features/bookings/services/booking.service";
+import { useAuthContext } from "@/lib/context/auth-context";
 import BookingDrawer from "@/features/booking/components/booking/BookingDrawer";
 import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
 import { AdminLocationDTO } from "@/features/booking/services/locationService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   pending:   { label: "รออนุมัติ",   className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
-  approved:  { label: "อนุมัติแล้ว", className: "bg-green-50 text-green-700 border-green-200" },
+  approved:  { label: "อนุมัติแล้ว", className: "bg-blue-50 text-blue-700 border-blue-200" },
   rejected:  { label: "ปฏิเสธ",      className: "bg-red-50 text-red-700 border-red-200" },
   cancelled: { label: "ยกเลิก",      className: "bg-gray-100 text-gray-500 border-gray-200" },
-  completed: { label: "เสร็จสิ้น",   className: "bg-blue-50 text-blue-700 border-blue-200" },
+  completed: { label: "เสร็จสิ้น",   className: "bg-green-50 text-green-700 border-green-200" },
 };
 
 function formatThaiDate(iso: string) {
   const d = new Date(iso);
-  return format(d, "dd MMM yyyy", { locale: th });
+  return d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function formatTime(iso: string) {
@@ -40,10 +39,13 @@ function formatTime(iso: string) {
 }
 
 export function BookingDashboardRecentBookings({ bookings, onReload }: { bookings: BookingResponseDTO[], onReload?: () => void }) {
+  const { user } = useAuthContext();
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selected, setSelected] = useState<BookingResponseDTO | null>(null);
   const [approveModalBooking, setApproveModalBooking] = useState<BookingResponseDTO | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const portalBase = pathname.startsWith("/staff") ? "/staff" : "/admin";
 
   const handleAction = async (
     id: string,
@@ -62,8 +64,6 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
     }
   };
 
-  // Get top 5 recent bookings (assuming they are sorted by date or id descending)
-  // Let's sort by created_at or id to get recent ones
   const recentBookings = [...bookings].sort((a, b) => b.id - a.id).slice(0, 5);
 
   return (
@@ -73,7 +73,7 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
           รายการจองล่าสุด (Recent Booking)
         </h3>
         <Link 
-          href="/admin/booking"
+          href={`${portalBase}/booking`}
           className="text-xs font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity"
         >
           ดูทั้งหมด
@@ -95,16 +95,13 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
           <tbody className="divide-y divide-gray-50">
             {recentBookings.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                   ไม่มีรายการจอง
                 </td>
               </tr>
             ) : (
               recentBookings.map((booking) => {
                 const slot = booking.timeslots?.[0];
-                const initials = booking.user_name
-                  ? booking.user_name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
-                  : "U";
                 const style = STATUS_STYLE[booking.status] || STATUS_STYLE.pending;
 
                 return (
@@ -185,17 +182,15 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
         </table>
       </div>
 
-      {/* BookingDrawer from existing booking page */}
       <BookingDrawer
         booking={selected ? bookingDTOToAdminBooking(selected, new Map<number, AdminLocationDTO>()) : null}
         open={!!selected}
         onClose={() => setSelected(null)}
         onUpdateStatus={handleAction}
-        onEdit={() => {}} // No-op for now unless requested
-        onDelete={() => {}} // No-op for now unless requested
+        onEdit={() => {}}
+        onDelete={() => {}}
       />
 
-      {/* Approve Confirmation Modal */}
       <Dialog open={!!approveModalBooking} onOpenChange={(open) => !open && setApproveModalBooking(null)}>
         <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden z-[300]">
           <DialogHeader className="p-6 pb-0 border-b-0">
@@ -219,20 +214,28 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
               <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                 <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                  {user?.role !== "staff" ? (
+                    <>กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้</>
+                  ) : (
+                    <>โปรดตรวจสอบรายการจองให้ครบถ้วนก่อนทำการอนุมัติ</>
+                  )}
                 </p>
               </div>
             </div>
           )}
 
           <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
-            <Button
-              variant="outline"
-              onClick={() => approveModalBooking && router.push(`/admin/booking/${approveModalBooking.id}/expenses`)}
-              className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
-            >
-              จัดการค่าใช้จ่าย
-            </Button>
+            {user?.role !== "staff" ? (
+              <Button
+                variant="outline"
+                onClick={() => approveModalBooking && router.push(`${portalBase}/booking/${approveModalBooking.id}/expenses`)}
+                className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+              >
+                จัดการค่าใช้จ่าย
+              </Button>
+            ) : (
+              <div />
+            )}
             
             <div className="flex gap-2">
               <Button

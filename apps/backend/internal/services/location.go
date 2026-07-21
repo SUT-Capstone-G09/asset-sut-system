@@ -53,7 +53,7 @@ func toBuildingResponse(b models.Buildings) dto.BuildingResponse {
 	for _, hp := range b.HallPricings {
 		pr := dto.BuildingHallPricingResponse{
 			HallUsagePurposeID: hp.HallUsagePurposeID,
-			Price:              hp.Price,
+			Price:              float64(hp.Price),
 			IsActive:           hp.IsActive,
 		}
 		if hp.HallUsagePurpose != nil {
@@ -77,7 +77,7 @@ func toHallPurposeResponse(p models.HallUsagePurposes) dto.HallUsagePurposeRespo
 		Name:         p.Name,
 		Description:  p.Description,
 		PricingModel: p.PricingModel,
-		DefaultPrice: p.DefaultPrice,
+		DefaultPrice: float64(p.DefaultPrice),
 		IsActive:     p.IsActive,
 		SortOrder:    p.SortOrder,
 	}
@@ -131,7 +131,7 @@ func (s *LocationService) CreateHallUsagePurpose(req dto.CreateHallUsagePurposeR
 		Name:         req.Name,
 		Description:  req.Description,
 		PricingModel: req.PricingModel,
-		DefaultPrice: req.DefaultPrice,
+		DefaultPrice: float64(req.DefaultPrice),
 		IsActive:     true,
 		SortOrder:    sortOrder,
 	}
@@ -200,7 +200,7 @@ func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.Up
 		if err := s.locationRepo.UpsertBuildingHallPricing(&models.BuildingHallPricings{
 			BuildingID:         buildingID,
 			HallUsagePurposeID: in.HallUsagePurposeID,
-			Price:              in.Price,
+			Price:              float64(in.Price),
 			IsActive:           in.IsActive,
 		}); err != nil {
 			return nil, err
@@ -217,7 +217,7 @@ func (s *LocationService) UpdateBuildingHallPricings(buildingID uint, req dto.Up
 
 // hallPricingFloor = ขั้นต่ำ + สถานะเปิดใช้งานของวัตถุประสงค์หนึ่ง ตามที่อาคารตั้งไว้
 type hallPricingFloor struct {
-	Floor    int
+	Floor    float64
 	IsActive bool
 }
 
@@ -230,7 +230,7 @@ func (s *LocationService) hallPricingFloors(buildingID *uint) ([]models.HallUsag
 	}
 	floors := make(map[uint]hallPricingFloor, len(purposes))
 	for _, p := range purposes {
-		floors[p.ID] = hallPricingFloor{Floor: p.DefaultPrice, IsActive: true}
+		floors[p.ID] = hallPricingFloor{Floor: float64(p.DefaultPrice), IsActive: true}
 	}
 	if buildingID != nil {
 		building, berr := s.locationRepo.FindBuildingByID(*buildingID)
@@ -258,7 +258,7 @@ func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.Locati
 	if err != nil {
 		return nil, err
 	}
-	overrideByPurpose := make(map[uint]int, len(overrides))
+	overrideByPurpose := make(map[uint]float64, len(overrides))
 	for _, o := range overrides {
 		overrideByPurpose[o.HallUsagePurposeID] = o.Price
 	}
@@ -270,14 +270,14 @@ func (s *LocationService) GetLocationHallPricings(locationID uint) ([]dto.Locati
 			HallUsagePurposeID: p.ID,
 			PurposeName:        p.Name,
 			PricingModel:       p.PricingModel,
-			BuildingPrice:      f.Floor,
-			EffectivePrice:     f.Floor,
+			BuildingPrice:      float64(f.Floor),
+			EffectivePrice:     float64(f.Floor),
 			IsActive:           f.IsActive,
 		}
 		if ov, ok := overrideByPurpose[p.ID]; ok {
-			price := ov
+			price := float64(ov)
 			row.OverridePrice = &price
-			row.EffectivePrice = resolveHallUnitPrice(f.Floor, &price)
+			row.EffectivePrice = resolveHallUnitPrice(float64(f.Floor), &price)
 		}
 		res = append(res, row)
 	}
@@ -311,13 +311,13 @@ func (s *LocationService) UpdateLocationHallPricings(locationID uint, req dto.Up
 			}
 			continue
 		}
-		if *in.Price < f.Floor {
-			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%d บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
+		if *in.Price < float64(f.Floor) {
+			return nil, fmt.Errorf("ราคาของ %q ต้องไม่ต่ำกว่าราคาอาคาร (%.2f บาท)", nameByID[in.HallUsagePurposeID], f.Floor)
 		}
 		if uerr := s.locationRepo.UpsertLocationHallPricing(&models.LocationHallPricings{
 			LocationID:         locationID,
 			HallUsagePurposeID: in.HallUsagePurposeID,
-			Price:              *in.Price,
+			Price:              float64(*in.Price),
 		}); uerr != nil {
 			return nil, uerr
 		}
@@ -346,7 +346,15 @@ func (s *LocationService) GetAll(role string, userID uint) ([]dto.LocationRespon
 
 func (s *LocationService) GetByID(id uint, role string, userID uint) (*dto.LocationResponse, error) {
 	if role == "staff" && userID > 0 {
-		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		// ตรวจสอบว่า location นี้อยู่ในอาคารที่ staff ได้รับมอบหมายหรือไม่
+		loc, err := s.locationRepo.FindByID(id)
+		if err != nil {
+			return nil, err
+		}
+		if loc.BuildingID == nil {
+			return nil, errors.New("forbidden")
+		}
+		assigned, err := s.locationRepo.IsStaffAssignedToBuilding(userID, *loc.BuildingID)
 		if err != nil {
 			return nil, err
 		}
@@ -378,10 +386,10 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 	if err := s.locationRepo.Create(location); err != nil {
 		return nil, err
 	}
-	// Auto-assign to staff who created it
-	if role == "staff" && userID > 0 {
-		sl := &models.StaffLocations{UserID: userID, LocationID: location.ID}
-		if err := s.locationRepo.AssignStaff(sl); err != nil {
+	// Auto-assign to staff who created it (based on building)
+	if role == "staff" && userID > 0 && location.BuildingID != nil {
+		sl := &models.StaffLocations{UserID: userID, BuildingID: *location.BuildingID}
+		if err := s.locationRepo.AssignStaffBuilding(sl); err != nil {
 			return nil, err
 		}
 	}
@@ -389,18 +397,21 @@ func (s *LocationService) Create(req dto.CreateLocationRequest, role string, use
 }
 
 func (s *LocationService) Update(id uint, req dto.UpdateLocationRequest, role string, userID uint) (*dto.LocationResponse, error) {
+	location, err := s.locationRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
 	if role == "staff" && userID > 0 {
-		assigned, err := s.locationRepo.IsStaffAssigned(userID, id)
+		if location.BuildingID == nil {
+			return nil, errors.New("forbidden")
+		}
+		assigned, err := s.locationRepo.IsStaffAssignedToBuilding(userID, *location.BuildingID)
 		if err != nil {
 			return nil, err
 		}
 		if !assigned {
 			return nil, errors.New("forbidden")
 		}
-	}
-	location, err := s.locationRepo.FindByID(id)
-	if err != nil {
-		return nil, err
 	}
 	if req.ParentID != nil {
 		location.ParentID = req.ParentID
@@ -444,8 +455,8 @@ func (s *LocationService) Delete(id uint) error {
 
 // ── Staff Location Management ─────────────────────────────────────────────────
 
-func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocationResponse, error) {
-	items, err := s.locationRepo.FindStaffByLocationID(locationID)
+func (s *LocationService) GetBuildingStaff(buildingID uint) ([]dto.StaffLocationResponse, error) {
+	items, err := s.locationRepo.FindStaffByBuildingID(buildingID)
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +464,7 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 	for _, sl := range items {
 		res := dto.StaffLocationResponse{
 			UserID:     sl.UserID,
-			LocationID: sl.LocationID,
+			BuildingID: sl.BuildingID,
 		}
 		if sl.User != nil {
 			res.Email = sl.User.Email
@@ -467,37 +478,37 @@ func (s *LocationService) GetLocationStaff(locationID uint) ([]dto.StaffLocation
 	return result, nil
 }
 
-func (s *LocationService) AssignStaff(locationID, staffUserID uint) error {
-	sl := &models.StaffLocations{UserID: staffUserID, LocationID: locationID}
-	return s.locationRepo.AssignStaff(sl)
+func (s *LocationService) AssignStaffBuilding(buildingID, staffUserID uint) error {
+	sl := &models.StaffLocations{UserID: staffUserID, BuildingID: buildingID}
+	return s.locationRepo.AssignStaffBuilding(sl)
 }
 
-func (s *LocationService) UnassignStaff(locationID, staffUserID uint) error {
-	return s.locationRepo.UnassignStaff(staffUserID, locationID)
+func (s *LocationService) UnassignStaffBuilding(buildingID, staffUserID uint) error {
+	return s.locationRepo.UnassignStaffBuilding(staffUserID, buildingID)
 }
 
-func (s *LocationService) GetStaffLocations(staffID uint) ([]dto.LocationResponse, error) {
+func (s *LocationService) GetStaffBuildings(staffID uint) ([]dto.StaffBuildingResponse, error) {
 	staff, err := s.staffRepo.FindByID(staffID)
 	if err != nil {
 		return nil, err
 	}
-	locations, err := s.locationRepo.FindByStaffID(staff.UserID)
+	buildings, err := s.locationRepo.FindBuildingsByStaffID(staff.UserID)
 	if err != nil {
 		return nil, err
 	}
-	var result []dto.LocationResponse
-	for _, l := range locations {
-		result = append(result, s.toLocationResponse(l))
+	var result []dto.StaffBuildingResponse
+	for _, b := range buildings {
+		result = append(result, dto.StaffBuildingResponse{ID: b.ID, Name: b.Name})
 	}
 	return result, nil
 }
 
-func (s *LocationService) SetStaffLocations(staffID uint, locationIDs []uint) error {
+func (s *LocationService) SetStaffBuildings(staffID uint, buildingIDs []uint) error {
 	staff, err := s.staffRepo.FindByID(staffID)
 	if err != nil {
 		return err
 	}
-	return s.locationRepo.SetStaffLocations(staff.UserID, locationIDs)
+	return s.locationRepo.SetStaffBuildings(staff.UserID, buildingIDs)
 }
 
 // ── Unavailabilities ─────────────────────────────────────────────────────────
