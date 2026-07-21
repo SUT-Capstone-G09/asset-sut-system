@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Megaphone, Bot, CreditCard } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Megaphone,
+  Bot,
+  CreditCard,
+} from "lucide-react";
+import Image from "next/image";
 
 const announcement = {
   highlight: "Highlight 2024",
@@ -9,10 +16,7 @@ const announcement = {
   title: "ผลการคัดเลือกบุคคลเข้าปฏิบัติงานเป็นพนักงานวิสาหกิจ",
   subtitle: "ตำแหน่ง พนักงานบริหารพื้นที่เช่า",
   selected: "นายสิรวิชญ์ หมายตะคุ",
-  reserves: [
-    "นางสาวอุชาลักษณ์ ทิพย์ประเสริฐ",
-    "นายศุภโชค กิตรวงศา",
-  ],
+  reserves: ["นางสาวอุชาลักษณ์ ทิพย์ประเสริฐ", "นายศุภโชค กิตรวงศา"],
   body: "ให้ผู้ได้รับการคัดเลือกรายงานตัวเข้าปฏิบัติงาน ที่ ศูนย์บริหารจัดการทรัพย์สิน มหาวิทยาลัยเทคโนโลยีสุรนารี",
 };
 
@@ -42,15 +46,27 @@ export default function HomeBanner() {
         {/* Content Grid */}
         <div className="relative z-10 w-full max-w-[1280px] mx-auto px-8 md:px-16 py-20 md:py-24">
           <div className="grid md:grid-cols-[1fr_300px] gap-10 items-center">
-
             {/* Left: Enlarged Logo */}
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-4 mb-7">
-                <img src="/SUT_logo_orange.png" alt="SUT" className="h-16 md:h-24 object-contain drop-shadow-md" />
-                <div className="flex flex-col leading-none">
-                  <span className="font-black text-[#f26522] text-3xl md:text-5xl tracking-tight drop-shadow-sm">ASSET</span>
-                  <span className="text-xs md:text-sm text-gray-600 font-medium tracking-[0.2em] uppercase mt-1 drop-shadow-sm">Suranaree University</span>
-                </div>
+                <Image
+                  src="/ASSET_EN.svg"
+                  alt="SUT"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="object-contain"
+                  style={{ width: "auto", height: "150px" }}
+                  priority
+                />
+                {/* <div className="flex flex-col leading-none">
+                  <span className="font-black text-[#f26522] text-3xl md:text-5xl tracking-tight drop-shadow-sm">
+                    ASSET
+                  </span>
+                  <span className="text-xs md:text-sm text-gray-600 font-medium tracking-[0.2em] uppercase mt-1 drop-shadow-sm">
+                    Suranaree University
+                  </span>
+                </div> */}
               </div>
             </div>
 
@@ -71,7 +87,9 @@ export default function HomeBanner() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-800">Asset AI</p>
-                    <p className="text-xs text-gray-500">ช่วยค้น–ตอบข้อสงสัยต่าง ๆ</p>
+                    <p className="text-xs text-gray-500">
+                      ช่วยค้น–ตอบข้อสงสัยต่าง ๆ
+                    </p>
                   </div>
                 </div>
                 <Link
@@ -96,9 +114,15 @@ export default function HomeBanner() {
                     <CreditCard className="size-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-gray-800 text-sm leading-tight">ชำระค่าเช่า</p>
-                    <p className="font-bold text-gray-800 text-sm leading-tight">สาธารณูปโภค</p>
-                    <p className="text-xs text-[#f26522] font-semibold mt-1 group-hover:underline">OnePay System →</p>
+                    <p className="font-bold text-gray-800 text-sm leading-tight">
+                      ชำระค่าเช่า
+                    </p>
+                    <p className="font-bold text-gray-800 text-sm leading-tight">
+                      สาธารณูปโภค
+                    </p>
+                    <p className="text-xs text-[#f26522] font-semibold mt-1 group-hover:underline">
+                      OnePay System →
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -118,16 +142,18 @@ export default function HomeBanner() {
                   className="w-10 h-10 object-contain opacity-80"
                 />
                 <div>
-                  <p className="text-xs font-bold text-gray-700">มหาวิทยาลัยเทคโนโลยีสุรนารี</p>
-                  <p className="text-[10px] text-gray-500">Suranaree University of Technology</p>
+                  <p className="text-xs font-bold text-gray-700">
+                    มหาวิทยาลัยเทคโนโลยีสุรนารี
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    Suranaree University of Technology
+                  </p>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
-
     </section>
   );
 }
