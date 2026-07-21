@@ -1,11 +1,7 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   X,
   MapPin,
@@ -17,7 +13,7 @@ import {
   FileText,
   Building,
   CreditCard,
-  Paperclip
+  Paperclip,
 } from "lucide-react";
 import { Room } from "../../types/room";
 import { Button } from "@/components/ui/button";
@@ -60,7 +56,9 @@ export default function RoomDrawer({
   const handleToggleStatus = () => {
     const nextStatus = isAvailable ? "maintenance" : "available";
     onUpdateStatus(room.id, nextStatus);
-    alert(`เปลี่ยนสถานะห้องเป็น ${nextStatus === "available" ? "ใช้งานได้" : "ปิดปรับปรุง"} สำเร็จ!`);
+    alert(
+      `เปลี่ยนสถานะห้องเป็น ${nextStatus === "available" ? "ใช้งานได้" : "ปิดปรับปรุง"} สำเร็จ!`,
+    );
   };
 
   return (
@@ -72,7 +70,7 @@ export default function RoomDrawer({
           className="w-full sm:max-w-[540px] p-0 border-none bg-slate-50/50 backdrop-blur-md flex flex-col h-full shadow-2xl"
         >
           <SheetTitle className="sr-only">{room.roomName}</SheetTitle>
-          
+
           {/* Header Image */}
           <div className="relative h-64 w-full shrink-0 bg-slate-200">
             <img
@@ -111,10 +109,22 @@ export default function RoomDrawer({
             <div className="grid grid-cols-2 gap-4">
               {/* Status Box */}
               <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between text-left">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">สถานะการใช้งาน</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  สถานะการใช้งาน
+                </span>
                 <div className="flex items-center gap-2 mt-2">
-                  <div className={cn("size-3 rounded-full animate-pulse", isAvailable ? "bg-emerald-500" : "bg-red-400")} />
-                  <span className={cn("text-base font-black", isAvailable ? "text-emerald-600" : "text-red-500")}>
+                  <div
+                    className={cn(
+                      "size-3 rounded-full animate-pulse",
+                      isAvailable ? "bg-emerald-500" : "bg-red-400",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "text-base font-black",
+                      isAvailable ? "text-emerald-600" : "text-red-500",
+                    )}
+                  >
                     {isAvailable ? "ใช้งานได้" : "ปิดปรับปรุง"}
                   </span>
                 </div>
@@ -122,29 +132,45 @@ export default function RoomDrawer({
 
               {/* Capacity Box */}
               <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between text-left">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">ความจุห้อง</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  ความจุห้อง
+                </span>
                 <div className="flex items-baseline gap-1 mt-2 text-slate-900">
                   <span className="text-2xl font-black">{room.capacity}</span>
-                  <span className="text-xs font-bold text-slate-500">ที่นั่ง</span>
+                  <span className="text-xs font-bold text-slate-500">
+                    ที่นั่ง
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Spec Details Card */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4 text-left">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">รายละเอียดห้อง</h3>
-              
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                รายละเอียดห้อง
+              </h3>
+
               <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
                 <div>
-                  <span className="text-xs text-slate-400 font-bold block mb-0.5">รหัสห้อง</span>
-                  <span className="font-bold text-slate-700">{room.roomNumber}</span>
+                  <span className="text-xs text-slate-400 font-bold block mb-0.5">
+                    รหัสห้อง
+                  </span>
+                  <span className="font-bold text-slate-700">
+                    {room.roomNumber}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 font-bold block mb-0.5">ประเภทห้อง</span>
-                  <span className="font-bold text-slate-700">{room.category}</span>
+                  <span className="text-xs text-slate-400 font-bold block mb-0.5">
+                    ประเภทห้อง
+                  </span>
+                  <span className="font-bold text-slate-700">
+                    {room.category}
+                  </span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-xs text-slate-400 font-bold block mb-0.5">สถานที่ตั้ง</span>
+                  <span className="text-xs text-slate-400 font-bold block mb-0.5">
+                    สถานที่ตั้ง
+                  </span>
                   <span className="font-bold text-[#f26522] flex items-center gap-1">
                     <MapPin size={14} />
                     {room.building}
@@ -159,15 +185,19 @@ export default function RoomDrawer({
                 <CreditCard size={14} className="text-[#f26522]" />
                 อัตราค่าใช้จ่าย
               </h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 {/* Hourly rates */}
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายชั่วโมง (Hourly)</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                    รายชั่วโมง (Hourly)
+                  </span>
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>บุคลากรภายใน:</span>
-                      <span className="text-[#f26522]">{room.rates?.hourlyInternal || 0} ฿</span>
+                      <span className="text-[#f26522]">
+                        {room.rates?.hourlyInternal || 0} ฿
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>บุคคลภายนอก:</span>
@@ -178,11 +208,15 @@ export default function RoomDrawer({
 
                 {/* Daily rates */}
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">รายวัน (Daily)</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                    รายวัน (Daily)
+                  </span>
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>บุคลากรภายใน:</span>
-                      <span className="text-[#0284c7]">{room.rates?.dailyInternal || 0} ฿</span>
+                      <span className="text-[#0284c7]">
+                        {room.rates?.dailyInternal || 0} ฿
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>บุคคลภายนอก:</span>
@@ -195,12 +229,17 @@ export default function RoomDrawer({
 
             {/* Equipment Card */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4 text-left">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">อุปกรณ์ภายในห้อง</h3>
-              
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                อุปกรณ์ภายในห้อง
+              </h3>
+
               {room.equipment && room.equipment.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {room.equipment.map((eq, i) => (
-                    <div key={i} className="flex items-center gap-2.5 text-slate-600">
+                    <div
+                      key={i}
+                      className="flex items-center gap-2.5 text-slate-600"
+                    >
                       <div className="size-5 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                         <CheckSquare size={13} strokeWidth={2.5} />
                       </div>
@@ -209,7 +248,9 @@ export default function RoomDrawer({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 font-bold text-center py-4">ไม่มีข้อมูลอุปกรณ์</p>
+                <p className="text-xs text-slate-400 font-bold text-center py-4">
+                  ไม่มีข้อมูลอุปกรณ์
+                </p>
               )}
             </div>
 
@@ -220,11 +261,11 @@ export default function RoomDrawer({
                   <Paperclip size={14} className="text-[#f26522]" />
                   เอกสารแนบ
                 </h3>
-                
+
                 <div className="space-y-2">
                   {room.documents.map((doc, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       onClick={() => alert(`ดาวน์โหลดไฟล์: ${doc}`)}
                       className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-100 bg-slate-50 text-xs font-bold text-slate-600 hover:bg-slate-100/50 hover:text-[#f26522] hover:border-[#f26522]/20 cursor-pointer transition-all"
                     >
@@ -259,7 +300,7 @@ export default function RoomDrawer({
                 "flex-1 h-12 rounded-[7px] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer",
                 isAvailable
                   ? "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20"
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20",
               )}
             >
               <Wrench size={16} className="mr-2" />

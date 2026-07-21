@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Booking } from "../types/booking";
-import { AdminLocationDTO, getLocations } from "../services/locationService";
+import { AdminLocationDTO, getLocations, getStaffBuildings } from "../services/locationService";
 import {
   getAllBookings,
   createBooking,
@@ -116,7 +116,7 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
 
 export type BookingTypeFilter = "classroom" | "meeting" | "sport" | "hall" | "all";
 
-export function useBookingFilters(type: BookingTypeFilter) {
+export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -173,14 +173,30 @@ export function useBookingFilters(type: BookingTypeFilter) {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [bookingsData, locationsData] = await Promise.all([
+      const [allBookingsData, locationsData, staffBuildings] = await Promise.all([
         getAllBookings(),
         getLocations(),
+        staffUserId ? getStaffBuildings(staffUserId) : Promise.resolve(null),
       ]);
       setLocations(locationsData);
       
       const locMap = new Map<number, AdminLocationDTO>();
       locationsData.forEach((loc) => locMap.set(loc.id, loc));
+      
+      let bookingsData = allBookingsData ?? [];
+      
+      if (staffUserId && staffBuildings) {
+        const allowedBuildingIds = new Set(staffBuildings.map((b: any) => b.id));
+        const locationToBuildingMap = new Map<number, number | undefined>();
+        locationsData.forEach((loc) => locationToBuildingMap.set(loc.id, loc.building_id));
+        
+        bookingsData = bookingsData.filter((booking) => {
+          return booking.timeslots?.some((ts) => {
+            const buildingId = locationToBuildingMap.get(ts.location_id);
+            return buildingId !== undefined && allowedBuildingIds.has(buildingId);
+          });
+        });
+      }
       
       const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
       
@@ -203,7 +219,7 @@ export function useBookingFilters(type: BookingTypeFilter) {
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [type, staffUserId]);
 
   useEffect(() => {
     fetchAll();

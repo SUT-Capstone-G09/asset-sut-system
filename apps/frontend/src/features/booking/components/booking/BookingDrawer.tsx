@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
+import { useAuthContext } from "@/lib/context/auth-context";
 import React, { useState, useMemo } from "react";
 import BookingEditDrawer from "./BookingEditDrawer";
 import { mockRooms } from "../../data/rooms";
@@ -131,6 +132,7 @@ export default function BookingDrawer({
   onDelete,
   initialMode = "view",
 }: Props) {
+  const { user } = useAuthContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
   const [recurrenceActionType, setRecurrenceActionType] = useState<
@@ -832,19 +834,27 @@ export default function BookingDrawer({
               <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                 <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                  {user?.role !== "staff" ? (
+                    <>กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้</>
+                  ) : (
+                    <>โปรดตรวจสอบรายการจองให้ครบถ้วนก่อนทำการอนุมัติ</>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
-                className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
-              >
-                จัดการค่าใช้จ่าย
-              </Button>
+              {user?.role !== "staff" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
+                  className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+                >
+                  จัดการค่าใช้จ่าย
+                </Button>
+              ) : (
+                <div />
+              )}
               
               <div className="flex gap-2">
                 <Button

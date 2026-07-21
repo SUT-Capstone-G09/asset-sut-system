@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
+import { useAuthContext } from "@/lib/context/auth-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,8 +33,9 @@ import {
   getLocations,
   getLocationTypes,
   getBuildings,
+  getStaffBuildings,
   BuildingDTO,
-} from "@/features/bookings/services/location.service";
+} from "@/features/booking/services/locationService";
 
 interface RoomFormFieldsProps {
   isEdit?: boolean;
@@ -71,6 +73,7 @@ export default function RoomFormFields({
 
   const [categories, setCategories] = useState<string[]>([]);
   const [buildings, setBuildings] = useState<BuildingDTO[]>([]);
+  const { user } = useAuthContext();
 
   useEffect(() => {
     async function fetchData() {
@@ -78,7 +81,7 @@ export default function RoomFormFields({
         const [locs, types, bldgs] = await Promise.all([
           getLocations(),
           getLocationTypes(),
-          getBuildings(),
+          user?.role === "staff" ? getStaffBuildings(user.id) : getBuildings(),
         ]);
 
         const uniqueCategories = types.map((t) => t.type);
@@ -321,14 +324,16 @@ export default function RoomFormFields({
             อัตราค่าใช้จ่าย (Rate)
           </Label>
           <div className="flex flex-col sm:flex-row gap-4 items-start">
-            <Button
-              type="button"
-              onClick={() => setIsRateModalOpen(true)}
-              className="h-12 px-6 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold gap-2 shadow-lg shadow-[#f26522]/15 transition-all hover:scale-[1.01] cursor-pointer shrink-0"
-            >
-              <Banknote size={18} />
-              กำหนดค่าใช้จ่าย
-            </Button>
+            {user?.role !== "staff" && (
+              <Button
+                type="button"
+                onClick={() => setIsRateModalOpen(true)}
+                className="h-12 px-6 rounded-lg bg-[#f26522] hover:bg-[#d8561d] text-white font-bold gap-2 shadow-lg shadow-[#f26522]/15 transition-all hover:scale-[1.01] cursor-pointer shrink-0"
+              >
+                <Banknote size={18} />
+                กำหนดค่าใช้จ่าย
+              </Button>
+            )}
 
             {/* Show configuration summary */}
             {isRatesConfigured ? (

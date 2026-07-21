@@ -32,8 +32,9 @@ import Link from "next/link";
 import { Booking } from "../../types/booking";
 import BookingDrawer from "./BookingDrawer";
 import { getAllBookings } from "@/features/bookings/services/booking.service";
-import { getLocations, AdminLocationDTO } from "@/features/booking/services/locationService";
+import { getLocations, AdminLocationDTO, getStaffBuildings } from "@/features/booking/services/locationService";
 import { bookingDTOToAdminBooking } from "@/features/booking/hooks/useBookingFilters";
+import { useAuthContext } from "@/lib/context/auth-context";
 import { 
   Select, 
   SelectContent, 
@@ -85,24 +86,38 @@ export default function AdminBookingCalendar() {
   // Merge classroom and meeting bookings, then inject extra bookings to populate calendar like mockup
   const [bookings, setBookings] = useState<Booking[]>([]);
 
+  const { user } = useAuthContext();
+
   React.useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [bookingsData, locationsData] = await Promise.all([
+        const [bookingsData, locationsData, staffBuildings] = await Promise.all([
           getAllBookings(),
           getLocations(),
+          user?.role === "staff" ? getStaffBuildings(user.id) : Promise.resolve(null),
         ]);
-        setLocations(locationsData);
+        
+        let filteredLocs = locationsData;
+        if (user?.role === "staff" && staffBuildings) {
+          const allowedBuildingIds = new Set(staffBuildings.map(b => b.id));
+          filteredLocs = locationsData.filter(loc => loc.building_id && allowedBuildingIds.has(loc.building_id));
+        }
+
+        setLocations(filteredLocs);
         const locMap = new Map<number, AdminLocationDTO>();
-        locationsData.forEach((loc) => locMap.set(loc.id, loc));
-        const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
+        filteredLocs.forEach((loc) => locMap.set(loc.id, loc));
+        
+        const mappedBookings = bookingsData
+          .map((b) => bookingDTOToAdminBooking(b, locMap))
+          .filter((b) => user?.role === "staff" ? b.building !== "" : true);
+        
         setBookings(mappedBookings);
       } catch (err) {
         console.error("Failed to fetch calendar bookings:", err);
       }
     };
-    fetchAll();
-  }, []);
+    if (user) fetchAll();
+  }, [user]);
 
   // Drawer state
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
