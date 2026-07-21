@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -334,6 +335,91 @@ func (s *LocationService) GetMonthlyAvailability(locationID uint, year, month in
 		}
 	}
 	return result, nil
+}
+
+// CheckAvailability batches an availability check across many locations and
+// dates in one round trip (see dto.AvailabilitySearchQuery) — the room-search
+// equivalent of GetMonthlyAvailability, which only ever handles one location
+// at a time and would otherwise mean one request per room in a result page.
+//
+// A location is available only if every requested date passes:
+//   - a staff-configured unavailability block on that date always fails it
+//   - with an exact [startTime, endTime) window given: no booked timeslot on
+//     that date may overlap it
+//   - without one: the date must still have at least minBookableFreeMinutes
+//     of free time in the bookable window — the same rule GetMonthlyAvailability
+//     uses to decide a day is "full", reused here so the two never disagree.
+func (s *LocationService) CheckAvailability(locationIDs []uint, dates []string, startTime, endTime string) (dto.AvailabilitySearchResponse, error) {
+	slots, err := s.timeslotRepo.FindBookedSlotsByLocationsAndDates(locationIDs, dates)
+	if err != nil {
+		return nil, err
+	}
+	blocks, err := s.locationRepo.FindUnavailabilitiesByLocationsAndDates(locationIDs, dates)
+	if err != nil {
+		return nil, err
+	}
+
+	type dayKey struct {
+		locationID uint
+		date       string
+	}
+	booked := make(map[dayKey][][2]int)
+	for _, slot := range slots {
+		k := dayKey{slot.LocationID, slot.Date.Format("2006-01-02")}
+		if startMin, endMin := minutesOfDay(slot.StartTime), minutesOfDay(slot.EndTime); endMin > startMin {
+			booked[k] = append(booked[k], [2]int{startMin, endMin})
+		}
+	}
+	blocked := make(map[dayKey]bool)
+	for _, b := range blocks {
+		blocked[dayKey{b.LocationID, b.Date.Format("2006-01-02")}] = true
+	}
+
+	hasWindow := startTime != "" && endTime != ""
+	var reqStart, reqEnd int
+	if hasWindow {
+		reqStart, reqEnd = parseClockMinutes(startTime), parseClockMinutes(endTime)
+	}
+
+	result := make(dto.AvailabilitySearchResponse, len(locationIDs))
+	for _, locID := range locationIDs {
+		available := true
+		for _, date := range dates {
+			k := dayKey{locID, date}
+			if blocked[k] {
+				available = false
+				break
+			}
+			ranges := booked[k]
+			if hasWindow {
+				for _, r := range ranges {
+					if reqStart < r[1] && reqEnd > r[0] {
+						available = false
+						break
+					}
+				}
+			} else if freeMinutesInWindow(ranges) < minBookableFreeMinutes {
+				available = false
+			}
+			if !available {
+				break
+			}
+		}
+		result[locID] = available
+	}
+	return result, nil
+}
+
+// parseClockMinutes converts "HH:MM" to minutes since midnight. Malformed
+// input parses as 0 (start of day) — callers only ever pass values the
+// frontend's own fixed time-option <select> produced.
+func parseClockMinutes(s string) int {
+	h, m := 0, 0
+	if parts := strings.SplitN(s, ":", 2); len(parts) == 2 {
+		h, _ = strconv.Atoi(parts[0])
+		m, _ = strconv.Atoi(parts[1])
+	}
+	return h*60 + m
 }
 
 // minBookableFreeMinutes: a day counts as "full" once less than this much

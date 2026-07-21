@@ -206,3 +206,19 @@ type DayAvailability struct {
 
 // map[dateStr]DayAvailability  e.g. {"2026-07-01": {"status":"partial","booked_hours":2,"booked_ranges":[["09:00","11:00"]]}}
 type MonthlyAvailabilityResponse = map[string]DayAvailability
+
+// AvailabilitySearchQuery batches an availability check across many rooms and
+// days in one request — e.g. "of these 40 rooms, which are free for 2026-08-01
+// to 2026-08-03, 09:00-11:00?" — instead of one request per room. StartTime/
+// EndTime are optional: omit both to ask "does this room have any meaningfully
+// free time left that day" rather than checking one exact window.
+type AvailabilitySearchQuery struct {
+	LocationIDs string `form:"location_ids" binding:"required"` // "1,2,3"
+	Dates       string `form:"dates" binding:"required"`        // "2026-08-01,2026-08-02"
+	StartTime   string `form:"start_time"`                      // "09:00"
+	EndTime     string `form:"end_time"`                        // "11:00"
+}
+
+// map[locationID]bool — true if that location is free across every requested
+// date (and, if given, within start_time/end_time on each of those dates).
+type AvailabilitySearchResponse = map[uint]bool

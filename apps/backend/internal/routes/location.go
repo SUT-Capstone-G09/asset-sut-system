@@ -21,6 +21,7 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	{
 		// Optional auth: staff gets filtered list, others get all
 		locations.GET("", optAuth, lc.GetAll)
+		locations.GET("/availability", lc.CheckAvailability)
 		locations.GET("/:id", optAuth, lc.GetByID)
 		locations.GET("/:id/monthly-availability", lc.GetMonthlyAvailability)
 

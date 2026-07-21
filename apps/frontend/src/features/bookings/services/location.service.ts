@@ -105,35 +105,29 @@ export async function getRoomAvailabilityBadge(locationId: number): Promise<Avai
   return hasBookedDay ? "ว่างบางวัน" : "ว่างทุกวัน";
 }
 
-// Checks whether a room is free for every date in `dates` (each "yyyy-MM-dd").
-// A "full" day always blocks. A "partial" day only blocks when it overlaps
-// the requested [startTime, endTime) — if no time was given, partial days are
-// treated as available since some free time exists (the room's own calendar
-// lets the user pick around it).
-export async function isRoomAvailableForRequest(
-  locationId: number,
+// Checks whether each of `locationIds` is free for every date in `dates`
+// (each "yyyy-MM-dd"), in a single batched request — one round trip covering
+// every room in a result page, instead of one request per room. Backed by
+// the server's CheckAvailability, which applies the exact same "full day"
+// rule (freeMinutesInWindow/minBookableFreeMinutes) used everywhere else, so
+// this can never disagree with what the calendar itself shows.
+export async function checkAvailabilityBatch(
+  locationIds: number[],
   dates: string[],
   startTime?: string,
   endTime?: string
-): Promise<boolean> {
-  if (dates.length === 0) return true;
+): Promise<Record<number, boolean>> {
+  if (locationIds.length === 0 || dates.length === 0) return {};
 
-  const months = Array.from(new Set(dates.map((d) => d.slice(0, 7))));
-  const mapEntries = await Promise.all(
-    months.map(async (ym): Promise<[string, MonthlyAvailabilityMap]> => {
-      const [year, month] = ym.split("-").map(Number);
-      return [ym, await getMonthlyAvailability(locationId, year, month)];
-    })
-  );
-  const mapByMonth = new Map(mapEntries);
-
-  return dates.every((dateStr) => {
-    const day = mapByMonth.get(dateStr.slice(0, 7))?.[dateStr];
-    if (!day || day.status === "available") return true;
-    if (day.status === "full") return false;
-    if (!startTime || !endTime) return true;
-    return !(day.booked_ranges ?? []).some(([rs, re]) => startTime < re && endTime > rs);
+  const params = new URLSearchParams({
+    location_ids: locationIds.join(","),
+    dates: dates.join(","),
   });
+  if (startTime && endTime) {
+    params.set("start_time", startTime);
+    params.set("end_time", endTime);
+  }
+  return apiClient.get<Record<number, boolean>>(`/locations/availability?${params.toString()}`);
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";

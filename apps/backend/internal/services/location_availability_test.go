@@ -74,3 +74,22 @@ func TestFreeMinutesInWindow_SmallGapBelowThreshold_CountsAsFull(t *testing.T) {
 		t.Error("15 minutes must be below minBookableFreeMinutes")
 	}
 }
+
+func TestParseClockMinutes(t *testing.T) {
+	cases := []struct {
+		in   string
+		want int
+	}{
+		{"00:00", 0},
+		{"09:00", 9 * 60},
+		{"09:30", 9*60 + 30},
+		{"23:59", 23*60 + 59},
+		{"", 0},        // malformed — treated as start of day, not a crash
+		{"garbage", 0}, // malformed — same
+	}
+	for _, c := range cases {
+		if got := parseClockMinutes(c.in); got != c.want {
+			t.Errorf("parseClockMinutes(%q) = %d, want %d", c.in, got, c.want)
+		}
+	}
+}

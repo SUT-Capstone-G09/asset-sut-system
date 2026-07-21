@@ -151,6 +151,15 @@ func (r *LocationRepository) FindUnavailabilities(locationID uint) ([]models.Loc
 	return items, err
 }
 
+// FindUnavailabilitiesByLocationsAndDates is the batch counterpart of
+// FindUnavailabilities, for checking many locations across many dates in one
+// query (see LocationService.CheckAvailability).
+func (r *LocationRepository) FindUnavailabilitiesByLocationsAndDates(locationIDs []uint, dates []string) ([]models.LocationUnavailabilities, error) {
+	var items []models.LocationUnavailabilities
+	err := r.db.Where("location_id IN (?) AND date IN (?)", locationIDs, dates).Find(&items).Error
+	return items, err
+}
+
 func (r *LocationRepository) CreateUnavailability(u *models.LocationUnavailabilities) error {
 	return r.db.Create(u).Error
 }

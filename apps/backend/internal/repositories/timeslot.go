@@ -64,6 +64,19 @@ func (r *TimeslotRepository) LockOverlapping(locationID uint, date, startTime, e
 	return slots, err
 }
 
+// FindBookedSlotsByLocationsAndDates returns booked timeslots across many
+// locations and (not-necessarily-contiguous) dates in a single query, for
+// batch availability checks (e.g. room search across a whole result page)
+// instead of one query per location.
+func (r *TimeslotRepository) FindBookedSlotsByLocationsAndDates(locationIDs []uint, dates []string) ([]models.Timeslots, error) {
+	var slots []models.Timeslots
+	err := r.db.
+		Where("location_id IN (?) AND date IN (?) AND booking_id IS NOT NULL AND booking_id NOT IN (?)",
+			locationIDs, dates, r.rejectedOrCancelledBookingIDs()).
+		Find(&slots).Error
+	return slots, err
+}
+
 func (r *TimeslotRepository) Create(ts *models.Timeslots) error {
 	return r.db.Create(ts).Error
 }

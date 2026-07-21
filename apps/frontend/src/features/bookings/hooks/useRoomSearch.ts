@@ -2,9 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { Room, RoomSearchParams, SortOption, ViewMode } from "@/features/bookings/types";
 import {
+  checkAvailabilityBatch,
   getLocations,
   getRoomAvailabilityBadge,
-  isRoomAvailableForRequest,
   locationToRoom,
   LocationDTO,
 } from "@/features/bookings/services/location.service";
@@ -83,19 +83,19 @@ export function useRoomSearch(category?: string) {
     let cancelled = false;
     (async () => {
       setCheckingAvailability(true);
-      const entries = await Promise.all(
-        candidates.map(async (r) => {
-          const ok = await isRoomAvailableForRequest(
-            Number(r.id),
-            dates,
-            appliedParams!.startTime,
-            appliedParams!.endTime
-          ).catch(() => true); // fail-open — a check error shouldn't hide an otherwise-valid room
-          return [r.id, ok] as const;
-        })
-      );
+      // One batched request covering every candidate room, instead of one
+      // request per room — see LocationService.CheckAvailability (backend).
+      const availability = await checkAvailabilityBatch(
+        candidates.map((r) => Number(r.id)),
+        dates,
+        appliedParams!.startTime,
+        appliedParams!.endTime
+      ).catch(() => null); // fail-open — a check error shouldn't hide every room
       if (cancelled) return;
-      setUnavailableIds(new Set(entries.filter(([, ok]) => !ok).map(([id]) => id)));
+      const bad = availability
+        ? candidates.filter((r) => availability[Number(r.id)] === false).map((r) => r.id)
+        : [];
+      setUnavailableIds(new Set(bad));
       setCheckingAvailability(false);
     })();
     return () => {
