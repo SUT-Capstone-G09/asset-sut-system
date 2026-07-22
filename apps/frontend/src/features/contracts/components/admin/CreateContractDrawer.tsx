@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateContract } from "../../hooks/useCreateContract";
 import { mockUsers } from "../../data/mock-users";
-import { FileDropzone } from "@/components/ui/file-dropzone";
+import { FileDropzone } from "@/components/ui/MultiDropZone";
 
 interface CreateContractDrawerProps {
   isOpen: boolean;

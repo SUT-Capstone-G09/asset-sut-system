@@ -42,7 +42,6 @@ function StaffBookingPageContent() {
     handleAddBooking,
     handleUpdateBookingStatus,
     handleEditBooking,
-    handleDeleteBooking,
     loading,
   } = useBookingFilters(currentType, user?.id);
 
@@ -375,7 +374,6 @@ function StaffBookingPageContent() {
         onResetFilters={handleResetFilters}
         onUpdateStatus={handleUpdateBookingStatus}
         onEdit={handleEditBooking}
-        onDelete={handleDeleteBooking}
         isLoading={loading}
       />
 
