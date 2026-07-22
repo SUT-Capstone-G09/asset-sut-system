@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Booking } from "../types/booking";
-import { AdminLocationDTO, getLocations } from "../services/locationService";
+import { AdminLocationDTO, getLocations, getStaffBuildings } from "../services/locationService";
 import {
   getAllBookings,
   createBooking,
@@ -25,7 +26,11 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
   const locId = firstSlot?.location_id;
   const loc = locId ? locationsMap.get(locId) : undefined;
 
-  const date = firstSlot ? new Date(firstSlot.date).toISOString().split("T")[0] : "";
+  // Format date as Thai พ.ศ.
+  const formatThaiDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+
+  const date = firstSlot ? formatThaiDate(firstSlot.date) : "";
   const startTime = firstSlot
     ? new Date(firstSlot.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false })
     : "";
@@ -73,11 +78,13 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
     requesterType: (b.requester_type as any) || "student",
     purpose: b.purpose,
     date,
+    rawDate: firstSlot ? firstSlot.date : "",
+    rawTimeslots: b.timeslots || [],
     timeSlot,
     status,
     attendees: loc?.capacity ?? 1,
     image: loc?.image_url ?? firstSlot?.location_image ?? "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800",
-    createdAt: new Date(b.created_at).toLocaleDateString("th-TH") + " " + new Date(b.created_at).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.",
+    createdAt: new Date(b.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) + " " + new Date(b.created_at).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.",
     notes: "",
     contactPhone: b.contact_phone || "—",
     contactEmail: b.contact_email || "—",
@@ -89,7 +96,7 @@ export function bookingDTOToAdminBooking(b: BookingResponseDTO, locationsMap: Ma
       amount: addon.total_price,
     })),
     timeslots: (b.timeslots || []).map((ts) => {
-      const tsDate = new Date(ts.date).toISOString().split("T")[0];
+      const tsDate = new Date(ts.date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
       const tsStart = new Date(ts.start_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
       const tsEnd = new Date(ts.end_time).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", hour12: false });
       return {
@@ -151,37 +158,100 @@ export function getBookingTypeBucket(rawType: string): BookingTypeFilter | undef
   return rawTypeToBucket[rawType];
 }
 
-export function useBookingFilters(type: BookingTypeFilter) {
+export function useBookingFilters(type: BookingTypeFilter, staffUserId?: number) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<AdminLocationDTO[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedBuilding, setSelectedBuilding] = useState("all");
+  const [searchQueryState, setSearchQueryState] = useState(searchParams.get("q") || "");
+  const [selectedCategoryState, setSelectedCategoryState] = useState(searchParams.get("category") || "all");
+  const [selectedStatusState, setSelectedStatusState] = useState(searchParams.get("status") || "all");
+  const [selectedBuildingState, setSelectedBuildingState] = useState(searchParams.get("building") || "all");
   const [loading, setLoading] = useState(true);
+
+  // Sync state from URL (important for Back navigation)
+  useEffect(() => {
+    setSearchQueryState(searchParams.get("q") || "");
+    setSelectedCategoryState(searchParams.get("category") || "all");
+    setSelectedStatusState(searchParams.get("status") || "all");
+    setSelectedBuildingState(searchParams.get("building") || "all");
+  }, [searchParams]);
+
+  // Helper to sync state to URL
+  const updateQueryParam = useCallback((key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "all" || value === "") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const searchQuery = searchQueryState;
+  const selectedCategory = selectedCategoryState;
+  const selectedStatus = selectedStatusState;
+  const selectedBuilding = selectedBuildingState;
+
+  const setSearchQuery = (val: string) => {
+    setSearchQueryState(val);
+    updateQueryParam("q", val);
+  };
+  const setSelectedCategory = (val: string) => {
+    setSelectedCategoryState(val);
+    updateQueryParam("category", val);
+  };
+  const setSelectedStatus = (val: string) => {
+    setSelectedStatusState(val);
+    updateQueryParam("status", val);
+  };
+  const setSelectedBuilding = (val: string) => {
+    setSelectedBuildingState(val);
+    updateQueryParam("building", val);
+  };
 
   // The admin booking page keeps this hook mounted across category switches
   // (only the "type" query param changes), so filters left over from a
   // previous category would otherwise silently hide everything in the next
-  // one — reset them whenever the active category changes.
+  // one — reset them (and their URL params) whenever the active category
+  // changes.
   useEffect(() => {
     setSearchQuery("");
     setSelectedCategory("all");
     setSelectedStatus("all");
     setSelectedBuilding("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [bookingsData, locationsData] = await Promise.all([
+      const [allBookingsData, locationsData, staffBuildings] = await Promise.all([
         getAllBookings(),
         getLocations(),
+        staffUserId ? getStaffBuildings(staffUserId) : Promise.resolve(null),
       ]);
       setLocations(locationsData);
 
       const locMap = new Map<number, AdminLocationDTO>();
       locationsData.forEach((loc) => locMap.set(loc.id, loc));
+
+      let bookingsData = allBookingsData ?? [];
+
+      if (staffUserId && staffBuildings) {
+        const allowedBuildingIds = new Set(staffBuildings.map((b: any) => b.id));
+        const locationToBuildingMap = new Map<number, number | undefined>();
+        locationsData.forEach((loc) => locationToBuildingMap.set(loc.id, loc.building_id));
+
+        bookingsData = bookingsData.filter((booking) => {
+          return booking.timeslots?.some((ts) => {
+            const buildingId = locationToBuildingMap.get(ts.location_id);
+            return buildingId !== undefined && allowedBuildingIds.has(buildingId);
+          });
+        });
+      }
 
       const mappedBookings = bookingsData.map((b) => bookingDTOToAdminBooking(b, locMap));
 
@@ -196,7 +266,7 @@ export function useBookingFilters(type: BookingTypeFilter) {
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [type, staffUserId]);
 
   useEffect(() => {
     fetchAll();

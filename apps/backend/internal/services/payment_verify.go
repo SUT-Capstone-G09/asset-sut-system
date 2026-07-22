@@ -175,7 +175,7 @@ func (s *PaymentVerifyService) evaluate(invoice *models.Invoices, r *easyslip.Ve
 		expectedAmount = invoice.Booking.TotalPrice
 	}
 
-	v.amountMatched = int(math.Round(r.Amount)) == expectedAmount
+	v.amountMatched = math.Round(r.Amount) == math.Round(expectedAmount)
 	if !v.amountMatched {
 		v.hardReasons = append(v.hardReasons, "amount")
 	}

@@ -85,8 +85,8 @@ func SetupLocationRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 		{
 			adminOnly.DELETE("/:id", middleware.RequirePermission("location_mgmt", "delete"), lc.Delete)
 			adminOnly.GET("/:id/staff", middleware.RequirePermission("location_mgmt", "read"), lc.GetLocationStaff)
-			adminOnly.POST("/:id/staff", middleware.RequirePermission("location_mgmt", "update"), lc.AssignStaff)
-			adminOnly.DELETE("/:id/staff/:uid", middleware.RequirePermission("location_mgmt", "update"), lc.UnassignStaff)
+			adminOnly.POST("/:id/staff", middleware.RequirePermission("location_mgmt", "update"), lc.AssignStaffBuilding)
+			adminOnly.DELETE("/:id/staff/:uid", middleware.RequirePermission("location_mgmt", "update"), lc.UnassignStaffBuilding)
 		}
 	}
 

@@ -1,5 +1,14 @@
 import React from "react";
-import { Search, X } from "lucide-react";
+import { Search, RotateCcw, Filter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ContractFiltersProps {
   searchTerm: string;
@@ -30,99 +39,108 @@ export default function ContractFilters({
   onResetFilters,
   areaOptions,
 }: ContractFiltersProps) {
+  const hasActiveFilters =
+    searchTerm ||
+    selectedArea !== "all" ||
+    selectedStatus !== "all" ||
+    selectedBusinessType !== "all" ||
+    selectedYear !== "all";
+
   return (
-    <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-xs space-y-4">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:max-w-md">
-          <span className="absolute inset-y-0 left-4 flex items-center text-slate-400 pointer-events-none">
-            <Search size={18} />
-          </span>
-          <input
+    <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-[7px] border border-border/50 shadow-sm">
+      {/* Left Section: Search and Filter Selects */}
+      <div className="flex flex-col sm:flex-row flex-1 gap-3 items-stretch sm:items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
+            <Search size={16} />
+          </div>
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
             placeholder="ค้นหาเลขที่สัญญา, ชื่อผู้ประกอบการ, แบรนด์..."
-            className="w-full pl-11 pr-4 py-3 rounded-[7px] border border-slate-200 bg-slate-50/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary font-medium text-slate-800 transition-all placeholder:text-slate-400"
+            variant="brand"
+            className="pl-10 pr-4 h-10"
           />
         </div>
 
-        <button
-          onClick={onResetFilters}
-          className="w-full md:w-auto bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 rounded-[7px] px-4 py-3 text-xs font-black transition-all flex items-center justify-center gap-1.5"
-        >
-          <X size={14} />
-          ล้างตัวกรองทั้งหมด
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
-        {/* Area */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">พื้นที่ (Areas)</label>
-          <select
-            value={selectedArea}
-            onChange={(e) => onAreaChange(e.target.value)}
-            className="w-full bg-slate-50/50 border border-slate-200 rounded-[7px] px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
-            <option value="all">ทั้งหมด ทุกพื้นที่</option>
+        {/* Area Filter */}
+        <Select value={selectedArea} onValueChange={onAreaChange}>
+          <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
+            <SelectValue placeholder="ทั้งหมด ทุกพื้นที่" />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
+            <SelectItem value="all">ทั้งหมด ทุกพื้นที่</SelectItem>
             {areaOptions.map((area) => (
-              <option key={area.id} value={area.id}>
+              <SelectItem key={area.id} value={area.id}>
                 {area.name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </div>
+          </SelectContent>
+        </Select>
 
-        {/* Status */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">สถานะสัญญา</label>
-          <select
-            value={selectedStatus}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full bg-slate-50/50 border border-slate-200 rounded-[7px] px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
-            <option value="all">ทุกสถานะ</option>
-            <option value="active">ใช้งานปกติ (Active)</option>
-            <option value="expiring">ใกล้หมดสัญญา (Expiring)</option>
-            <option value="expired">หมดอายุ (Expired)</option>
-            <option value="terminated">ยกเลิกแล้ว (Terminated)</option>
-          </select>
-        </div>
+        {/* Status Filter */}
+        <Select value={selectedStatus} onValueChange={onStatusChange}>
+          <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
+            <SelectValue placeholder="ทุกสถานะ" />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
+            <SelectItem value="all">ทุกสถานะ</SelectItem>
+            <SelectItem value="active">ใช้งานปกติ (Active)</SelectItem>
+            <SelectItem value="expiring">ใกล้หมดสัญญา (Expiring)</SelectItem>
+            <SelectItem value="expired">หมดอายุ (Expired)</SelectItem>
+            <SelectItem value="terminated">ยกเลิกแล้ว (Terminated)</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {/* Business Type */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ประเภทสัญญา (ธุรกิจ)</label>
-          <select
-            value={selectedBusinessType}
-            onChange={(e) => onBusinessTypeChange(e.target.value)}
-            className="w-full bg-slate-50/50 border border-slate-200 rounded-[7px] px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
-            <option value="all">ทุกประเภทธุรกิจ</option>
-            <option value="อาหารและเครื่องดื่ม">อาหารและเครื่องดื่ม</option>
-            <option value="ขนมหวาน">ขนมหวาน</option>
-            <option value="ร้านสะดวกซื้อ">ร้านสะดวกซื้อ</option>
-            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-            <option value="บริการ">บริการ</option>
-          </select>
-        </div>
+        {/* Business Type Filter */}
+        <Select value={selectedBusinessType} onValueChange={onBusinessTypeChange}>
+          <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
+            <SelectValue placeholder="ทุกประเภทธุรกิจ" />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
+            <SelectItem value="all">ทุกประเภทธุรกิจ</SelectItem>
+            <SelectItem value="อาหารและเครื่องดื่ม">อาหารและเครื่องดื่ม</SelectItem>
+            <SelectItem value="ขนมหวาน">ขนมหวาน</SelectItem>
+            <SelectItem value="ร้านสะดวกซื้อ">ร้านสะดวกซื้อ</SelectItem>
+            <SelectItem value="เครื่องดื่ม">เครื่องดื่ม</SelectItem>
+            <SelectItem value="บริการ">บริการ</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {/* Year */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ปีเริ่มต้นสัญญา</label>
-          <select
-            value={selectedYear}
-            onChange={(e) => onYearChange(e.target.value)}
-            className="w-full bg-slate-50/50 border border-slate-200 rounded-[7px] px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-primary"
-          >
-            <option value="all">ทุกปีเริ่มต้น</option>
-            <option value="2023">2023 (พ.ศ. 2566)</option>
-            <option value="2024">2024 (พ.ศ. 2567)</option>
-            <option value="2025">2025 (พ.ศ. 2568)</option>
-            <option value="2026">2026 (พ.ศ. 2569)</option>
-            <option value="2027">2027 (พ.ศ. 2570)</option>
-          </select>
-        </div>
+        {/* Year Filter */}
+        <Select value={selectedYear} onValueChange={onYearChange}>
+          <SelectTrigger className="w-full sm:w-[180px] rounded-[7px] border-border/80 bg-background text-sm h-10 gap-2">
+            <Filter size={14} className="text-muted-foreground shrink-0" />
+            <SelectValue placeholder="ทุกปีเริ่มต้น" />
+          </SelectTrigger>
+          <SelectContent position="popper" sideOffset={4} className="rounded-[7px]">
+            <SelectItem value="all">ทุกปีเริ่มต้น</SelectItem>
+            <SelectItem value="2023">2023 (พ.ศ. 2566)</SelectItem>
+            <SelectItem value="2024">2024 (พ.ศ. 2567)</SelectItem>
+            <SelectItem value="2025">2025 (พ.ศ. 2568)</SelectItem>
+            <SelectItem value="2026">2026 (พ.ศ. 2569)</SelectItem>
+            <SelectItem value="2027">2027 (พ.ศ. 2570)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Right Section: Reset Button */}
+      {hasActiveFilters && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onResetFilters}
+          title="ล้างตัวกรอง"
+          className="size-10 flex items-center justify-center shrink-0 cursor-pointer"
+        >
+          <RotateCcw size={15} />
+        </Button>
+      )}
     </div>
   );
 }

@@ -76,9 +76,9 @@ export default function AdminContractActionsView() {
   if (isSuccess) {
     return (
       <div className="p-8 max-w-2xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-300 pt-16">
-        <div className="bg-white rounded-xl border border-slate-100 p-12 text-center shadow-xl space-y-6">
+        <div className="bg-white rounded-[7px] border border-slate-100 p-12 text-center shadow-xl space-y-6">
           <div className={cn(
-            "w-20 h-20 rounded-2xl flex items-center justify-center mx-auto shadow-lg",
+            "w-20 h-20 rounded-[7px] flex items-center justify-center mx-auto shadow-lg",
             actionType === "renew" 
               ? "bg-success-50 text-success-500 shadow-success-100" 
               : "bg-error-50 text-error-500 shadow-error-100"
@@ -87,9 +87,9 @@ export default function AdminContractActionsView() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
               {actionType === "renew" ? "ต่ออายุสัญญาสำเร็จ!" : "บอกเลิกสัญญาเช่าสำเร็จ!"}
-            </h2>
+            </h1>
             <p className="text-slate-400 text-sm">
               {actionType === "renew" 
                 ? `ระบบได้ออกหมายเลขกำกับสัญญาใหม่คือ ${generatedContractNo} เรียบร้อยแล้ว`
@@ -98,7 +98,7 @@ export default function AdminContractActionsView() {
           </div>
 
           {actionType === "terminate" && hasSingleActiveContract && (
-            <div className="bg-warning-50/50 border border-warning-200 rounded-xl p-5 text-left flex items-start gap-3">
+            <div className="bg-warning-50/50 border border-warning-200 rounded-[7px] p-5 text-left flex items-start gap-3">
               <ShieldAlert className="text-warning-650 shrink-0 mt-0.5" size={20} />
               <div className="space-y-1">
                 <span className="text-xs font-bold text-warning-700 block">ระบบเปลี่ยนสิทธิ์ผู้ใช้เป็นปกติ (Role Demoted)</span>
@@ -239,7 +239,7 @@ export default function AdminContractActionsView() {
           </div>
 
           {/* Form container */}
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white rounded-[7px] p-8 border border-slate-100 shadow-sm space-y-6">
             
             {/* Form Fields: Renew Mode */}
             {actionType === "renew" && (
@@ -464,7 +464,7 @@ export default function AdminContractActionsView() {
 
                 {/* Warning Alert regarding user role sync if terminating */}
                 {hasSingleActiveContract && (
-                  <div className="bg-warning-50 border border-warning-200/80 rounded-xl p-5 flex items-start gap-3.5 animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-warning-50 border border-warning-200/80 rounded-[7px] p-5 flex items-start gap-3.5 animate-in slide-in-from-top-2 duration-300">
                     <ShieldAlert className="text-warning-600 shrink-0 mt-0.5" size={20} />
                     <div className="space-y-1">
                       <span className="text-xs font-bold text-warning-700 block uppercase tracking-wider">

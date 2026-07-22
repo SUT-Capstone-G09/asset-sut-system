@@ -196,7 +196,7 @@ func (r *BookingRepository) FindStatusByID(id uint) (*models.BookingStatuses, er
 	return &status, err
 }
 
-func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, basePrice int, addonPrice int, totalPrice int) error {
+func (r *BookingRepository) UpdateBookingExpenses(bookingID uint, addons []models.BookingTimeslotAddons, basePrice float64, addonPrice float64, totalPrice float64) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Get timeslot IDs for this booking
 		var timeslotIDs []uint

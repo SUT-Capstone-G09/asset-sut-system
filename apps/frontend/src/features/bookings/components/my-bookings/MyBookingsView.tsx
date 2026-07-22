@@ -22,12 +22,12 @@ import { useMyBookings } from "@/features/bookings/hooks/useMyBookings";
 type TabKey = "ทั้งหมด" | "รออนุมัติ" | "อนุมัติแล้ว" | "เสร็จสิ้น" | "ยกเลิก";
 
 const STATUS_STYLE: Record<BookingStatus, { label: string; className: string }> = {
-  รออนุมัติ: { label: "รออนุมัติ", className: "bg-orange-100 text-orange-600" },
+  รออนุมัติ: { label: "รออนุมัติ", className: "bg-amber-100 text-amber-600" },
   รอชำระเงิน: { label: "รอชำระเงิน", className: "bg-sky-100 text-sky-600" },
   รอตรวจสอบการชำระเงิน: { label: "รอตรวจสอบการชำระเงิน", className: "bg-indigo-100 text-indigo-600" },
-  อนุมัติแล้ว: { label: "อนุมัติแล้ว", className: "bg-blue-100 text-blue-600" },
-  เสร็จสิ้น: { label: "เสร็จสิ้น", className: "bg-gray-100 text-gray-500" },
-  ยกเลิก: { label: "ยกเลิก", className: "bg-gray-100 text-gray-600" },
+  อนุมัติแล้ว: { label: "อนุมัติแล้ว", className: "bg-sky-100 text-sky-600" },
+  เสร็จสิ้น: { label: "เสร็จสิ้น", className: "bg-green-100 text-green-600" },
+  ยกเลิก: { label: "ยกเลิก", className: "bg-red-100 text-red-500" },
   ปฏิเสธ: { label: "ปฏิเสธ", className: "bg-red-100 text-red-500" },
 };
 

@@ -25,7 +25,7 @@ type BookingPurposeInput struct {
 	SelectedCells      [][]int  `json:"selected_cells"`     // per_sqm: เซลล์ที่เลือกบนผัง [[row,col], ...]
 	ProductTypeCount   int      `json:"product_type_count"` // per_type_per_day: จำนวนประเภทสินค้า
 	ProductNames       []string `json:"product_names"`      // per_type_per_day: ชื่อสินค้าที่จะแจก (1 ชื่อต่อ 1 ประเภท)
-	ProposedPrice      *int     `json:"proposed_price"`     // ราคาที่เสนอ (optional; ต้องไม่ต่ำกว่าเกณฑ์ระบบ)
+	ProposedPrice      *float64 `json:"proposed_price"`     // ราคาที่เสนอ (optional; ต้องไม่ต่ำกว่าเกณฑ์ระบบ)
 }
 
 // HallPriceQuoteRequest = ขอให้ระบบคำนวณราคา (ตัวอย่าง/preview) ก่อนสร้าง booking โถง
@@ -41,14 +41,14 @@ type HallPurposeQuote struct {
 	PricingModel       string   `json:"pricing_model"`
 	AreaSqm            *float64 `json:"area_sqm,omitempty"`
 	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
-	UnitPrice          int      `json:"unit_price"`
-	ComputedPrice      int      `json:"computed_price"` // ราคาขั้นต่ำที่ระบบคิด = เกณฑ์ที่ ProposedPrice ห้ามต่ำกว่า
+	UnitPrice          float64  `json:"unit_price"`
+	ComputedPrice      float64  `json:"computed_price"` // ราคาขั้นต่ำที่ระบบคิด = เกณฑ์ที่ ProposedPrice ห้ามต่ำกว่า
 }
 
 type HallPriceQuoteResponse struct {
 	Days          int                `json:"days"`
 	Purposes      []HallPurposeQuote `json:"purposes"`
-	TotalComputed int                `json:"total_computed"`
+	TotalComputed float64             `json:"total_computed"`
 }
 
 type UpdateBookingStatusRequest struct {
@@ -73,7 +73,7 @@ type TimeslotResponse struct {
 	StartTime     time.Time              `json:"start_time"`
 	EndTime       time.Time              `json:"end_time"`
 	IsFullDay     bool                   `json:"is_full_day"`
-	PriceSnapshot int                    `json:"price_snapshot"`
+	PriceSnapshot float64                `json:"price_snapshot"`
 	Status        string                 `json:"status"`
 	Addons        []BookingAddonResponse `json:"addons"`
 }
@@ -81,9 +81,9 @@ type TimeslotResponse struct {
 type BookingAddonResponse struct {
 	ID           uint   `json:"id"`
 	AddonName    string `json:"addon_name"`
-	AppliedPrice int    `json:"applied_price"`
-	Quantity     int    `json:"quantity"`
-	TotalPrice   int    `json:"total_price"`
+	AppliedPrice float64 `json:"applied_price"`
+	Quantity     int     `json:"quantity"`
+	TotalPrice   float64 `json:"total_price"`
 }
 
 type StatusLogResponse struct {
@@ -106,9 +106,9 @@ type BookingResponse struct {
 	ContactPhone  string                   `json:"contact_phone"`
 	ContactEmail  string                   `json:"contact_email"`
 	Purpose       string                   `json:"purpose"`
-	BasePrice     int                      `json:"base_price"`
-	AddonPrice    int                      `json:"addon_price"`
-	TotalPrice    int                      `json:"total_price"`
+	BasePrice     float64                  `json:"base_price"`
+	AddonPrice    float64                  `json:"addon_price"`
+	TotalPrice    float64                  `json:"total_price"`
 	Status        string                   `json:"status"`
 	StatusID      uint                     `json:"status_id"`
 	Timeslots     []TimeslotResponse       `json:"timeslots"`
@@ -129,15 +129,15 @@ type BookingPurposeResponse struct {
 	AreaSqm            *float64 `json:"area_sqm,omitempty"`
 	ProductTypeCount   *int     `json:"product_type_count,omitempty"`
 	ProductNames       []string `json:"product_names,omitempty"`
-	UnitPriceSnapshot  int      `json:"unit_price_snapshot"`
-	ComputedPrice      int      `json:"computed_price"`
-	ProposedPrice      *int     `json:"proposed_price,omitempty"`
-	TotalPrice         int      `json:"total_price"`
+	UnitPriceSnapshot  float64  `json:"unit_price_snapshot"`
+	ComputedPrice      float64  `json:"computed_price"`
+	ProposedPrice      *float64 `json:"proposed_price,omitempty"`
+	TotalPrice         float64  `json:"total_price"`
 }
 
 type BookingAddonInput struct {
 	AddonName    string `json:"addon_name" binding:"required"`
-	AppliedPrice int    `json:"applied_price" binding:"required"`
+	AppliedPrice float64 `json:"applied_price" binding:"required"`
 	Quantity     int    `json:"quantity" binding:"required"`
 }
 

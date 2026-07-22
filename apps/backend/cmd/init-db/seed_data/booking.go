@@ -82,11 +82,12 @@ func seedBookings(db *gorm.DB, cfg *config.Config) error {
 			return err
 		}
 
-		// BasePrice is left as 0 (null equivalent) as requested
-		basePrice := 0
+		// Calculate base price from pricing tier and duration
+		durationHours := endTime.Sub(startTime).Hours()
+		basePrice := float64(pricingTier.Price) * durationHours
 
 		// Calculate addon total price starting with normal addons
-		addonTotal := 0
+		var addonTotal float64 = 0
 		var addonRecords []models.LocationAddons
 		for _, addonName := range seed.AddonNames {
 			var addon models.LocationAddons
@@ -94,10 +95,10 @@ func seedBookings(db *gorm.DB, cfg *config.Config) error {
 				return err
 			}
 			addonRecords = append(addonRecords, addon)
-			addonTotal += addon.DefaultPrice * addon.Quantity
+			addonTotal += float64(addon.DefaultPrice * addon.Quantity)
 		}
 
-		totalPrice := addonTotal
+		totalPrice := basePrice + addonTotal
 
 		// Create Booking
 		booking := models.Bookings{
@@ -123,7 +124,7 @@ func seedBookings(db *gorm.DB, cfg *config.Config) error {
 				Date:          dateOnly,
 				StartTime:     startTime,
 				EndTime:       endTime,
-				PriceSnapshot: addonTotal,
+				PriceSnapshot: basePrice,
 				StatusID:      tsStatus.ID,
 			}
 			if err := db.Create(&ts).Error; err != nil {
@@ -137,9 +138,9 @@ func seedBookings(db *gorm.DB, cfg *config.Config) error {
 					LocationAddonID: &addonID,
 					TimeslotID:      ts.ID,
 					Name:            addon.Name,
-					AppliedPrice:    addon.DefaultPrice,
+					AppliedPrice:    float64(addon.DefaultPrice),
 					Quantity:        addon.Quantity,
-					TotalPrice:      addon.DefaultPrice * addon.Quantity,
+					TotalPrice:      float64(addon.DefaultPrice * addon.Quantity),
 				}
 				if err := db.Create(&bta).Error; err != nil {
 					return err

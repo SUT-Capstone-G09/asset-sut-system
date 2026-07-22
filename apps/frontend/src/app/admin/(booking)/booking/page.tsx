@@ -107,48 +107,12 @@ function AdminBookingPageContent() {
   }, [bookings]);
 
   const statusTabs = [
-    {
-      id: "all",
-      label: "ทั้งหมด",
-      count: statusCounts.all,
-      activeClass: "border-[#f26522] text-[#f26522]",
-      countClass: "bg-[#f26522]/10 text-[#f26522]",
-    },
-    {
-      id: "pending",
-      label: "รอตรวจสอบ",
-      count: statusCounts.pending,
-      activeClass: "border-amber-500 text-amber-600",
-      countClass: "bg-amber-500/10 text-amber-600",
-    },
-    {
-      id: "approved",
-      label: "อนุมัติ",
-      count: statusCounts.approved,
-      activeClass: "border-emerald-500 text-emerald-600",
-      countClass: "bg-emerald-500/10 text-emerald-600",
-    },
-    {
-      id: "completed",
-      label: "เสร็จสิ้น",
-      count: statusCounts.completed,
-      activeClass: "border-blue-500 text-blue-600",
-      countClass: "bg-blue-500/10 text-blue-600",
-    },
-    {
-      id: "rejected",
-      label: "ปฏิเสธ",
-      count: statusCounts.rejected,
-      activeClass: "border-rose-500 text-rose-600",
-      countClass: "bg-rose-500/10 text-rose-600",
-    },
-    {
-      id: "cancelled",
-      label: "ยกเลิก",
-      count: statusCounts.cancelled,
-      activeClass: "border-slate-500 text-slate-600",
-      countClass: "bg-slate-500/10 text-slate-600",
-    },
+    { id: "all", label: "ทั้งหมด", count: statusCounts.all, activeClass: "border-[#f26522] text-[#f26522]", countClass: "bg-[#f26522]/10 text-[#f26522]" },
+    { id: "pending", label: "รอตรวจสอบ", count: statusCounts.pending, activeClass: "border-amber-500 text-amber-600", countClass: "bg-amber-500/10 text-amber-600" },
+    { id: "approved", label: "อนุมัติ", count: statusCounts.approved, activeClass: "border-blue-500 text-blue-600", countClass: "bg-blue-500/10 text-blue-600" },
+    { id: "completed", label: "เสร็จสิ้น", count: statusCounts.completed, activeClass: "border-emerald-500 text-emerald-600", countClass: "bg-emerald-500/10 text-emerald-600" },
+    { id: "rejected", label: "ปฏิเสธ", count: statusCounts.rejected, activeClass: "border-rose-500 text-rose-600", countClass: "bg-rose-500/10 text-rose-600" },
+    { id: "cancelled", label: "ยกเลิก", count: statusCounts.cancelled, activeClass: "border-slate-500 text-slate-600", countClass: "bg-slate-500/10 text-slate-600" },
   ];
 
   // Render Selection View (Cards)

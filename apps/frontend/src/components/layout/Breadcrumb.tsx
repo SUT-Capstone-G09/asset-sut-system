@@ -57,7 +57,19 @@ const VALID_REFERRER_SECTIONS: Record<string, string[]> = {
   "/payment": ["/my-bookings"],
 };
 
+// ซ่อน Path ที่ไม่มีหน้า UI จริง เพื่อไม่ให้แสดงเป็นคำคั่นตรงกลาง
+const GHOST_PATHS = new Set([
+  "/admin/payment",
+  "/admin/booking",
+]);
+
+// แทนที่ Path ที่คลิกแล้วให้วิ่งไปหน้าที่ต้องการ (เช่น คลิก "จัดการระบบ" ให้วิ่งไป "แดชบอร์ด")
+const PATH_REDIRECTS: Record<string, string> = {
+  "/admin": "/admin/dashboard",
+};
+
 const SKIP_PATHS = new Set(["/", "/login", "/contact-us"]);
+const UNCLICKABLE_PATHS = new Set(["/admin/finance"]);
 const STORAGE_KEY = "nav_breadcrumb";
 const MAX_CRUMBS = 6;
 
@@ -106,29 +118,38 @@ function labelForPath(pathname: string): string {
 
 function buildUrlCrumbs(pathname: string): Crumb[] {
   const segs = pathname.split("/").filter(Boolean);
-  return segs.map((seg, i) => {
+  const crumbs: Crumb[] = [];
+
+  segs.forEach((seg, i) => {
+    // ข้าม segment 'building' และ 'type' เพราะไม่มีหน้า index แยกต่างหาก
+    if (seg === "building" || seg === "type") return;
+
     let href = "/" + segs.slice(0, i + 1).join("/");
     if (href === "/admin") {
       href = "/admin/dashboard";
     }
-    return {
+
+    crumbs.push({
       href,
       label: segmentLabel(seg, segs[i - 1] ?? ""),
-    };
+    });
   });
+
+  return crumbs;
 }
 
 function computeNext(newPath: string, history: Crumb[]): Crumb[] {
   // 1. หน้านี้อยู่ใน history แล้ว → ตัดกลับไปจุดนั้น (กดย้อนกลับ)
   const existingIdx = history.findIndex((c) => c.href === newPath);
-  if (existingIdx >= 0) return history.slice(0, existingIdx + 1);
+  if (existingIdx >= 0) return sanitizeCrumbs(history.slice(0, existingIdx + 1));
 
   const last = history[history.length - 1];
 
   // 2. หน้าใหม่เป็น sub-path ของ crumb ล่าสุด → ต่อเนื่องตาม URL
   if (last && newPath.startsWith(last.href + "/")) {
     const next = [...history, { href: newPath, label: labelForPath(newPath) }];
-    return next.length > MAX_CRUMBS ? next.slice(-MAX_CRUMBS) : next;
+    const sliced = next.length > MAX_CRUMBS ? next.slice(-MAX_CRUMBS) : next;
+    return sanitizeCrumbs(sliced);
   }
 
   // 3. เช็ค referrer whitelist
@@ -152,19 +173,28 @@ function computeNext(newPath: string, history: Crumb[]): Crumb[] {
   }
 
   // 4. Default: ใช้ URL-based crumbs ตาม path ปัจจุบัน (reset context)
-  return buildUrlCrumbs(newPath);
+  return sanitizeCrumbs(buildUrlCrumbs(newPath));
+}
+
+function sanitizeCrumbs(crumbs: Crumb[]): Crumb[] {
+  return crumbs.filter((c) => {
+    const href = c.href;
+    return !href.endsWith("/building") && !href.endsWith("/type");
+  });
 }
 
 function loadCrumbs(): Crumb[] {
   try {
-    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "[]");
+    const raw: Crumb[] = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "[]");
+    return sanitizeCrumbs(raw);
   } catch {
     return [];
   }
 }
 
 function saveCrumbs(crumbs: Crumb[]) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(crumbs));
+  const clean = sanitizeCrumbs(crumbs);
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
 }
 
 export default function Breadcrumb({ className }: { className?: string }) {
@@ -199,6 +229,9 @@ export default function Breadcrumb({ className }: { className?: string }) {
 
   if (!mounted || crumbs.length === 0) return null;
 
+  // กรองเอาเฉพาะ Path ที่ไม่ใช่ Ghost Path ออกมาแสดง
+  const displayCrumbs = crumbs.filter((c) => !GHOST_PATHS.has(c.href));
+
   return (
     <nav
       aria-label="breadcrumb"
@@ -211,8 +244,10 @@ export default function Breadcrumb({ className }: { className?: string }) {
         <Home size={13} />
       </Link>
 
-      {crumbs.map((crumb, i) => {
-        const isLast = i === crumbs.length - 1;
+      {displayCrumbs.map((crumb, i) => {
+        const isLast = i === displayCrumbs.length - 1;
+        const targetHref = PATH_REDIRECTS[crumb.href] || crumb.href;
+        
         return (
           <span
             key={crumb.href + i}
@@ -221,10 +256,10 @@ export default function Breadcrumb({ className }: { className?: string }) {
           >
             <ChevronRight size={13} className="text-gray-300 shrink-0" />
             {isLast ? (
-              <span className="text-gray-700 font-medium">{crumb.label}</span>
+              <span className={cn(isLast ? "text-gray-700 font-medium" : "text-gray-400")}>{crumb.label}</span>
             ) : (
               <Link
-                href={crumb.href}
+                href={targetHref}
                 className="text-gray-400 hover:text-brand-primary transition-colors"
               >
                 {crumb.label}

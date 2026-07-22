@@ -17,6 +17,6 @@ type BuildingHallPricings struct {
 	HallUsagePurposeID uint               `gorm:"not null;uniqueIndex:idx_building_hall_purpose" json:"hall_usage_purpose_id"`
 	HallUsagePurpose   *HallUsagePurposes `gorm:"foreignKey:HallUsagePurposeID" json:"hall_usage_purpose,omitempty"`
 	// Price = ราคาต่อหน่วยของอาคารนี้ (ความหมายตาม PricingModel) — เก็บเป็น int ชั่วคราว รอแปลงทั้งระบบเป็น decimal(12,2)
-	Price    int  `gorm:"not null;default:0" json:"price"`
-	IsActive bool `gorm:"not null;default:true" json:"is_active"`
+	Price    float64 `gorm:"not null;default:0" json:"price"`
+	IsActive bool    `gorm:"not null;default:true" json:"is_active"`
 }

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
+import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────
 interface SubItem {
@@ -172,10 +173,27 @@ export default function AdminSidebar() {
     });
   };
 
-  const isSubItemActive = (href: string) => pathname === href;
+  // Helper to determine if a route is active (exact match or sub-route prefix match, ignoring sibling conflicts)
+  const isRouteActive = (menuHref: string) => {
+    if (pathname === menuHref) return true;
+    if (pathname.startsWith(menuHref + "/")) {
+      // Prevent "/admin/booking" from matching "/admin/booking/requests"
+      if (menuHref === "/admin/booking" && pathname.startsWith("/admin/booking/requests")) {
+        return false;
+      }
+      // Prevent "/admin/email-templates" from matching "/admin/email-templates/send" or "/admin/email-templates/broadcasts"
+      if (menuHref === "/admin/email-templates" && (pathname.startsWith("/admin/email-templates/send") || pathname.startsWith("/admin/email-templates/broadcasts"))) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  };
+
+  const isSubItemActive = (href: string) => isRouteActive(href);
   const isMenuItemActive = (item: MenuItem) => {
-    if (item.href) return pathname === item.href;
-    return item.subItems?.some((sub) => pathname === sub.href) ?? false;
+    if (item.href) return isRouteActive(item.href);
+    return item.subItems?.some((sub) => isRouteActive(sub.href)) ?? false;
   };
 
   const canSee = (roles?: string[]) => !roles || roles.includes(role);
@@ -185,116 +203,153 @@ export default function AdminSidebar() {
       {/* Logo Header */}
       <div className="h-25 flex items-center px-5 border-b border-gray-200 shrink-0">
         <Link href="/" className="flex flex-col">
-          <span className="text-2xl font-bold text-orange-600 leading-tight">
-            Asset SUT
-          </span>
-          <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">
+          <div className="overflow-hidden transform group-hover:scale-105 transition-transform">
+            <Image
+              src="/ASSET_EN.svg"
+              alt="SUT Logo"
+              width={0}
+              height={0}
+              sizes="100vw"
+              className="object-contain"
+              style={{ width: "auto", height: "60px" }}
+              priority
+            />
+          </div>
+          {/* <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">
             {role === "admin" ? "Admin Portal" : "Staff Portal"}
-          </span>
+          </span>  */}
         </Link>
       </div>
 
       {/* Menu */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         <div className="px-4 pt-6 pb-6 space-y-6">
-          {menuGroups.filter((g) => canSee(g.roles)).map((group, groupIdx, arr) => {
-            const visibleItems = group.items.filter((item) => canSee(item.roles));
-            if (visibleItems.length === 0) return null;
+          {menuGroups
+            .filter((g) => canSee(g.roles))
+            .map((group, groupIdx, arr) => {
+              const visibleItems = group.items.filter((item) =>
+                canSee(item.roles),
+              );
+              if (visibleItems.length === 0) return null;
 
-            return (
-              <div
-                key={groupIdx}
-                className={cn(
-                  "space-y-1",
-                  groupIdx < arr.length - 1 && "pb-6 border-b border-gray-100"
-                )}
-              >
-                {/* Section Label */}
-                {group.label && (
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-                    {group.label}
-                  </h3>
-                )}
+              return (
+                <div
+                  key={groupIdx}
+                  className={cn(
+                    "space-y-1",
+                    groupIdx < arr.length - 1 &&
+                      "pb-6 border-b border-gray-100",
+                  )}
+                >
+                  {/* Section Label */}
+                  {group.label && (
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+                      {group.label}
+                    </h3>
+                  )}
 
-                {/* Items */}
-                <div className="space-y-0.5 -mx-4">
-                  {visibleItems.map((item) => {
-                    const isActive = isMenuItemActive(item);
-                    const isOpen = openItems.has(item.id);
-                    const Icon = item.icon;
+                  {/* Items */}
+                  <div className="space-y-0.5 -mx-4">
+                    {visibleItems.map((item) => {
+                      const isActive = isMenuItemActive(item);
+                      const isOpen = openItems.has(item.id);
+                      const Icon = item.icon;
 
-                    if (item.href) {
-                      return (
-                        <Link
-                          key={item.id}
-                          href={item.href}
-                          className={cn(
-                            "flex items-center gap-3 px-4 py-2.5 transition-colors text-sm",
-                            isActive
-                              ? "bg-brand-primary/10 text-brand-primary font-semibold border-l-[3px] border-brand-primary"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-l-[3px] border-transparent"
-                          )}
-                        >
-                          <span className={cn("flex-shrink-0", isActive ? "text-brand-primary" : "text-gray-400")}>
-                            <Icon className="w-4 h-4" />
-                          </span>
-                          <span className="flex-1">{item.label}</span>
-                        </Link>
-                      );
-                    }
-
-                    return (
-                      <div key={item.id}>
-                        <button
-                          onClick={() => toggleItem(item.id)}
-                          className={cn(
-                            "w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-sm",
-                            isActive
-                              ? "bg-brand-primary/10 text-brand-primary font-semibold border-l-[3px] border-brand-primary"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-l-[3px] border-transparent"
-                          )}
-                        >
-                          <span className={cn("flex-shrink-0", isActive ? "text-brand-primary" : "text-gray-400")}>
-                            <Icon className="w-4 h-4" />
-                          </span>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          <ChevronDown
+                      if (item.href) {
+                        return (
+                          <Link
+                            key={item.id}
+                            href={item.href}
                             className={cn(
-                              "w-3.5 h-3.5 text-gray-400 transition-transform duration-200",
-                              isOpen && "rotate-180"
+                              "flex items-center gap-3 px-4 py-2.5 transition-colors text-sm",
+                              isActive
+                                ? "bg-brand-primary/10 text-brand-primary font-semibold border-l-[3px] border-brand-primary"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-l-[3px] border-transparent",
                             )}
-                          />
-                        </button>
+                          >
+                            <span
+                              className={cn(
+                                "flex-shrink-0",
+                                isActive
+                                  ? "text-brand-primary"
+                                  : "text-gray-400",
+                              )}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </span>
+                            <span className="flex-1">{item.label}</span>
+                          </Link>
+                        );
+                      }
 
-                        {isOpen && item.subItems && (
-                          <div className="bg-gray-50/80">
-                            {item.subItems.map((sub) => {
-                              const isSubActive = isSubItemActive(sub.href);
-                              return (
-                                <Link
-                                  key={sub.href}
-                                  href={sub.href}
-                                  className={cn(
-                                    "flex items-center gap-3 pl-11 pr-4 py-2 transition-colors text-sm border-l-[3px]",
-                                    isSubActive
-                                      ? "text-brand-primary font-semibold border-brand-primary bg-brand-primary/5"
-                                      : "text-gray-500 hover:text-gray-800 hover:bg-gray-100 border-transparent"
-                                  )}
-                                >
-                                  <span className={cn("w-1 h-1 rounded-full flex-shrink-0", isSubActive ? "bg-brand-primary" : "bg-gray-300")} />
-                                  {sub.label}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      return (
+                        <div key={item.id}>
+                          <button
+                            onClick={() => toggleItem(item.id)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-sm",
+                              isActive
+                                ? "bg-brand-primary/10 text-brand-primary font-semibold border-l-[3px] border-brand-primary"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-l-[3px] border-transparent",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex-shrink-0",
+                                isActive
+                                  ? "text-brand-primary"
+                                  : "text-gray-400",
+                              )}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </span>
+                            <span className="flex-1 text-left">
+                              {item.label}
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                "w-3.5 h-3.5 text-gray-400 transition-transform duration-200",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          </button>
+
+                          {isOpen && item.subItems && (
+                            <div className="bg-gray-50/80">
+                              {item.subItems.map((sub) => {
+                                const isSubActive = isSubItemActive(sub.href);
+                                return (
+                                  <Link
+                                    key={sub.href}
+                                    href={sub.href}
+                                    className={cn(
+                                      "flex items-center gap-3 pl-11 pr-4 py-2 transition-colors text-sm border-l-[3px]",
+                                      isSubActive
+                                        ? "text-brand-primary font-semibold border-brand-primary bg-brand-primary/5"
+                                        : "text-gray-500 hover:text-gray-800 hover:bg-gray-100 border-transparent",
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "w-1 h-1 rounded-full flex-shrink-0",
+                                        isSubActive
+                                          ? "bg-brand-primary"
+                                          : "bg-gray-300",
+                                      )}
+                                    />
+                                    {sub.label}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </aside>

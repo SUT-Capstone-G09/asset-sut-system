@@ -13,6 +13,7 @@ import {
   deleteLocation,
   savePricingTiers,
   locationToRoom,
+  getStaffBuildings,
 } from "../services/locationService";
 import { getCurrentUser } from "@/lib/utils/auth";
 
@@ -33,7 +34,18 @@ export function useRoomFilters() {
   const fetchRooms = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, types] = await Promise.all([getLocations(), getLocationTypes()]);
+      const [allData, types, staffBuildings] = await Promise.all([
+        getLocations(), 
+        getLocationTypes(),
+        currentUser?.role === "staff" ? getStaffBuildings(currentUser.id) : Promise.resolve(null),
+      ]);
+
+      let data = allData;
+      if (currentUser?.role === "staff" && staffBuildings) {
+        const allowedBuildingIds = new Set(staffBuildings.map(b => b.id));
+        data = data.filter(loc => loc.building_id && allowedBuildingIds.has(loc.building_id));
+      }
+
       setRooms(data.map(locationToRoom));
 
       const dtoMap = new Map<string, AdminLocationDTO>();

@@ -11,6 +11,8 @@ import {
   Clock,
   Calendar,
   User,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import BookingCard from "./BookingCard";
 import BookingDrawer from "./BookingDrawer";
@@ -59,6 +61,14 @@ export default function BookingGrid({
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
+  const [collapsedBuildings, setCollapsedBuildings] = useState<Record<string, boolean>>({});
+
+  const toggleBuilding = (building: string) => {
+    setCollapsedBuildings((prev) => ({
+      ...prev,
+      [building]: !prev[building],
+    }));
+  };
 
   const handleOpenDrawer = (booking: Booking, mode: "view" | "edit" = "view") => {
     setSelectedBooking(booking);
@@ -74,22 +84,41 @@ export default function BookingGrid({
     <div className="space-y-12 pb-20">
       {buildings.length > 0 ? (
         buildings.map((building) => {
-          const items = filteredBookings.filter((b) => b.building === building);
+          let items = filteredBookings.filter((b) => b.building === building);
           if (items.length === 0) return null; // Hide empty sections after filtering
+          
+          // Sort from present to past (newest to oldest)
+          items.sort((a, b) => {
+            const dateA = a.rawDate ? new Date(a.rawDate).getTime() : 0;
+            const dateB = b.rawDate ? new Date(b.rawDate).getTime() : 0;
+            return dateB - dateA;
+          });
+
+          const isCollapsed = collapsedBuildings[building];
 
           return (
             <div key={building} className="space-y-6">
               {/* Section Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 group">
+                <div 
+                  className="flex items-center gap-4 group cursor-pointer select-none"
+                  onClick={() => toggleBuilding(building)}
+                >
                   <div className="w-1.5 h-8 bg-[#f26522] rounded-full shadow-[0_0_15px_rgba(242,101,34,0.4)] transition-all group-hover:h-10" />
                   <div className="space-y-0.5">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left">
-                      {building}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left select-none">
+                        {building}
+                      </h2>
+                      {isCollapsed ? (
+                        <ChevronRight className="text-slate-400 group-hover:text-[#f26522] transition-colors" size={24} />
+                      ) : (
+                        <ChevronDown className="text-slate-400 group-hover:text-[#f26522] transition-colors" size={24} />
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest select-none">
                         {items.length} Bookings Requested
                       </span>
                     </div>
@@ -112,7 +141,7 @@ export default function BookingGrid({
               </div>
 
               {/* Grid View */}
-              {viewMode === "grid" && (
+              {!isCollapsed && viewMode === "grid" && (
                 <div className="grid grid-cols-1 gap-6">
                   {items.map((booking) => (
                     <BookingCard
@@ -128,7 +157,7 @@ export default function BookingGrid({
               )}
 
               {/* List View */}
-              {viewMode === "list" && (
+              {!isCollapsed && viewMode === "list" && (
                 <div className="space-y-4">
                   {items.map((booking) => (
                     <ListRow

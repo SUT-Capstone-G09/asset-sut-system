@@ -30,10 +30,12 @@ import {
   Phone,
   Mail,
   AlertCircle,
+  Hash,
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
+import { useAuthContext } from "@/lib/context/auth-context";
 import BookingEditDrawer from "./BookingEditDrawer";
 import HallBookingAreaSection from "./HallBookingAreaSection";
 import { useRouter } from "next/navigation";
@@ -120,6 +122,7 @@ export default function BookingDrawer({
   onEdit,
   initialMode = "view",
 }: Props) {
+  const { user } = useAuthContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -509,6 +512,19 @@ export default function BookingDrawer({
                 </div>
               )}
 
+              {/* Booking Created Date */}
+              <div className="p-4 rounded-[7px] border border-slate-100 bg-slate-50 flex items-center gap-3">
+                <Hash size={20} className="text-[#f26522]" />
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                    วันที่ยื่นคำขอจอง
+                  </span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {booking.createdAt}
+                  </span>
+                </div>
+              </div>
+
               {booking.repeat && (
                 <div className="p-4 rounded-[7px] border border-emerald-100 bg-emerald-50/40 space-y-2 text-left">
                   <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider block">
@@ -646,19 +662,27 @@ export default function BookingDrawer({
               <div className="flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                 <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                  กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้
+                  {user?.role !== "staff" ? (
+                    <>กรุณาตรวจสอบว่าคุณได้ <span className="font-bold">จัดการค่าใช้จ่าย</span> เรียบร้อยแล้ว ก่อนทำการอนุมัติรายการนี้</>
+                  ) : (
+                    <>โปรดตรวจสอบรายการจองให้ครบถ้วนก่อนทำการอนุมัติ</>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
-                className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
-              >
-                จัดการค่าใช้จ่าย
-              </Button>
+              {user?.role !== "staff" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/admin/booking/${booking.id}/expenses`)}
+                  className="h-11 rounded-[7px] font-bold border-slate-200 text-slate-600 bg-white hover:bg-slate-100"
+                >
+                  จัดการค่าใช้จ่าย
+                </Button>
+              ) : (
+                <div />
+              )}
               
               <div className="flex gap-2">
                 <Button

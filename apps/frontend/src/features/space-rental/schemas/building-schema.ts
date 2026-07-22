@@ -13,14 +13,15 @@ export const buildingSchema = z.object({
     .string()
     .max(255, "ที่อยู่ต้องไม่เกิน 255 ตัวอักษร")
     .optional(),
+  floor_count: z.coerce.number().min(1, "จำนวนชั้นต้องไม่ต่ำกว่า 1 ชั้น").nullable().optional() as z.ZodType<number | null | undefined, any, any>,
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
   description: z
     .string()
     .max(500, "รายละเอียดเพิ่มเติมต้องไม่เกิน 500 ตัวอักษร")
     .optional(),
-  has_floor_plan: z.boolean().default(false),
-  floor_plan_type: z.enum(["image", "canvas"]).default("image"),
+  has_floor_plan: z.boolean().optional(),
+  floor_plan_type: z.enum(["image", "canvas"]).optional(),
   blueprint_url: z.string().optional(),
 });
 

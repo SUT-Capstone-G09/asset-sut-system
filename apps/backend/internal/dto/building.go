@@ -21,19 +21,29 @@ type BuildingTypeResponse struct {
 // ทำหน้าที่เป็น Container ของ RentalSpaces และ FloorPlan
 
 type CreateBuildingRequest struct {
-	Name           string   `json:"name" binding:"required,min=3,max=100"`
-	BuildingTypeID *uint    `json:"building_type_id"` // Nullable สำหรับกรณีตึกเดี่ยว
-	Lat            *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
-	Lng            *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
-	Address        string   `json:"address"`
+	Name             string   `json:"name" binding:"required,min=3,max=100"`
+	BuildingTypeID   *uint    `json:"building_type_id"` // Nullable สำหรับกรณีตึกเดี่ยว
+	BuildingTypeName *string  `json:"building_type_name"`
+	Description      *string  `json:"description"`
+	FloorCount       *int     `json:"floor_count" binding:"omitempty,min=1"`
+	Lat              *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
+	Lng              *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
+	Address          string   `json:"address"`
+	HasFloorPlan     *bool    `json:"has_floor_plan"`
+	BlueprintURL     *string  `json:"blueprint_url"`
 }
 
 type UpdateBuildingRequest struct {
-	Name           *string  `json:"name"`
-	BuildingTypeID *uint    `json:"building_type_id"`
-	Lat            *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
-	Lng            *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
-	Address        *string  `json:"address"`
+	Name             *string  `json:"name"`
+	BuildingTypeID   *uint    `json:"building_type_id"`
+	BuildingTypeName *string  `json:"building_type_name"`
+	Description      *string  `json:"description"`
+	FloorCount       *int     `json:"floor_count" binding:"omitempty,min=1"`
+	Lat              *float64 `json:"lat" binding:"omitempty,min=-90,max=90"`
+	Lng              *float64 `json:"lng" binding:"omitempty,min=-180,max=180"`
+	Address          *string  `json:"address"`
+	HasFloorPlan     *bool    `json:"has_floor_plan"`
+	BlueprintURL     *string  `json:"blueprint_url"`
 }
 
 // BuildingHallPricingResponse = ราคาการขอใช้พื้นที่โถงของอาคาร แยกราย 1 วัตถุประสงค์
@@ -41,7 +51,7 @@ type BuildingHallPricingResponse struct {
 	HallUsagePurposeID uint   `json:"hall_usage_purpose_id"`
 	PurposeName        string `json:"purpose_name"`
 	PricingModel       string `json:"pricing_model"` // per_sqm | per_type_per_day
-	Price              int    `json:"price"`         // per_sqm: บาท/ตร.ม./วัน ; per_type_per_day: บาท/ประเภท/วัน
+	Price              float64    `json:"price"`         // per_sqm: บาท/ตร.ม./วัน ; per_type_per_day: บาท/ประเภท/วัน
 	IsActive           bool   `json:"is_active"`
 }
 
@@ -51,7 +61,7 @@ type HallUsagePurposeResponse struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	PricingModel string `json:"pricing_model"` // per_sqm | per_type_per_day
-	DefaultPrice int    `json:"default_price"` // ค่าตั้งต้น/fallback เมื่ออาคารยังไม่ตั้งราคา
+	DefaultPrice float64    `json:"default_price"` // ค่าตั้งต้น/fallback เมื่ออาคารยังไม่ตั้งราคา
 	IsActive     bool   `json:"is_active"`
 	SortOrder    int    `json:"sort_order"`
 }
@@ -62,7 +72,7 @@ type CreateHallUsagePurposeRequest struct {
 	Name         string `json:"name" binding:"required,min=2,max=100"`
 	Description  string `json:"description"`
 	PricingModel string `json:"pricing_model" binding:"required,oneof=per_sqm per_type_per_day"`
-	DefaultPrice int    `json:"default_price" binding:"min=0"`
+	DefaultPrice float64    `json:"default_price" binding:"min=0"`
 	SortOrder    *int   `json:"sort_order"` // nil = ต่อท้ายอัตโนมัติ
 }
 
@@ -70,7 +80,7 @@ type CreateHallUsagePurposeRequest struct {
 type UpdateHallUsagePurposeRequest struct {
 	Name         *string `json:"name" binding:"omitempty,min=2,max=100"`
 	Description  *string `json:"description"`
-	DefaultPrice *int    `json:"default_price" binding:"omitempty,min=0"`
+	DefaultPrice *float64    `json:"default_price" binding:"omitempty,min=0"`
 	IsActive     *bool   `json:"is_active"`
 	SortOrder    *int    `json:"sort_order"`
 }
@@ -82,7 +92,7 @@ type UpdateBuildingHallPricingsRequest struct {
 
 type BuildingHallPricingInput struct {
 	HallUsagePurposeID uint `json:"hall_usage_purpose_id" binding:"required"`
-	Price              int  `json:"price" binding:"min=0"`
+	Price              float64  `json:"price" binding:"min=0"`
 	IsActive           bool `json:"is_active"`
 }
 
@@ -98,7 +108,8 @@ type BuildingResponse struct {
 
 	// ที่ตั้งของตึก (nil ถ้ายังไม่กำหนดพิกัด)
 	Coordinates *[2]float64 `json:"coordinates,omitempty"` // [lat, lng]
-	Address     string      `json:"address"`
+	Address       string      `json:"address"`
+	BlueprintURL     *string     `json:"blueprint_url,omitempty"`
 
 	RentalSpaceCount int       `json:"rental_space_count"` // จำนวน Rental Space ภายใน
 	HasFloorPlan     bool      `json:"has_floor_plan"`     // มีแผนผังหรือไม่

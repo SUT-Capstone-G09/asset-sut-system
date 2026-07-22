@@ -411,7 +411,7 @@ export default function AdminTenantDetailView({
 
             <div className="space-y-3.5 pt-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-bold">ค่าเช่ารายเดือน</span>
+                <span className="text-slate-400 font-bold">ค่าบำรุงการใช้สถานที่</span>
                 <span className="text-slate-800 font-black">{currentContract.monthlyRental.toLocaleString()} บาท/เดือน</span>
               </div>
               <div className="flex justify-between items-center text-xs border-t border-slate-100 pt-3">
