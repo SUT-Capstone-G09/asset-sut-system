@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Room } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
 import { verifyPasswordApi } from "@/lib/services/auth.service";
-import { fmtLong, fmtShortD, fmtShortM, fmtShortBE, todayParts } from "@/lib/utils/thaiDate";
+import { fmtLong, formatThaiOfficialDate, todayParts } from "@/lib/utils/thaiDate";
 import { useThaiAddressAutofill } from "@/features/bookings/hooks/useThaiAddressAutofill";
 import SignaturePad from "./SignaturePad";
 import FField from "./FField";
@@ -92,6 +92,7 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
 
   // total days
   const totalDays = timeslots.length;
+  const isSingleDay = !!firstSlot && !!lastSlot && firstSlot.date === lastSlot.date;
 
   const handleGenerate = async () => {
     if (!printRef.current) return;
@@ -269,23 +270,21 @@ export default function DocumentFormModal({ room, timeslots, purpose, onClose, o
                 </span>
               </div>
 
-              {/* Date range */}
+              {/* Date range — handles every selection shape (single day,
+                  continuous range, non-continuous days, and any mix across
+                  month/year boundaries) via formatThaiOfficialDate instead of
+                  only looking at the first/last slot, since the calendar
+                  lets users pick non-contiguous days (e.g. shift-click a
+                  range, then add separate extra days). */}
               {firstSlot && lastSlot && (
                 <p>
                   ระยะเวลา
                   <span className="border-b border-dotted border-gray-700 inline-block w-8 mx-1 align-bottom text-center">{totalDays}</span>
-                  วัน ระหว่างวันที่
-                  <span className="border-b border-dotted border-gray-700 inline-block w-8 mx-1 align-bottom text-center">{fmtShortD(firstSlot.date)}</span>
-                  เดือน
-                  <span className="border-b border-dotted border-gray-700 inline-block w-20 mx-1 align-bottom text-center">{fmtShortM(firstSlot.date)}</span>
-                  พ.ศ.
-                  <span className="border-b border-dotted border-gray-700 inline-block w-14 mx-1 align-bottom text-center">{fmtShortBE(firstSlot.date)}</span>
-                  ถึงวันที่
-                  <span className="border-b border-dotted border-gray-700 inline-block w-8 mx-1 align-bottom text-center">{fmtShortD(lastSlot.date)}</span>
-                  เดือน
-                  <span className="border-b border-dotted border-gray-700 inline-block w-20 mx-1 align-bottom text-center">{fmtShortM(lastSlot.date)}</span>
-                  พ.ศ.
-                  <span className="border-b border-dotted border-gray-700 inline-block w-14 mx-1 align-bottom text-center">{fmtShortBE(lastSlot.date)}</span>
+                  วัน{" "}
+                  <span className="border-b border-dotted border-gray-700 inline-block mx-1 align-bottom">
+                    {isSingleDay ? "ในวันที่ " : ""}
+                    {formatThaiOfficialDate(timeslots.map((t) => t.date))}
+                  </span>
                 </p>
               )}
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isToday, startOfDay, isBefore,
@@ -17,6 +18,9 @@ interface MonthlyCalendarProps {
   minBookableDate: Date;
   selectedDates: string[];
   onToggleDate: (date: Date) => void;
+  // Optional: select every bookable day between the last-clicked day and
+  // this one (shift-click). Omit to disable the range-select shortcut.
+  onSelectRange?: (from: Date, to: Date) => void;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -26,10 +30,11 @@ interface MonthlyCalendarProps {
 
 export default function MonthlyCalendar({
   currentMonth, today, minBookableDate, selectedDates,
-  onToggleDate, onPrev, onNext, onToday,
+  onToggleDate, onSelectRange, onPrev, onNext, onToday,
   onClearAll,
   getDayInfo,
 }: MonthlyCalendarProps) {
+  const lastClickedRef = useRef<Date | null>(null);
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -80,6 +85,15 @@ export default function MonthlyCalendar({
         </span>
       </div>
 
+      {onSelectRange && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-500">
+          <Info size={14} className="shrink-0" />
+          <span>
+            เลือกหลายวันรวดเดียว: คลิกวันเริ่มต้น แล้วกด <span className="font-semibold">Shift</span> ค้างไว้คลิกวันสิ้นสุด
+          </span>
+        </div>
+      )}
+
       {/* Legend — shown before the grid so color meanings are known before picking */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {[
@@ -126,7 +140,14 @@ export default function MonthlyCalendar({
           return (
             <button
               key={dateStr}
-              onClick={() => onToggleDate(day)}
+              onClick={(e) => {
+                if (e.shiftKey && onSelectRange && lastClickedRef.current) {
+                  onSelectRange(lastClickedRef.current, day);
+                } else {
+                  onToggleDate(day);
+                }
+                lastClickedRef.current = day;
+              }}
               disabled={disabled}
               className={cn(
                 "relative aspect-square flex flex-col items-center justify-start pt-1 rounded-xl text-sm transition-all select-none",

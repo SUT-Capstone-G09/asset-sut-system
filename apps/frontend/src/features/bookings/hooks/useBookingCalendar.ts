@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   addMonths, subMonths, format,
-  addDays, isBefore, startOfDay,
+  addDays, isBefore, startOfDay, eachDayOfInterval,
 } from "date-fns";
 import { toast } from "sonner";
 import { Room } from "@/features/bookings/types";
@@ -187,6 +187,33 @@ export function useBookingCalendar(room: Room) {
   const removeDate = (dateStr: string) =>
     setSelectedDates((prev) => prev.filter((d) => d !== dateStr));
 
+  // Shift-click range select: pick every bookable day between `from` and
+  // `to` (inclusive, either order) in one go instead of clicking each day —
+  // e.g. click day 1, shift-click day 5 to select 1-5 at once.
+  const selectRange = (from: Date, to: Date) => {
+    if (!isAuthenticated) {
+      toast.error("กรุณาเข้าสู่ระบบก่อนเลือกวันจอง");
+      router.push(`/login?redirect=${encodeURIComponent(`/bookings/${room.id}`)}`);
+      return;
+    }
+    const [start, end] = isBefore(from, to) ? [from, to] : [to, from];
+    const rangeDates = eachDayOfInterval({ start: startOfDay(start), end: startOfDay(end) })
+      .filter((d) => !isBefore(d, minBookableDate))
+      .map((d) => format(d, "yyyy-MM-dd"))
+      .filter((dateStr) => toDayInfo(availabilityMap, dateStr).status !== "full");
+
+    if (rangeDates.length === 0) return;
+
+    setSelectedDates((prev) => Array.from(new Set([...prev, ...rangeDates])).sort());
+    setDayTimes((prev) => {
+      const next = { ...prev };
+      rangeDates.forEach((dateStr) => {
+        next[dateStr] = next[dateStr] ?? (sameTimeForAll ? globalTime : DEFAULT_TIME);
+      });
+      return next;
+    });
+  };
+
   // A day that already has any booking on it (even just a morning slot) can't
   // be switched to full-day — that would need the whole day free.
   const hasExistingBooking = (dateStr: string): boolean => {
@@ -262,6 +289,7 @@ export function useBookingCalendar(room: Room) {
     goToToday: () => setCurrentMonth(today),
     selectedDates,
     toggleDate,
+    selectRange,
     removeDate,
     dayTimes,
     updateDayTime,

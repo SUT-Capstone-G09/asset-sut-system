@@ -28,6 +28,7 @@ export default function BookingCalendarView({ room }: BookingCalendarViewProps) 
           minBookableDate={cal.minBookableDate}
           selectedDates={cal.selectedDates}
           onToggleDate={cal.toggleDate}
+          onSelectRange={cal.selectRange}
           onPrev={cal.prevMonth}
           onNext={cal.nextMonth}
           onToday={cal.goToToday}
