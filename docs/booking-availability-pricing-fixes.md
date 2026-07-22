@@ -13,9 +13,9 @@
 
 **ไฟล์:** `apps/frontend/src/features/bookings/components/confirm/BookingConfirmView.tsx`, `apps/frontend/src/features/booking/hooks/useBookingFilters.ts`, `apps/backend/internal/services/booking.go`
 
-**ปัญหา:** ฝั่ง frontend สร้างเวลาแบบ `new Date(...).toISOString()` ซึ่งตีความ string ว่าเป็นเวลา local ของ browser แล้วแปลงเป็น UTC ก่อนส่งไป backend แต่ backend เทียบ `Hour()`/`Minute()` ตรงๆ เพื่อตัดสินว่าเป็นช่วง office hours (08:30–16:30) หรือ off-peak — ผลคือจอง 09:00 เวลาไทย กลายเป็น 02:00 ที่ backend เห็น เลยคิดราคาผิดเป็น off-peak เกือบทุกการจอง
+**ปัญหา:** ฝั่ง frontend สร้างเวลาแบบ `new Date(...).toISOString()` ซึ่งตีความ string ว่าเป็นเวลา local ของ browser แล้วแปลงเป็น UTC ก่อนส่งไป backend แต่ backend เทียบ `Hour()`/`Minute()` ตรง ๆ เพื่อตัดสินว่าเป็นช่วง office hours (08:30–16:30) หรือ off-peak — ผลคือจอง 09:00 เวลาไทย กลายเป็น 02:00 ที่ backend เห็น เลยคิดราคาผิดเป็น off-peak เกือบทุกการจอง
 
-**การแก้:** เปลี่ยนให้ frontend ส่งเวลาพร้อม offset `+07:00` ตรงๆ แทนการพึ่งพา `toISOString()` ของ browser ทั้งสองจุดที่สร้าง booking (หน้า confirm ปกติ และอีกจุดที่เจอเพิ่มตอนแก้ ซึ่งไม่ได้อยู่ใน diff เดิมของ branch นี้)
+**การแก้:** เปลี่ยนให้ frontend ส่งเวลาพร้อม offset `+07:00` ตรง ๆ แทนการพึ่งพา `toISOString()` ของ browser ทั้งสองจุดที่สร้าง booking (หน้า confirm ปกติ และอีกจุดที่เจอเพิ่มตอนแก้ ซึ่งไม่ได้อยู่ใน diff เดิมของ branch นี้)
 
 ### Fix #2 — Off-peak tier ราคา 0 บาท โดยไม่ตั้งใจ (critical, กระทบรายได้)
 
@@ -67,13 +67,13 @@
 
 **ไฟล์:** `apps/frontend/src/features/booking/services/locationService.ts`
 
-ค่านี้อ้างอิงจากลำดับการ seed ข้อมูล (`apps/backend/cmd/init-db/seed_data/lookup_tables.go`) ไม่ได้ query จริงจาก backend — ถ้าลำดับ seed เปลี่ยน หรือ DB มีข้อมูลเดิมอยู่ก่อนในลำดับต่างกัน จะเขียนราคาผิด rate type แบบเงียบๆ **วิธีแก้ที่ถูกต้อง:** ต้องเพิ่ม backend endpoint `GET /rate-types` แล้วให้ frontend query id จากชื่อ แทนการ hardcode ตัวเลข (ยังไม่มี endpoint นี้อยู่จริง — เป็นงานเพิ่มฟีเจอร์ ไม่ใช่แค่ bug fix)
+ค่านี้อ้างอิงจากลำดับการ seed ข้อมูล (`apps/backend/cmd/init-db/seed_data/lookup_tables.go`) ไม่ได้ query จริงจาก backend — ถ้าลำดับ seed เปลี่ยน หรือ DB มีข้อมูลเดิมอยู่ก่อนในลำดับต่างกัน จะเขียนราคาผิด rate type แบบเงียบ ๆ **วิธีแก้ที่ถูกต้อง:** ต้องเพิ่ม backend endpoint `GET /rate-types` แล้วให้ frontend query id จากชื่อ แทนการ hardcode ตัวเลข (ยังไม่มี endpoint นี้อยู่จริง — เป็นงานเพิ่มฟีเจอร์ ไม่ใช่แค่ bug fix)
 
 ### 2. ช่อง input off-peak rate โชว์ค่า 0 เป็นค่าว่าง
 
 **ไฟล์:** `apps/frontend/src/features/booking/components/rooms/RoomRateModal.tsx`
 
-`value={rates.hourlyOffPeakInternal || ""}` ทำให้ถ้าแอดมินตั้งราคาเป็น 0 จริงๆ (ตั้งใจให้ฟรี) ช่องจะโชว์ว่าง ดูเหมือนยังไม่ได้กรอก — เป็น pattern เดิมที่มีอยู่ทุกช่อง rate ในไฟล์นี้อยู่แล้ว (ไม่ใช่บั๊กใหม่จาก branch นี้) ควรแก้เป็น `?? ""` ทั้งไฟล์พร้อมกันทีเดียว
+`value={rates.hourlyOffPeakInternal || ""}` ทำให้ถ้าแอดมินตั้งราคาเป็น 0 จริง ๆ (ตั้งใจให้ฟรี) ช่องจะโชว์ว่าง ดูเหมือนยังไม่ได้กรอก — เป็น pattern เดิมที่มีอยู่ทุกช่อง rate ในไฟล์นี้อยู่แล้ว (ไม่ใช่บั๊กใหม่จาก branch นี้) ควรแก้เป็น `?? ""` ทั้งไฟล์พร้อมกันทีเดียว
 
 ### 3. ราคา preview กับราคาจริงไม่ตรงกันในกรณีเวลาที่กลับด้าน
 
@@ -85,7 +85,7 @@
 
 **ไฟล์:** `apps/backend/internal/services/booking.go`
 
-`s.timeslotRepo`, `s.locationRepo`, `s.requesterRepo` ไม่ได้ใช้แล้วเพราะ `Create()` สร้าง repo ใหม่ผูกกับ transaction เอง (ตัวแปรชื่อซ้ำกันซ้อนทับ/shadow กันอยู่) ถ้าใครแก้โค้ดแล้วพิมพ์ผิดไปเรียก `s.xxxRepo` แทนตัวแปร local จะ compile ผ่านแต่ทำงานนอก transaction เงียบๆ ควรลบ field ที่ไม่ใช้ออก หรือเปลี่ยนชื่อตัวแปร local ให้ไม่ชนกัน
+`s.timeslotRepo`, `s.locationRepo`, `s.requesterRepo` ไม่ได้ใช้แล้วเพราะ `Create()` สร้าง repo ใหม่ผูกกับ transaction เอง (ตัวแปรชื่อซ้ำกันซ้อนทับ/shadow กันอยู่) ถ้าใครแก้โค้ดแล้วพิมพ์ผิดไปเรียก `s.xxxRepo` แทนตัวแปร local จะ compile ผ่านแต่ทำงานนอก transaction เงียบ ๆ ควรลบ field ที่ไม่ใช้ออก หรือเปลี่ยนชื่อตัวแปร local ให้ไม่ชนกัน
 
 ### 5. Integration test ยังไม่ได้รันจริง
 

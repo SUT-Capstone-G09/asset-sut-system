@@ -11,10 +11,10 @@ const legendItems = [
   { color: "#a67436", label: "อาหารเพื่อสุขภาพ" },
   { color: "#2d5fa6", label: "อาหารนานาชาติ (อิสลาม)" },
   { color: "#3b75c4", label: "สุดยอด (อาหาร)" },
-  { color: "#6d6e70", label: "ร้านค้าทั่วไปอื่นๆ" },
+  { color: "#6d6e70", label: "ร้านค้าทั่วไปอื่น ๆ" },
   { color: "#8b5cf6", label: "อาคารเรียน / TCDC" },
   { color: "#10b981", label: "โรงภาพยนตร์" },
-  { color: "#f59e0b", label: "อื่นๆ" },
+  { color: "#f59e0b", label: "อื่น ๆ" },
 ];
 
 export default function HomeMap() {

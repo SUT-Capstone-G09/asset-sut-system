@@ -35,7 +35,7 @@ export class RequestRepository implements IRequestRepository {
       console.warn("Backend request types API error, falling back to default request types:", error);
       // Fallback for default request types
       return [
-        { id: 1, name: "แจ้งซ่อมครุภัณฑ์", description: "แจ้งซ่อมแซมครุภัณฑ์และอุปกรณ์ต่างๆ" },
+        { id: 1, name: "แจ้งซ่อมครุภัณฑ์", description: "แจ้งซ่อมแซมครุภัณฑ์และอุปกรณ์ต่าง ๆ" },
         { id: 2, name: "แจ้งปัญหาการใช้งานพื้นที่", description: "แจ้งปัญหาเกี่ยวกับพื้นที่ อาคาร หรือสิ่งอำนวยความสะดวก" },
       ];
     }

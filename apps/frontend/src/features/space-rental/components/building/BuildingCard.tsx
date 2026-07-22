@@ -26,7 +26,7 @@ export default function BuildingCard({
   onSelect,
   viewMode = "grid",
 }: BuildingCardProps) {
-  const parentArea = locations[0]?.area || "อื่นๆ";
+  const parentArea = locations[0]?.area || "อื่น ๆ";
   const Icon = categoryIconMap[parentArea] || Building2;
 
   const stats = React.useMemo(

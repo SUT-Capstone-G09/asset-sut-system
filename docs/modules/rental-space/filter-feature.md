@@ -23,7 +23,7 @@
 
 ## 12 ประเภทธุรกิจเชิงพาณิชย์ (Business Categories)
 
-ระบบรองรับหมวดหมู่ผู้ประกอบการและประเภทพื้นที่เช่ารวม **12 ประเภท** (11 ประเภทตามข้อกำหนดของมหาวิทยาลัย + 1 หมวดอื่นๆ):
+ระบบรองรับหมวดหมู่ผู้ประกอบการและประเภทพื้นที่เช่ารวม **12 ประเภท** (11 ประเภทตามข้อกำหนดของมหาวิทยาลัย + 1 หมวดอื่น ๆ):
 
 ```ts
 export type CommercialCategoryType = 
@@ -38,7 +38,7 @@ export type CommercialCategoryType =
   | 'printing_document_service'      // 9. เครื่องพิมพ์เอกสาร (Printer)
   | 'space_usage'                    // 10. ใช้พื้นที่ (MapPin)
   | 'canteen'                        // 11. โรงอาหาร (Utensils)
-  | 'other';                         // 12. อื่นๆ (Building2)
+  | 'other';                         // 12. อื่น ๆ (Building2)
 ```
 
 ---
@@ -71,7 +71,7 @@ export type CommercialCategoryType =
 - รวมศูนย์ฟังก์ชันค้นหา `matchSpaceSearch(space, query)`
 
 ### 3. Breadcrumb Route Sanitization (`Breadcrumb.tsx`)
-- เพิ่มการกรองข้าม segment `'building'` และ `'type'` จาก URL และ `sessionStorage` เพื่อป้องกันการเกิดลิงก์ Breadcrumb ลอยๆ บนเส้นทางที่ไม่มีหน้าเพจอยู่จริง (`/admin/space-rental/building` และ `/admin/space-rental/type`)
+- เพิ่มการกรองข้าม segment `'building'` และ `'type'` จาก URL และ `sessionStorage` เพื่อป้องกันการเกิดลิงก์ Breadcrumb ลอย ๆ บนเส้นทางที่ไม่มีหน้าเพจอยู่จริง (`/admin/space-rental/building` และ `/admin/space-rental/type`)
 
 ---
 

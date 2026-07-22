@@ -740,7 +740,7 @@ export default function BookingFormFields({
                   {watchedFrequency === "custom" && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-xs font-bold text-slate-500 pl-1">ทำซ้ำทุกๆ</Label>
+                        <Label className="text-xs font-bold text-slate-500 pl-1">ทำซ้ำทุก ๆ</Label>
                         <Input
                           type="number"
                           min="1"

@@ -2,7 +2,7 @@
 
 เอกสารสรุป **ระบบจัดเก็บไฟล์กลาง** ของ backend (`apps/backend`) — หุ้ม MinIO ไว้ใน
 `StorageService` ตัวเดียว เพื่อให้ทุก module อัปโหลดไฟล์และได้ presigned URL กลับมา
-โดยไม่ต้องยุ่งกับ MinIO client ตรงๆ พร้อม endpoint upload กลางสำหรับ frontend
+โดยไม่ต้องยุ่งกับ MinIO client ตรง ๆ พร้อม endpoint upload กลางสำหรับ frontend
 
 > อัปเดตล่าสุด: 2026-06-08
 
@@ -16,7 +16,7 @@ HTTP (multipart) ─────▶│  UploadController            │
                        │  POST /api/v1/uploads        │
                        └──────────────┬──────────────┘
                                       │
-Go services อื่นๆ ───────────────────┼──▶  StorageService  ──▶  MinIO
+Go services อื่น ๆ ───────────────────┼──▶  StorageService  ──▶  MinIO
 (payment QR, document, ...)           │     (จุดเดียวที่คุม      (object storage)
                                       │      upload/presign)
                                       ▼
@@ -79,7 +79,7 @@ if err := storage.UploadBytes(ctx, key, pdfBytes, "application/pdf"); err != nil
 | field | ชนิด | บังคับ | หมายเหตุ |
 |-------|------|--------|----------|
 | `file` | File | ✅ | ไฟล์ที่จะอัปโหลด (สูงสุด 10MB) |
-| `folder` | Text | — | โฟลเดอร์จัดกลุ่ม — ถ้าตรงกับ `GDRIVE_FOLDER_ROUTES` จะไป Drive, อื่นๆ ไป MinIO |
+| `folder` | Text | — | โฟลเดอร์จัดกลุ่ม — ถ้าตรงกับ `GDRIVE_FOLDER_ROUTES` จะไป Drive, อื่น ๆ ไป MinIO |
 | `booking_date` | Text | — | ISO date `YYYY-MM-DD` — ใช้จัด subfolder เดือนใน Drive |
 | `location_name` | Text | — | ชื่อสถานที่ — ใช้ตั้งชื่อไฟล์ใน Drive |
 | `booking_id` | Text | — | เลข booking — ทำให้ชื่อไฟล์ unique ใน Drive |

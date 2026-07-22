@@ -143,13 +143,13 @@ admin อัปโหลดรูปใน GrapesJS
 email client โหลดผ่าน  GET /api/v1/images/*  (public, proxy → MinIO)
 ```
 
-ทำไมไม่ชี้ MinIO ตรงๆ:
+ทำไมไม่ชี้ MinIO ตรง ๆ:
 - presigned URL หมดอายุ (15m) → รูปพังในกล่องเมล
 - เปิด bucket public → payment QR หลุดด้วย → proxy จึงจำกัดเฉพาะ prefix `email-images/`
 - ตอน prod MinIO มักไม่เปิดออก internet แต่ API เปิด
 
 > **admin ใส่ image URL ภายนอกเองก็ได้** (GrapesJS แถมมา) — กรณีนั้นรูปไม่ถูกเก็บใน MinIO
-> ชี้ไป host ภายนอกตรงๆ (ต้องเป็น URL public + ถาวรเอง)
+> ชี้ไป host ภายนอกตรง ๆ (ต้องเป็น URL public + ถาวรเอง)
 
 ---
 
@@ -255,7 +255,7 @@ header `Authorization: Bearer <access_token>` ทุก request (ยกเว้
 ```
 
 > `key` ใส่หรือไม่ก็ได้ (ไม่ใส่ = `booking.approved`) — เปลี่ยน `key` + `data` เพื่อ
-> ทดสอบเทมเพลตตัวอื่นที่ admin สร้างไว้ได้ทุกตัว `data` คือ map ตัวแปร `{{.var}}` ตรงๆ
+> ทดสอบเทมเพลตตัวอื่นที่ admin สร้างไว้ได้ทุกตัว `data` คือ map ตัวแปร `{{.var}}` ตรง ๆ
 
 **Response 200** ตอบ `"email queued for delivery"` ทันที → ดู **log ใน terminal ที่รัน
 server** ว่าขึ้น `email sent to ...` (เพราะส่งแบบ async ผลจริงอยู่ที่ log ไม่ใช่ response)

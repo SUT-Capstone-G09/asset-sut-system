@@ -166,7 +166,7 @@ export default function HallPricingDrawer({ open, onClose, onSaved }: Props) {
     [buildings, selectedId],
   );
 
-  // items เป็น array ของชื่ออาคาร (ชื่อ unique) ให้ base-ui Combobox ค้นหา/แสดงได้ตรงๆ
+  // items เป็น array ของชื่ออาคาร (ชื่อ unique) ให้ base-ui Combobox ค้นหา/แสดงได้ตรง ๆ
   const buildingNames = useMemo(
     () => buildings.map((b) => b.name),
     [buildings],

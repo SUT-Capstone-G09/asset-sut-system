@@ -71,7 +71,7 @@ const getRecurrenceText = (booking: Booking): string => {
   else if (booking.repeatFrequency === "custom") {
     const unitMap = { day: "วัน", week: "สัปดาห์", month: "เดือน" };
     const unit = unitMap[booking.repeatCustomUnit || "day"] || "วัน";
-    freq = `ทุกๆ ${booking.repeatCustomInterval || 1} ${unit}`;
+    freq = `ทุก ๆ ${booking.repeatCustomInterval || 1} ${unit}`;
   }
 
   let end = "";

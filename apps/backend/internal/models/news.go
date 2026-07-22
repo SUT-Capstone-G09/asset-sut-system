@@ -10,7 +10,7 @@ type NewsAnnouncements struct {
 	ShortDescription string            `gorm:"type:text" json:"short_description"`
 	Qualifications   string            `gorm:"type:text" json:"qualifications"`
 	RequiredDocs     string            `gorm:"type:text" json:"required_docs"`
-	MainImage        string            `gorm:"type:varchar(511)" json:"main_image"` // ปรับขนาดเผื่อ URL ยาวๆ
+	MainImage        string            `gorm:"type:varchar(511)" json:"main_image"` // ปรับขนาดเผื่อ URL ยาว ๆ
 	Pdf              string            `gorm:"type:varchar(511)" json:"pdf"` // เอา not null ออก เพื่อให้ไม่มีไฟล์แนบ PDF ได้
 	PublishDate      *time.Time        `gorm:"type:timestamp" json:"publish_date"` // ใช้ Pointer timestamp เพื่อรองรับวันที่+เวลาและเป็นค่าว่างได้
 	ExpireDate       *time.Time        `gorm:"type:timestamp" json:"expire_date"`  // ใช้ Pointer timestamp

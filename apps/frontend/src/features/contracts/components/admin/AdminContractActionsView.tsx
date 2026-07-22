@@ -103,7 +103,7 @@ export default function AdminContractActionsView() {
               <div className="space-y-1">
                 <span className="text-xs font-bold text-warning-700 block">ระบบเปลี่ยนสิทธิ์ผู้ใช้เป็นปกติ (Role Demoted)</span>
                 <p className="text-xs text-warning-600 leading-relaxed font-semibold">
-                  เนื่องจากผู้เช่า {tenant.ownerName} ไม่เหลือสัญญาอื่นๆ ที่มีผลใช้งานอยู่ ระบบได้ทำการเปลี่ยนสิทธิ์จากผู้ประกอบการ (Tenant) กลับเป็นผู้ใช้ธรรมดา (User) อัตโนมัติเรียบร้อยแล้ว
+                  เนื่องจากผู้เช่า {tenant.ownerName} ไม่เหลือสัญญาอื่น ๆ ที่มีผลใช้งานอยู่ ระบบได้ทำการเปลี่ยนสิทธิ์จากผู้ประกอบการ (Tenant) กลับเป็นผู้ใช้ธรรมดา (User) อัตโนมัติเรียบร้อยแล้ว
                 </p>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function AdminContractActionsView() {
                   <Textarea
                     value={renewTerms}
                     onChange={(e) => setRenewTerms(e.target.value)}
-                    placeholder="ระบุข้อกำหนดเพิ่มเติมทางกฎหมาย หรือข้อตกลงพิเศษอื่นๆ..."
+                    placeholder="ระบุข้อกำหนดเพิ่มเติมทางกฎหมาย หรือข้อตกลงพิเศษอื่น ๆ..."
                     className="w-full bg-slate-50 border border-slate-200 rounded-[7px] p-3 text-sm focus-visible:ring-brand-primary/20 focus-visible:border-brand-primary font-semibold text-slate-700 min-h-[70px] resize-none"
                   />
                 </div>

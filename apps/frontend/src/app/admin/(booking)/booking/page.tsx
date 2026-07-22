@@ -162,7 +162,7 @@ function AdminBookingPageContent() {
                 </h3>
                 <p className="text-sm text-slate-400">
                   ห้องบรรยาย, ห้องปฏิบัติการ, ห้องสัมมนา
-                  และห้องสำหรับการเรียนรู้อื่นๆ
+                  และห้องสำหรับการเรียนรู้อื่น ๆ
                 </p>
 
                 {/* Stat line */}

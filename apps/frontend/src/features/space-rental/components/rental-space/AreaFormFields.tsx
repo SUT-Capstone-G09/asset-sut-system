@@ -41,8 +41,8 @@ export default function AreaFormFields({ isEdit = false, isLockedContext = false
     ? BUILDINGS.filter(b => AREA_TO_BUILDINGS[selectedArea].includes(b.value))
     : BUILDINGS;
 
-  // Standalone mode is active if we are in locked context and the building has no type (i.e. 'อื่นๆ' or empty)
-  const isStandalone = isLockedContext && (!selectedArea || selectedArea === "อื่นๆ");
+  // Standalone mode is active if we are in locked context and the building has no type (i.e. 'อื่น ๆ' or empty)
+  const isStandalone = isLockedContext && (!selectedArea || selectedArea === "อื่น ๆ");
 
   const handleAreaChange = (val: string, onChange: (v: string) => void) => {
     onChange(val);

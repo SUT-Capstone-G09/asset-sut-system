@@ -156,7 +156,7 @@ export default function PropertiesPanel({
                 <option value="shop">ร้านค้า / Shop</option>
                 <option value="toilet">ห้องน้ำ / Restroom</option>
                 <option value="seating">พื้นที่นั่งทานอาหาร / Seating</option>
-                <option value="other">อื่นๆ / Custom</option>
+                <option value="other">อื่น ๆ / Custom</option>
               </select>
             </Field>
           )}

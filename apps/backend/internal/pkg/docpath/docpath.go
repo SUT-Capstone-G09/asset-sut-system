@@ -94,5 +94,5 @@ var DocTypes = map[string]DocType{
 	"booking-docs":    {FolderName: "เอกสารขอใช้พื้นที่", StoreMinio: true, StoreDrive: true},
 	"payment-slip":    {FolderName: "สลิปการชำระเงิน", StoreMinio: true, StoreDrive: true},
 	"payment-receipt": {FolderName: "ใบเสร็จรับเงิน", StoreMinio: true, StoreDrive: true},
-	"other":           {FolderName: "อื่นๆ", StoreMinio: true, StoreDrive: true},
+	"other":           {FolderName: "อื่น ๆ", StoreMinio: true, StoreDrive: true},
 }

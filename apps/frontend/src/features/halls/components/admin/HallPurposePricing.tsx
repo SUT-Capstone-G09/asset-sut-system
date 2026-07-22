@@ -12,7 +12,7 @@ const unitLabel = (m: HallPricingModel) =>
 // backend resolve ราคาที่ใช้จริงมาให้แล้ว (effective_price) จึงไม่ต้องจับคู่อาคารเองที่ฝั่ง client
 //
 // ผู้เรียกต้องใส่ key={hallId} เพื่อให้ remount ตอนเปลี่ยนโถค — state จะเริ่มใหม่เอง
-// จึงไม่ต้อง reset ใน effect (ESLint react-hooks/set-state-in-effect ห้าม setState ตรงๆ ใน effect)
+// จึงไม่ต้อง reset ใน effect (ESLint react-hooks/set-state-in-effect ห้าม setState ตรง ๆ ใน effect)
 export default function HallPurposePricing({ hallId }: { hallId: string }) {
   const [rows, setRows] = useState<HallPricingRow[] | null>(null);
   const [error, setError] = useState(false);

@@ -171,7 +171,7 @@ export default function AdminRequestDetailView() {
   let displayType = 'แจ้งซ่อมบำรุง';
   let displaySender = 'NALINEE J.';
   let chatBubbles = [
-    { name: 'NALINEE J.', time: '14:35', text: 'แจ้งเพิ่มเติมค่ะ ตรงบริเวณที่แตกมีปลั๊กไฟอยู่ใกล้ๆ ด้วยค่ะ', isAdmin: false },
+    { name: 'NALINEE J.', time: '14:35', text: 'แจ้งเพิ่มเติมค่ะ ตรงบริเวณที่แตกมีปลั๊กไฟอยู่ใกล้ ๆ ด้วยค่ะ', isAdmin: false },
     { name: 'ADMIN SOMSAK', time: '14:40', text: 'รับทราบครับ กำลังประสานงานช่างอาคารที่ดูแลโซนบรรณสารให้รีบเข้าไปตรวจสอบด่วนครับ', isAdmin: true }
   ];
 

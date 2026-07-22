@@ -25,7 +25,7 @@
 
 **ไฟล์:** `features/bookings/components/confirm/BookingConfirmView.tsx`
 
-**ปัญหา:** ถ้า user เปิด URL confirm โดยตรงโดยไม่ผ่านหน้า calendar จะไม่มี draft ใน sessionStorage หน้าจะแสดงข้อมูลว่างเปล่าเงียบๆ โดยไม่มี error หรือ redirect
+**ปัญหา:** ถ้า user เปิด URL confirm โดยตรงโดยไม่ผ่านหน้า calendar จะไม่มี draft ใน sessionStorage หน้าจะแสดงข้อมูลว่างเปล่าเงียบ ๆ โดยไม่มี error หรือ redirect
 
 **การแก้:** ถ้า sessionStorage ไม่มี draft → redirect กลับ `/bookings/[roomId]` ทันที พร้อม early return เพื่อป้องกันการ render ขณะ redirect
 
@@ -159,4 +159,4 @@ const { room, notFound: notFound404 } = useRoom(roomId);
 
 **ปัญหา:** `DocumentFormModal.tsx` ยาวเกินไป (1,001 บรรทัด) ปนกันหลาย concern: signature pad component, date formatter, generic input field, และ logic ของ Thai address ทั้งหมดอยู่ในไฟล์เดียว
 
-**การแก้:** แยกตาม concern โดยไม่เปลี่ยนพฤติกรรมใดๆ — `DocumentFormModal.tsx` เหลือ **561 บรรทัด** (ลดลง ~44%) เก็บไว้แค่ state หลักและการประกอบ component ย่อยเข้าด้วยกัน
+**การแก้:** แยกตาม concern โดยไม่เปลี่ยนพฤติกรรมใด ๆ — `DocumentFormModal.tsx` เหลือ **561 บรรทัด** (ลดลง ~44%) เก็บไว้แค่ state หลักและการประกอบ component ย่อยเข้าด้วยกัน

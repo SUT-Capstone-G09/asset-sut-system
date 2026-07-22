@@ -13,7 +13,7 @@ const stats = [
   { icon: UtensilsCrossed, label: "ศูนย์อาหารและบริการ", value: 0 },
   { icon: Coffee, label: "ร้านกาแฟและเบเกอรี่", value: 0 },
   { icon: ShoppingBag, label: "ร้านอาหารและเครื่องดื่ม", value: 0 },
-  { icon: Package, label: "สินค้าและบริการอื่นๆ", value: 0 },
+  { icon: Package, label: "สินค้าและบริการอื่น ๆ", value: 0 },
   { icon: ShoppingCart, label: "ตลาด", value: 0 },
   { icon: Store, label: "ร้านสะดวกซื้อ", value: 0 },
   { icon: Building2, label: "ธนาคาร", value: 0 },

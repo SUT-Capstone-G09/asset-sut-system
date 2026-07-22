@@ -238,7 +238,7 @@ export default function SpaceRentalBuildingView({
         onClose={() => setIsCreateOpen(false)}
         onAdd={addRentalSpace}
         defaultBuildingName={building.name}
-        defaultAreaName={building.building_type_name || "อื่นๆ"}
+        defaultAreaName={building.building_type_name || "อื่น ๆ"}
         defaultCoordinates={building.coordinates}
         defaultAddress={building.address}
         isLockedContext={true}

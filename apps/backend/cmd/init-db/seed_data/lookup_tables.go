@@ -115,7 +115,7 @@ func seedLookupTables(db *gorm.DB, cfg *config.Config) error {
 	// ผู้ขอเลือกได้หลายข้อพร้อมกัน แต่ละข้อคิดราคาแยกแล้วบวกรวม
 	hallPurposes := []models.HallUsagePurposes{
 		{Name: "การให้บริการและการจำหน่ายสินค้า (ตั้งบูธ)", Description: "คิดราคาตามพื้นที่ที่ใช้ (ตร.ม.) ตามเรทของอาคาร", PricingModel: models.HallPricingPerSqm, DefaultPrice: 0, IsActive: true, SortOrder: 1},
-		{Name: "แจกใบปลิวหรือสื่อโฆษณาอื่นๆ", Description: "คิดราคาแบบ /วัน/ประเภทสินค้า", PricingModel: models.HallPricingPerTypePerDay, DefaultPrice: 500, IsActive: true, SortOrder: 2},
+		{Name: "แจกใบปลิวหรือสื่อโฆษณาอื่น ๆ", Description: "คิดราคาแบบ /วัน/ประเภทสินค้า", PricingModel: models.HallPricingPerTypePerDay, DefaultPrice: 500, IsActive: true, SortOrder: 2},
 		{Name: "การแจกตัวอย่างสินค้า", Description: "คิดราคาแบบ /วัน/ประเภทสินค้า", PricingModel: models.HallPricingPerTypePerDay, DefaultPrice: 500, IsActive: true, SortOrder: 3},
 	}
 	for _, p := range hallPurposes {

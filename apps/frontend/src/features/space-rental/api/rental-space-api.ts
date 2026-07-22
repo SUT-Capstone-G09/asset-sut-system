@@ -12,7 +12,7 @@ export const rentalSpaceApi = {
     return mockLocationsDTO.map(mapDTOToRentalSpace);
   },
 
-  // ดึงยูนิตย่อยภายในตึกหนึ่งๆ (ขยายข้อมูล Stall จาก Floor Plan อัตโนมัติถ้ามี)
+  // ดึงยูนิตย่อยภายในตึกหนึ่ง ๆ (ขยายข้อมูล Stall จาก Floor Plan อัตโนมัติถ้ามี)
   getByBuilding: async (buildingName: string, buildingId: number): Promise<RentalSpace[]> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
     return resolveBuildingStallSpaces(buildingId, buildingName);

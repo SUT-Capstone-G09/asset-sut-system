@@ -1,4 +1,4 @@
-# ใช้ Stage เดียวโดดๆ ไม่แยก Builder เพราะเราจะรัน Dev Mode
+# ใช้ Stage เดียวโดด ๆ ไม่แยก Builder เพราะเราจะรัน Dev Mode
 FROM node:20.9.0-alpine
 WORKDIR /app
 

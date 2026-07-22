@@ -186,7 +186,7 @@ export default function HallPurposesTab({ open, onChanged }: Props) {
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="คำอธิบายสั้นๆ"
+              placeholder="คำอธิบายสั้น ๆ"
               className="h-11 rounded-[7px]"
             />
           </div>

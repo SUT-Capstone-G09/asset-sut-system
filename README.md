@@ -199,7 +199,7 @@ Backend สร้าง 2 token:
 | ดูได้ที่ | DevTools → Application → Cookies → `http://localhost:8080` |
 
 **ความปลอดภัยเพิ่มเติม:**
-- Backend เก็บ **SHA-256 hash** ของ refresh token ในฐานข้อมูล ไม่เก็บ token ตรงๆ
+- Backend เก็บ **SHA-256 hash** ของ refresh token ในฐานข้อมูล ไม่เก็บ token ตรง ๆ
 - เมื่อใช้ refresh แล้วจะ **หมุน token** (Refresh Token Rotation) — token เก่าถูกลบทันที
 
 ---

@@ -6,7 +6,7 @@ export function EnvelopHeader() {
       <h1 className="text-3xl font-black tracking-tight text-slate-900">
         จัดการซอง
       </h1>
-      <p className="text-sm text-slate-500">จัดการซองเอกสารต่างๆ</p>
+      <p className="text-sm text-slate-500">จัดการซองเอกสารต่าง ๆ</p>
     </div>
   );
 }

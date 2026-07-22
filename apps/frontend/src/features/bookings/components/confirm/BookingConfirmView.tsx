@@ -50,7 +50,7 @@ const AMENITY_ICONS: Record<string, React.ElementType> = {
 const STEPS = [
   { label: "เริ่มต้นการจอง", description: "กรอกข้อมูลเบื้องต้นเรียบร้อยแล้ว", done: true },
   { label: "รอดำเนินการอนุมัติ", description: "คำขอจะได้รับการตรวจสอบโดยผู้ดูแล", done: false },
-  { label: "รอชำระเงิน", description: "ชำระผ่านช่องทางต่างๆ ของมหาวิทยาลัย", done: false },
+  { label: "รอชำระเงิน", description: "ชำระผ่านช่องทางต่าง ๆ ของมหาวิทยาลัย", done: false },
   { label: "เสร็จสิ้น", description: "การจองของคุณเสร็จสมบูรณ์", done: false },
 ];
 
@@ -478,7 +478,7 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                 <Info size={13} className="text-gray-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-500 leading-relaxed">
                   ราคานี้เป็นค่าห้องเท่านั้น อาจมีค่าใช้จ่ายเพิ่มเติม เช่น ค่าแม่บ้าน ค่าไฟฟ้า
-                  หรือค่าบริการอื่นๆ ตามที่เจ้าหน้าที่กำหนดภายหลัง
+                  หรือค่าบริการอื่น ๆ ตามที่เจ้าหน้าที่กำหนดภายหลัง
                 </p>
               </div>
             </div>

@@ -167,7 +167,7 @@ export const tenantAreaOptions: TenantAreaOption[] = [
   },
   {
     id: "others",
-    name: "อื่นๆ",
+    name: "อื่น ๆ",
     icon: BadgeHelp,
     subLocations: ["พื้นที่ชั่วคราว", "จุดบริการพิเศษ", "พื้นที่ตามกิจกรรม"],
     businessTypes: ["ผู้ประกอบการชั่วคราว", "บริการทั่วไป", "กิจกรรมพิเศษ"],

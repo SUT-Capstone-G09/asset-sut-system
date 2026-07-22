@@ -144,7 +144,7 @@ const rawTypeToBucket: Record<string, Exclude<BookingTypeFilter, "all">> = {
   "ห้องบรรยาย": "classroom",
   "ห้องปฏิบัติการ": "classroom",
   "ห้องสัมมนา": "classroom",
-  "อื่นๆ": "classroom",
+  "อื่น ๆ": "classroom",
   "ห้องประชุม": "meeting",
   "ห้องประชุมขนาดเล็ก": "meeting",
   "ห้องประชุมขนาดกลาง": "meeting",

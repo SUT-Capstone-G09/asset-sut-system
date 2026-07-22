@@ -153,7 +153,7 @@ function StaffBookingPageContent() {
               <div className="mt-6 space-y-4 w-full">
                 <h3 className="text-2xl font-bold tracking-tight text-slate-800">ห้องเรียน</h3>
                 <p className="text-sm text-slate-400">
-                  ห้องบรรยาย, ห้องปฏิบัติการ, ห้องสัมมนา และห้องสำหรับการเรียนรู้อื่นๆ
+                  ห้องบรรยาย, ห้องปฏิบัติการ, ห้องสัมมนา และห้องสำหรับการเรียนรู้อื่น ๆ
                 </p>
 
                 {/* Stat line */}

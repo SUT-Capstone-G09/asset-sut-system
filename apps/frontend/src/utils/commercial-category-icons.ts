@@ -39,7 +39,7 @@ export const COMMERCIAL_CATEGORY_ICONS: Record<string, LucideIcon> = {
   "อาคารสำนักฟาร์ม": BookOpen,
   "โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี": HeartPulse,
   "อ่างเก็บน้ำสระสามแสน": Waves,
-  "อื่นๆ": BadgeHelp,
+  "อื่น ๆ": BadgeHelp,
 };
 
 export function getCategoryIcon(categoryName: string): LucideIcon {

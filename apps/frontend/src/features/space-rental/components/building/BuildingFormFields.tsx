@@ -54,7 +54,7 @@ export default function BuildingFormFields() {
     if (!availableTypes.includes(trimmed)) {
       setAvailableTypes((prev) => [...prev, trimmed]);
 
-      // บันทึกลง Mock Database ส่วนกลางเพื่อให้วิดเจ็ตอื่นๆ ในแอปเห็นการจัดหมวดหมู่นี้ด้วย
+      // บันทึกลง Mock Database ส่วนกลางเพื่อให้วิดเจ็ตอื่น ๆ ในแอปเห็นการจัดหมวดหมู่นี้ด้วย
       mockBuildingTypes.push({
         id: mockBuildingTypes.length + 101,
         name: trimmed

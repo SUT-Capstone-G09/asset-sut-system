@@ -17,7 +17,7 @@ export const AREA_CATEGORIES = [
   { value: "อาคารสำนักฟาร์ม", label: "อาคารสำนักฟาร์ม" },
   { value: "โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี", label: "โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี" },
   { value: "อ่างเก็บน้ำสระสามแสน", label: "อ่างเก็บน้ำสระสามแสน" },
-  { value: "อื่นๆ", label: "อื่นๆ" },
+  { value: "อื่น ๆ", label: "อื่น ๆ" },
 ] as const;
 
 export const AREA_TO_BUILDINGS: Record<string, string[]> = {
@@ -46,7 +46,7 @@ export const AREA_TO_BUILDINGS: Record<string, string[]> = {
     "อาคารเครื่องมือ 2",
     "อาคารเครื่องมือ 3"
   ],
-  "อื่นๆ": [
+  "อื่น ๆ": [
     "อาคารกิจการนักศึกษา",
     "ลานกิจกรรม",
     "ศูนย์บริการนักศึกษา",
@@ -187,7 +187,7 @@ export const COMMERCIAL_CATEGORIES: readonly CommercialCategory[] = [
   {
     value: 'atm_service',
     title: 'ให้บริการติดตั้งตู้ ATM',
-    desc: 'จุดติดตั้งตู้ถอนเงินอัตโนมัติ (ATM) ของธนาคารต่างๆ',
+    desc: 'จุดติดตั้งตู้ถอนเงินอัตโนมัติ (ATM) ของธนาคารต่าง ๆ',
     count: 15,
     iconName: 'CreditCard',
   },
@@ -235,8 +235,8 @@ export const COMMERCIAL_CATEGORIES: readonly CommercialCategory[] = [
   },
   {
     value: 'other',
-    title: 'อื่นๆ',
-    desc: 'ผู้ประกอบการและประเภทพื้นที่อื่นๆ',
+    title: 'อื่น ๆ',
+    desc: 'ผู้ประกอบการและประเภทพื้นที่อื่น ๆ',
     count: 10,
     iconName: 'Building2',
   },
