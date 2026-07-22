@@ -23,6 +23,35 @@ export interface CreateDocumentPayload {
   method_id: number;
 }
 
+export interface DocumentTypeDTO {
+  id: number;
+  type: string;
+}
+
+// Cached for the page session — the list is effectively static seed data,
+// no need to re-fetch it on every document upload.
+let cachedDocumentTypes: DocumentTypeDTO[] | null = null;
+
+export async function getDocumentTypes(): Promise<DocumentTypeDTO[]> {
+  if (!cachedDocumentTypes) {
+    cachedDocumentTypes = await apiClient.get<DocumentTypeDTO[]>("/document-types");
+  }
+  return cachedDocumentTypes;
+}
+
+// Resolves a document_type_id by name (e.g. "booking_form") instead of
+// hardcoding the numeric id, which would silently break if the seed order
+// ever changed. Falls back to "other", then to 4 (the seeded id for "other"
+// at the time of writing) if even the lookup itself fails.
+export async function getDocumentTypeId(typeName: string): Promise<number> {
+  const types = await getDocumentTypes().catch(() => []);
+  return (
+    types.find((t) => t.type === typeName)?.id ??
+    types.find((t) => t.type === "other")?.id ??
+    4
+  );
+}
+
 export async function getDocumentsByBookingId(bookingId: number): Promise<DocumentDTO[]> {
   return apiClient.get<DocumentDTO[]>(`/bookings/${bookingId}/documents`);
 }

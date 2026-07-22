@@ -28,6 +28,15 @@ func (c *DocumentController) canAccessBooking(ctx *gin.Context, bookingID uint) 
 	return isOwnerOrStaff(ctx, booking.UserID)
 }
 
+func (c *DocumentController) GetTypes(ctx *gin.Context) {
+	types, err := c.documentService.GetTypes()
+	if err != nil {
+		response.InternalError(ctx, err.Error())
+		return
+	}
+	response.OK(ctx, types)
+}
+
 func (c *DocumentController) GetByBookingID(ctx *gin.Context) {
 	id, err := parseID(ctx)
 	if err != nil {

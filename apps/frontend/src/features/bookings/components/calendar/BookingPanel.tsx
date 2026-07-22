@@ -2,7 +2,7 @@
 
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
-import { ChevronDown, MapPin, Trash2, Users, Wifi } from "lucide-react";
+import { ChevronDown, Info, MapPin, Trash2, Users, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -320,6 +320,18 @@ export default function BookingPanel({
               <span className="text-xl font-bold text-brand-primary">
                 ฿{totalStats.totalPrice.toLocaleString()}
               </span>
+            </div>
+
+            {/* General disclaimer, not itemized — actual add-on costs (if
+                any) depend on the specific room/request and are decided by
+                staff later, so listing exact items/prices here would imply
+                a precision the system can't back for every room. */}
+            <div className="bg-gray-50 rounded-xl p-3 flex items-start gap-2">
+              <Info size={13} className="text-gray-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-500 leading-relaxed">
+                ราคานี้เป็นค่าห้องเท่านั้น อาจมีค่าใช้จ่ายเพิ่มเติม เช่น ค่าแม่บ้าน ค่าไฟฟ้า
+                หรือค่าบริการอื่นๆ ตามที่เจ้าหน้าที่กำหนดภายหลัง
+              </p>
             </div>
 
             <Button

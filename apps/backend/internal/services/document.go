@@ -21,6 +21,13 @@ func NewDocumentService(documentRepo *repositories.DocumentRepository, storageSe
 	}
 }
 
+// GetTypes lets the frontend resolve a document_type_id by name (e.g.
+// "booking_form") instead of hardcoding the numeric id, which would silently
+// break if the seed order ever changes.
+func (s *DocumentService) GetTypes() ([]models.DocumentTypes, error) {
+	return s.documentRepo.FindAllDocumentTypes()
+}
+
 func (s *DocumentService) GetByBookingID(bookingID uint) ([]dto.DocumentResponse, error) {
 	docs, err := s.documentRepo.FindByBookingID(bookingID)
 	if err != nil {

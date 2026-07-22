@@ -184,17 +184,6 @@ export default function AdminBookingCalendar() {
     await fetchAll();
   };
 
-  // There's no hard-delete endpoint for bookings, and there shouldn't be —
-  // once a booking exists it may already have payments/documents attached,
-  // so removing it would destroy that audit trail. "Delete" from the UI maps
-  // to the "cancelled" status instead; validBookingTransitions on the
-  // backend (booking.go) already rejects this for completed/rejected/
-  // cancelled bookings, so no extra guard is needed here.
-  const handleDeleteBooking = async (id: string) => {
-    await updateBookingStatus(Number(id), { status: "cancelled" });
-    await fetchAll();
-  };
-
   const openBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsDrawerOpen(true);
@@ -613,7 +602,6 @@ export default function AdminBookingCalendar() {
         onClose={() => setIsDrawerOpen(false)}
         onUpdateStatus={handleUpdateStatus}
         onEdit={handleEditBooking}
-        onDelete={handleDeleteBooking}
       />
       
     </div>

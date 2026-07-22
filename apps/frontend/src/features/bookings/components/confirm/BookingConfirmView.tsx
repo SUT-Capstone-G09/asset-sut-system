@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createBooking } from "@/features/bookings/services/booking.service";
 import { calendarDraftKey } from "@/features/bookings/hooks/useBookingCalendar";
-import { createDocument } from "@/features/payment/services/document.service";
-import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
+import { createDocument, getDocumentTypeId } from "@/features/payment/services/document.service";
+import { uploadFile, UPLOAD_FOLDERS, MAX_UPLOAD_SIZE_MB } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
 import {
   CalendarDays,
@@ -18,6 +18,7 @@ import {
   FilePen,
   FileText,
   FileUp,
+  Info,
   Lightbulb,
   MapPin,
   Monitor,
@@ -150,9 +151,21 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
+    const incoming = Array.from(files);
+    const tooLarge = incoming.filter((f) => f.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024);
+    const accepted = incoming.filter((f) => f.size <= MAX_UPLOAD_SIZE_MB * 1024 * 1024);
+
+    if (tooLarge.length > 0) {
+      toast.error(
+        tooLarge.length === 1
+          ? `ไฟล์ "${tooLarge[0].name}" ใหญ่เกินไป (ไม่เกิน ${MAX_UPLOAD_SIZE_MB} MB)`
+          : `ข้าม ${tooLarge.length} ไฟล์ที่ใหญ่เกิน ${MAX_UPLOAD_SIZE_MB} MB`
+      );
+    }
+
     setDocuments((prev) => [
       ...prev,
-      ...Array.from(files).map((file): DocumentEntry => ({ file, source: "manual" })),
+      ...accepted.map((file): DocumentEntry => ({ file, source: "manual" })),
     ]);
   };
 
@@ -207,15 +220,18 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
       // Upload each document — ส่งวันที่จองและชื่อสถานที่เพื่อตั้งชื่อไฟล์และจัด folder
       const bookingDate = draft.timeslots[0]?.date; // "YYYY-MM-DD"
       let uploadFailures = 0;
-      for (const { file } of documents) {
+      for (const { file, source } of documents) {
         try {
           const uploaded = await uploadFile(file, UPLOAD_FOLDERS.BOOKING_DOCS, bookingDate, room.name, booking.id);
+          // "booking_form" for files we generated ourselves (DocumentFormModal)
+          // — we know exactly what they are. "other" for anything the user
+          // attached manually, since MIME type alone can't tell a booking
+          // form from an ID card scan etc. Resolved by name (not a hardcoded
+          // id) so this can't silently break if the seed order ever changes.
+          const documentTypeId = await getDocumentTypeId(source === "generated" ? "booking_form" : "other");
           await createDocument({
             booking_id: booking.id,
-            // "other" (4) — this generic upload slot has no reliable way to tell
-            // a booking form from an ID card scan etc. from MIME type alone, so
-            // guessing "booking_form" for any PDF mislabeled non-form PDFs too.
-            document_type_id: 4,
+            document_type_id: documentTypeId,
             file_name: uploaded.file_name,
             bucket_name: uploaded.bucket_name,
             object_key: uploaded.object_key,
@@ -223,10 +239,11 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
             content_type: uploaded.content_type,
             method_id: 1,
           });
-        } catch {
+        } catch (err) {
           uploadFailures++;
+          const reason = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
           toast.error(
-            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว แต่ต้องอัปโหลดเอกสารนี้ใหม่ในหน้ารายละเอียดการจอง`,
+            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ (${reason}) — การจองถูกบันทึกแล้ว แต่ต้องอัปโหลดเอกสารนี้ใหม่ในหน้ารายละเอียดการจอง`,
             { duration: 10000 }
           );
         }
@@ -453,6 +470,16 @@ export default function BookingConfirmView({ room }: BookingConfirmViewProps) {
                   <span>ราคารวม</span>
                   <span className="text-brand-primary">฿{totalPrice.toLocaleString()}</span>
                 </div>
+              </div>
+
+              {/* General disclaimer, not itemized — see BookingPanel.tsx for
+                  the same wording/rationale. */}
+              <div className="mt-4 bg-gray-50 rounded-xl p-3 flex items-start gap-2">
+                <Info size={13} className="text-gray-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  ราคานี้เป็นค่าห้องเท่านั้น อาจมีค่าใช้จ่ายเพิ่มเติม เช่น ค่าแม่บ้าน ค่าไฟฟ้า
+                  หรือค่าบริการอื่นๆ ตามที่เจ้าหน้าที่กำหนดภายหลัง
+                </p>
               </div>
             </div>
           )}

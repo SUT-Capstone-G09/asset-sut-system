@@ -921,6 +921,9 @@ func (s *LocationService) toLocationResponse(l models.Locations) dto.LocationRes
 		}
 		res.Equipments = append(res.Equipments, eq)
 	}
+	for _, a := range l.Addons {
+		res.Addons = append(res.Addons, toAddonResponse(a))
+	}
 	return res
 }
 

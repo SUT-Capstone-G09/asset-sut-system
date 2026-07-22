@@ -23,8 +23,8 @@ import {
   createBooking,
   BookingPurposeInput,
 } from "@/features/bookings/services/booking.service";
-import { createDocument } from "@/features/payment/services/document.service";
-import { uploadFile, UPLOAD_FOLDERS } from "@/lib/services/upload";
+import { createDocument, getDocumentTypeId } from "@/features/payment/services/document.service";
+import { uploadFile, UPLOAD_FOLDERS, MAX_UPLOAD_SIZE_MB } from "@/lib/services/upload";
 import DocumentFormModal from "@/features/bookings/components/confirm/DocumentFormModal";
 import { HallBookingDraft } from "@/features/bookings/components/hall/HallBookingView";
 import { cn } from "@/lib/utils";
@@ -57,11 +57,19 @@ interface Props {
   room: Room;
 }
 
+// "generated" = created via DocumentFormModal (we know it's the booking
+// form) ; "manual" = user picked it from their device (type is a guess at
+// best) — mirrors the same distinction in BookingConfirmView.tsx.
+interface UploadedFileEntry {
+  file: File;
+  source: "generated" | "manual";
+}
+
 export default function HallBookingConfirm({ room }: Props) {
   const router = useRouter();
   const [draft, setDraft] = useState<HallBookingDraft | null>(null);
   const [note, setNote] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileEntry[]>([]);
   const [generateDoc, setGenerateDoc] = useState(false);
   const [showDocModal, setShowDocModal] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
@@ -97,7 +105,22 @@ export default function HallBookingConfirm({ room }: Props) {
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
-    setUploadedFiles((prev) => [...prev, ...Array.from(files)]);
+    const incoming = Array.from(files);
+    const tooLarge = incoming.filter((f) => f.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024);
+    const accepted = incoming.filter((f) => f.size <= MAX_UPLOAD_SIZE_MB * 1024 * 1024);
+
+    if (tooLarge.length > 0) {
+      toast.error(
+        tooLarge.length === 1
+          ? `ไฟล์ "${tooLarge[0].name}" ใหญ่เกินไป (ไม่เกิน ${MAX_UPLOAD_SIZE_MB} MB)`
+          : `ข้าม ${tooLarge.length} ไฟล์ที่ใหญ่เกิน ${MAX_UPLOAD_SIZE_MB} MB`
+      );
+    }
+
+    setUploadedFiles((prev) => [
+      ...prev,
+      ...accepted.map((file): UploadedFileEntry => ({ file, source: "manual" })),
+    ]);
   };
   const removeFile = (index: number) =>
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
@@ -147,7 +170,7 @@ export default function HallBookingConfirm({ room }: Props) {
       sessionStorage.removeItem(`hall_booking_draft_${room.id}`);
 
       const bookingDate = draft.dates[0];
-      for (const file of uploadedFiles) {
+      for (const { file, source } of uploadedFiles) {
         try {
           const uploaded = await uploadFile(
             file,
@@ -156,9 +179,12 @@ export default function HallBookingConfirm({ room }: Props) {
             room.name,
             booking.id,
           );
+          // Resolved by name (not a hardcoded id) so this can't silently
+          // break if the seed order for document_types ever changes.
+          const documentTypeId = await getDocumentTypeId(source === "generated" ? "booking_form" : "other");
           await createDocument({
             booking_id: booking.id,
-            document_type_id: file.type === "application/pdf" ? 2 : 4,
+            document_type_id: documentTypeId,
             file_name: uploaded.file_name,
             bucket_name: uploaded.bucket_name,
             object_key: uploaded.object_key,
@@ -166,9 +192,10 @@ export default function HallBookingConfirm({ room }: Props) {
             content_type: uploaded.content_type,
             method_id: 1,
           });
-        } catch {
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
           toast.warning(
-            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ — การจองถูกบันทึกแล้ว`,
+            `อัปโหลดเอกสาร "${file.name}" ไม่สำเร็จ (${reason}) — การจองถูกบันทึกแล้ว`,
           );
         }
       }
@@ -360,7 +387,7 @@ export default function HallBookingConfirm({ room }: Props) {
 
               {uploadedFiles.length > 0 && (
                 <div className="mt-4 flex flex-col gap-2">
-                  {uploadedFiles.map((file, i) => (
+                  {uploadedFiles.map(({ file }, i) => (
                     <div
                       key={i}
                       className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl border border-gray-100"
@@ -524,7 +551,7 @@ export default function HallBookingConfirm({ room }: Props) {
           purpose={purposeText}
           onClose={() => setShowDocModal(false)}
           onGenerated={(file) => {
-            setUploadedFiles((prev) => [...prev, file]);
+            setUploadedFiles((prev) => [...prev, { file, source: "generated" }]);
             setGenerateDoc(true);
           }}
         />

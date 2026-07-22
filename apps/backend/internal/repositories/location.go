@@ -250,7 +250,7 @@ func (r *LocationRepository) FindFloorPlanLocationIDs() ([]uint, error) {
 }
 func (r *LocationRepository) FindAllGlobalAddons() ([]models.LocationAddons, error) {
 	var addons []models.LocationAddons
-	err := r.db.Where("location_id IS NULL").Find(&addons).Error
+	err := r.db.Preload("ChargeType").Where("location_id IS NULL").Find(&addons).Error
 	return addons, err
 }
 

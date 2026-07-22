@@ -47,7 +47,6 @@ function AdminBookingPageContent() {
     handleAddBooking,
     handleUpdateBookingStatus,
     handleEditBooking,
-    handleDeleteBooking,
     loading,
   } = useBookingFilters(currentType);
 
@@ -478,7 +477,6 @@ function AdminBookingPageContent() {
         onResetFilters={handleResetFilters}
         onUpdateStatus={handleUpdateBookingStatus}
         onEdit={handleEditBooking}
-        onDelete={handleDeleteBooking}
         isLoading={loading}
       />
 

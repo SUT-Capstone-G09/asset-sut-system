@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,25 @@ const REQUESTER_TYPES = [
 ];
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+// Only follow it if it's an internal, relative path — never hand an absolute/
+// protocol-relative URL from the query string straight to router.push
+// (open-redirect risk if someone crafts a link like /login?redirect=//evil.com).
+function safeRedirect(path: string | null): string | null {
+  if (!path) return null;
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  return path;
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login: saveAuth } = useAuthContext();
   const [tab, setTab] = useState<Tab>("login");
 
@@ -44,7 +62,9 @@ export default function LoginPage() {
     try {
       const result = await loginApi(email, password);
       saveAuth(result.token, result.user);
-      if (result.user.role === "admin") router.push("/admin/dashboard");
+      const redirect = safeRedirect(searchParams.get("redirect"));
+      if (redirect) router.push(redirect);
+      else if (result.user.role === "admin") router.push("/admin/dashboard");
       else if (result.user.role === "staff") router.push("/staff/dashboard");
       else router.push("/");
     } catch (err) {

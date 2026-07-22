@@ -48,6 +48,7 @@ type LocationResponse struct {
 	Status       string                `json:"status"`
 	PricingTiers []PricingTierResponse `json:"pricing_tiers,omitempty"`
 	Equipments   []EquipmentResponse   `json:"equipments,omitempty"`
+	Addons       []AddonResponse       `json:"addons,omitempty"`
 }
 
 // ── Hall Pricing (ราคาเฉพาะโถง / ทำเลทอง) ────────────────────────────────────

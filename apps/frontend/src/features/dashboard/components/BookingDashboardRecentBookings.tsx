@@ -192,7 +192,6 @@ export function BookingDashboardRecentBookings({ bookings, onReload }: { booking
         onClose={() => setSelected(null)}
         onUpdateStatus={handleAction}
         onEdit={() => {}} // No-op for now unless requested
-        onDelete={() => {}} // No-op for now unless requested
       />
 
       {/* Approve Confirmation Modal */}

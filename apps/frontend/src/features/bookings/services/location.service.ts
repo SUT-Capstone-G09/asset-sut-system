@@ -1,5 +1,11 @@
+import { addDays, format } from "date-fns";
 import { apiClient } from "@/lib/services/api-client";
 import { AvailabilityStatus, Room } from "@/features/bookings/types";
+
+// Mirrors MIN_BOOKING_LEAD_DAYS in useBookingCalendar.ts / RoomSearchForm.tsx —
+// dates before this are never actually selectable, so their status shouldn't
+// affect whether a room reads as "available".
+const MIN_BOOKING_LEAD_DAYS = 7;
 
 export interface LocationDTO {
   id: number;
@@ -92,15 +98,31 @@ export async function getMonthlyAvailability(
   );
 }
 
-// Real (booking-derived) availability badge for the current month, from today
-// onward — replaces the old "loc.status === available" heuristic, which only
-// reflects whether the room is in service, not whether it's actually booked.
+// Real (booking-derived) availability badge from the earliest actually-
+// bookable date onward (today + MIN_BOOKING_LEAD_DAYS) — replaces the old
+// "loc.status === available" heuristic, which only reflected whether the
+// room is in service, not whether it's actually booked. Days inside the
+// lead-time window are skipped since no one can book them anyway, so their
+// status shouldn't make an otherwise-open room read as "ว่างบางวัน".
 export async function getRoomAvailabilityBadge(locationId: number): Promise<AvailabilityStatus> {
   const now = new Date();
+  const minBookable = addDays(now, MIN_BOOKING_LEAD_DAYS);
+  // Uses local calendar dates throughout (never toISOString(), which is UTC
+  // and would drift a day behind Thailand's UTC+7 clock between midnight
+  // and 7am).
+  const minBookableStr = format(minBookable, "yyyy-MM-dd");
+
   const map = await getMonthlyAvailability(locationId, now.getFullYear(), now.getMonth() + 1);
-  const todayStr = now.toISOString().slice(0, 10);
-  const hasBookedDay = Object.entries(map).some(
-    ([dateStr, day]) => dateStr >= todayStr && day.status !== "available"
+  // The lead-time cutoff can land in next month (e.g. checking near month-end)
+  // — fetch that month too, otherwise every day in this month's map would be
+  // before minBookableStr and the room would wrongly read as fully open.
+  const crossesMonth = minBookable.getMonth() !== now.getMonth() || minBookable.getFullYear() !== now.getFullYear();
+  const nextMap = crossesMonth
+    ? await getMonthlyAvailability(locationId, minBookable.getFullYear(), minBookable.getMonth() + 1)
+    : {};
+
+  const hasBookedDay = Object.entries({ ...map, ...nextMap }).some(
+    ([dateStr, day]) => dateStr >= minBookableStr && day.status !== "available"
   );
   return hasBookedDay ? "ว่างบางวัน" : "ว่างทุกวัน";
 }

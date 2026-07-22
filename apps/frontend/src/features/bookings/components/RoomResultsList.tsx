@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import RoomCard from "@/features/bookings/components/RoomCard";
+import RoomListRow from "@/features/bookings/components/RoomListRow";
 import { Room, SortOption, ViewMode } from "@/features/bookings/types";
 import { cn } from "@/lib/utils";
 
@@ -122,12 +123,16 @@ export default function RoomResultsList({
           className={cn(
             viewMode === "grid"
               ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-              : "flex flex-col gap-4"
+              : "flex flex-col gap-3"
           )}
         >
-          {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
-          ))}
+          {rooms.map((room) =>
+            viewMode === "grid" ? (
+              <RoomCard key={room.id} room={room} />
+            ) : (
+              <RoomListRow key={room.id} room={room} />
+            )
+          )}
         </div>
       )}
     </div>

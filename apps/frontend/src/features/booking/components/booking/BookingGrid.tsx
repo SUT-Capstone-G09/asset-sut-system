@@ -43,7 +43,6 @@ interface BookingGridProps {
       | "completed",
   ) => void;
   onEdit: (updatedBooking: Booking) => void;
-  onDelete: (id: string) => void;
   isLoading?: boolean;
 }
 
@@ -53,7 +52,6 @@ export default function BookingGrid({
   onResetFilters,
   onUpdateStatus,
   onEdit,
-  onDelete,
   isLoading = false,
 }: BookingGridProps) {
   const router = useRouter();
@@ -200,7 +198,6 @@ export default function BookingGrid({
         onClose={() => setIsDrawerOpen(false)}
         onUpdateStatus={onUpdateStatus}
         onEdit={onEdit}
-        onDelete={onDelete}
         initialMode={drawerMode}
       />
     </div>

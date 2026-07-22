@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Upload, Trash2, KeyRound } from "lucide-react";
+import { Loader2, Upload, Trash2, KeyRound, Eraser, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/lib/context/auth-context";
 import { getMyRequesterProfile, changePasswordApi, RequesterProfile } from "@/features/profile/services/profile.service";
 import { getSavedSignature, saveSignature, deleteSavedSignature, SignatureResult } from "@/lib/services/signature.service";
+import { dataUrlToFile, fileToDataUrl, hasTransparentBackground } from "@/lib/utils/signature-image";
 
 const MAX_SIGNATURE_KB = 500;
 const MIN_SIGNATURE_KB = 2;
@@ -158,9 +160,15 @@ function ChangePasswordSection() {
 
 function SignatureSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
+
+  const [mode, setMode] = useState<"upload" | "draw">("upload");
+  const [isEmpty, setIsEmpty] = useState(true);
   const [saved, setSaved] = useState<SignatureResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -179,6 +187,51 @@ function SignatureSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Draw canvas — mirrors SignaturePad's mouse/touch handling. Only attached
+  // while the draw tab is active (canvas unmounts otherwise).
+  useEffect(() => {
+    if (mode !== "draw") return;
+    const c = canvasRef.current;
+    if (!c) return;
+    setIsEmpty(true);
+    const ctx = c.getContext("2d")!;
+
+    const pos = (e: MouseEvent | TouchEvent) => {
+      const r = c.getBoundingClientRect();
+      const sx = c.width / r.width, sy = c.height / r.height;
+      if ("touches" in e) return { x: (e.touches[0].clientX - r.left) * sx, y: (e.touches[0].clientY - r.top) * sy };
+      return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+    };
+    const down = (e: MouseEvent | TouchEvent) => { e.preventDefault(); drawing.current = true; last.current = pos(e); };
+    const move = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      if (!drawing.current || !last.current) return;
+      const p = pos(e);
+      ctx.beginPath(); ctx.strokeStyle = "#111"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      last.current = p; setIsEmpty(false);
+    };
+    const up = () => { drawing.current = false; last.current = null; };
+
+    c.addEventListener("mousedown", down); c.addEventListener("mousemove", move);
+    c.addEventListener("mouseup", up); c.addEventListener("mouseleave", up);
+    c.addEventListener("touchstart", down, { passive: false }); c.addEventListener("touchmove", move, { passive: false });
+    c.addEventListener("touchend", up);
+    return () => {
+      c.removeEventListener("mousedown", down); c.removeEventListener("mousemove", move);
+      c.removeEventListener("mouseup", up); c.removeEventListener("mouseleave", up);
+      c.removeEventListener("touchstart", down); c.removeEventListener("touchmove", move);
+      c.removeEventListener("touchend", up);
+    };
+  }, [mode]);
+
+  const clearCanvas = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
+    setIsEmpty(true);
+  };
+
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
@@ -195,7 +248,13 @@ function SignatureSection() {
       setError(`ไฟล์เล็กเกินไป (อย่างน้อย ${MIN_SIGNATURE_KB} KB)`);
       return;
     }
-    setUploading(true);
+    const dataUrl = await fileToDataUrl(file);
+    const transparent = await hasTransparentBackground(dataUrl);
+    if (!transparent) {
+      setError("กรุณาใช้ไฟล์ PNG ที่มีพื้นหลังโปร่งใส (ไม่มีพื้นหลังสีทึบ)");
+      return;
+    }
+    setSaving(true);
     try {
       const result = await saveSignature(file);
       setSaved(result);
@@ -203,7 +262,25 @@ function SignatureSection() {
     } catch {
       setError("บันทึกลายเซ็นไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
-      setUploading(false);
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDrawn = async () => {
+    const c = canvasRef.current;
+    if (!c || isEmpty) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const file = await dataUrlToFile(c.toDataURL("image/png"));
+      const result = await saveSignature(file);
+      setSaved(result);
+      clearCanvas();
+      toast.success("บันทึกลายเซ็นสำเร็จ");
+    } catch {
+      setError("บันทึกลายเซ็นไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -221,7 +298,7 @@ function SignatureSection() {
   return (
     <SectionCard title="ลายเซ็นของฉัน">
       <p className="text-xs text-gray-400 mb-3">
-        ใช้สำหรับเซ็นเอกสารคำขออนุญาตใช้สถานที่โดยไม่ต้องวาดใหม่ทุกครั้ง — เฉพาะไฟล์ PNG พื้นหลังโปร่งใส ขนาด {MIN_SIGNATURE_KB}–{MAX_SIGNATURE_KB} KB
+        ใช้สำหรับเซ็นเอกสารคำขออนุญาตใช้สถานที่โดยไม่ต้องวาดใหม่ทุกครั้ง — วาดหรืออัปโหลดไฟล์ PNG พื้นหลังโปร่งใส ขนาด {MIN_SIGNATURE_KB}–{MAX_SIGNATURE_KB} KB
       </p>
       {loadError && (
         <div className="flex items-center justify-between gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3 max-w-xs">
@@ -234,7 +311,7 @@ function SignatureSection() {
       {loading ? (
         <Skeleton className="h-20 w-full max-w-xs" />
       ) : (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="h-20 w-48 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
             {saved ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -243,27 +320,75 @@ function SignatureSection() {
               <span className="text-xs text-gray-300">ยังไม่มีลายเซ็น</span>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png"
-              className="hidden"
-              onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-fit bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold text-sm h-9 flex items-center gap-2 disabled:opacity-50"
-            >
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {saved ? "อัปโหลดใหม่" : "อัปโหลดลายเซ็น"}
-            </Button>
+
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMode("draw")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md border transition-colors",
+                  mode === "draw" ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                )}
+              >
+                <Pencil size={12} /> วาดลายเซ็น
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("upload")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md border transition-colors",
+                  mode === "upload" ? "bg-orange-50 border-brand-primary/40 text-brand-primary font-semibold" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                )}
+              >
+                <Upload size={12} /> อัปโหลดไฟล์
+              </button>
+            </div>
+
+            {mode === "draw" ? (
+              <>
+                <div className={cn("rounded-xl border-2 border-dashed overflow-hidden bg-gray-50", isEmpty ? "border-red-200" : "border-gray-200")}>
+                  <canvas ref={canvasRef} width={600} height={100} className="w-full h-[75px] cursor-crosshair touch-none" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={clearCanvas} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400">
+                    <Eraser size={12} /> ล้าง
+                  </button>
+                  <Button
+                    onClick={handleSaveDrawn}
+                    disabled={isEmpty || saving}
+                    className="w-fit bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold text-xs h-8 px-3 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 size={12} className="animate-spin" /> : null}
+                    บันทึกลายเซ็น
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png"
+                  className="hidden"
+                  onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={saving}
+                  className="w-fit bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold text-sm h-9 flex items-center gap-2 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                  {saved ? "อัปโหลดใหม่" : "อัปโหลดลายเซ็น"}
+                </Button>
+              </>
+            )}
+
             {saved && (
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 disabled:opacity-50 w-fit"
               >
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 ลบลายเซ็น

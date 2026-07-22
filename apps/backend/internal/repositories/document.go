@@ -51,3 +51,9 @@ func (r *DocumentRepository) FindDocumentTypeByID(id uint) (*models.DocumentType
 	err := r.db.First(&dt, id).Error
 	return &dt, err
 }
+
+func (r *DocumentRepository) FindAllDocumentTypes() ([]models.DocumentTypes, error) {
+	var types []models.DocumentTypes
+	err := r.db.Find(&types).Error
+	return types, err
+}

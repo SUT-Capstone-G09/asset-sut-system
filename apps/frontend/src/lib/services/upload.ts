@@ -1,5 +1,10 @@
 import { apiClient } from "./api-client";
 
+// Mirrors maxUploadSize in apps/backend/internal/controllers/upload.go —
+// checking here too lets us reject an oversized file the moment it's picked
+// instead of only after the whole booking form has been submitted.
+export const MAX_UPLOAD_SIZE_MB = 10;
+
 export interface UploadResult {
   bucket_name: string;
   object_key: string;

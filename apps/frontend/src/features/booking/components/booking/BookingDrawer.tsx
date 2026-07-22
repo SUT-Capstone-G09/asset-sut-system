@@ -26,9 +26,9 @@ import {
   User,
   Clock,
   CheckCircle2,
+  XCircle,
   Phone,
   Mail,
-  Trash2,
   AlertCircle,
 } from "lucide-react";
 import { Booking, BOOKING_STATUS_CONFIG } from "../../types/booking";
@@ -86,11 +86,10 @@ const getRecurrenceText = (booking: Booking): string => {
 
 // Mirrors validBookingTransitions in apps/backend/internal/services/booking.go —
 // keeps the dropdown from offering a move the backend will reject anyway.
-// rejected/cancelled/completed are terminal; approved can only move forward
-// to completed (or be cancelled, which isn't one of this dropdown's options).
+// rejected/cancelled/completed are terminal.
 const VALID_NEXT_BOOKING_STATUS: Record<string, string[]> = {
-  pending: ["approved", "rejected"],
-  approved: ["completed"],
+  pending: ["approved", "rejected", "cancelled"],
+  approved: ["completed", "cancelled"],
   rejected: [],
   cancelled: [],
   completed: [],
@@ -110,7 +109,6 @@ interface Props {
       | "completed",
   ) => Promise<void> | void;
   onEdit: (updated: Booking) => void;
-  onDelete: (id: string) => void;
   initialMode?: "view" | "edit";
 }
 
@@ -120,11 +118,11 @@ export default function BookingDrawer({
   onClose,
   onUpdateStatus,
   onEdit,
-  onDelete,
   initialMode = "view",
 }: Props) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const router = useRouter();
 
@@ -184,11 +182,14 @@ export default function BookingDrawer({
     onClose();
   };
 
-  const handleDelete = () => {
-    if (confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกรายการขอจองนี้?")) {
-      onDelete(booking.id);
-      alert("ยกเลิกรายการขอจองสำเร็จ!");
+  const handleCancelConfirm = async () => {
+    setActionLoading(true);
+    try {
+      await onUpdateStatus(booking.id, "cancelled");
+      setShowCancelModal(false);
       onClose();
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -218,6 +219,10 @@ export default function BookingDrawer({
                     onValueChange={async (val) => {
                       if (val === "approved" && booking.status === "pending") {
                         setShowApproveModal(true);
+                        return;
+                      }
+                      if (val === "cancelled") {
+                        setShowCancelModal(true);
                         return;
                       }
                       try {
@@ -269,6 +274,16 @@ export default function BookingDrawer({
                         <div className="flex items-center gap-1.5">
                           <div className="size-1.5 rounded-full bg-red-500" />
                           <span>ปฏิเสธ</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem
+                        value="cancelled"
+                        disabled={!isStatusSelectable("cancelled")}
+                        className="text-xs font-bold text-slate-600 focus:bg-slate-50"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div className="size-1.5 rounded-full bg-slate-400" />
+                          <span>ยกเลิก</span>
                         </div>
                       </SelectItem>
 
@@ -588,22 +603,13 @@ export default function BookingDrawer({
               </h3>
 
               <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={handleEditClick}
-                    className="h-12 rounded-[7px] bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Pencil size={16} />
-                    แก้ไขข้อมูล
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="h-12 rounded-[7px] bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Trash2 size={16} />
-                    ยกเลิกคำขอจอง
-                  </button>
-                </div>
+                <button
+                  onClick={handleEditClick}
+                  className="h-12 rounded-[7px] bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Pencil size={16} />
+                  แก้ไขข้อมูล
+                </button>
               </div>
             </div>
           </div>
@@ -674,6 +680,50 @@ export default function BookingDrawer({
                   )}
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {booking && (
+        <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+          <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-0 overflow-hidden z-[300]">
+            <DialogHeader className="p-6 pb-0 border-b-0">
+              <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <XCircle className="text-slate-400" size={24} />
+                ยืนยันการยกเลิกคำขอจอง
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="p-6 pt-4">
+              <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <AlertCircle className="text-slate-400 shrink-0 mt-0.5" size={18} />
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                  คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอจองนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowCancelModal(false)}
+                className="h-11 rounded-[7px] font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+              >
+                ปิด
+              </Button>
+              <Button
+                onClick={handleCancelConfirm}
+                disabled={actionLoading}
+                className="h-11 rounded-[7px] font-bold bg-red-600 hover:bg-red-700 text-white min-w-[120px]"
+              >
+                {actionLoading ? (
+                  <div className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  "ยืนยันการยกเลิก"
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

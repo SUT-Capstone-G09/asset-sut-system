@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   addMonths, subMonths, format,
   addDays, isBefore, startOfDay,
@@ -57,6 +58,7 @@ interface CalendarDraft {
 
 export function useBookingCalendar(room: Room) {
   const { isAuthenticated } = useAuthContext();
+  const router = useRouter();
   const today = startOfDay(new Date());
   const minBookableDate = addDays(today, MIN_BOOKING_LEAD_DAYS);
   const [currentMonth, setCurrentMonth] = useState(today);
@@ -162,6 +164,10 @@ export function useBookingCalendar(room: Room) {
   const toggleDate = (date: Date) => {
     if (!isAuthenticated) {
       toast.error("กรุณาเข้าสู่ระบบก่อนเลือกวันจอง");
+      // Send them to login with this room's page as the return trip — once
+      // they're back, the sessionStorage draft effect above restores
+      // whatever they'd already picked, so nothing is lost.
+      router.push(`/login?redirect=${encodeURIComponent(`/bookings/${room.id}`)}`);
       return;
     }
     if (isBefore(startOfDay(date), minBookableDate)) return;
