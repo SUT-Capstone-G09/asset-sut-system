@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, Award, ChevronLeft, ChevronRight, ShieldCheck, Users, ClipboardCheck, ArrowUpRight, Store, CheckSquare, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { SearchIcon, Award, ChevronLeft, ChevronRight, ShieldCheck, Users, ClipboardCheck, ArrowUpRight, Store, CheckSquare, MoreHorizontal, Eye, Pencil, Trash2, ClipboardList, CheckCircle2, AlertTriangle, Clock, CalendarDays } from "lucide-react";
 import { mockEvaluations, evalCategories } from "../../data/mock-evals";
 import { cn } from "@/lib/utils";
 import { EvaluatorType } from "../../types/evaluation";
@@ -118,12 +118,14 @@ export function AdminEvalTable() {
 
   // Statistics (Global action counts)
   const stats = useMemo(() => {
-    const total = mockEvaluations.length;
-    const adminCount = mockEvaluations.filter(e => e.evaluatorType === "admin").length;
-    const staffCount = mockEvaluations.filter(e => e.evaluatorType === "staff").length;
-    const externalCount = mockEvaluations.filter(e => e.evaluatorType === "external").length;
-    return { total, adminCount, staffCount, externalCount };
-  }, []);
+    const totalStores = storeSummaries.length;
+    const completedStores = storeSummaries.filter(s => s.status === 'ผ่าน').length;
+    const completionRate = totalStores > 0 ? Math.round((completedStores / totalStores) * 100) : 0;
+    const discrepancyStores = storeSummaries.filter(s => s.warningCount > 0).length;
+    const avgScore = totalStores > 0 ? (storeSummaries.reduce((acc, s) => acc + s.avgScore, 0) / totalStores).toFixed(1) : "0.0";
+    
+    return { totalStores, completedStores, completionRate, discrepancyStores, avgScore };
+  }, [storeSummaries]);
 
   const getCategoryBadge = (catId: string) => {
     const cat = evalCategories.find((c) => c.id === catId);
@@ -154,42 +156,79 @@ export function AdminEvalTable() {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Actions */}
+      <div className="flex justify-end mb-4">
+        <div className="flex items-center gap-3 px-4 py-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition-colors shadow-sm w-fit">
+          <CalendarDays className="w-5 h-5 text-slate-500" />
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400 font-bold leading-none mb-1">เลือกช่วงวันที่</span>
+            <span className="text-sm font-bold text-slate-700 leading-none">01/10/2023 - 31/10/2023</span>
+          </div>
+        </div>
+      </div>
+
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center justify-between">
+        {/* Card 1: Total */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-between min-h-[140px]">
           <div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">การประเมินทั้งหมด</p>
-            <p className="text-3xl font-bold text-slate-900">{stats.total} <span className="text-sm font-medium text-slate-400">ครั้ง</span></p>
+            <p className="text-sm font-bold text-slate-800 mb-2">รายการประเมินทั้งหมด</p>
+            <p className="text-3xl font-extrabold text-slate-900">{stats.totalStores} <span className="text-base font-bold text-slate-600">ร้านค้า</span></p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-            <ClipboardCheck className="w-6 h-6" />
+          <div className="flex items-center gap-1.5 mt-4 text-slate-500">
+            <ClipboardList className="w-4 h-4" />
+            <span className="text-xs font-semibold">คำขอประเมินรอบปัจจุบัน</span>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">แอดมินประเมิน</p>
-            <p className="text-3xl font-bold text-violet-700">{stats.adminCount} <span className="text-sm font-medium text-violet-400">ครั้ง</span></p>
+
+        {/* Card 2: Completed */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-between min-h-[140px] relative overflow-hidden">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-bold text-slate-800 mb-2">ประเมินเสร็จสิ้น</p>
+              <p className="text-3xl font-extrabold text-slate-900">{stats.completedStores} <span className="text-base font-bold text-slate-600">ร้านค้า</span></p>
+            </div>
+            <div className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-extrabold">
+              {stats.completionRate}%
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center text-violet-500">
-            <ShieldCheck className="w-6 h-6" />
+          <div className="flex items-center gap-1.5 mt-4 text-slate-600">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="text-xs font-bold">เสร็จครบ 3 ฝ่าย</span>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">บุคลากรประเมิน</p>
-            <p className="text-3xl font-bold text-blue-700">{stats.staffCount} <span className="text-sm font-medium text-blue-400">ครั้ง</span></p>
+
+        {/* Card 3: Discrepancy */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-between min-h-[140px] relative overflow-hidden">
+          <div className="flex justify-between items-start">
+            <div className="max-w-[70%]">
+              <p className="text-sm font-bold text-slate-800 mb-2 leading-tight">คะแนนขัดแย้ง<br/><span className="text-xs text-slate-500 uppercase">(Discrepancy Flags)</span></p>
+              <p className="text-3xl font-extrabold text-slate-900">{stats.discrepancyStores} <span className="text-base font-bold text-slate-600">ร้านค้า</span></p>
+            </div>
+            <div className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-[10px] font-extrabold">
+              Attention
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
-            <CheckSquare className="w-6 h-6" />
+          <div className="flex items-center gap-1.5 mt-4 text-slate-600">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-xs font-semibold">คะแนนผู้ตรวจ 3 กลุ่มต่างกัน &gt; 1.5</span>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">บุคคลภายนอกประเมิน</p>
-            <p className="text-3xl font-bold text-emerald-700">{stats.externalCount} <span className="text-sm font-medium text-emerald-400">ครั้ง</span></p>
+
+        {/* Card 4: Average Score */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-between min-h-[140px] relative overflow-hidden">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-bold text-slate-800 mb-2">คะแนนเฉลี่ยภาพรวม</p>
+              <p className="text-3xl font-extrabold text-slate-900">{stats.avgScore} <span className="text-base font-bold text-slate-500">/ 100</span></p>
+            </div>
+            <div className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-extrabold">
+              {stats.avgScore}%
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
-            <Users className="w-6 h-6" />
+          <div className="flex items-center gap-1.5 mt-4 text-slate-500">
+            <Clock className="w-4 h-4 shrink-0" />
+            <span className="text-[11px] font-semibold">รอแอดมิน (5) / รอนอกสแกน (10)</span>
           </div>
         </div>
       </div>
@@ -249,7 +288,7 @@ export function AdminEvalTable() {
             <TableHeader className="bg-slate-50/80 border-b border-slate-200">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="text-slate-600 font-bold py-4 pl-6">ร้านค้า / สถานที่</TableHead>
-                <TableHead className="text-slate-600 font-bold py-4 w-[15%]">หมวดหมู่</TableHead>
+                <TableHead className="text-slate-600 font-bold py-4 w-[15%]">ประเภทร้านค้า</TableHead>
                 <TableHead className="text-slate-600 font-bold py-4 w-[22%]">การประเมินสะสม</TableHead>
                 <TableHead className="text-slate-600 font-bold py-4 w-[12%]">วันที่ตรวจล่าสุด</TableHead>
                 <TableHead className="text-slate-600 font-bold py-4 w-[10%] text-center">คะแนนเฉลี่ย</TableHead>
@@ -327,13 +366,8 @@ export function AdminEvalTable() {
                       {formatDateTh(item.latestAuditDate)}
                     </TableCell>
                     
-                    <TableCell className="py-4 align-top pt-5 text-center">
-                      <div className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
-                        <Award className={cn("w-4 h-4", item.avgScore < 50 ? "text-red-500" : item.avgScore < 80 ? "text-amber-500" : "text-emerald-500")} />
-                        <span className={cn("font-bold text-sm", item.avgScore < 50 ? "text-red-700" : item.avgScore < 80 ? "text-amber-700" : "text-emerald-700")}>
-                          {item.avgScore}
-                        </span>
-                      </div>
+                    <TableCell className="py-4 align-top pt-5 text-center text-slate-700 font-bold text-sm">
+                      {item.avgScore}
                     </TableCell>
                     
                     <TableCell className="py-4 align-top pt-5 text-center">

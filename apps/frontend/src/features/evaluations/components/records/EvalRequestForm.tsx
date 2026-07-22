@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -12,22 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Building2,
-  Store,
-  Users,
-  UserCog,
-  Mail,
-  QrCode,
-  KeyRound,
-  ChevronDown,
-  ListChecks,
+  MapPin,
+  CalendarDays,
+  UserPlus,
+  ClipboardList,
   Send,
+  Calendar as CalendarIcon,
+  Globe,
+  KeyRound,
+  Shield,
   X,
-  Check,
-  FolderOpen,
-  Eye,
-  AlertCircle,
+  Check
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // ── Static options ─────────────────────────────────────────────────
 const ZONE_OPTIONS = [
@@ -50,59 +46,16 @@ const STORE_OPTIONS = [
 ]
 
 const ASSESSMENT_SETS = [
-  { id: "set-1", name: "Hygiene Standard v2", count: 24 },
-  { id: "set-2", name: "Service Quality (SQ-Core)", count: 18 },
-  { id: "set-3", name: "Safety Compliance 2024", count: 12 },
+  "Standard Retail Hygiene 2024",
+  "Service Quality (SQ-Core)",
+  "Safety Compliance 2024",
 ]
 
-const MOCK_CRITERIA = {
-  "set-1": [
-    {
-      categoryId: "cat-1",
-      categoryName: "สุขอนามัยและความสะอาด",
-      color: "text-red-600 bg-red-50 border-red-200",
-      dot: "bg-red-500",
-      items: [
-        { id: "c1", code: "#CRIT-101", name: "ความสะอาดพื้นผิวสัมผัสและอุปกรณ์ปรุงอาหาร", desc: "ดูแลรักษาพื้นผิวให้สะอาดตามมาตรฐานสุขอนามัย" },
-        { id: "c2", code: "#CRIT-102", name: "การจัดเก็บวัตถุดิบและอุณหภูมิที่เหมาะสม", desc: "ควบคุมอุณหภูมิตู้เย็นและแช่แข็งตามเกณฑ์" },
-        { id: "c3", code: "#CRIT-103", name: "การแต่งกายและสุขลักษณะส่วนบุคคลของพนักงาน", desc: "สวมชุดพนักงาน หมวก ถุงมือ ครบถ้วน" },
-      ],
-    },
-    {
-      categoryId: "cat-2",
-      categoryName: "มาตรฐานธุรกรรม",
-      color: "text-blue-600 bg-blue-50 border-blue-200",
-      dot: "bg-blue-500",
-      items: [
-        { id: "c4", code: "#CRIT-201", name: "ความน่าเชื่อถือของการชำระเงินดิจิทัล", desc: "ระบบชำระเงิน QR ใช้งานได้ตลอดเวลา" },
-        { id: "c5", code: "#CRIT-202", name: "ราคาสินค้าตรงตามป้ายที่ติดแสดง", desc: "ราคาถูกต้องและโปร่งใส" },
-      ],
-    },
-  ],
-  "set-2": [
-    {
-      categoryId: "cat-3",
-      categoryName: "คุณภาพการบริการ",
-      color: "text-amber-600 bg-amber-50 border-amber-200",
-      dot: "bg-amber-500",
-      items: [
-        { id: "c6", code: "#CRIT-301", name: "ความรวดเร็วในการให้บริการ", desc: "เวลาตอบสนองต่อลูกค้าไม่เกินมาตรฐาน" },
-        { id: "c7", code: "#CRIT-302", name: "ความสุภาพและมนุษยสัมพันธ์", desc: "กิริยามารยาทและการสื่อสารกับลูกค้า" },
-      ],
-    },
-  ],
-  "set-3": [
-    {
-      categoryId: "cat-4",
-      categoryName: "ความปลอดภัย",
-      color: "text-emerald-600 bg-emerald-50 border-emerald-200",
-      dot: "bg-emerald-500",
-      items: [
-        { id: "c8", code: "#CRIT-401", name: "อุปกรณ์ดับเพลิงพร้อมใช้งาน", desc: "ถังดับเพลิงไม่หมดอายุ อยู่ในตำแหน่งที่เข้าถึงง่าย" },
-      ],
-    },
-  ],
-} as Record<string, { categoryId: string; categoryName: string; color: string; dot: string; items: { id: string; code: string; name: string; desc: string }[] }[]>
+const PREVIEW_DATA = [
+  { id: 1, tag: "HYGIENE", tagColor: "bg-emerald-100 text-emerald-700", text: "ความสะอาดพื้นที่เตรียมอาหารและอุปกรณ์?", score: 5 },
+  { id: 2, tag: "SERVICE", tagColor: "bg-amber-100 text-amber-700", text: "ความรวดเร็วในการให้บริการลูกค้า?", score: 3 },
+  { id: 3, tag: "HYGIENE", tagColor: "bg-emerald-100 text-emerald-700", text: "การจัดเก็บวัตถุดิบและควบคุมอุณหภูมิ?", score: 5 },
+]
 
 // ── Types ─────────────────────────────────────────────────
 type EvaluatorType = "internal" | "external"
@@ -116,11 +69,10 @@ export function EvalRequestForm() {
   const [zone, setZone] = useState("")
   const [store, setStore] = useState("")
   const [evaluatorType, setEvaluatorType] = useState<EvaluatorType>("internal")
-  const [assignedEvaluator, setAssignedEvaluator] = useState("")
   const [channels, setChannels] = useState<ChannelType[]>(["email"])
-  const [selectedSet, setSelectedSet] = useState("")
-  const [checkedCriteria, setCheckedCriteria] = useState<string[]>([])
-  const [submitted, setSubmitted] = useState(false)
+  const [selectedSet, setSelectedSet] = useState("Standard Retail Hygiene 2024")
+  const [emails, setEmails] = useState(["inspector.one@sut.ac.th", "admin.eval@asset.com"])
+  const [newEmail, setNewEmail] = useState("")
 
   const toggleChannel = (c: ChannelType) => {
     setChannels((prev) =>
@@ -128,79 +80,60 @@ export function EvalRequestForm() {
     )
   }
 
-  const handleSetChange = (setId: string) => {
-    setSelectedSet(setId)
-    // auto-select all criteria in the new set
-    const cats = MOCK_CRITERIA[setId] ?? []
-    setCheckedCriteria(cats.flatMap((c) => c.items.map((i) => i.id)))
+  const removeEmail = (emailToRemove: string) => {
+    setEmails(emails.filter(e => e !== emailToRemove))
   }
 
-  const toggleCriterion = (id: string) => {
-    setCheckedCriteria((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
-  }
-
-  const currentCriteria = MOCK_CRITERIA[selectedSet] ?? []
-  const totalCriteria = currentCriteria.reduce((s, c) => s + c.items.length, 0)
-  const selectedCount = checkedCriteria.length
-
-  const handleSubmit = () => {
-    setSubmitted(true)
-    setTimeout(() => router.push("/admin/tenants/eval"), 1200)
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newEmail.trim()) {
+      e.preventDefault()
+      if (!emails.includes(newEmail.trim())) {
+        setEmails([...emails, newEmail.trim()])
+      }
+      setNewEmail("")
+    }
   }
 
   // ── Reusable section wrapper
-  const Section = ({ title, children }: { title?: string; children: React.ReactNode }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {title && (
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>
-        </div>
-      )}
-      <div className="px-6 py-5">{children}</div>
+  const Section = ({ icon: Icon, title, children, className = "" }: { icon: any; title: string; children: React.ReactNode; className?: string }) => (
+    <div className={cn("bg-white rounded-xl border border-slate-200 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] relative overflow-hidden", className)}>
+      <div className="flex items-center gap-2 mb-6">
+        <Icon className="w-5 h-5 text-slate-800" />
+        <h2 className="text-[15px] font-bold text-slate-900">{title}</h2>
+      </div>
+      <div className="relative z-10">{children}</div>
     </div>
   )
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+    <div className="max-w-4xl space-y-6 pb-20">
 
-      {/* ── Zone / Store ─── */}
-      <Section title="สถานที่และร้านค้า">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Zone dropdown */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5" /> โซน / อาคาร
-            </label>
+      {/* ── 1. Location / Store ─── */}
+      <Section icon={MapPin} title="ข้อมูลสถานที่และร้านค้า">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">โซน / อาคาร</label>
             <Select value={zone} onValueChange={setZone}>
-              <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-6 text-sm text-slate-700 focus:ring-orange-400/50 focus:border-orange-400 focus-visible:ring-orange-400/50">
-                <SelectValue placeholder="เลือกโซน / อาคาร" />
+              <SelectTrigger className="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 h-11 focus:ring-orange-400 focus:border-orange-400">
+                <SelectValue placeholder="เลือกโซนหรืออาคาร" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-150 shadow-md">
+              <SelectContent>
                 {ZONE_OPTIONS.map((z) => (
-                  <SelectItem key={z} value={z} className="rounded-lg text-slate-700 cursor-pointer">
-                    {z}
-                  </SelectItem>
+                  <SelectItem key={z} value={z}>{z}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Store dropdown */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Store className="w-3.5 h-3.5" /> ชื่อร้านค้า
-            </label>
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">ชื่อร้านค้า</label>
             <Select value={store} onValueChange={setStore}>
-              <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-6 text-sm text-slate-700 focus:ring-orange-400/50 focus:border-orange-400 focus-visible:ring-orange-400/50">
-                <SelectValue placeholder="เลือกร้านค้า" />
+              <SelectTrigger className="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 h-11 focus:ring-orange-400 focus:border-orange-400">
+                <SelectValue placeholder="เลือกชื่อร้านค้า" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-150 shadow-md">
+              <SelectContent>
                 {STORE_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s} className="rounded-lg text-slate-700 cursor-pointer">
-                    {s}
-                  </SelectItem>
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -208,246 +141,210 @@ export function EvalRequestForm() {
         </div>
       </Section>
 
-      {/* ── Evaluator Type ─── */}
-      <Section title="ประเภทผู้ประเมิน">
-        <div className="grid grid-cols-2 gap-3">
-          {(["internal", "external"] as EvaluatorType[]).map((type) => {
-            const isSelected = evaluatorType === type
-            const Icon = type === "internal" ? UserCog : Users
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setEvaluatorType(type)}
-                className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all duration-150 text-left ${
-                  isSelected
-                    ? "border-orange-400 bg-orange-50/60"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
-                }`}
-              >
-                <div className={`mt-0.5 p-2 rounded-lg shrink-0 ${isSelected ? "bg-orange-100 text-orange-600" : "bg-slate-100 text-slate-500"}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className={`text-sm font-bold ${isSelected ? "text-orange-700" : "text-slate-700"}`}>
-                    {type === "internal" ? "ภายใน (Internal)" : "ภายนอก (External)"}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {type === "internal"
-                      ? "แอดมินหรือบุคลากร SUT ที่ได้รับมอบหมาย"
-                      : "ผู้ตรวจสอบบุคคลที่สามหรือลูกค้า"}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Assigned evaluator */}
-        <div className="mt-4 space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            ผู้ประเมินที่มอบหมาย (อีเมลหรือชื่อ)
-          </label>
-          <input
-            type="text"
-            value={assignedEvaluator}
-            onChange={(e) => setAssignedEvaluator(e.target.value)}
-            placeholder="เช่น inspector@sut.ac.th"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 transition-colors"
-          />
-        </div>
-      </Section>
-
-      {/* ── Assessment Channels ─── */}
-      <Section title="ช่องทางการประเมิน">
-        <div className="grid grid-cols-3 gap-3">
-          {(
-            [
-              { id: "email", label: "Email Invitation", Icon: Mail },
-              { id: "qr", label: "QR Code Link", Icon: QrCode },
-              { id: "sso", label: "SSO Login Required", Icon: KeyRound },
-            ] as { id: ChannelType; label: string; Icon: React.ElementType }[]
-          ).map(({ id, label, Icon }) => {
-            const active = channels.includes(id)
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggleChannel(id)}
-                className={`flex flex-col items-center justify-center gap-2.5 py-5 rounded-xl border-2 transition-all duration-150 ${
-                  active
-                    ? "border-orange-400 bg-orange-50/60 text-orange-600"
-                    : "border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-bold uppercase tracking-wide">{label}</span>
-                {active && (
-                  <span className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
-                    <Check className="w-2.5 h-2.5 text-white" />
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </Section>
-
-      {/* ── Question Set ─── */}
-      <Section title="ชุดคำถามและเกณฑ์การประเมิน">
-        {/* Set selector */}
-        <div className="space-y-1.5 mb-5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <ListChecks className="w-3.5 h-3.5" /> เลือกชุดคำถาม
-          </label>
-          <Select value={selectedSet} onValueChange={handleSetChange}>
-            <SelectTrigger className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-6 text-sm text-slate-700 focus:ring-orange-400/50 focus:border-orange-400 focus-visible:ring-orange-400/50">
-              <SelectValue placeholder="-- เลือกชุดคำถาม --" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-150 shadow-md">
-              {ASSESSMENT_SETS.map((s) => (
-                <SelectItem key={s.id} value={s.id} className="rounded-lg text-slate-700 cursor-pointer">
-                  {s.name} ({s.count} ข้อ)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Criteria list */}
-        {selectedSet ? (
-          <>
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-bold text-slate-700">เลือกเกณฑ์การประเมิน</span>
-              </div>
-              <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
-                เลือก {selectedCount} / {totalCriteria} ข้อ
-              </span>
+      {/* ── 2. Evaluation Period ─── */}
+      <Section icon={CalendarDays} title="ระยะเวลาการประเมิน">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">วันที่เริ่มประเมิน</label>
+            <div className="relative">
+              <input type="text" placeholder="mm/dd/yyyy" className="w-full h-11 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent" />
+              <CalendarIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
             </div>
-
-            <div className="space-y-4">
-              {currentCriteria.map((cat) => (
-                <div key={cat.categoryId}>
-                  {/* Category label */}
-                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold mb-2 ${cat.color}`}>
-                    <span className={`w-2 h-2 rounded-full ${cat.dot}`} />
-                    <FolderOpen className="w-3 h-3" />
-                    {cat.categoryName}
-                  </div>
-
-                  {/* Criterion rows */}
-                  <div className="space-y-2">
-                    {cat.items.map((item) => {
-                      const checked = checkedCriteria.includes(item.id)
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => toggleCriterion(item.id)}
-                          className={`w-full flex items-start gap-3 px-4 py-3 rounded-xl border transition-all duration-150 text-left ${
-                            checked
-                              ? "border-orange-300 bg-orange-50/50"
-                              : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          {/* Checkbox */}
-                          <span
-                            className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              checked
-                                ? "bg-orange-500 border-orange-500"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {checked && <Check className="w-3 h-3 text-white" />}
-                          </span>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[11px] font-mono font-bold text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">
-                                {item.code}
-                              </span>
-                              <span className="text-sm font-semibold text-slate-800">
-                                {item.name}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
-                          </div>
-
-                          {/* Rating scale */}
-                          <div className="flex items-center gap-1 shrink-0">
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <span
-                                key={n}
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                                  n === 5
-                                    ? "bg-slate-800 text-white"
-                                    : "bg-slate-100 text-slate-400"
-                                }`}
-                              >
-                                {n}
-                              </span>
-                            ))}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-            <AlertCircle className="w-8 h-8 opacity-40" />
-            <p className="text-sm font-medium">กรุณาเลือกชุดคำถามก่อน</p>
-            <p className="text-xs text-slate-400">เกณฑ์การประเมินจะแสดงที่นี่</p>
           </div>
-        )}
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">วันที่สิ้นสุด</label>
+            <div className="relative">
+              <input type="text" placeholder="mm/dd/yyyy" className="w-full h-11 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent" />
+              <CalendarIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">กำหนดส่งรายงาน (Due Date)</label>
+            <div className="relative">
+              <input type="text" placeholder="mm/dd/yyyy" className="w-full h-11 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent" />
+              <CalendarIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
+            </div>
+          </div>
+        </div>
       </Section>
 
-      {/* ── Preview ─── */}
-      {selectedSet && checkedCriteria.length > 0 && (
-        <Section title="ตัวอย่างคำถาม (Preview)">
-          <ol className="space-y-2.5 list-none">
-            {currentCriteria
-              .flatMap((cat) => cat.items)
-              .filter((item) => checkedCriteria.includes(item.id))
-              .map((item, idx) => (
-                <li key={item.id} className="flex items-start justify-between gap-4">
-                  <span className="text-sm text-slate-700">
-                    <span className="font-semibold text-slate-500 mr-2">{idx + 1}.</span>
-                    {item.name}
-                  </span>
-                  <span className="shrink-0 text-xs text-slate-400 font-medium whitespace-nowrap">
-                    (Rating 1-5)
-                  </span>
-                </li>
+      {/* ── 3. Evaluator Assignment ─── */}
+      <Section icon={UserPlus} title="การกำหนดผู้ประเมิน">
+        <Shield className="absolute -bottom-8 -right-8 w-40 h-40 text-slate-100 z-0 opacity-50" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => setEvaluatorType("internal")}
+            className={cn(
+              "flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-150 relative",
+              evaluatorType === "internal" 
+                ? "border-orange-500 bg-orange-50/30" 
+                : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <KeyRound className={cn("w-4 h-4", evaluatorType === "internal" ? "text-orange-600" : "text-slate-500")} />
+              <span className="font-semibold text-[14px] text-slate-800">Internal (SSO Login)</span>
+            </div>
+            <p className="text-xs text-slate-500 pl-6">สำหรับเจ้าหน้าที่หรือผู้ตรวจประเมินจากส่วนกลาง (Inspectors)</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setEvaluatorType("external")}
+            className={cn(
+              "flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-150",
+              evaluatorType === "external" 
+                ? "border-orange-500 bg-orange-50/30" 
+                : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Globe className={cn("w-4 h-4", evaluatorType === "external" ? "text-orange-600" : "text-slate-500")} />
+              <span className="font-semibold text-[14px] text-slate-800">External (Guest/Public)</span>
+            </div>
+            <p className="text-xs text-slate-500 pl-6">สำหรับลูกค้าภายนอกหรือผู้ใช้บริการทั่วไป</p>
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs text-slate-500 font-medium">ระบุอีเมลผู้ประเมิน (Inspectors Email)</label>
+          <div className="flex flex-wrap items-center gap-2 p-2 min-h-11 bg-white border border-slate-200 rounded-lg focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent">
+            {emails.map(email => (
+              <span key={email} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-medium rounded-full">
+                {email}
+                <button type="button" onClick={() => removeEmail(email)} className="hover:text-slate-300"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+            <input
+              type="text"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              onKeyDown={handleEmailKeyDown}
+              placeholder={emails.length === 0 ? "ใส่อีเมลแล้วกด Enter..." : "เพิ่มอีเมล..."}
+              className="flex-1 min-w-[120px] text-sm text-slate-700 focus:outline-none bg-transparent"
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ── 4. Question Set and Criteria ─── */}
+      <Section icon={ClipboardList} title="ชุดคำถามและเกณฑ์การตัดสิน">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-xs text-slate-500 font-medium">เลือกชุดคำถาม (Question Set)</label>
+            <Select value={selectedSet} onValueChange={setSelectedSet}>
+              <SelectTrigger className="w-full bg-white border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 h-11 focus:ring-orange-400 focus:border-orange-400">
+                <SelectValue placeholder="เลือกชุดคำถาม" />
+              </SelectTrigger>
+              <SelectContent>
+                {ASSESSMENT_SETS.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="bg-slate-50/50 rounded-lg border border-slate-100 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-700">พรีวิวชุดคำถาม</h3>
+              <span className="text-xs text-slate-500 font-medium">ทั้งหมด 15 ข้อ</span>
+            </div>
+            
+            <div className="space-y-3">
+              {PREVIEW_DATA.map((item, idx) => (
+                <div key={idx} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col gap-2">
+                    <span className={cn("inline-flex w-fit px-2 py-0.5 rounded text-[10px] font-bold tracking-wide", item.tagColor)}>
+                      {item.tag}
+                    </span>
+                    <span className="text-sm text-slate-800 font-medium">{item.text}</span>
+                  </div>
+                  <div className="text-sm text-slate-500 font-medium shrink-0">
+                    Score: {item.score} pts
+                  </div>
+                </div>
               ))}
-          </ol>
-        </Section>
-      )}
+            </div>
+            <div className="mt-4 text-center">
+              <button type="button" className="text-xs font-semibold text-slate-400 hover:text-slate-600">แสดงเพิ่มเติม...</button>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── 5. Publishing Channels ─── */}
+      <Section icon={Send} title="ช่องทางการเผยแพร่">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <label className={cn(
+            "flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors",
+            channels.includes("email") ? "border-slate-300 bg-slate-50/50" : "border-slate-200 bg-white hover:bg-slate-50"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded flex items-center justify-center shrink-0 border",
+              channels.includes("email") ? "bg-slate-900 border-slate-900" : "bg-white border-slate-300"
+            )}>
+              {channels.includes("email") && <Check className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <input type="checkbox" className="hidden" checked={channels.includes("email")} onChange={() => toggleChannel("email")} />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-900">Email Invitation</span>
+              <span className="text-xs text-slate-500">ส่งผ่านทางอีเมล</span>
+            </div>
+          </label>
+
+          <label className={cn(
+            "flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors",
+            channels.includes("qr") ? "border-slate-300 bg-slate-50/50" : "border-slate-200 bg-white hover:bg-slate-50"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded flex items-center justify-center shrink-0 border",
+              channels.includes("qr") ? "bg-slate-900 border-slate-900" : "bg-white border-slate-300"
+            )}>
+              {channels.includes("qr") && <Check className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <input type="checkbox" className="hidden" checked={channels.includes("qr")} onChange={() => toggleChannel("qr")} />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-900">QR Code</span>
+              <span className="text-xs text-slate-500">สร้างคิวอาร์โค้ด</span>
+            </div>
+          </label>
+
+          <label className={cn(
+            "flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors",
+            channels.includes("sso") ? "border-slate-300 bg-slate-50/50" : "border-slate-200 bg-white hover:bg-slate-50"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded flex items-center justify-center shrink-0 border",
+              channels.includes("sso") ? "bg-slate-900 border-slate-900" : "bg-white border-slate-300"
+            )}>
+              {channels.includes("sso") && <Check className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <input type="checkbox" className="hidden" checked={channels.includes("sso")} onChange={() => toggleChannel("sso")} />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-900">SSO Portal Link</span>
+              <span className="text-xs text-slate-500">ฝังในระบบพอร์ทัล</span>
+            </div>
+          </label>
+        </div>
+      </Section>
 
       {/* ── Actions ─── */}
-      <div className="flex flex-col items-center gap-3 pt-2">
+      <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
         <Button
-          onClick={handleSubmit}
-          disabled={submitted}
-          className="w-full max-w-sm flex items-center justify-center gap-2 py-6 rounded-2xl font-bold text-sm tracking-wide transition-all duration-150"
+          variant="outline"
+          onClick={() => router.push("/admin/tenants/eval")}
+          className="h-11 px-6 rounded-md font-semibold text-slate-700 bg-white border-slate-300 hover:bg-slate-50"
         >
-          <Send className="w-4 h-4" />
-          {submitted ? "กำลังส่งคำร้อง..." : "สร้างคำร้องประเมิน"}
+          บันทึกร่าง (Save Draft)
         </Button>
         <Button
-          variant="secondary"
           onClick={() => router.push("/admin/tenants/eval")}
-          className="flex items-center gap-1.5 text-sm"
+          className="h-11 px-6 rounded-md font-bold text-white bg-[#FF6B00] hover:bg-[#E66000] gap-2 shadow-sm"
         >
-          <X className="w-3.5 h-3.5" />
-          ยกเลิกและออก
+          <Send className="w-4 h-4" />
+          สร้างและส่งคำขอ (Create & Send)
         </Button>
       </div>
     </div>
